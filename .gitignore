@@ -1,0 +1,4 @@
+multimap.pro.user
+targets/*/*
+!targets/*/*.pro
+Makefile
