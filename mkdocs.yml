@@ -4,7 +4,7 @@ site_url: http://multimap.io
 repo_url: https://bitbucket.org/mtrenkmann/multimap
 site_description: The 1:n key-value store.
 site_author: Martin Trenkmann
-site_favicon: null
+site_favicon: theme/favicon.ico
 copyright: Copyright © 2015 Martin Trenkmann
 google_analytics: null
 remote_branch: null
@@ -15,7 +15,7 @@ pages:
   - Home: index.md
   - C++: cpp.md
   - Java: java.md
-  - Download: java.md
+  - Download: download.md
 
 # Build directories
 theme: yeti  # Take mkdocs' blue color
