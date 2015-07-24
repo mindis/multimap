@@ -98,7 +98,19 @@ Map::Iter Map::GetMutable(const Bytes& key) {
   return Iter(table_->GetUnique(key), callbacks_);
 }
 
+bool Map::Contains(const Bytes& key) const { return table_->Contains(key); }
+
 std::size_t Map::Delete(const Bytes& key) { return table_->Delete(key); }
+
+bool Map::DeleteFirst(const Bytes& key, ValuePredicate predicate) {
+  return Delete(key, predicate, Match::kOne);
+}
+
+bool Map::DeleteFirstEqual(const Bytes& key, const Bytes& value) {
+  return DeleteFirst(key, [&value](const Bytes& current_value) {
+    return current_value == value;
+  });
+}
 
 std::size_t Map::DeleteAll(const Bytes& key, ValuePredicate predicate) {
   return Delete(key, predicate, Match::kAll);
@@ -110,13 +122,10 @@ std::size_t Map::DeleteAllEqual(const Bytes& key, const Bytes& value) {
   });
 }
 
-bool Map::DeleteOne(const Bytes& key, ValuePredicate predicate) {
-  return Delete(key, predicate, Match::kOne);
-}
-
-bool Map::DeleteOneEqual(const Bytes& key, const Bytes& value) {
-  return DeleteOne(key, [&value](const Bytes& current_value) {
-    return current_value == value;
+bool Map::ReplaceFirst(const Bytes& key, const Bytes& old_value,
+                     const Bytes& new_value) {
+  return UpdateFirst(key, [&old_value, &new_value](const Bytes& current_value) {
+    return (current_value == old_value) ? new_value.ToString() : std::string();
   });
 }
 
@@ -127,22 +136,13 @@ std::size_t Map::ReplaceAll(const Bytes& key, const Bytes& old_value,
   });
 }
 
-bool Map::ReplaceOne(const Bytes& key, const Bytes& old_value,
-                     const Bytes& new_value) {
-  return UpdateOne(key, [&old_value, &new_value](const Bytes& current_value) {
-    return (current_value == old_value) ? new_value.ToString() : std::string();
-  });
+bool Map::UpdateFirst(const Bytes& key, ValueFunction function) {
+  return Update(key, function, Match::kOne);
 }
 
 std::size_t Map::UpdateAll(const Bytes& key, ValueFunction function) {
   return Update(key, function, Match::kAll);
 }
-
-bool Map::UpdateOne(const Bytes& key, ValueFunction function) {
-  return Update(key, function, Match::kOne);
-}
-
-bool Map::Contains(const Bytes& key) const { return table_->Contains(key); }
 
 void Map::ForEachKey(KeyProcedure procedure) const {
   table_->ForEachKey(procedure);

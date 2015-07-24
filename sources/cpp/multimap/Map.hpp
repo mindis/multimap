@@ -47,6 +47,8 @@ class Map {
 
   Iter GetMutable(const Bytes& key);
 
+  bool Contains(const Bytes& key) const;
+
   std::size_t Delete(const Bytes& key);
 
   typedef std::function<bool(const Bytes&)> ValuePredicate;
@@ -55,23 +57,21 @@ class Map {
 
   std::size_t DeleteAllEqual(const Bytes& key, const Bytes& value);
 
-  bool DeleteOne(const Bytes& key, ValuePredicate predicate);
+  bool DeleteFirst(const Bytes& key, ValuePredicate predicate);
 
-  bool DeleteOneEqual(const Bytes& key, const Bytes& value);
+  bool DeleteFirstEqual(const Bytes& key, const Bytes& value);
 
   std::size_t ReplaceAll(const Bytes& key, const Bytes& old_value,
                          const Bytes& new_value);
 
-  bool ReplaceOne(const Bytes& key, const Bytes& old_value,
+  bool ReplaceFirst(const Bytes& key, const Bytes& old_value,
                   const Bytes& new_value);
 
   typedef std::function<std::string(const Bytes&)> ValueFunction;
 
   std::size_t UpdateAll(const Bytes& key, ValueFunction function);
 
-  bool UpdateOne(const Bytes& key, ValueFunction function);
-
-  bool Contains(const Bytes& key) const;
+  bool UpdateFirst(const Bytes& key, ValueFunction function);
 
   typedef std::function<void(const Bytes&)> KeyProcedure;
 

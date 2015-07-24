@@ -2,7 +2,7 @@
 site_name: Multimap
 site_url: http://multimap.io
 repo_url: https://bitbucket.org/mtrenkmann/multimap
-site_description: A key-value store that maps each key to a list of n values.
+site_description: The 1:n key-value store.
 site_author: Martin Trenkmann
 site_favicon: null
 copyright: Copyright © 2015 Martin Trenkmann
@@ -12,17 +12,20 @@ remote_name: null
 
 # Documentation layout
 pages:
-- Home: index.md
-- C++: cpp.md
-- Java: java.md
+  - Home: index.md
+  - C++: cpp.md
+  - Java: java.md
+  - Download: java.md
 
 # Build directories
-theme: mkdocs
+theme: yeti  # Take mkdocs' blue color
 theme_dir: docs/theme
 site_dir: site  # docs/site does not work properly
-extra_css: [multimap.css]
+extra_css: ['http://fonts.googleapis.com/css?family=Faster+One', 'http://fonts.googleapis.com/css?family=Inconsolata', multimap.css]
 
 # Others
 include_next_prev: false
+extra:
+  twitter_url: https://twitter.com/multimapio
 
 
