@@ -1,9 +1,7 @@
 CONFIG -= qt
 CONFIG += c++11
 
-QMAKE_CXXFLAGS_RELEASE -= -O1
-QMAKE_CXXFLAGS_RELEASE -= -O2
-QMAKE_CXXFLAGS_RELEASE *= -mavx -maes -O3
+QMAKE_CXXFLAGS_RELEASE += -mavx -maes
 
 INCLUDEPATH += \
     $$PWD/sources/cpp
