@@ -32,10 +32,20 @@ a:focus {
   text-decoration: none;
 }
 
+code {
+  color: #0086B3;
+  background-color: white;
+  font-family: 'Inconsolata', monospace;
+  font-size: 1.1em;
+  margin: 0px;
+  padding: 0px;
+}
+
 pre {
   background-color: white;
   border: 0px;
   border-left: 10px solid silver;
+  font-family: 'Inconsolata', monospace;
   font-size: 1em;
   line-height: 1.5;
   margin-top: 20px;
@@ -141,14 +151,5 @@ pre {
 
 .col-md-9 {
   margin-top: 50px;
-}
-
-.col-md-9 code {
-  color: #444;
-  background-color: white;
-  font-family: 'Inconsolata', monospace;
-  font-size: 1em;
-  margin: 0px;
-  padding: 0px;
 }
 

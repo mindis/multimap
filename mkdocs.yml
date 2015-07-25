@@ -16,6 +16,7 @@ pages:
   - C++: cpp.md
   - Java: java.md
   - Download: download.md
+  - License: license.md
 
 # Build directories
 theme: yeti  # Take mkdocs' blue color

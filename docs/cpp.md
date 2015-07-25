@@ -2,7 +2,13 @@
 #include "multimap/Map.hpp"
 ```
 
-## Open
+## Map::Open
+
+`static std::unique_ptr<Map> Open(const std::string& directory, const Options& options)`
+
+Opens a map or creates a new one from/in `directory`.
+
+Throws: `std::runtime_error` if something went wrong.
 
 ```{cpp}
 multimap::Options options;
@@ -13,9 +19,13 @@ options.create_if_missing = true;
 auto map = multimap::Map::Open("/path/to/multimap", options);
 ```
 
-## Put
+## Map::Put
 
-Keys and values are of type `Bytes`, which is a non-owning raw memory wrapper. A `Bytes` object can be constructed from C-style strings, STL strings, or pointer/size pairs. The maximum size of a key or value is 2^15-1 (= 32767) bytes.
+`void Put(const Bytes& key, const Bytes& value)`
+
+Puts `value` into the list associated with `key`.
+
+Throws: `std::runtime_error` if the value was too big. See [Limitations](index.md#limitations) for more details.
 
 ```{cpp}
 map->Put("key", "value");
@@ -26,37 +36,30 @@ map->Put("key", multimap::Bytes(&pair, sizeof pair));
 // sizeof pair might be 16 due to alignment.
 ```
 
-## Get
+## Map::Get
 
-Tries to acquire a read lock on the associated list of values and, if successful, returns a `Map::ConstIter` for read-only iteration. If another thread has already acquired a write lock on the same list, the method blocks until the write lock is released.
+`ConstIter Get(const Bytes& key) const`
 
-Multiple threads can hold a read lock on the same list at the same time. An iterator releases its lock automatically when it gets destroyed. You cannot copy an iterator for unique ownership reasons, but moving is allowed.
-
-Apart from that, an iterator
-
-- must be initialized via `SeekToFirst` before iteration.
-- has a `Size` method that returns the number of values, even if not yet initialized.
-- has a size of zero, if no mapping for the given key exists.
+Tries to acquire a read lock on the list associated with `key` and, if successful, returns a read-only iterator on it. If another thread already holds a write lock on the same list, the method blocks until the write lock is released. Multiple threads may acquire a read lock on the same list at the same time.
 
 ```{cpp}
 auto iter = map->Get("key");
-if (iter.Size() != 0) {
-  // The size check is optional.
-  for (iter.SeekToFirst(); iter.Valid(); iter.Next()) {
-    const multimap::Bytes value = iter.Value();
-    DoSomething(value);
-    // The value object actually points into an internal buffer
-    // that may change during the iteration.  Therefore, if you
-    // want to keep a copy of the value you can do so via
-    // std::memcpy(dest_buf, value.data(), value.size())
-    // or value.ToString().
-  }
+for (iter.SeekToFirst(); iter.Valid(); iter.Next()) {
+  const multimap::Bytes value = iter.Value();
+  DoSomething(value);
+  // The value object actually points into an internal buffer
+  // that may change during the iteration.  Therefore, if you
+  // want to keep a copy of the value you can do so via
+  // std::memcpy(dest_buf, value.data(), value.size())
+  // or value.ToString().
 }
 ```
 
-## GetMutable
+## Map::GetMutable
 
-Tries to acquire a write lock on the associated list of values and, if successful, returns a `Map::Iter` that implements a `Delete` operation. If another thread has already acquired a read or write lock on the same list, the method blocks until all locks are released. In other words, this iterator requires exclusive access to the underlying list. The usage is otherwise identical to `Map::ConstIter`. See [Get](#get) for more information.
+`Iter GetMutable(const Bytes& key)`
+
+Tries to acquire a write lock on the list associated with `key` and, if successful, returns an iterator that implements a `Delete` operation. If another thread already holds a read or write lock on the same list, the method blocks until all locks are released.
 
 ```{cpp}
 auto iter = map->GetMutable("key");
@@ -70,60 +73,165 @@ for (iter.SeekToFirst(); iter.Valid(); iter.Next()) {
 }
 ```
 
-## Contains
+## Map::Contains
 
-Checks if a list for a given key exists. This operation is a bit cheaper than calling [Get](#get) or [GetMutable](#getmutable).
+`bool Contains(const Bytes& key) const`
+
+Checks if there is a list associated with `key`. Note that [Map::Get](#mapget) or [Map::GetMutable](#mapgetmutable) cannot be used for a containment check, because they always return an iterator of zero size if the underlying list is empty or even does not exist.
 
 
 ```{cpp}
 const bool exists = map->Contains("key");
 ```
 
-## Delete
+## Map::Delete
 
-Deletes the entire list associated with a given key. If another thread holds a lock on the list, the method blocks until all locks are released. Returns the size of the deleted list, which may be zero if the list was empty or no such list did exist.
+`std::size_t Delete(const Bytes& key)`
+
+Deletes the entire list associated with `key`. If the list is currently locked, the method blocks until all locks are released.
+
+Returns: The size of the deleted list.
 
 ```{cpp}
 const std::size_t size = map->Delete("key");
 ```
 
-## DeleteFirst
+## Map::DeleteFirst
 
-Deletes the first value in the associated list that matches a given predicate. Returns `true` on success and `false` otherwise. The latter/worst case requires a complete list scan. The predicate can be any callable that can be converted or bound to `multimap::Map::ValuePredicate`.
+`bool DeleteFirst(const Bytes& key, ValuePredicate predicate)`
+
+Deletes the first value in the list associated with `key` for which `predicate` returns `true`.
+
+Returns: `true` if a value was deleted, `false` otherwise.
 
 ```{cpp}
-// multimap::Map::ValuePredicate is defined as
-// typedef std::function<bool(const Bytes&)> ValuePredicate;
-
 const auto predicate = [](const multimap::Bytes& value) {
-  return CanBeDeleted(value);
+  bool can_be_deleted = false;
+  // Check value and set can_be_deleted = true to delete it.
+  return can_be_deleted;
 };
 const bool success = map->DeleteFirst("key", predicate);
 ```
 
-## DeleteFirstEqual
+## Map::DeleteFirstEqual
 
-Same as [DeleteFirst](#deletefirst) but uses `operator==` on type `Bytes` together with some user-supplied value as the predicate function. In other words, it deletes the first value in the associated list that is equal to the supplied value.
+`bool DeleteFirstEqual(const Bytes& key, const Bytes& value)`
+
+Deletes all values in the list associated with `key` that are equal to `value` according to `operator==`.
+
+Returns: `true` if a value was deleted, `false` otherwise.
 
 ```{cpp}
 const bool success = map->DeleteFirstEqual("key", "pattern");
-// Note that "pattern" is implicitly convertible to multimap::Bytes.
 ```
 
-## DeleteAll
+## Map::DeleteAll
 
-## DeleteAllEqual
+`std::size_t DeleteAll(const Bytes& key, ValuePredicate predicate)`
 
-## ReplaceFirst
+Deletes all values in the list associated with `key` for which `predicate` returns `true`.
 
-## ReplaceAll
+Returns: The number of values deleted.
 
-## UpdateFirst
+```{cpp}
+const auto predicate = [](const multimap::Bytes& value) {
+  bool can_be_deleted = false;
+  // Check value and set can_be_deleted = true to delete it.
+  return can_be_deleted;
+};
+const auto num_deleted = map->DeleteAll("key", predicate);
+```
 
-## UpdateAll
+## Map::DeleteAllEqual
 
-## ForEachKey
+`std::size_t DeleteAllEqual(const Bytes& key, const Bytes& value)`
 
-## GetProperties
+Deletes all values in the list associated with `key` that are equal to `value` according to `operator==`.
 
-## PrintProperties
+Returns: The number of values deleted.
+
+```{cpp}
+const auto num_deleted = map->DeleteAllEqual("key", "pattern");
+```
+
+## Map::ReplaceFirst
+
+`bool ReplaceFirst(const Bytes& key, ValueFunction function)`
+
+Replaces the first value in the list associated with `key` by the result of `function`, if any. The replacement does not happen in-place. Instead, the old value is marked as deleted and the new value is appended to the end of the list. There is an [issue](https://bitbucket.org/mtrenkmann/multimap/issues/2/in-place-map-replace) to allow in-place replacements.
+
+Returns: `true` if a value was replaced, `false` otherwise.
+
+```{cpp}
+const auto replace = [](const multimap::Bytes& value) {
+  std::string new_value;
+  // Fill new_value with content or leave it empty.
+  return new_value;
+};
+const auto success = map->ReplaceFirst("key", replace);
+```
+
+## Map::ReplaceFirstEqual
+
+`bool ReplaceFirstEqual(const Bytes& key, const Bytes& old_value, const Bytes& new_value)`
+
+Replaces the first occurrence of `old_value` in the list associated with `key` by `new_value`. The replacement does not happen in-place. Instead, the old value is marked as deleted and the new value is appended to the end of the list. There is an [issue](https://bitbucket.org/mtrenkmann/multimap/issues/2/in-place-map-replace) to allow in-place replacements.
+
+Returns: `true` if a value was replaced, `false` otherwise.
+
+```{cpp}
+const auto success = map->ReplaceFirstEqual("key", "old value", "new value");
+```
+
+## Map::ReplaceAll
+
+`std::size_t ReplaceAll(const Bytes& key, ValueFunction function)`
+
+Replaces all values in the list associated with `key` by the result of `function`, if any. The replacement does not happen in-place. Instead, the old value is marked as deleted and the new value is appended to the end of the list. There is an [issue](https://bitbucket.org/mtrenkmann/multimap/issues/2/in-place-map-replace) to allow in-place replacements.
+
+Returns: The number of replaced values.
+
+```{cpp}
+const auto replace = [](const multimap::Bytes& value) {
+  std::string new_value;
+  // Fill new_value with content or leave it empty.
+  return new_value;
+};
+const auto num_replaced = map->ReplaceAll("key", replace);
+```
+
+## Map::ReplaceAllEqual
+
+`std::size_t ReplaceAllEqual(const Bytes& key, const Bytes& old_value, const Bytes& new_value)`
+
+Replaces all occurrences of `old_value` in the list associated with `key` by `new_value`. The replacements do not happen in-place. Instead, the old value is marked as deleted and the new value is appended to the end of the list. There is an [issue](https://bitbucket.org/mtrenkmann/multimap/issues/2/in-place-map-replace) to allow in-place replacements.
+
+Returns: The number of replaced values.
+
+```{cpp}
+const auto num_replaced = map->ReplaceAllEqual("key", "old value", "new value");
+```
+
+## Map::ForEachKey
+
+## Map::GetProperties
+
+## Map::PrintProperties
+
+## Map::ValuePredicate
+
+## Map::ValueFunction
+
+## Map::ConstIter
+
+An iterator releases its lock automatically when it gets destroyed. An iterator cannot be copied for single ownership reasons, but moving is allowed.
+
+Apart from that, the iterator
+
+- must be initialized via `SeekToFirst` before iteration.
+- has a `Size` method that returns the number of values, even if not yet initialized.
+- has a size of zero, if no mapping for the given key exists.
+
+## Map::Iter
+
+Has exclusive ownership.
