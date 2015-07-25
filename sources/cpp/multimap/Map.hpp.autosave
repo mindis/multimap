@@ -51,31 +51,31 @@ class Map {
 
   std::size_t Delete(const Bytes& key);
 
-  typedef std::function<bool(const Bytes&)> ValuePredicate;
+  typedef std::function<bool(const Bytes&)> OnValuePredicate;
 
-  bool DeleteFirst(const Bytes& key, ValuePredicate predicate);
+  bool DeleteFirst(const Bytes& key, OnValuePredicate predicate);
 
   bool DeleteFirstEqual(const Bytes& key, const Bytes& value);
 
-  std::size_t DeleteAll(const Bytes& key, ValuePredicate predicate);
+  std::size_t DeleteAll(const Bytes& key, OnValuePredicate predicate);
 
   std::size_t DeleteAllEqual(const Bytes& key, const Bytes& value);
 
-  typedef std::function<std::string(const Bytes&)> ValueFunction;
+  typedef std::function<std::string(const Bytes&)> OnValueFunction;
 
-  bool ReplaceFirst(const Bytes& key, ValueFunction function);
+  bool ReplaceFirst(const Bytes& key, OnValueFunction function);
 
   bool ReplaceFirstEqual(const Bytes& key, const Bytes& old_value,
                          const Bytes& new_value);
 
-  std::size_t ReplaceAll(const Bytes& key, ValueFunction function);
+  std::size_t ReplaceAll(const Bytes& key, OnValueFunction function);
 
   std::size_t ReplaceAllEqual(const Bytes& key, const Bytes& old_value,
                               const Bytes& new_value);
 
-  typedef std::function<void(const Bytes&)> KeyProcedure;
+  typedef std::function<void(const Bytes&)> OnKeyProcedure;
 
-  void ForEachKey(KeyProcedure procedure) const;
+  void ForEachKey(OnKeyProcedure procedure) const;
 
   std::map<std::string, std::string> GetProperties() const;
 
@@ -98,9 +98,9 @@ class Map {
  private:
   enum class Match { kAll, kOne };
 
-  std::size_t Delete(const Bytes& key, ValuePredicate predicate, Match match);
+  std::size_t Delete(const Bytes& key, OnValuePredicate predicate, Match match);
 
-  std::size_t Update(const Bytes& key, ValueFunction function, Match match);
+  std::size_t Update(const Bytes& key, OnValueFunction function, Match match);
 
   void InitCallbacks();
 
