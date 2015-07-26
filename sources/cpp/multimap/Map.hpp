@@ -36,6 +36,10 @@ class Map {
   typedef Iterator<false> Iter;
   typedef Iterator<true> ConstIter;
 
+  typedef std::function<bool(const Bytes&)> Predicate;
+  typedef std::function<void(const Bytes&)> Procedure;
+  typedef std::function<std::string(const Bytes&)> Function;
+
   ~Map();
 
   static std::unique_ptr<Map> Open(const boost::filesystem::path& directory,
@@ -51,31 +55,25 @@ class Map {
 
   std::size_t Delete(const Bytes& key);
 
-  typedef std::function<bool(const Bytes&)> ValuePredicate;
-
-  bool DeleteFirst(const Bytes& key, ValuePredicate predicate);
+  bool DeleteFirst(const Bytes& key, Predicate predicate);
 
   bool DeleteFirstEqual(const Bytes& key, const Bytes& value);
 
-  std::size_t DeleteAll(const Bytes& key, ValuePredicate predicate);
+  std::size_t DeleteAll(const Bytes& key, Predicate predicate);
 
   std::size_t DeleteAllEqual(const Bytes& key, const Bytes& value);
 
-  typedef std::function<std::string(const Bytes&)> ValueFunction;
-
-  bool ReplaceFirst(const Bytes& key, ValueFunction function);
+  bool ReplaceFirst(const Bytes& key, Function function);
 
   bool ReplaceFirstEqual(const Bytes& key, const Bytes& old_value,
                          const Bytes& new_value);
 
-  std::size_t ReplaceAll(const Bytes& key, ValueFunction function);
+  std::size_t ReplaceAll(const Bytes& key, Function function);
 
   std::size_t ReplaceAllEqual(const Bytes& key, const Bytes& old_value,
                               const Bytes& new_value);
 
-  typedef std::function<void(const Bytes&)> KeyProcedure;
-
-  void ForEachKey(KeyProcedure procedure) const;
+  void ForEachKey(Procedure procedure) const;
 
   std::map<std::string, std::string> GetProperties() const;
 
@@ -98,9 +96,9 @@ class Map {
  private:
   enum class Match { kAll, kOne };
 
-  std::size_t Delete(const Bytes& key, ValuePredicate predicate, Match match);
+  std::size_t Delete(const Bytes& key, Predicate predicate, Match match);
 
-  std::size_t Update(const Bytes& key, ValueFunction function, Match match);
+  std::size_t Update(const Bytes& key, Function function, Match match);
 
   void InitCallbacks();
 
