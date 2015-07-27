@@ -1,3 +1,6 @@
+<br />
+<br />
+<br />
 **InvertedIndex** is a light-weight implementation of the [index data structure](https://en.wikipedia.org/wiki/Inverted_index) commonly used in information retrieval systems. Although its main purpose is to provide a building block for full text search engines it can be used as a general-purpose on-disk key-value store where one key is mapped to n values. InvertedIndex is free software, implemented in C++, and comes with a Java binding onboard.
 
 ## Rationale

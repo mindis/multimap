@@ -1,10 +1,14 @@
+<!--
 ```{cpp}
 #include "multimap/Map.hpp"
 ```
+-->
 
 ## Map::Open
 
-`static std::unique_ptr<Map> Open(const std::string& directory, const Options& options)`
+`static std::unique_ptr<Map> Open(`
+<script>space(20)</script>`const boost::filesystem::path& directory,`
+<script>space(20)</script>`const Options& options)`
 
 Opens a map or creates a new one from/in `directory`.
 
@@ -98,7 +102,7 @@ const std::size_t size = map->Delete("key");
 
 ## Map::DeleteFirst
 
-`bool DeleteFirst(const Bytes& key, ValuePredicate predicate)`
+`bool DeleteFirst(const Bytes& key, Predicate predicate)`
 
 Deletes the first value in the list associated with `key` for which `predicate` returns `true`.
 
@@ -127,7 +131,7 @@ const bool success = map->DeleteFirstEqual("key", "pattern");
 
 ## Map::DeleteAll
 
-`std::size_t DeleteAll(const Bytes& key, ValuePredicate predicate)`
+`std::size_t DeleteAll(const Bytes& key, Predicate predicate)`
 
 Deletes all values in the list associated with `key` for which `predicate` returns `true`.
 
@@ -156,7 +160,7 @@ const auto num_deleted = map->DeleteAllEqual("key", "pattern");
 
 ## Map::ReplaceFirst
 
-`bool ReplaceFirst(const Bytes& key, ValueFunction function)`
+`bool ReplaceFirst(const Bytes& key, Function function)`
 
 Replaces the first value in the list associated with `key` by the result of `function`, if any. The replacement does not happen in-place. Instead, the old value is marked as deleted and the new value is appended to the end of the list. There is an [issue](https://bitbucket.org/mtrenkmann/multimap/issues/2/in-place-map-replace) to allow in-place replacements.
 
@@ -173,7 +177,10 @@ const auto success = map->ReplaceFirst("key", replace);
 
 ## Map::ReplaceFirstEqual
 
-`bool ReplaceFirstEqual(const Bytes& key, const Bytes& old_value, const Bytes& new_value)`
+`bool ReplaceFirstEqual(`
+<script>space(20)</script>`const Bytes& key,`
+<script>space(20)</script>`const Bytes& old_value,`
+<script>space(20)</script>`const Bytes& new_value)`
 
 Replaces the first occurrence of `old_value` in the list associated with `key` by `new_value`. The replacement does not happen in-place. Instead, the old value is marked as deleted and the new value is appended to the end of the list. There is an [issue](https://bitbucket.org/mtrenkmann/multimap/issues/2/in-place-map-replace) to allow in-place replacements.
 
@@ -185,7 +192,7 @@ const auto success = map->ReplaceFirstEqual("key", "old value", "new value");
 
 ## Map::ReplaceAll
 
-`std::size_t ReplaceAll(const Bytes& key, ValueFunction function)`
+`std::size_t ReplaceAll(const Bytes& key, Function function)`
 
 Replaces all values in the list associated with `key` by the result of `function`, if any. The replacement does not happen in-place. Instead, the old value is marked as deleted and the new value is appended to the end of the list. There is an [issue](https://bitbucket.org/mtrenkmann/multimap/issues/2/in-place-map-replace) to allow in-place replacements.
 
@@ -202,7 +209,10 @@ const auto num_replaced = map->ReplaceAll("key", replace);
 
 ## Map::ReplaceAllEqual
 
-`std::size_t ReplaceAllEqual(const Bytes& key, const Bytes& old_value, const Bytes& new_value)`
+`std::size_t ReplaceAllEqual(`
+<script>space(20)</script>`const Bytes& key,`
+<script>space(20)</script>`const Bytes& old_value,`
+<script>space(20)</script>`const Bytes& new_value)`
 
 Replaces all occurrences of `old_value` in the list associated with `key` by `new_value`. The replacements do not happen in-place. Instead, the old value is marked as deleted and the new value is appended to the end of the list. There is an [issue](https://bitbucket.org/mtrenkmann/multimap/issues/2/in-place-map-replace) to allow in-place replacements.
 
@@ -214,19 +224,63 @@ const auto num_replaced = map->ReplaceAllEqual("key", "old value", "new value");
 
 ## Map::ForEachKey
 
+`void ForEachKey(Procedure procedure) const`
+
+Applies `procedure` to each key of the map. The procedure must be a callable that is convertible or can be bound to an object of type [Procedure](#mapProcedure). For the time of execution the entire map is locked, so that all other operations will block.
+
+```{cpp}
+const auto print = [](const multimap::Bytes& key) {
+  std::cout << key.ToString() << '\n';
+};
+map->ForEachKey(print);
+```
+
 ## Map::GetProperties
+
+`std::map<std::string, std::string> GetProperties() const`
+
+Collects and returns current properties of the map. This operation requires a scan of the entire internal table. For the time of execution the map is locked, so that all other operations will block.
+
+```{cpp}
+const auto properties = map->GetProperties();
+for (const auto& entry : properties) {
+  std::cout << entry.first << ": " << entry.second << '\n';
+}
+```
 
 ## Map::PrintProperties
 
-## Map::ValuePredicate
+`void PrintProperties() const`
 
-## Map::ValueFunction
+Prints current properties of the map to `std::cout`. This operation requires a scan of the entire internal table. For the time of execution the map is locked, so that all other operations will block.
+
+```{cpp}
+map->PrintProperties();
+```
+
+## Map::Predicate
+
+`typedef std::function<bool(const Bytes&)> Predicate`
+
+A callable type that processes an object of type `const Bytes&` and outputs a boolean value. See [std::function](http://en.cppreference.com/w/cpp/utility/functional/function) for more details on how to create such an object from lambda or free functions functions.
+
+## Map::Procedure
+
+`typedef std::function<void(const Bytes&)> Procedure`
+
+A callable type that processes an object of type `const Bytes&`. See [std::function](http://en.cppreference.com/w/cpp/utility/functional/function) for more details on how to create such an object from lambda or free functions functions.
+
+## Map::Function
+
+`typedef std::function<std::string(const Bytes&)> Function`
+
+A callable type that processes an object of type `const Bytes&` and outputs an object of type `std::string`. The returned string is used as a raw memory wrapper in lieu of `Bytes`, because it manages its own memory so that the caller is not responsible for deallocation. See [std::function](http://en.cppreference.com/w/cpp/utility/functional/function) for more details on how to create such an object from lambda or free functions functions.
 
 ## Map::ConstIter
 
-An iterator releases its lock automatically when it gets destroyed. An iterator cannot be copied for single ownership reasons, but moving is allowed.
+An iterator type for read-only forward iteration. An iterator object owns a read lock on the underlying list. The lock is released automatically when the iterator gets destroyed. Iterators cannot be copied for single ownership reasons of the internal lock, but moving is allowed.
 
-Apart from that, the iterator
+Apart from that, an iterator
 
 - must be initialized via `SeekToFirst` before iteration.
 - has a `Size` method that returns the number of values, even if not yet initialized.
