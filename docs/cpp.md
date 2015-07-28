@@ -258,17 +258,17 @@ Prints current properties of the map to `std::cout`. This operation requires a s
 map->PrintProperties();
 ```
 
-## Map::Predicate
-
-`typedef std::function<bool(const Bytes&)> Predicate`
-
-A callable type that processes an object of type `const Bytes&` and outputs a boolean value. See [std::function](http://en.cppreference.com/w/cpp/utility/functional/function) for more details on how to create such an object from lambda or free functions functions.
-
 ## Map::Procedure
 
 `typedef std::function<void(const Bytes&)> Procedure`
 
 A callable type that processes an object of type `const Bytes&`. See [std::function](http://en.cppreference.com/w/cpp/utility/functional/function) for more details on how to create such an object from lambda or free functions functions.
+
+## Map::Predicate
+
+`typedef std::function<bool(const Bytes&)> Predicate`
+
+A callable type that processes an object of type `const Bytes&` and outputs a boolean value. See [std::function](http://en.cppreference.com/w/cpp/utility/functional/function) for more details on how to create such an object from lambda or free functions functions.
 
 ## Map::Function
 

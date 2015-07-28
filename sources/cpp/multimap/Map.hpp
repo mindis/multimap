@@ -36,8 +36,8 @@ class Map {
   typedef Iterator<false> Iter;
   typedef Iterator<true> ConstIter;
 
-  typedef std::function<bool(const Bytes&)> Predicate;
   typedef std::function<void(const Bytes&)> Procedure;
+  typedef std::function<bool(const Bytes&)> Predicate;
   typedef std::function<std::string(const Bytes&)> Function;
 
   ~Map();

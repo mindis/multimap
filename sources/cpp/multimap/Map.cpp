@@ -102,7 +102,7 @@ bool Map::Contains(const Bytes& key) const { return table_->Contains(key); }
 
 std::size_t Map::Delete(const Bytes& key) { return table_->Delete(key); }
 
-bool Map::DeleteFirst(const Bytes& key, ValuePredicate predicate) {
+bool Map::DeleteFirst(const Bytes& key, Predicate predicate) {
   return Delete(key, predicate, Match::kOne);
 }
 
@@ -112,7 +112,7 @@ bool Map::DeleteFirstEqual(const Bytes& key, const Bytes& value) {
   });
 }
 
-std::size_t Map::DeleteAll(const Bytes& key, ValuePredicate predicate) {
+std::size_t Map::DeleteAll(const Bytes& key, Predicate predicate) {
   return Delete(key, predicate, Match::kAll);
 }
 
@@ -122,7 +122,7 @@ std::size_t Map::DeleteAllEqual(const Bytes& key, const Bytes& value) {
   });
 }
 
-bool Map::ReplaceFirst(const Bytes& key, ValueFunction function) {
+bool Map::ReplaceFirst(const Bytes& key, Function function) {
   return Update(key, function, Match::kOne);
 }
 
@@ -134,7 +134,7 @@ bool Map::ReplaceFirstEqual(const Bytes& key, const Bytes& old_value,
   });
 }
 
-std::size_t Map::ReplaceAll(const Bytes& key, ValueFunction function) {
+std::size_t Map::ReplaceAll(const Bytes& key, Function function) {
   return Update(key, function, Match::kAll);
 }
 
@@ -145,7 +145,7 @@ std::size_t Map::ReplaceAllEqual(const Bytes& key, const Bytes& old_value,
   });
 }
 
-void Map::ForEachKey(KeyProcedure procedure) const {
+void Map::ForEachKey(Procedure procedure) const {
   table_->ForEachKey(procedure);
 }
 
@@ -238,7 +238,7 @@ void Map::Copy(const boost::filesystem::path& from,
   System::UnlockDirectory(from);
 }
 
-std::size_t Map::Delete(const Bytes& key, ValuePredicate predicate,
+std::size_t Map::Delete(const Bytes& key, Predicate predicate,
                         Match match) {
   std::size_t num_deleted = 0;
   auto iter = GetMutable(key);
@@ -261,7 +261,7 @@ std::size_t Map::Delete(const Bytes& key, ValuePredicate predicate,
   return num_deleted;
 }
 
-std::size_t Map::Update(const Bytes& key, ValueFunction function, Match match) {
+std::size_t Map::Update(const Bytes& key, Function function, Match match) {
   std::vector<std::string> updated_values;
   auto iter = GetMutable(key);
   for (iter.SeekToFirst(); iter.Valid(); iter.Next()) {
