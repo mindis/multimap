@@ -31,7 +31,7 @@
 #include "multimap/internal/Check.hpp"
 #include "multimap/internal/ListLock.hpp"
 #include "multimap/internal/UintVector.hpp"
-#include "multimap/thirdparty/farmhash.h"
+#include "multimap/internal/thirdparty/farmhash.h"
 
 namespace multimap {
 namespace internal {

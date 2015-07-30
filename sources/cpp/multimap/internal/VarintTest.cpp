@@ -154,15 +154,10 @@ TEST(VarintTest, ReadMaxValueEncodedInFourBytes) {
 
 TEST(VarintTest, WriteAndReadSomeValuesOfDifferentSize) {
   std::uint32_t values[] = {
-      (Varint::kMaxValueStoredIn8Bits - Varint::kMinValueStoredIn8Bits) /
-          2,  // Needs 1 byte
-      (Varint::kMaxValueStoredIn16Bits - Varint::kMinValueStoredIn16Bits) /
-          2,  // Needs 2 bytes
-      (Varint::kMaxValueStoredIn24Bits - Varint::kMinValueStoredIn24Bits) /
-          2,  // Needs 3 bytes
-      (Varint::kMaxValueStoredIn32Bits - Varint::kMinValueStoredIn32Bits) /
-          2  // Needs 4 bytes
-  };
+      (Varint::kMaxValueStoredIn8Bits - Varint::kMinValueStoredIn8Bits) / 2,
+      (Varint::kMaxValueStoredIn16Bits - Varint::kMinValueStoredIn16Bits) / 2,
+      (Varint::kMaxValueStoredIn24Bits - Varint::kMinValueStoredIn24Bits) / 2,
+      (Varint::kMaxValueStoredIn32Bits - Varint::kMinValueStoredIn32Bits) / 2};
   byte buf[32];
   auto pos = buf;
   pos += Varint::WriteUint32(values[0], pos);

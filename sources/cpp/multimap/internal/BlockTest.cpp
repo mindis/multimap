@@ -30,40 +30,35 @@ namespace internal {
 
 namespace {
 
-typedef std::array<std::int64_t, 10> SmallValue;
+template <std::size_t Size>
+struct ByteArray : public std::array<byte, Size> {
+  static const std::size_t kSize = Size;
 
-const bool kSizeOfSmallValueFitsInOneByte =
-    sizeof(SmallValue) <= std::numeric_limits<std::uint8_t>::max();
-
-static_assert(kSizeOfSmallValueFitsInOneByte,
-              "size of SmallValue does not fit in one byte");
-
-typedef std::array<std::int64_t, 100> LargeValue;
-
-const bool kSizeOfLargeValueFitsInTwoBytes =
-    sizeof(LargeValue) >
-        static_cast<std::size_t>(std::numeric_limits<std::uint8_t>::max()) &&
-    sizeof(LargeValue) <=
-        static_cast<std::size_t>(std::numeric_limits<std::int16_t>::max());
-
-static_assert(kSizeOfLargeValueFitsInTwoBytes,
-              "size of SmallValue does not fit in two bytes");
-
-SmallValue MakeSmallValue(std::size_t factor) {
-  SmallValue value;
-  for (std::size_t i = 0; i != value.size(); ++i) {
-    value[i] = factor * i;
+  ByteArray() {
+    for (std::size_t i = 0; i != Size; ++i) {
+      (*this)[i] = std::numeric_limits<byte>::max() - i;
+    }
   }
-  return value;
-}
 
-LargeValue MakeLargeValue(std::size_t factor) {
-  LargeValue value;
-  for (std::size_t i = 0; i != value.size(); ++i) {
-    value[i] = factor * i;
-  }
-  return value;
-}
+  Bytes ToBytes() const { return Bytes(this->data(), this->size()); }
+};
+
+typedef ByteArray<170> ByteArray170;      // ::kSize -> 10101010
+typedef ByteArray<21845> ByteArray21845;  // ::kSize -> 101010101010101
+
+static_assert(
+    (ByteArray170::kSize >
+     static_cast<std::size_t>(std::numeric_limits<std::int8_t>::max())) &&
+        (ByteArray170::kSize <=
+         static_cast<std::size_t>(std::numeric_limits<std::uint8_t>::max())),
+    "size of ByteArray100 does not need 8 bits to be stored");
+
+static_assert(
+    (ByteArray21845::kSize >
+     static_cast<std::size_t>(std::numeric_limits<std::uint8_t>::max())) &&
+        (ByteArray21845::kSize <=
+         static_cast<std::size_t>(std::numeric_limits<std::int16_t>::max())),
+    "size of ByteArray1000 does not need 15 bits to be stored");
 
 }  // namespace
 
@@ -154,25 +149,27 @@ TEST(BlockTest, AddZeroBytesToBlockOfZeroBytes) {
 TEST(BlockTest, AddMaxValueToEmptyBlock) {
   byte data[512];
   Block block(data, sizeof data);
-  byte value[block.max_value_size()];
+  char value[block.max_value_size()];
   ASSERT_THAT(block.TryAdd(Bytes(value, sizeof value)), Eq(true));
 }
 
 TEST(BlockTest, AddTooLargeValueToEmptyBlockThrows) {
   byte data[512];
   Block block(data, sizeof data);
-  byte value[block.max_value_size() + 1];
+  char value[block.max_value_size() + 1];
   ASSERT_ANY_THROW(block.TryAdd(Bytes(value, sizeof value)));
 }
 
 TEST(BlockTest, AddSmallValuesIncreasesLoadFactor) {
   const auto num_values = 100;
-  byte data[std::numeric_limits<std::int16_t>::max()];
+  const auto required_size =
+      (Block::kSizeOfValueSizeField + ByteArray170::kSize) * num_values;
+  byte data[required_size];
   Block block(data, sizeof data);
   double prev_load_factor = 0;
   for (auto i = 0; i != num_values; ++i) {
-    const auto value = MakeSmallValue(i);
-    ASSERT_THAT(block.TryAdd(Bytes(value.data(), value.size())), Eq(true));
+    ByteArray170 value;
+    ASSERT_THAT(block.TryAdd(value.ToBytes()), Eq(true));
     ASSERT_THAT(block.load_factor(), Gt(prev_load_factor));
     prev_load_factor = block.load_factor();
   }
@@ -180,12 +177,14 @@ TEST(BlockTest, AddSmallValuesIncreasesLoadFactor) {
 
 TEST(BlockTest, AddLargeValuesIncreasesLoadFactor) {
   const auto num_values = 100;
-  byte data[std::numeric_limits<std::int16_t>::max()];
+  const auto required_size =
+      (Block::kSizeOfValueSizeField + ByteArray21845::kSize) * num_values;
+  byte data[required_size];
   Block block(data, sizeof data);
   double prev_load_factor = 0;
   for (auto i = 0; i != num_values; ++i) {
-    const auto value = MakeLargeValue(i);
-    ASSERT_THAT(block.TryAdd(Bytes(value.data(), value.size())), Eq(true));
+    ByteArray21845 value;
+    ASSERT_THAT(block.TryAdd(value.ToBytes()), Eq(true));
     ASSERT_THAT(block.load_factor(), Gt(prev_load_factor));
     prev_load_factor = block.load_factor();
   }
@@ -193,18 +192,25 @@ TEST(BlockTest, AddLargeValuesIncreasesLoadFactor) {
 
 TEST(BlockTest, AddSmallValuesAndIterateAll) {
   const auto num_values = 100;
-  byte data[std::numeric_limits<std::int16_t>::max()];
+  const auto required_size =
+      (Block::kSizeOfValueSizeField + ByteArray170::kSize) * num_values;
+  byte data[required_size];
   Block block(data, sizeof data);
   for (auto i = 0; i != num_values; ++i) {
-    const auto value = MakeSmallValue(i);
-    ASSERT_THAT(block.TryAdd(Bytes(value.data(), value.size())), Eq(true));
+    ByteArray170 value;
+    ASSERT_THAT(block.TryAdd(value.ToBytes()), Eq(true));
   }
+  ByteArray170 value;
+  ASSERT_THAT(block.TryAdd(value.ToBytes()), Eq(false));
 
   auto iter = block.NewIterator();
   for (auto i = 0; i != num_values; ++i) {
-    const auto value = MakeSmallValue(i);
+    ByteArray170 value;
     ASSERT_THAT(iter.has_value(), Eq(true));
-    ASSERT_THAT(iter.value(), Eq(Bytes(value.data(), value.size())));
+
+    ASSERT_THAT(iter.value().size(), Eq(value.ToBytes().size()));
+
+    ASSERT_THAT(iter.value(), Eq(value.ToBytes()));
     ASSERT_THAT(iter.deleted(), Eq(false));
     iter.advance();
   }
@@ -213,18 +219,22 @@ TEST(BlockTest, AddSmallValuesAndIterateAll) {
 
 TEST(BlockTest, AddLargeValuesAndIterateAll) {
   const auto num_values = 100;
-  byte data[std::numeric_limits<std::int16_t>::max()];
+  const auto required_size =
+      (Block::kSizeOfValueSizeField + ByteArray21845::kSize) * num_values;
+  byte data[required_size];
   Block block(data, sizeof data);
   for (auto i = 0; i != num_values; ++i) {
-    const auto value = MakeLargeValue(i);
-    ASSERT_THAT(block.TryAdd(Bytes(value.data(), value.size())), Eq(true));
+    ByteArray21845 value;
+    ASSERT_THAT(block.TryAdd(value.ToBytes()), Eq(true));
   }
+  ByteArray21845 value;
+  ASSERT_THAT(block.TryAdd(value.ToBytes()), Eq(false));
 
   auto iter = block.NewIterator();
   for (auto i = 0; i != num_values; ++i) {
-    const auto value = MakeLargeValue(i);
+    ByteArray21845 value;
     ASSERT_THAT(iter.has_value(), Eq(true));
-    ASSERT_THAT(iter.value(), Eq(Bytes(value.data(), value.size())));
+    ASSERT_THAT(iter.value(), Eq(value.ToBytes()));
     ASSERT_THAT(iter.deleted(), Eq(false));
     iter.advance();
   }
@@ -233,11 +243,13 @@ TEST(BlockTest, AddLargeValuesAndIterateAll) {
 
 TEST(BlockTest, AddSmallValuesAndDeleteEvery2ndWhileIterating) {
   const auto num_values = 100;
-  byte data[std::numeric_limits<std::int16_t>::max()];
+  const auto required_size =
+      (Block::kSizeOfValueSizeField + ByteArray170::kSize) * num_values;
+  byte data[required_size];
   Block block(data, sizeof data);
   for (auto i = 0; i != num_values; ++i) {
-    const auto value = MakeSmallValue(i);
-    ASSERT_THAT(block.TryAdd(Bytes(value.data(), value.size())), Eq(true));
+    ByteArray170 value;
+    ASSERT_THAT(block.TryAdd(value.ToBytes()), Eq(true));
   }
 
   auto iter = block.NewIterator();
@@ -257,8 +269,8 @@ TEST(BlockTest, AddSmallValuesAndDeleteEvery2ndWhileIterating) {
       ASSERT_THAT(iter.deleted(), Eq(true));
     } else {
       ASSERT_THAT(iter.deleted(), Eq(false));
-      const auto value = MakeSmallValue(i);
-      ASSERT_THAT(iter.value(), Eq(Bytes(value.data(), value.size())));
+      ByteArray170 value;
+      ASSERT_THAT(iter.value(), Eq(value.ToBytes()));
     }
     iter.advance();
   }
@@ -267,11 +279,13 @@ TEST(BlockTest, AddSmallValuesAndDeleteEvery2ndWhileIterating) {
 
 TEST(BlockTest, AddLargeValuesAndDeleteEvery2ndWhileIterating) {
   const auto num_values = 100;
-  byte data[std::numeric_limits<std::int16_t>::max()];
+  const auto required_size =
+      (Block::kSizeOfValueSizeField + ByteArray21845::kSize) * num_values;
+  byte data[required_size];
   Block block(data, sizeof data);
   for (auto i = 0; i != num_values; ++i) {
-    const auto value = MakeLargeValue(i);
-    ASSERT_THAT(block.TryAdd(Bytes(value.data(), value.size())), Eq(true));
+    ByteArray21845 value;
+    ASSERT_THAT(block.TryAdd(value.ToBytes()), Eq(true));
   }
 
   auto iter = block.NewIterator();
@@ -291,8 +305,8 @@ TEST(BlockTest, AddLargeValuesAndDeleteEvery2ndWhileIterating) {
       ASSERT_THAT(iter.deleted(), Eq(true));
     } else {
       ASSERT_THAT(iter.deleted(), Eq(false));
-      const auto value = MakeLargeValue(i);
-      ASSERT_THAT(iter.value(), Eq(Bytes(value.data(), value.size())));
+      ByteArray21845 value;
+      ASSERT_THAT(iter.value(), Eq(value.ToBytes()));
     }
     iter.advance();
   }

@@ -46,16 +46,8 @@ namespace internal {
 // to preserve the put offset, the result of used() must be written in addition
 // to the actual block data.
 class Block {
-  typedef std::int16_t value_size_type;
-
-  static const std::size_t kSizeOfValueSizeField = sizeof(value_size_type);
-
-  static const std::uint8_t kMaskValueDeleted;
-  static const std::uint8_t kMaskValueSize;
-
  public:
-  static const std::size_t kMaxValueSize =
-      std::numeric_limits<value_size_type>::max();
+  static const std::size_t kSizeOfValueSizeField = sizeof(std::int16_t);
 
   template <bool IsConst>
   class Iter {
@@ -73,16 +65,16 @@ class Block {
 
     // Requires: has_value()
     std::size_t value_size() const {
-      // This only works for litte endian.
-      // TODO Handle big endian, either via memcpy or byte-wise copy.
-      const auto size = *reinterpret_cast<const value_size_type*>(tellg());
-      return size & kMaskValueSize;
+      std::int16_t size = 0;
+      size += tellg()[0] << 8;
+      size += tellg()[1];
+      return size & 0x7fff;
     }
 
     Bytes value() const { return Bytes(value_data(), value_size()); }
 
     // Requires: has_value()
-    bool deleted() const { return *tellg() & kMaskValueDeleted; }
+    bool deleted() const { return *tellg() & 0x80; }
 
     // EnableIf: not IsConst
     // Requires: has_value()
@@ -140,8 +132,6 @@ class Block {
  private:
   std::size_t num_bytes_free() const { return size_ - offset_; }
 
-  byte* tellp() { return data_ + offset_; }
-
   byte* data_;
   std::uint32_t size_;
   std::uint32_t offset_;
@@ -164,7 +154,7 @@ Block::Iter<IsConst>::Iter(Byte* data, std::size_t size)
 
 template <>
 inline void Block::Iter<false>::set_deleted() {
-  *tellg() |= kMaskValueDeleted;
+  *tellg() |= 0x80;
 }
 
 //  1    SerializedSize

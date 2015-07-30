@@ -24,7 +24,6 @@
 
 namespace multimap {
 
-// TODO Can we remove this?
 typedef unsigned char byte;
 
 // A type that wraps a byte array and its size without taking ownership.
@@ -32,7 +31,7 @@ class Bytes {
  public:
   Bytes() : data_(nullptr), size_(0) {}
 
-  Bytes(const char* str) : Bytes(str, std::strlen(str)) {}
+  Bytes(const char* cstr) : Bytes(cstr, std::strlen(cstr)) {}
 
   Bytes(const std::string& str) : Bytes(str.data(), str.size()) {}
 

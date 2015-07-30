@@ -22,9 +22,6 @@
 namespace multimap {
 namespace internal {
 
-const std::uint8_t Block::kMaskValueDeleted = 0x80;
-const std::uint8_t Block::kMaskValueSize = 0x7f;
-
 Block::Block() : data_(nullptr), size_(0), offset_(0) {}
 
 Block::Block(byte* data, std::uint32_t size)
@@ -37,24 +34,28 @@ double Block::load_factor() const {
 }
 
 std::uint32_t Block::max_value_size() const {
-  const std::uint32_t max_size =
+  const int max_size =
       (size_ > kSizeOfValueSizeField) ? (size_ - kSizeOfValueSizeField) : 0;
-  return (max_size < 0x7fff) ? max_size : 0x7fff;
+  return std::min(max_size, 0x7fff);
 }
 
 bool Block::TryAdd(const Bytes& value) {
   assert(data_);
   Check(value.size() <= max_value_size(),
-        "Attempt to put value of %d bytes while the maximum value size is %d.",
+        "Reject value of %d bytes because it exceeds the maximum value size "
+        "of %d bytes. Consider to choose a larger block size and try again.",
         value.size(), max_value_size());
-  const value_size_type value_size = value.size();
+  const std::int16_t value_size = value.size();
   const auto num_bytes_required = sizeof value_size + value_size;
   if (num_bytes_required > num_bytes_free()) {
     return false;
   }
-  std::memcpy(tellp(), &value_size, sizeof value_size);
+  // For little-endian only.
+  byte* ptr = data_ + offset_;
+  *(ptr++) = value_size >> 8;
+  *(ptr++) = value_size;
+  std::memcpy(ptr, value.data(), value_size);
   offset_ += sizeof value_size;
-  std::memcpy(tellp(), value.data(), value_size);
   offset_ += value_size;
   return true;
 }
