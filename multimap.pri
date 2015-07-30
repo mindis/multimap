@@ -18,7 +18,7 @@ HEADERS += \
     $$PWD/sources/cpp/multimap/internal/Table.hpp \
     $$PWD/sources/cpp/multimap/internal/UintVector.hpp \
     $$PWD/sources/cpp/multimap/internal/Varint.hpp \
-    $$PWD/sources/cpp/multimap/thirdparty/farmhash.h \
+    $$PWD/sources/cpp/multimap/internal/thirdparty/farmhash.h \
     $$PWD/sources/cpp/multimap/Bytes.hpp \
     $$PWD/sources/cpp/multimap/Iterator.hpp \
     $$PWD/sources/cpp/multimap/Options.hpp \
@@ -34,7 +34,7 @@ SOURCES += \
     $$PWD/sources/cpp/multimap/internal/Table.cpp \
     $$PWD/sources/cpp/multimap/internal/UintVector.cpp \
     $$PWD/sources/cpp/multimap/internal/Varint.cpp \
-    $$PWD/sources/cpp/multimap/thirdparty/farmhash.cc \
+    $$PWD/sources/cpp/multimap/internal/thirdparty/farmhash.cc \
     $$PWD/sources/cpp/multimap/Map.cpp
 
 unix|win32: LIBS += -lboost_filesystem -lboost_system -lboost_thread
