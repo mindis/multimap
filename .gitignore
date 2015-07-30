@@ -3,3 +3,5 @@ targets/*/*
 !targets/*/*.pro
 Makefile
 site/
+*~
+
