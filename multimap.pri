@@ -23,7 +23,8 @@ HEADERS += \
     $$PWD/sources/cpp/multimap/Bytes.hpp \
     $$PWD/sources/cpp/multimap/Iterator.hpp \
     $$PWD/sources/cpp/multimap/Options.hpp \
-    $$PWD/sources/cpp/multimap/Map.hpp
+    $$PWD/sources/cpp/multimap/Map.hpp \
+    $$PWD/sources/cpp/multimap/Callables.hpp
 
 SOURCES += \
     $$PWD/sources/cpp/multimap/internal/Check.cpp \

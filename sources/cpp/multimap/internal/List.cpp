@@ -139,11 +139,11 @@ List::ConstIterator List::NewConstIterator(const Callbacks& callbacks) const {
 }
 
 List::Head List::Copy(const Head& head, const DataFile& from, DataFile* to) {
-  return Copy(head, from, to, Compare());
+  return Copy(head, from, to, Callables::Compare());
 }
 
 List::Head List::Copy(const Head& head, const DataFile& from, DataFile* to,
-                      const Compare& compare) {
+                      const Callables::Compare& compare) {
   const auto block_pool =
       BlockPool::Create(DataFile::kMaxBufferSize, to->block_size());
 

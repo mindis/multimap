@@ -22,6 +22,7 @@
 #include <memory>
 #include <string>
 #include <boost/filesystem/path.hpp>
+#include "multimap/Callables.hpp"
 #include "multimap/Options.hpp"
 #include "multimap/Iterator.hpp"
 #include "multimap/internal/BlockPool.hpp"
@@ -35,10 +36,6 @@ class Map {
  public:
   typedef Iterator<false> Iter;
   typedef Iterator<true> ConstIter;
-
-  typedef std::function<void(const Bytes&)> Procedure;
-  typedef std::function<bool(const Bytes&)> Predicate;
-  typedef std::function<std::string(const Bytes&)> Function;
 
   ~Map();
 
@@ -55,25 +52,25 @@ class Map {
 
   std::size_t Delete(const Bytes& key);
 
-  bool DeleteFirst(const Bytes& key, Predicate predicate);
+  bool DeleteFirst(const Bytes& key, Callables::Predicate predicate);
 
   bool DeleteFirstEqual(const Bytes& key, const Bytes& value);
 
-  std::size_t DeleteAll(const Bytes& key, Predicate predicate);
+  std::size_t DeleteAll(const Bytes& key, Callables::Predicate predicate);
 
   std::size_t DeleteAllEqual(const Bytes& key, const Bytes& value);
 
-  bool ReplaceFirst(const Bytes& key, Function function);
+  bool ReplaceFirst(const Bytes& key, Callables::Function function);
 
   bool ReplaceFirstEqual(const Bytes& key, const Bytes& old_value,
                          const Bytes& new_value);
 
-  std::size_t ReplaceAll(const Bytes& key, Function function);
+  std::size_t ReplaceAll(const Bytes& key, Callables::Function function);
 
   std::size_t ReplaceAllEqual(const Bytes& key, const Bytes& old_value,
                               const Bytes& new_value);
 
-  void ForEachKey(Procedure procedure) const;
+  void ForEachKey(Callables::Procedure procedure) const;
 
   std::map<std::string, std::string> GetProperties() const;
 
@@ -87,18 +84,20 @@ class Map {
                    std::size_t new_block_size);
 
   static void Copy(const boost::filesystem::path& from,
-                   const boost::filesystem::path& to, const Compare& compare);
+                   const boost::filesystem::path& to,
+                   const Callables::Compare& compare);
 
   static void Copy(const boost::filesystem::path& from,
-                   const boost::filesystem::path& to, const Compare& compare,
+                   const boost::filesystem::path& to,
+                   const Callables::Compare& compare,
                    std::size_t new_block_size);
 
  private:
   enum class Match { kAll, kOne };
 
-  std::size_t Delete(const Bytes& key, Predicate predicate, Match match);
+  std::size_t Delete(const Bytes& key, Callables::Predicate pred, Match match);
 
-  std::size_t Update(const Bytes& key, Function function, Match match);
+  std::size_t Update(const Bytes& key, Callables::Function func, Match match);
 
   void InitCallbacks();
 

@@ -21,6 +21,7 @@
 #include <functional>
 #include <mutex>
 #include <boost/thread/shared_mutex.hpp>
+#include "multimap/Callables.hpp"
 #include "multimap/internal/Block.hpp"
 #include "multimap/internal/Callbacks.hpp"
 #include "multimap/internal/DataFile.hpp"
@@ -153,7 +154,7 @@ class List {
   static Head Copy(const Head& head, const DataFile& from, DataFile* to);
 
   static Head Copy(const Head& head, const DataFile& from, DataFile* to,
-                   const Compare& compare);
+                   const Callables::Compare& compare);
 
   // Synchronization interface in tradition of std::mutex.
 

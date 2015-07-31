@@ -57,9 +57,6 @@ class Bytes {
   std::size_t size_;
 };
 
-// http://en.cppreference.com/w/cpp/concept/Compare
-typedef std::function<bool(const Bytes&, const Bytes&)> Compare;
-
 inline bool Equal(const Bytes& lhs, const Bytes& rhs) {
   return (lhs.size() == rhs.size())
              ? std::memcmp(lhs.data(), rhs.data(), lhs.size()) == 0

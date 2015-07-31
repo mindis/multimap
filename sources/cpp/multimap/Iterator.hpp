@@ -19,8 +19,7 @@
 #define MULTIMAP_ITERATOR_HPP
 
 #include <cstdint>
-#include <functional>
-#include "multimap/Bytes.hpp"
+#include "multimap/Callables.hpp"
 #include "multimap/internal/Callbacks.hpp"
 #include "multimap/internal/ListLock.hpp"
 
@@ -46,7 +45,7 @@ class Iterator {
 
   void SeekTo(const Bytes& target);
 
-  void SeekTo(std::function<bool(const Bytes&)> predicate);
+  void SeekTo(Callables::Predicate predicate);
 
   // Checks whether the iterator actually points to a value.
   bool Valid() const;
@@ -106,7 +105,7 @@ void Iterator<IsConst>::SeekTo(const Bytes& target) {
 }
 
 template <bool IsConst>
-void Iterator<IsConst>::SeekTo(std::function<bool(const Bytes&)> predicate) {
+void Iterator<IsConst>::SeekTo(Callables::Predicate predicate) {
   for (SeekToFirst(); Valid(); Next()) {
     if (predicate(Value())) {
       break;
