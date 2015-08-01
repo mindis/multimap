@@ -51,46 +51,37 @@ void TableFile::WriteEntryToStream(const Bytes& key, const List::Head& head,
   head.WriteToStream(stream);
 }
 
+Table::Table() {}
+
+Table::Table(const boost::filesystem::path& filepath) { Open(filepath); }
+
+Table::Table(const boost::filesystem::path& filepath,
+             const Callbacks::CommitBlock& commit_block) {
+  Open(filepath, commit_block);
+}
+
 Table::~Table() {
-  internal::System::Log() << "Table::~Table BEGIN\n";
   FlushAllLists();
   if (!table_file_.empty()) {
-    // TODO Make background thread that writes ther table file periodically.
+    // TODO Make background thread that writes the table file periodically.
     WriteMapToFile(map_, table_file_);
     for (const auto& entry : map_) {
       delete[] static_cast<const char*>(entry.first.data());
     }
   }
-  internal::System::Log() << "Table::~Table END\n";
 }
 
-std::unique_ptr<Table> Table::Open(const boost::filesystem::path& filepath) {
-  std::unique_ptr<Table> table(new Table());
-  table->map_ = ReadMapFromFile(filepath);
-  table->table_file_ = filepath;
-  return std::move(table);
+void Table::Open(const boost::filesystem::path& filepath) {
+  if (boost::filesystem::exists(filepath)) {
+    map_ = ReadMapFromFile(filepath);
+  }
+  table_file_ = filepath;
 }
 
-std::unique_ptr<Table> Table::Open(const boost::filesystem::path& filepath,
-                                   const Callbacks::CommitBlock& commit_block) {
-  auto table = Open(filepath);
-  table->set_commit_block(commit_block);
-  return table;
-}
-
-std::unique_ptr<Table> Table::Create(const boost::filesystem::path& filepath) {
-  assert(!boost::filesystem::exists(filepath));
-  std::unique_ptr<Table> table(new Table());
-  table->table_file_ = filepath;
-  return std::move(table);
-}
-
-std::unique_ptr<Table> Table::Create(
-    const boost::filesystem::path& filepath,
-    const Callbacks::CommitBlock& commit_block) {
-  auto table = Create(filepath);
-  table->set_commit_block(commit_block);
-  return table;
+void Table::Open(const boost::filesystem::path& filepath,
+                 const Callbacks::CommitBlock& commit_block) {
+  Open(filepath);
+  set_commit_block(commit_block);
 }
 
 SharedListLock Table::GetShared(const Bytes& key) const {
@@ -153,20 +144,10 @@ bool Table::Contains(const Bytes& key) const {
   return map_.find(key) != map_.end();
 }
 
-void Table::ForEachKey(KeyProcedure procedure) const {
+void Table::ForEachKey(Callables::Procedure procedure) const {
   std::lock_guard<std::mutex> lock(map_mutex_);
   for (const auto& pair : map_) {
     procedure(pair.first);
-  }
-}
-
-void Table::ForEachList(ListProcedure procedure) const {
-  std::lock_guard<std::mutex> lock(map_mutex_);
-  for (auto& pair : map_) {
-    if (pair.second->TryLockShared()) {
-      procedure(*pair.second);
-      pair.second->UnlockShared();
-    }
   }
 }
 
@@ -201,11 +182,7 @@ void Table::FlushLists(double min_load_factor) {
   }
 }
 
-void Table::FlushAllLists() {
-  internal::System::Log() << "Table::FlushAllLists BEGIN\n";
-  FlushLists(0);
-  internal::System::Log() << "Table::FlushAllLists END\n";
-}
+void Table::FlushAllLists() { FlushLists(0); }
 
 const Callbacks::CommitBlock& Table::get_commit_block() const {
   return commit_block_;
@@ -216,6 +193,7 @@ void Table::set_commit_block(const Callbacks::CommitBlock& commit_block) {
 }
 
 Table::Map Table::ReadMapFromFile(const boost::filesystem::path& from) {
+  // TODO Use FILE streams.
   Map map;
   std::ifstream stream(from.string(), std::ios_base::binary);
   assert(stream.is_open());
@@ -232,7 +210,6 @@ Table::Map Table::ReadMapFromFile(const boost::filesystem::path& from) {
 }
 
 void Table::WriteMapToFile(const Map& map, const boost::filesystem::path& to) {
-  internal::System::Log() << "Table::WriteMapToFile BEGIN\n";
   assert(boost::filesystem::exists(to.parent_path()));
   const auto stream = std::fopen(to.c_str(), "wb");
   assert(stream != nullptr);
@@ -274,7 +251,6 @@ void Table::WriteMapToFile(const Map& map, const boost::filesystem::path& to) {
 
   ret = std::fclose(stream);
   assert(ret == 0);
-  internal::System::Log() << "Table::WriteMapToFile END\n";
 }
 
 }  // namespace internal

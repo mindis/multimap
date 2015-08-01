@@ -49,8 +49,9 @@ UintVector& UintVector::operator=(const UintVector& other) {
 
 UintVector UintVector::ReadFromStream(std::istream& stream) {
   UintVector ids;
-  stream.read(reinterpret_cast<char*>(&ids.put_offset_),
-              sizeof ids.put_offset_);
+  std::uint16_t ids_size;
+  stream.read(reinterpret_cast<char*>(&ids_size), sizeof ids_size);
+  ids.put_offset_ = ids_size;
   assert(stream.good());
   ids.data_.reset(new byte[ids.put_offset_]);
   stream.read(reinterpret_cast<char*>(ids.data_.get()), ids.put_offset_);

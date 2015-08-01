@@ -34,73 +34,68 @@ const char* kNameOfTableFile = "multimap.table";
 
 }  // namespace
 
+Map::Map() {}
+
 Map::~Map() {
-  internal::System::Log() << "Index::~Index BEGIN\n";
   internal::System::UnlockDirectory(directory_);
-  //  PrintProperties();
-  internal::System::Log() << "Index::~Index END\n";
+  PrintProperties();
 }
 
-std::unique_ptr<Map> Map::Open(const boost::filesystem::path& directory,
-                               const Options& options) {
-  std::unique_ptr<Map> index(new Map());
-  index->directory_ = boost::filesystem::absolute(directory);
-  index->options_ = options;
+Map::Map(const boost::filesystem::path& directory, const Options& options) {
+  Open(directory, options);
+}
 
-  internal::Check(boost::filesystem::is_directory(index->directory_),
+void Map::Open(const boost::filesystem::path& directory,
+               const Options& options) {
+  directory_ = boost::filesystem::absolute(directory);
+  options_ = options;
+
+  internal::Check(boost::filesystem::is_directory(directory_),
                   "The path %s does not refer to a directory.",
-                  index->directory_.c_str());
-  internal::Check(options.block_pool_memory != 0,
+                  directory_.c_str());
+  internal::Check(options_.block_pool_memory != 0,
                   "Options.block_pool_memory must be positive.");
-  internal::Check(options.block_size != 0,
+  internal::Check(options_.block_size != 0,
                   "Options.block_size must be positive.");
 
-  index->InitCallbacks();
+  InitCallbacks();
 
-  const auto table_filepath = index->directory_ / kNameOfTableFile;
-  const auto data_filepath = index->directory_ / kNameOfDataFile;
+  const auto table_filepath = directory_ / kNameOfTableFile;
+  const auto data_filepath = directory_ / kNameOfDataFile;
 
-  if (boost::filesystem::is_empty(index->directory_)) {
-    internal::System::LockDirectory(index->directory_);
-    index->data_file_ =
-        internal::DataFile::Create(data_filepath, options.block_size);
-    index->table_ = internal::Table::Create(table_filepath);
-  } else {
-    internal::System::LockDirectory(index->directory_);
-    internal::Check(boost::filesystem::is_regular_file(table_filepath),
-                    "Does not exist or is not a regular file: %s",
-                    table_filepath.c_str());
-    internal::Check(boost::filesystem::is_regular_file(data_filepath),
-                    "Does not exist or is not a regular file: %s",
-                    data_filepath.c_str());
-    index->data_file_ = internal::DataFile::Open(data_filepath);
-    index->table_ = internal::Table::Open(table_filepath);
-  }
-  const auto num_blocks = options.block_pool_memory / options.block_size;
-  index->block_pool_ =
-      internal::BlockPool::Create(num_blocks, options.block_size);
-  index->data_file_->set_deallocate_blocks(index->callbacks_.deallocate_blocks);
-  index->table_->set_commit_block(index->callbacks_.commit_block);
+  internal::System::LockDirectory(directory_);
+  data_file_.Open(data_filepath, options_.block_size);
+  table_.Open(table_filepath);
 
-  return index;
+  //  internal::Check(boost::filesystem::is_regular_file(table_filepath),
+  //                  "Does not exist or is not a regular file: %s",
+  //                  table_filepath.c_str());
+  //    internal::Check(boost::filesystem::is_regular_file(data_filepath),
+  //                    "Does not exist or is not a regular file: %s",
+  //                    data_filepath.c_str());
+
+  const auto num_blocks = options_.block_pool_memory / options_.block_size;
+  block_pool_.Init(num_blocks, options_.block_size);
+  data_file_.set_deallocate_blocks(callbacks_.deallocate_blocks);
+  table_.set_commit_block(callbacks_.commit_block);
 }
 
 void Map::Put(const Bytes& key, const Bytes& value) {
-  table_->GetUniqueOrCreate(key).list()->Add(value, callbacks_.allocate_block,
-                                             callbacks_.commit_block);
+  table_.GetUniqueOrCreate(key).list()->Add(value, callbacks_.allocate_block,
+                                            callbacks_.commit_block);
 }
 
 Map::ConstIter Map::Get(const Bytes& key) const {
-  return ConstIter(table_->GetShared(key), callbacks_);
+  return ConstIter(table_.GetShared(key), callbacks_);
 }
 
 Map::Iter Map::GetMutable(const Bytes& key) {
-  return Iter(table_->GetUnique(key), callbacks_);
+  return Iter(table_.GetUnique(key), callbacks_);
 }
 
-bool Map::Contains(const Bytes& key) const { return table_->Contains(key); }
+bool Map::Contains(const Bytes& key) const { return table_.Contains(key); }
 
-std::size_t Map::Delete(const Bytes& key) { return table_->Delete(key); }
+std::size_t Map::Delete(const Bytes& key) { return table_.Delete(key); }
 
 bool Map::DeleteFirst(const Bytes& key, Callables::Predicate predicate) {
   return Delete(key, predicate, Match::kOne);
@@ -146,28 +141,30 @@ std::size_t Map::ReplaceAllEqual(const Bytes& key, const Bytes& old_value,
 }
 
 void Map::ForEachKey(Callables::Procedure procedure) const {
-  table_->ForEachKey(procedure);
+  table_.ForEachKey(procedure);
 }
 
 // TODO Make thread-safe.
 std::map<std::string, std::string> Map::GetProperties() const {
-  auto properties = table_->GetProperties();
-  properties["block-load-factor"] =
-      std::to_string(data_file_->super_block().load_factor_total /
-                     data_file_->super_block().num_blocks);
-  properties["block-pool-capacity"] = std::to_string(block_pool_->capacity());
-  properties["block-pool-memory"] = std::to_string(block_pool_->memory());
-  properties["block-pool-size"] = std::to_string(block_pool_->size());
-  properties["block-size"] = std::to_string(block_pool_->block_size());
-  properties["num-blocks-written"] =
-      std::to_string(data_file_->super_block().num_blocks);
+  auto props = table_.GetProperties();
+  // TODO Property names need improvement.
+  props["block-load-factor"] =
+      std::to_string(data_file_.super_block().load_factor_total /
+                     data_file_.super_block().num_blocks);
+  props["block-pool-num-blocks"] = std::to_string(block_pool_.num_blocks());
+  props["block-pool-num-blocks-free"] =
+      std::to_string(block_pool_.num_blocks_free());
+  props["block-pool-memory"] = std::to_string(block_pool_.memory());
+  props["block-size"] = std::to_string(block_pool_.block_size());
+  props["num-blocks-written"] =
+      std::to_string(data_file_.super_block().num_blocks);
 
   // TODO Needs improvement.
-  std::unique_ptr<byte[]> block_data(new byte[block_pool_->block_size()]);
-  const internal::Block block(block_data.get(), block_pool_->block_size());
-  properties["max_value-size"] = std::to_string(block.max_value_size());
+  std::unique_ptr<byte[]> block_data(new byte[block_pool_.block_size()]);
+  const internal::Block block(block_data.get(), block_pool_.block_size());
+  props["max-value-size"] = std::to_string(block.max_value_size());
 
-  return properties;
+  return props;
 }
 
 void Map::PrintProperties() const {
@@ -187,13 +184,14 @@ void Map::Copy(const boost::filesystem::path& from,
 }
 
 void Map::Copy(const boost::filesystem::path& from,
-               const boost::filesystem::path& to, const Callables::Compare& compare) {
+               const boost::filesystem::path& to,
+               const Callables::Compare& compare) {
   Copy(from, to, compare, -1);
 }
 
 void Map::Copy(const boost::filesystem::path& from,
-               const boost::filesystem::path& to, const Callables::Compare& compare,
-               std::size_t new_block_size) {
+               const boost::filesystem::path& to,
+               const Callables::Compare& compare, std::size_t new_block_size) {
   using namespace internal;
   namespace fs = boost::filesystem;
   const auto table_path = from / kNameOfTableFile;
@@ -215,8 +213,8 @@ void Map::Copy(const boost::filesystem::path& from,
   std::ifstream table_ifs(table_path.string(), std::ios_base::binary);
   std::ofstream new_table_ofs(new_table_path.string(), std::ios_base::binary);
 
-  const auto data_file = DataFile::Open(data_path);
-  auto new_data_file = DataFile::Create(new_data_path, new_block_size);
+  DataFile data_file(data_path);
+  DataFile new_data_file(new_data_path, new_block_size);
 
   std::uint32_t num_keys;
   table_ifs.read(reinterpret_cast<char*>(&num_keys), sizeof num_keys);
@@ -224,8 +222,7 @@ void Map::Copy(const boost::filesystem::path& from,
   for (std::size_t i = 0; i != num_keys; ++i) {
     const auto entry = TableFile::ReadEntryFromStream(table_ifs);
     const auto head = entry.second;
-    const auto new_head =
-        List::Copy(head, *data_file, new_data_file.get(), compare);
+    const auto new_head = List::Copy(head, data_file, &new_data_file, compare);
     if (new_head.num_values_total != 0) {
       const auto key = entry.first;
       const auto new_entry = TableFile::Entry(key, new_head);
@@ -238,7 +235,8 @@ void Map::Copy(const boost::filesystem::path& from,
   System::UnlockDirectory(from);
 }
 
-std::size_t Map::Delete(const Bytes& key, Callables::Predicate predicate, Match match) {
+std::size_t Map::Delete(const Bytes& key, Callables::Predicate predicate,
+                        Match match) {
   std::size_t num_deleted = 0;
   auto iter = GetMutable(key);
   for (iter.SeekToFirst(); iter.Valid(); iter.Next()) {
@@ -260,7 +258,8 @@ std::size_t Map::Delete(const Bytes& key, Callables::Predicate predicate, Match 
   return num_deleted;
 }
 
-std::size_t Map::Update(const Bytes& key, Callables::Function function, Match match) {
+std::size_t Map::Update(const Bytes& key, Callables::Function function,
+                        Match match) {
   std::vector<std::string> updated_values;
   auto iter = GetMutable(key);
   for (iter.SeekToFirst(); iter.Valid(); iter.Next()) {
@@ -296,18 +295,18 @@ void Map::InitCallbacks() {
   callbacks_.allocate_block = [this]() {
     static std::mutex mutex;
     const std::lock_guard<std::mutex> lock(mutex);
-    auto new_block = block_pool_->Pop();
+    auto new_block = block_pool_.Pop();
     if (!new_block.has_data()) {
       if (options_.verbose) {
         internal::System::Log("Multimap") << "block pool ran out of blocks\n";
       }
       double load_factor = 0.8;
-      while (block_pool_->empty()) {
-        table_->FlushLists(load_factor);
-        data_file_->Flush();
+      while (block_pool_.empty()) {
+        table_.FlushLists(load_factor);
+        data_file_.Flush();
         load_factor -= 0.2;
       }
-      new_block = block_pool_->Pop();
+      new_block = block_pool_.Pop();
       assert(new_block.has_data());
     }
     return new_block;
@@ -316,28 +315,28 @@ void Map::InitCallbacks() {
   // Thread-safe: yes.
   // TODO Provide deallocate_blocks callback.
   callbacks_.deallocate_block =
-      [this](internal::Block&& block) { block_pool_->Push(std::move(block)); };
+      [this](internal::Block&& block) { block_pool_.Push(std::move(block)); };
 
   // Thread-safe: yes.
   callbacks_.deallocate_blocks = [this](std::vector<internal::Block>* blocks) {
-    block_pool_->Push(blocks);
+    block_pool_.Push(blocks);
   };
 
   // Thread-safe: yes.
   callbacks_.commit_block = [this](internal::Block&& block) {
-    return data_file_->Append(std::move(block));
+    return data_file_.Append(std::move(block));
   };
 
   // Thread-safe: yes.
   callbacks_.update_block =
       [this](std::uint32_t block_id, const internal::Block& block) {
-    data_file_->Write(block_id, block);
+    data_file_.Write(block_id, block);
   };
 
   // Thread-safe: yes.
   callbacks_.request_block =
       [this](std::uint32_t block_id,
-             internal::Block* block) { data_file_->Read(block_id, block); };
+             internal::Block* block) { data_file_.Read(block_id, block); };
 }
 
 }  // namespace multimap

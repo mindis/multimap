@@ -22,20 +22,21 @@
 namespace multimap {
 namespace internal {
 
-BlockPool::BlockPool(std::size_t capacity, std::size_t block_size)
-    : ids_(capacity),
-      data_(new byte[capacity * block_size]),
-      end_of_data_(capacity * block_size),
-      block_size_(block_size),
-      capacity_(capacity) {
+BlockPool::BlockPool() : num_blocks_(0), block_size_(0), end_of_data_(0) {}
+
+BlockPool::BlockPool(std::size_t num_blocks, std::size_t block_size) {
+  Init(num_blocks, block_size);
+}
+
+void BlockPool::Init(std::size_t num_blocks, std::size_t block_size) {
+  num_blocks_ = num_blocks;
+  block_size_ = block_size;
+  end_of_data_ = num_blocks * block_size;
+  data_.reset(new byte[end_of_data_]);
+  ids_.resize(num_blocks);
   for (std::size_t i = 0; i != ids_.size(); ++i) {
     ids_[i] = i;
   }
-}
-
-std::unique_ptr<BlockPool> BlockPool::Create(std::size_t capacity,
-                                             std::size_t block_size) {
-  return std::unique_ptr<BlockPool>(new BlockPool(capacity, block_size));
 }
 
 Block BlockPool::Pop() {
@@ -61,13 +62,13 @@ void BlockPool::Push(std::vector<Block>* blocks) {
   }
 }
 
-std::size_t BlockPool::capacity() const { return capacity_; }
+std::size_t BlockPool::num_blocks() const { return num_blocks_; }
 
 std::size_t BlockPool::block_size() const { return block_size_; }
 
 std::uint64_t BlockPool::memory() const { return end_of_data_; }
 
-std::size_t BlockPool::size() const {
+std::size_t BlockPool::num_blocks_free() const {
   const std::lock_guard<std::mutex> lock(mutex_);
   return ids_.size();
 }
@@ -79,7 +80,7 @@ bool BlockPool::empty() const {
 
 bool BlockPool::full() const {
   const std::lock_guard<std::mutex> lock(mutex_);
-  return ids_.size() == capacity_;
+  return ids_.size() == num_blocks_;
 }
 
 bool BlockPool::valid(byte* ptr) const {
@@ -92,7 +93,7 @@ bool BlockPool::valid(byte* ptr) const {
 void BlockPool::PushUnlocked(Block&& block) {
   assert(block.has_data());
   assert(valid(block.data()));
-  assert(ids_.size() < capacity_);
+  assert(ids_.size() < num_blocks_);
   ids_.push_back((block.data() - data_.get()) / block_size_);
 }
 

@@ -16,6 +16,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <unistd.h>
+#include "boost/filesystem/operations.hpp"
 #include "multimap/internal/DataFile.hpp"
 #include "multimap/internal/System.hpp"
 
@@ -32,8 +33,24 @@ std::uint64_t BlockIdToOffset(std::uint32_t block_id, std::size_t block_size) {
 
 const std::size_t DataFile::kMaxBufferSize = sysconf(_SC_IOV_MAX);
 
+DataFile::DataFile() : fd_(-1) {}
+
+DataFile::DataFile(const boost::filesystem::path& path) : DataFile() {
+  Open(path);
+}
+
+DataFile::DataFile(const boost::filesystem::path& path, std::size_t block_size)
+    : DataFile() {
+  Open(path, block_size);
+}
+
+DataFile::DataFile(const boost::filesystem::path& path, std::size_t block_size,
+                   const Callbacks::DeallocateBlocks& deallocate_blocks)
+    : DataFile() {
+  Open(path, block_size, deallocate_blocks);
+}
+
 DataFile::~DataFile() {
-  internal::System::Log() << "DataFile::~DataFile BEGIN\n";
   if (fd_ != -1) {
     FlushUnlocked();
     System::Seek(fd_, 0);
@@ -41,42 +58,34 @@ DataFile::~DataFile() {
     System::Close(fd_);
     fd_ = -1;
   }
-  internal::System::Log() << "DataFile::~DataFile END\n";
 }
 
-std::unique_ptr<DataFile> DataFile::Create(const boost::filesystem::path& path,
-                                           std::size_t block_size) {
-  std::unique_ptr<DataFile> data_file(new DataFile());
-  data_file->path_ = path;
-  data_file->super_block_.block_size = block_size;
-  data_file->fd_ = System::Create(data_file->path_);
-  data_file->super_block_.WriteToFd(data_file->fd_);
-  return data_file;
-}
-
-std::unique_ptr<DataFile> DataFile::Create(
-    const boost::filesystem::path& path, std::size_t block_size,
-    const Callbacks::DeallocateBlocks& deallocate_blocks) {
-  auto data_file = Create(path, block_size);
-  data_file->set_deallocate_blocks(deallocate_blocks);
-  return data_file;
-}
-
-std::unique_ptr<DataFile> DataFile::Open(const boost::filesystem::path& path) {
-  std::unique_ptr<DataFile> data_file(new DataFile());
-  data_file->path_ = path;
-  data_file->fd_ = System::Open(data_file->path_);
-  data_file->super_block_ = SuperBlock::ReadFromFd(data_file->fd_);
+void DataFile::Open(const boost::filesystem::path& path) {
+  assert(boost::filesystem::exists(path));
+  fd_ = System::Open(path);
+  super_block_ = SuperBlock::ReadFromFd(fd_);
   // TODO Verify version numbers and throw if not compatible.
-  return data_file;
+  path_ = path;
 }
 
-std::unique_ptr<DataFile> DataFile::Open(
-    const boost::filesystem::path& path,
-    const Callbacks::DeallocateBlocks& deallocate_blocks) {
-  auto data_file = Open(path);
-  data_file->set_deallocate_blocks(deallocate_blocks);
-  return data_file;
+void DataFile::Open(const boost::filesystem::path& path,
+                    std::size_t block_size) {
+  if (boost::filesystem::exists(path)) {
+    fd_ = System::Open(path);
+    super_block_ = SuperBlock::ReadFromFd(fd_);
+    // TODO Verify version numbers and throw if not compatible.
+  } else {
+    super_block_.block_size = block_size;
+    fd_ = System::Create(path);
+    super_block_.WriteToFd(fd_);
+  }
+  path_ = path;
+}
+
+void DataFile::Open(const boost::filesystem::path& path, std::size_t block_size,
+                    const Callbacks::DeallocateBlocks& deallocate_blocks) {
+  Open(path, block_size);
+  set_deallocate_blocks(deallocate_blocks);
 }
 
 void DataFile::Read(std::uint32_t block_id, Block* block) const {
@@ -139,8 +148,6 @@ void DataFile::set_deallocate_blocks(
     const Callbacks::DeallocateBlocks& callback) {
   deallocate_blocks_ = callback;
 }
-
-DataFile::DataFile() : fd_(-1) {}
 
 std::size_t DataFile::FlushUnlocked() {
   System::Batch batch;

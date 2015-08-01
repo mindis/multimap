@@ -104,13 +104,8 @@ TEST_F(TableTest, DefaultConstructedContains) {
 }
 
 TEST_F(TableTest, DefaultConstructedForEachKey) {
-  Table::KeyProcedure procedure = [](const Bytes& /* key */) {};
+  Callables::Procedure procedure = [](const Bytes& /* key */) {};
   ASSERT_NO_THROW(Table().ForEachKey(procedure));
-}
-
-TEST_F(TableTest, DefaultConstructedForEachList) {
-  Table::ListProcedure procedure = [](const List& /* list */) {};
-  ASSERT_NO_THROW(Table().ForEachList(procedure));
 }
 
 // TEST_F(TableTest, OpenInNonExistingDirectory) {
@@ -139,8 +134,7 @@ TEST_F(TableTest, DefaultConstructedForEachList) {
 //}
 
 TEST_F(TableTest, GetUniqueOrCreateInsertsNewKey) {
-  Table table;
-  table.Create(filepath);
+  Table table(filepath);
 
   table.GetUniqueOrCreate(key1);
   ASSERT_THAT(table.GetShared(key1).clist(), NotNull());
@@ -152,8 +146,7 @@ TEST_F(TableTest, GetUniqueOrCreateInsertsNewKey) {
 }
 
 TEST_F(TableTest, InsertKeyThenGetSharedTwice) {
-  Table table;
-  table.Create(filepath);
+  Table table(filepath);
 
   table.GetUniqueOrCreate(key1);
   const auto lock1 = table.GetShared(key1);
@@ -163,8 +156,7 @@ TEST_F(TableTest, InsertKeyThenGetSharedTwice) {
 }
 
 TEST_F(TableTest, InsertKeyThenGetUniqueTwice) {
-  Table table;
-  table.Create(filepath);
+  Table table(filepath);
   table.GetUniqueOrCreate(key1);
   bool other_thread_got_unique_lock = false;
   {
@@ -185,8 +177,7 @@ TEST_F(TableTest, InsertKeyThenGetUniqueTwice) {
 }
 
 TEST_F(TableTest, InsertKeyThenGetSharedAndGetUnique) {
-  Table table;
-  table.Create(filepath);
+  Table table(filepath);
   table.GetUniqueOrCreate(key1);
   bool other_thread_gots_unique_lock = false;
   {
@@ -298,18 +289,6 @@ TEST_F(TableTest, ForEachKeyVisitsLockedEntries) {
   table.ForEachKey([&keys](const Bytes& key) { keys.push_back(key); });
   std::sort(keys.begin(), keys.end());
   ASSERT_THAT(keys, ElementsAre(key1, key2, key3));
-}
-
-TEST_F(TableTest, ForEachListDoesNotVisitLockedEntries) {
-  Table table;
-  //  table.Init(directory, block_cache_size, block_size);
-  table.GetUniqueOrCreate(key1);  // Inserted but not locked.
-  table.GetUniqueOrCreate(key2);  // Inserted but not locked.
-  const auto list_lock = table.GetUniqueOrCreate(key3);
-
-  std::size_t num_visited = 0;
-  table.ForEachList([&num_visited](const List&) { ++num_visited; });
-  ASSERT_THAT(num_visited, Eq(2));
 }
 
 }  // namespace internal

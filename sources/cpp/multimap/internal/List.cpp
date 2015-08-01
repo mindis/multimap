@@ -144,22 +144,22 @@ List::Head List::Copy(const Head& head, const DataFile& from, DataFile* to) {
 
 List::Head List::Copy(const Head& head, const DataFile& from, DataFile* to,
                       const Callables::Compare& compare) {
-  const auto block_pool =
-      BlockPool::Create(DataFile::kMaxBufferSize, to->block_size());
+  BlockPool block_pool;
+  block_pool.Init(DataFile::kMaxBufferSize, to->block_size());
 
   Callbacks callbacks;
   callbacks.allocate_block = [&block_pool, to]() {
-    auto block = block_pool->Pop();
+    auto block = block_pool.Pop();
     if (!block.has_data()) {
       to->Flush();
     }
-    block = block_pool->Pop();
+    block = block_pool.Pop();
     assert(block.has_data());
     return block;
   };
 
   callbacks.deallocate_blocks =
-      [&block_pool](std::vector<Block>* blocks) { block_pool->Push(blocks); };
+      [&block_pool](std::vector<Block>* blocks) { block_pool.Push(blocks); };
 
   callbacks.commit_block =
       [to](Block&& block) { return to->Append(std::move(block)); };

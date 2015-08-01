@@ -22,14 +22,11 @@
 
 namespace multimap {
 
-// Converts a number in kibibytes to bytes.
-inline std::size_t KiB(std::size_t kibibytes) { return kibibytes * 1024; }
-
 // Converts a number in mebibytes to bytes.
-inline std::size_t MiB(std::size_t mebibytes) { return KiB(mebibytes * 1024); }
+inline std::size_t MiB(std::size_t mebibytes) { return mebibytes << 20; }
 
 // Converts a number in gibibytes to bytes.
-inline std::size_t GiB(std::size_t gibibytes) { return MiB(gibibytes * 1024); }
+inline std::size_t GiB(std::size_t gibibytes) { return gibibytes << 30; }
 
 struct Options {
   // The size of a data block in bytes.

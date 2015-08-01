@@ -36,7 +36,8 @@ SOURCES += \
     $$PWD/../../sources/cpp/multimap/internal/UintVectorTest.cpp \
     $$PWD/../../sources/cpp/multimap/internal/VarintTest.cpp \
     $$PWD/../../sources/cpp/multimap/IteratorTest.cpp \
-    $$PWD/../../sources/cpp/multimap/RunAllTests.cpp
+    $$PWD/../../sources/cpp/multimap/RunAllTests.cpp \
+    ../../sources/cpp/multimap/MapTest.cpp
 
 #unix {
 #    OBJECTS_DIR = $$PWD

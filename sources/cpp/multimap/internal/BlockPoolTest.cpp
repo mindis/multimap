@@ -33,7 +33,7 @@ byte data[] = "data";
 Block non_empty_block(data, sizeof data);
 
 TEST(BlockPoolTest, IsDefaultConstructible) {
-  ASSERT_THAT(std::is_default_constructible<BlockPool>::value, Eq(false));
+  ASSERT_THAT(std::is_default_constructible<BlockPool>::value, Eq(true));
 }
 
 TEST(BlockPoolTest, IsNotCopyConstructibleOrAssignable) {
@@ -47,58 +47,58 @@ TEST(BlockPoolTest, IsNotMoveConstructibleOrAssignable) {
 }
 
 TEST(BlockPoolTest, ConstructedWithValidParamsHasProperState) {
-  const auto block_pool = BlockPool::Create(23, 42);
-  ASSERT_THAT(block_pool->capacity(), Eq(23));
-  ASSERT_THAT(block_pool->block_size(), Eq(42));
-  ASSERT_THAT(block_pool->memory(), Eq(23 * 42));
-  ASSERT_THAT(block_pool->size(), Eq(23));
-  ASSERT_THAT(block_pool->empty(), Eq(false));
-  ASSERT_THAT(block_pool->full(), Eq(true));
-  ASSERT_THAT(block_pool->Pop().data(), NotNull());
-  ASSERT_DEATH(block_pool->Push(Block()), "");
-  ASSERT_DEATH(block_pool->Push(std::move(non_empty_block)), "");
+  BlockPool block_pool(23, 42);
+  ASSERT_THAT(block_pool.num_blocks(), Eq(23));
+  ASSERT_THAT(block_pool.block_size(), Eq(42));
+  ASSERT_THAT(block_pool.num_blocks_free(), Eq(23));
+  ASSERT_THAT(block_pool.memory(), Eq(23 * 42));
+  ASSERT_THAT(block_pool.empty(), Eq(false));
+  ASSERT_THAT(block_pool.full(), Eq(true));
+  ASSERT_THAT(block_pool.Pop().data(), NotNull());
+  ASSERT_DEATH(block_pool.Push(Block()), "");
+  ASSERT_DEATH(block_pool.Push(std::move(non_empty_block)), "");
 }
 
 TEST(BlockPoolTest, PopUntilEmptyMeetsInvariants) {
-  const auto capacity = 23;
+  const auto num_blocks = 23;
   const auto block_size = 42;
   std::vector<Block> popped;
-  const auto block_pool = BlockPool::Create(capacity, block_size);
-  while (!block_pool->empty()) {
-    popped.push_back(block_pool->Pop());
-    ASSERT_THAT(block_pool->capacity(), Eq(capacity));
-    ASSERT_THAT(block_pool->block_size(), Eq(block_size));
-    ASSERT_THAT(block_pool->memory(), Eq(capacity * block_size));
-    ASSERT_THAT(block_pool->size(), Eq(capacity - popped.size()));
-    ASSERT_THAT(block_pool->full(), Eq(false));
+  BlockPool block_pool(num_blocks, block_size);
+  while (!block_pool.empty()) {
+    popped.push_back(block_pool.Pop());
+    ASSERT_THAT(block_pool.num_blocks(), Eq(num_blocks));
+    ASSERT_THAT(block_pool.block_size(), Eq(block_size));
+    ASSERT_THAT(block_pool.num_blocks_free(), Eq(num_blocks - popped.size()));
+    ASSERT_THAT(block_pool.memory(), Eq(num_blocks * block_size));
+    ASSERT_THAT(block_pool.full(), Eq(false));
   }
-  ASSERT_THAT(popped.size(), Eq(capacity));
-  ASSERT_THAT(block_pool->Pop().data(), IsNull());
+  ASSERT_THAT(popped.size(), Eq(num_blocks));
+  ASSERT_THAT(block_pool.Pop().data(), IsNull());
 }
 
 TEST(BlockPoolTest, PushUntilFullMeetsInvariants) {
-  const auto capacity = 23;
+  const auto num_blocks = 23;
   const auto block_size = 42;
   std::vector<Block> popped;
-  const auto block_pool = BlockPool::Create(capacity, block_size);
-  while (!block_pool->empty()) {
-    popped.push_back(block_pool->Pop());
+  BlockPool block_pool(num_blocks, block_size);
+  while (!block_pool.empty()) {
+    popped.push_back(block_pool.Pop());
   }
-  ASSERT_THAT(popped.size(), Eq(capacity));
+  ASSERT_THAT(popped.size(), Eq(num_blocks));
 
-  while (!block_pool->full()) {
-    ASSERT_NO_THROW(block_pool->Push(std::move(popped.back())));
+  while (!block_pool.full()) {
+    ASSERT_NO_THROW(block_pool.Push(std::move(popped.back())));
     popped.pop_back();
-    ASSERT_THAT(block_pool->capacity(), Eq(capacity));
-    ASSERT_THAT(block_pool->block_size(), Eq(block_size));
-    ASSERT_THAT(block_pool->memory(), Eq(capacity * block_size));
-    ASSERT_THAT(block_pool->size(), Eq(capacity - popped.size()));
-    ASSERT_THAT(block_pool->empty(), Eq(false));
+    ASSERT_THAT(block_pool.num_blocks(), Eq(num_blocks));
+    ASSERT_THAT(block_pool.block_size(), Eq(block_size));
+    ASSERT_THAT(block_pool.num_blocks_free(), Eq(num_blocks - popped.size()));
+    ASSERT_THAT(block_pool.memory(), Eq(num_blocks * block_size));
+    ASSERT_THAT(block_pool.empty(), Eq(false));
 
-    ASSERT_DEATH(block_pool->Push(Block()), "");
-    ASSERT_DEATH(block_pool->Push(std::move(non_empty_block)), "");
+    ASSERT_DEATH(block_pool.Push(Block()), "");
+    ASSERT_DEATH(block_pool.Push(std::move(non_empty_block)), "");
   }
-  ASSERT_THAT(block_pool->full(), Eq(true));
+  ASSERT_THAT(block_pool.full(), Eq(true));
 }
 
 }  // namespace internal

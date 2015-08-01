@@ -179,7 +179,7 @@ class SuperBlock {
   std::uint64_t num_blocks = 0;
 
   double load_factor_total = 0;
-};
+} __attribute__((packed));
 
 static_assert(sizeof(SuperBlock) <= SuperBlock::kSerializedSize,
               "sizeof(SuperBlock) > SuperBlock::kSerializedSize");

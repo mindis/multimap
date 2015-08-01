@@ -32,20 +32,23 @@ class DataFile {
  public:
   static const std::size_t kMaxBufferSize;
 
+  DataFile();
+
+  DataFile(const boost::filesystem::path& path);
+
+  DataFile(const boost::filesystem::path& path, std::size_t block_size);
+
+  DataFile(const boost::filesystem::path& path, std::size_t block_size,
+           const Callbacks::DeallocateBlocks& deallocate_blocks);
+
   ~DataFile();
 
-  static std::unique_ptr<DataFile> Create(const boost::filesystem::path& path,
-                                          std::size_t block_size);
+  void Open(const boost::filesystem::path& path);
 
-  static std::unique_ptr<DataFile> Create(
-      const boost::filesystem::path& path, std::size_t block_size,
-      const Callbacks::DeallocateBlocks& deallocate_blocks);
+  void Open(const boost::filesystem::path& path, std::size_t block_size);
 
-  static std::unique_ptr<DataFile> Open(const boost::filesystem::path& path);
-
-  static std::unique_ptr<DataFile> Open(
-      const boost::filesystem::path& path,
-      const Callbacks::DeallocateBlocks& deallocate_blocks);
+  void Open(const boost::filesystem::path& path, std::size_t block_size,
+            const Callbacks::DeallocateBlocks& deallocate_blocks);
 
   // Thread-safe: yes.
   void Read(std::uint32_t block_id, Block* block) const;
@@ -78,8 +81,6 @@ class DataFile {
   void set_deallocate_blocks(const Callbacks::DeallocateBlocks& callback);
 
  private:
-  DataFile();
-
   std::size_t FlushUnlocked();
 
   mutable std::mutex mutex_;

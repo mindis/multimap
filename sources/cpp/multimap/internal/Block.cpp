@@ -70,34 +70,19 @@ bool operator==(const Block& lhs, const Block& rhs) {
 SuperBlock SuperBlock::ReadFromFd(int fd) {
   std::array<byte, kSerializedSize> buffer;
   System::Read(fd, buffer.data(), buffer.size());
-  auto pos = buffer.data();
-  SuperBlock block;
-  std::memcpy(&block.major_version, pos, sizeof block.major_version);
-  pos += sizeof block.major_version;
-  std::memcpy(&block.minor_version, pos, sizeof block.minor_version);
-  pos += sizeof block.minor_version;
-  std::memcpy(&block.block_size, pos, sizeof block.block_size);
-  return block;
+  SuperBlock super_block;
+  std::memcpy(&super_block, buffer.data(), sizeof super_block);
+  return super_block;
 }
 
-// TODO Write all fields.
 void SuperBlock::WriteToFd(int fd) const {
   std::array<byte, kSerializedSize> buffer;
-  auto pos = buffer.data();
-  std::memcpy(pos, &major_version, sizeof major_version);
-  pos += sizeof major_version;
-  std::memcpy(pos, &minor_version, sizeof minor_version);
-  pos += sizeof minor_version;
-  std::memcpy(pos, &block_size, sizeof block_size);
-  pos += sizeof block_size;
-  assert(buffer.data() - pos <= kSerializedSize);
+  std::memcpy(buffer.data(), this, sizeof *this);
   System::Write(fd, buffer.data(), buffer.size());
 }
 
 bool operator==(const SuperBlock& lhs, const SuperBlock& rhs) {
-  return lhs.major_version == rhs.major_version &&
-         lhs.minor_version == rhs.minor_version &&
-         lhs.block_size == rhs.block_size;
+  return std::memcmp(&lhs, &rhs, sizeof lhs) == 0;
 }
 
 }  // namespace internal

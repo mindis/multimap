@@ -50,22 +50,19 @@ struct TableFile {
 
 class Table {
  public:
-  typedef std::function<void(const Bytes&)> KeyProcedure;
-  typedef std::function<void(const List&)> ListProcedure;
+  Table();
+
+  Table(const boost::filesystem::path& filepath);
+
+  Table(const boost::filesystem::path& filepath,
+        const Callbacks::CommitBlock& commit_block);
 
   ~Table();
 
-  static std::unique_ptr<Table> Open(const boost::filesystem::path& filepath);
+  void Open(const boost::filesystem::path& filepath);
 
-  static std::unique_ptr<Table> Open(
-      const boost::filesystem::path& filepath,
-      const Callbacks::CommitBlock& commit_block);
-
-  static std::unique_ptr<Table> Create(const boost::filesystem::path& filepath);
-
-  static std::unique_ptr<Table> Create(
-      const boost::filesystem::path& filepath,
-      const Callbacks::CommitBlock& commit_block);
+  void Open(const boost::filesystem::path& filepath,
+            const Callbacks::CommitBlock& commit_block);
 
   SharedListLock GetShared(const Bytes& key) const;
 
@@ -79,12 +76,8 @@ class Table {
 
   // Applies procedure to every key.
   // The order of keys visited is undefined.
-  void ForEachKey(KeyProcedure procedure) const;
-
-  // Applies procedure to every list.
-  // The order of lists visited is undefined.
-  // Locked lists will not be visited at all.
-  void ForEachList(ListProcedure procedure) const;
+  // TODO Replace by ForEachEntry.
+  void ForEachKey(Callables::Procedure procedure) const;
 
   // Thread-safe: yes.
   std::map<std::string, std::string> GetProperties() const;

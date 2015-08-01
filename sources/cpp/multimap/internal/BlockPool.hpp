@@ -29,10 +29,11 @@ namespace internal {
 
 class BlockPool {
  public:
-  BlockPool(std::size_t capacity, std::size_t block_size);
+  BlockPool();
 
-  static std::unique_ptr<BlockPool> Create(std::size_t capacity,
-                                           std::size_t block_size);
+  BlockPool(std::size_t num_blocks, std::size_t block_size);
+
+  void Init(std::size_t num_blocks, std::size_t block_size);
 
   // Thread-safe: yes.
   Block Pop();
@@ -44,7 +45,7 @@ class BlockPool {
   void Push(std::vector<Block>* blocks);
 
   // Thread-safe: yes.
-  std::size_t capacity() const;
+  std::size_t num_blocks() const;
 
   // Thread-safe: yes.
   std::size_t block_size() const;
@@ -53,7 +54,7 @@ class BlockPool {
   std::uint64_t memory() const;
 
   // Thread-safe: yes.
-  std::size_t size() const;
+  std::size_t num_blocks_free() const;
 
   // Thread-safe: yes.
   bool empty() const;
@@ -68,12 +69,12 @@ class BlockPool {
   // THread-safe: no.
   void PushUnlocked(Block&& block);
 
-  mutable std::mutex mutex_;
-  std::vector<std::uint32_t> ids_;
-  std::unique_ptr<byte[]> data_;
-  std::uint64_t end_of_data_;
+  std::size_t num_blocks_;
   std::size_t block_size_;
-  std::size_t capacity_;
+  std::uint64_t end_of_data_;
+  std::unique_ptr<byte[]> data_;
+  std::vector<std::uint32_t> ids_;
+  mutable std::mutex mutex_;
 };
 
 }  // namespace internal

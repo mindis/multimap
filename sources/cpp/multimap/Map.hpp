@@ -37,10 +37,12 @@ class Map {
   typedef Iterator<false> Iter;
   typedef Iterator<true> ConstIter;
 
+  Map();
   ~Map();
 
-  static std::unique_ptr<Map> Open(const boost::filesystem::path& directory,
-                                   const Options& options);
+  Map(const boost::filesystem::path& directory, const Options& options);
+
+  void Open(const boost::filesystem::path& directory, const Options& options);
 
   void Put(const Bytes& key, const Bytes& value);
 
@@ -103,12 +105,12 @@ class Map {
 
   // Members may access each other in destructor calls,
   // thus the order of declaration matters - don't reorder.
-  internal::Callbacks callbacks_;
-  std::unique_ptr<internal::BlockPool> block_pool_;
-  std::unique_ptr<internal::DataFile> data_file_;
-  std::unique_ptr<internal::Table> table_;
-  boost::filesystem::path directory_;
   Options options_;
+  boost::filesystem::path directory_;
+  internal::Callbacks callbacks_;
+  internal::BlockPool block_pool_;
+  internal::DataFile data_file_;
+  internal::Table table_;
 };
 
 }  // namespace multimap

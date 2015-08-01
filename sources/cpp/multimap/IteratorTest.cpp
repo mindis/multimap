@@ -39,30 +39,30 @@ struct IteratorTestFixture : testing::TestWithParam<std::uint32_t> {
     options.block_size = 512;
     options.block_pool_memory = GiB(1);
     options.create_if_missing = true;
-    index = Map::Open(directory, options);
+    map.reset(new Map(directory, options));
 
     key = "key";
     for (std::size_t i = 0; i != GetParam(); ++i) {
-      index->Put(key, std::to_string(i));
+      map->Put(key, std::to_string(i));
     }
   }
 
   void TearDown() override {
-    index.reset();
+    map.reset();  // We need the d'tor call here.
     assert(boost::filesystem::remove_all(directory));
   }
 
-  boost::filesystem::path directory;
-  std::unique_ptr<Map> index;
   std::string key;
+  std::unique_ptr<Map> map;
+  boost::filesystem::path directory;
 };
 
 struct ConstIterTest : public IteratorTestFixture {
-  ConstIter GetIterator() { return index->Get(key); }
+  ConstIter GetIterator() { return map->Get(key); }
 };
 
 struct IterTest : public IteratorTestFixture {
-  Iter GetIterator() { return index->GetMutable(key); }
+  Iter GetIterator() { return map->GetMutable(key); }
 };
 
 TEST(IterTest, IsDefaultConstructible) {

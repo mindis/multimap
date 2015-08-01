@@ -39,6 +39,7 @@ struct System {
   static bool UnlockDirectory(const boost::filesystem::path& directory);
 
   // TODO Overload for printf-like capabilities.
+  // Usage: System::Log() << "Your message here\n";
   static std::ostream& Log();
 
   static std::ostream& Log(std::ostream& stream);
