@@ -5,3 +5,6 @@ Makefile
 site/
 *~
 
+bin/
+.classpath
+.project
