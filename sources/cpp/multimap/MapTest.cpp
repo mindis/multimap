@@ -44,10 +44,10 @@ TEST_P(MapTestWithParam, PutThenGetWorks) {
   }
   for (std::uint32_t k = 0; k != GetParam(); ++k) {
     auto iter = map.Get(std::to_string(k));
-    ASSERT_THAT(iter.Size(), Eq(GetParam()));
+    ASSERT_THAT(iter.NumValues(), Eq(GetParam()));
     iter.SeekToFirst();
-    for (std::uint32_t v = 0; iter.Valid(); iter.Next(), ++v) {
-      ASSERT_THAT(iter.Value().ToString(), Eq(std::to_string(k + v * v)));
+    for (std::uint32_t v = 0; iter.HasValue(); iter.Next(), ++v) {
+      ASSERT_THAT(iter.GetValue().ToString(), Eq(std::to_string(k + v * v)));
     }
   }
 }
@@ -65,10 +65,10 @@ TEST_P(MapTestWithParam, PutThenCloseThenOpenThenGetWorks) {
     multimap::Map map(directory, Options());
     for (std::uint32_t k = 0; k != GetParam(); ++k) {
       auto iter = map.Get(std::to_string(k));
-      ASSERT_THAT(iter.Size(), Eq(GetParam()));
+      ASSERT_THAT(iter.NumValues(), Eq(GetParam()));
       iter.SeekToFirst();
-      for (std::uint32_t v = 0; iter.Valid(); iter.Next(), ++v) {
-        ASSERT_THAT(iter.Value().ToString(), Eq(std::to_string(k + v * v)));
+      for (std::uint32_t v = 0; iter.HasValue(); iter.Next(), ++v) {
+        ASSERT_THAT(iter.GetValue().ToString(), Eq(std::to_string(k + v * v)));
       }
     }
   }

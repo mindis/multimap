@@ -239,18 +239,18 @@ std::size_t Map::Delete(const Bytes& key, Callables::Predicate predicate,
                         Match match) {
   std::size_t num_deleted = 0;
   auto iter = GetMutable(key);
-  for (iter.SeekToFirst(); iter.Valid(); iter.Next()) {
-    if (predicate(iter.Value())) {
-      iter.Delete();
+  for (iter.SeekToFirst(); iter.HasValue(); iter.Next()) {
+    if (predicate(iter.GetValue())) {
+      iter.DeleteValue();
       ++num_deleted;
       iter.Next();
       break;
     }
   }
   if (match == Match::kAll) {
-    for (; iter.Valid(); iter.Next()) {
-      if (predicate(iter.Value())) {
-        iter.Delete();
+    for (; iter.HasValue(); iter.Next()) {
+      if (predicate(iter.GetValue())) {
+        iter.DeleteValue();
         ++num_deleted;
       }
     }
@@ -262,21 +262,21 @@ std::size_t Map::Update(const Bytes& key, Callables::Function function,
                         Match match) {
   std::vector<std::string> updated_values;
   auto iter = GetMutable(key);
-  for (iter.SeekToFirst(); iter.Valid(); iter.Next()) {
-    const auto updated_value = function(iter.Value());
+  for (iter.SeekToFirst(); iter.HasValue(); iter.Next()) {
+    const auto updated_value = function(iter.GetValue());
     if (!updated_value.empty()) {
       updated_values.emplace_back(updated_value);
-      iter.Delete();
+      iter.DeleteValue();
       iter.Next();
       break;
     }
   }
   if (match == Match::kAll) {
-    for (; iter.Valid(); iter.Next()) {
-      const auto updated_value = function(iter.Value());
+    for (; iter.HasValue(); iter.Next()) {
+      const auto updated_value = function(iter.GetValue());
       if (!updated_value.empty()) {
         updated_values.emplace_back(updated_value);
-        iter.Delete();
+        iter.DeleteValue();
       }
     }
   }

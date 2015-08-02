@@ -80,114 +80,114 @@ TEST(IterTest, IsMoveConstructibleAndAssignable) {
 }
 
 TEST(IterTest, DefaultConstructedHasProperState) {
-  ASSERT_THAT(Iter().Size(), Eq(0));
-  ASSERT_THAT(Iter().Valid(), Eq(false));
+  ASSERT_THAT(Iter().NumValues(), Eq(0));
+  ASSERT_THAT(Iter().HasValue(), Eq(false));
 }
 
 TEST_P(IterTest, SeekToFirstPerformsInitialization) {
   Iter iter = GetIterator();
-  ASSERT_THAT(iter.Size(), Eq(GetParam()));
-  ASSERT_THAT(iter.Valid(), Eq(false));
+  ASSERT_THAT(iter.NumValues(), Eq(GetParam()));
+  ASSERT_THAT(iter.HasValue(), Eq(false));
 
   iter.SeekToFirst();
-  ASSERT_THAT(iter.Size(), Eq(GetParam()));
-  if (iter.Size() == 0) {
-    ASSERT_THAT(iter.Valid(), Eq(false));
+  ASSERT_THAT(iter.NumValues(), Eq(GetParam()));
+  if (iter.NumValues() == 0) {
+    ASSERT_THAT(iter.HasValue(), Eq(false));
   } else {
-    ASSERT_THAT(iter.Valid(), Eq(true));
-    ASSERT_THAT(iter.Value(), Eq("0"));
+    ASSERT_THAT(iter.HasValue(), Eq(true));
+    ASSERT_THAT(iter.GetValue(), Eq("0"));
   }
 }
 
 TEST_P(IterTest, SeekToTargetPerformsInitialization) {
   Iter iter = GetIterator();
-  ASSERT_THAT(iter.Size(), Eq(GetParam()));
-  ASSERT_THAT(iter.Valid(), Eq(false));
+  ASSERT_THAT(iter.NumValues(), Eq(GetParam()));
+  ASSERT_THAT(iter.HasValue(), Eq(false));
 
   iter.SeekTo(Bytes("0"));
-  ASSERT_THAT(iter.Size(), Eq(GetParam()));
-  if (iter.Size() == 0) {
-    ASSERT_THAT(iter.Valid(), Eq(false));
+  ASSERT_THAT(iter.NumValues(), Eq(GetParam()));
+  if (iter.NumValues() == 0) {
+    ASSERT_THAT(iter.HasValue(), Eq(false));
   } else {
-    ASSERT_THAT(iter.Valid(), Eq(true));
-    ASSERT_THAT(iter.Value(), Eq("0"));
+    ASSERT_THAT(iter.HasValue(), Eq(true));
+    ASSERT_THAT(iter.GetValue(), Eq("0"));
   }
 }
 
 TEST_P(IterTest, SeekToPredicatePerformsInitialization) {
   Iter iter = GetIterator();
-  ASSERT_THAT(iter.Size(), Eq(GetParam()));
-  ASSERT_THAT(iter.Valid(), Eq(false));
+  ASSERT_THAT(iter.NumValues(), Eq(GetParam()));
+  ASSERT_THAT(iter.HasValue(), Eq(false));
 
   iter.SeekTo([](const Bytes& value) { return value == Bytes("0"); });
-  ASSERT_THAT(iter.Size(), Eq(GetParam()));
-  if (iter.Size() == 0) {
-    ASSERT_THAT(iter.Valid(), Eq(false));
+  ASSERT_THAT(iter.NumValues(), Eq(GetParam()));
+  if (iter.NumValues() == 0) {
+    ASSERT_THAT(iter.HasValue(), Eq(false));
   } else {
-    ASSERT_THAT(iter.Valid(), Eq(true));
-    ASSERT_THAT(iter.Value(), Eq("0"));
+    ASSERT_THAT(iter.HasValue(), Eq(true));
+    ASSERT_THAT(iter.GetValue(), Eq("0"));
   }
 }
 
 TEST_P(IterTest, IterateAllUntilSize) {
   Iter iter = GetIterator();
   iter.SeekToFirst();
-  for (std::size_t i = 0; i != iter.Size(); ++i) {
-    ASSERT_THAT(iter.Size(), Eq(GetParam()));
-    ASSERT_THAT(iter.Valid(), Eq(true));
-    ASSERT_THAT(iter.Value(), Eq(std::to_string(i)));
+  for (std::size_t i = 0; i != iter.NumValues(); ++i) {
+    ASSERT_THAT(iter.NumValues(), Eq(GetParam()));
+    ASSERT_THAT(iter.HasValue(), Eq(true));
+    ASSERT_THAT(iter.GetValue(), Eq(std::to_string(i)));
     iter.Next();
   }
-  ASSERT_THAT(iter.Size(), Eq(GetParam()));
-  ASSERT_THAT(iter.Valid(), Eq(false));
+  ASSERT_THAT(iter.NumValues(), Eq(GetParam()));
+  ASSERT_THAT(iter.HasValue(), Eq(false));
 }
 
 TEST_P(IterTest, IterateAllWhileValid) {
   Iter iter = GetIterator();
   std::size_t i = 0;
-  for (iter.SeekToFirst(); iter.Valid(); iter.Next(), ++i) {
-    ASSERT_THAT(iter.Size(), Eq(GetParam()));
-    ASSERT_THAT(iter.Value(), Eq(std::to_string(i)));
+  for (iter.SeekToFirst(); iter.HasValue(); iter.Next(), ++i) {
+    ASSERT_THAT(iter.NumValues(), Eq(GetParam()));
+    ASSERT_THAT(iter.GetValue(), Eq(std::to_string(i)));
   }
-  ASSERT_THAT(iter.Size(), Eq(GetParam()));
-  ASSERT_THAT(iter.Valid(), Eq(false));
+  ASSERT_THAT(iter.NumValues(), Eq(GetParam()));
+  ASSERT_THAT(iter.HasValue(), Eq(false));
 }
 
 TEST_P(IterTest, IterateOnceAndDeleteEvery23thValue) {
   Iter iter = GetIterator();
   std::size_t i = 0;
   std::size_t num_deleted = 0;
-  for (iter.SeekToFirst(); iter.Valid(); iter.Next(), ++i) {
-    ASSERT_THAT(iter.Value(), Eq(std::to_string(i)));
+  for (iter.SeekToFirst(); iter.HasValue(); iter.Next(), ++i) {
+    ASSERT_THAT(iter.GetValue(), Eq(std::to_string(i)));
 
     if (i % 23 == 0) {
-      iter.Delete();
+      iter.DeleteValue();
       ++num_deleted;
-      ASSERT_THAT(iter.Size(), Eq(GetParam() - num_deleted));
-      ASSERT_THAT(iter.Valid(), Eq(false));
+      ASSERT_THAT(iter.NumValues(), Eq(GetParam() - num_deleted));
+      ASSERT_THAT(iter.HasValue(), Eq(false));
     }
   }
-  ASSERT_THAT(iter.Size(), Eq(GetParam() - num_deleted));
-  ASSERT_THAT(iter.Valid(), Eq(false));
+  ASSERT_THAT(iter.NumValues(), Eq(GetParam() - num_deleted));
+  ASSERT_THAT(iter.HasValue(), Eq(false));
 }
 
 TEST_P(IterTest, IterateTwiceAndDeleteEvery23thValueIn1stRun) {
   Iter iter = GetIterator();
   std::size_t i = 0;
   std::size_t num_deleted = 0;
-  for (iter.SeekToFirst(); iter.Valid(); iter.Next(), ++i) {
+  for (iter.SeekToFirst(); iter.HasValue(); iter.Next(), ++i) {
     if (i % 23 == 0) {
-      iter.Delete();
+      iter.DeleteValue();
       ++num_deleted;
     }
   }
-  ASSERT_THAT(iter.Size(), Eq(GetParam() - num_deleted));
+  ASSERT_THAT(iter.NumValues(), Eq(GetParam() - num_deleted));
 
-  for (iter.SeekToFirst(); iter.Valid(); iter.Next()) {
-    ASSERT_THAT(stoi(iter.Value().ToString()) % 23, Ne(0));
+  for (iter.SeekToFirst(); iter.HasValue(); iter.Next()) {
+    ASSERT_THAT(stoi(iter.GetValue().ToString()) % 23, Ne(0));
   }
-  ASSERT_THAT(iter.Size(), Eq(GetParam() - num_deleted));
-  ASSERT_THAT(iter.Valid(), Eq(false));
+  ASSERT_THAT(iter.NumValues(), Eq(GetParam() - num_deleted));
+  ASSERT_THAT(iter.HasValue(), Eq(false));
 }
 
 TEST(ConstIterTest, IsDefaultConstructible) {
@@ -205,77 +205,77 @@ TEST(ConstIterTest, IsMoveConstructibleAndAssignable) {
 }
 
 TEST(ConstIterTest, DefaultConstructedHasProperState) {
-  ASSERT_THAT(Iter().Size(), Eq(0));
-  ASSERT_THAT(Iter().Valid(), Eq(false));
+  ASSERT_THAT(Iter().NumValues(), Eq(0));
+  ASSERT_THAT(Iter().HasValue(), Eq(false));
 }
 
 TEST_P(ConstIterTest, SeekToFirstPerformsInitialization) {
   ConstIter iter = GetIterator();
-  ASSERT_THAT(iter.Size(), Eq(GetParam()));
-  ASSERT_THAT(iter.Valid(), Eq(false));
+  ASSERT_THAT(iter.NumValues(), Eq(GetParam()));
+  ASSERT_THAT(iter.HasValue(), Eq(false));
 
   iter.SeekToFirst();
-  ASSERT_THAT(iter.Size(), Eq(GetParam()));
-  if (iter.Size() == 0) {
-    ASSERT_THAT(iter.Valid(), Eq(false));
+  ASSERT_THAT(iter.NumValues(), Eq(GetParam()));
+  if (iter.NumValues() == 0) {
+    ASSERT_THAT(iter.HasValue(), Eq(false));
   } else {
-    ASSERT_THAT(iter.Valid(), Eq(true));
-    ASSERT_THAT(iter.Value(), Eq("0"));
+    ASSERT_THAT(iter.HasValue(), Eq(true));
+    ASSERT_THAT(iter.GetValue(), Eq("0"));
   }
 }
 
 TEST_P(ConstIterTest, SeekToTargetPerformsInitialization) {
   ConstIter iter = GetIterator();
-  ASSERT_THAT(iter.Size(), Eq(GetParam()));
-  ASSERT_THAT(iter.Valid(), Eq(false));
+  ASSERT_THAT(iter.NumValues(), Eq(GetParam()));
+  ASSERT_THAT(iter.HasValue(), Eq(false));
 
   iter.SeekTo(Bytes("0"));
-  ASSERT_THAT(iter.Size(), Eq(GetParam()));
-  if (iter.Size() == 0) {
-    ASSERT_THAT(iter.Valid(), Eq(false));
+  ASSERT_THAT(iter.NumValues(), Eq(GetParam()));
+  if (iter.NumValues() == 0) {
+    ASSERT_THAT(iter.HasValue(), Eq(false));
   } else {
-    ASSERT_THAT(iter.Valid(), Eq(true));
-    ASSERT_THAT(iter.Value(), Eq("0"));
+    ASSERT_THAT(iter.HasValue(), Eq(true));
+    ASSERT_THAT(iter.GetValue(), Eq("0"));
   }
 }
 
 TEST_P(ConstIterTest, SeekToPredicatePerformsInitialization) {
   ConstIter iter = GetIterator();
-  ASSERT_THAT(iter.Size(), Eq(GetParam()));
-  ASSERT_THAT(iter.Valid(), Eq(false));
+  ASSERT_THAT(iter.NumValues(), Eq(GetParam()));
+  ASSERT_THAT(iter.HasValue(), Eq(false));
 
   iter.SeekTo([](const Bytes& value) { return value == Bytes("0"); });
-  ASSERT_THAT(iter.Size(), Eq(GetParam()));
-  if (iter.Size() == 0) {
-    ASSERT_THAT(iter.Valid(), Eq(false));
+  ASSERT_THAT(iter.NumValues(), Eq(GetParam()));
+  if (iter.NumValues() == 0) {
+    ASSERT_THAT(iter.HasValue(), Eq(false));
   } else {
-    ASSERT_THAT(iter.Valid(), Eq(true));
-    ASSERT_THAT(iter.Value(), Eq("0"));
+    ASSERT_THAT(iter.HasValue(), Eq(true));
+    ASSERT_THAT(iter.GetValue(), Eq("0"));
   }
 }
 
 TEST_P(ConstIterTest, IterateAllUntilSize) {
   ConstIter iter = GetIterator();
   iter.SeekToFirst();
-  for (std::size_t i = 0; i != iter.Size(); ++i) {
-    ASSERT_THAT(iter.Size(), Eq(GetParam()));
-    ASSERT_THAT(iter.Valid(), Eq(true));
-    ASSERT_THAT(iter.Value(), Eq(std::to_string(i)));
+  for (std::size_t i = 0; i != iter.NumValues(); ++i) {
+    ASSERT_THAT(iter.NumValues(), Eq(GetParam()));
+    ASSERT_THAT(iter.HasValue(), Eq(true));
+    ASSERT_THAT(iter.GetValue(), Eq(std::to_string(i)));
     iter.Next();
   }
-  ASSERT_THAT(iter.Size(), Eq(GetParam()));
-  ASSERT_THAT(iter.Valid(), Eq(false));
+  ASSERT_THAT(iter.NumValues(), Eq(GetParam()));
+  ASSERT_THAT(iter.HasValue(), Eq(false));
 }
 
 TEST_P(ConstIterTest, IterateAllWhileValid) {
   ConstIter iter = GetIterator();
   std::size_t i = 0;
-  for (iter.SeekToFirst(); iter.Valid(); iter.Next(), ++i) {
-    ASSERT_THAT(iter.Size(), Eq(GetParam()));
-    ASSERT_THAT(iter.Value(), Eq(std::to_string(i)));
+  for (iter.SeekToFirst(); iter.HasValue(); iter.Next(), ++i) {
+    ASSERT_THAT(iter.NumValues(), Eq(GetParam()));
+    ASSERT_THAT(iter.GetValue(), Eq(std::to_string(i)));
   }
-  ASSERT_THAT(iter.Size(), Eq(GetParam()));
-  ASSERT_THAT(iter.Valid(), Eq(false));
+  ASSERT_THAT(iter.NumValues(), Eq(GetParam()));
+  ASSERT_THAT(iter.HasValue(), Eq(false));
 }
 
 INSTANTIATE_TEST_CASE_P(Parameterized, IterTest,

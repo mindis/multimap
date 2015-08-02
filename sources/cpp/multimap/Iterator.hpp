@@ -38,7 +38,7 @@ class Iterator {
   Iterator& operator=(Iterator&&) = default;
 
   // Returns the total number of the underlying values, even if not Valid().
-  std::size_t Size() const;
+  std::size_t NumValues() const;
 
   // Support for lazy iterator initialization.
   void SeekToFirst();
@@ -48,17 +48,17 @@ class Iterator {
   void SeekTo(Callables::Predicate predicate);
 
   // Checks whether the iterator actually points to a value.
-  bool Valid() const;
+  bool HasValue() const;
 
   // Returns a read-only pointer to the data of the current value.
   // Precondition: Valid()
-  Bytes Value() const;
+  Bytes GetValue() const;
 
   // Marks the current value as deleted.
   // Only enabled for Lock = UniqueLock.
-  // Precondition :  Valid()
-  // Postcondition: !Valid(), Size() == Size()'Old - 1
-  void Delete();
+  // Precondition :  HasValue()
+  // Postcondition: !HasValue(), NumValues() == NumValues()'Old - 1
+  void DeleteValue();
 
   // Moves the iterator to the next value.
   void Next();
@@ -89,7 +89,7 @@ inline Iterator<false>::Iterator(internal::ListLock<false>&& list_lock,
 }
 
 template <bool IsConst>
-std::size_t Iterator<IsConst>::Size() const {
+std::size_t Iterator<IsConst>::NumValues() const {
   const auto list = list_lock_.list();
   return list ? list->size() : 0;
 }
@@ -106,25 +106,25 @@ void Iterator<IsConst>::SeekTo(const Bytes& target) {
 
 template <bool IsConst>
 void Iterator<IsConst>::SeekTo(Callables::Predicate predicate) {
-  for (SeekToFirst(); Valid(); Next()) {
-    if (predicate(Value())) {
+  for (SeekToFirst(); HasValue(); Next()) {
+    if (predicate(GetValue())) {
       break;
     }
   }
 }
 
 template <bool IsConst>
-bool Iterator<IsConst>::Valid() const {
+bool Iterator<IsConst>::HasValue() const {
   return list_iter_.Valid();
 }
 
 template <bool IsConst>
-Bytes Iterator<IsConst>::Value() const {
+Bytes Iterator<IsConst>::GetValue() const {
   return list_iter_.Value();
 }
 
 template <>
-inline void Iterator<false>::Delete() {
+inline void Iterator<false>::DeleteValue() {
   list_iter_.Delete();
 }
 
