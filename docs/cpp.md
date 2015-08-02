@@ -6,7 +6,7 @@
 
 ## Map::Open
 
-`static std::unique_ptr<Map> Open(`
+`void Open(`
 <script>space(20)</script>`const boost::filesystem::path& directory,`
 <script>space(20)</script>`const Options& options)`
 
@@ -20,7 +20,8 @@ options.block_size = 512;
 options.block_pool_memory = multimap::GiB(2);
 options.create_if_missing = true;
 
-auto map = multimap::Map::Open("/path/to/multimap", options);
+multimap::Map map;
+map.Open("/path/to/multimap", options);
 ```
 
 ## Map::Put
