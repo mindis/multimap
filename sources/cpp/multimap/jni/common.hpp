@@ -56,17 +56,18 @@ struct BytesRaiiHelper {
 
 template <typename T>
 struct Holder {
-  static Holder* Create(T&& element) { return new Holder(std::move(element)); }
+  Holder(T&& element) : element_(std::move(element)) {}
 
   T& get() { return element_; }
 
  private:
-  Holder(T&& element) : element_(std::move(element)) {}
   T element_;
 };
 
-typedef Holder<Map::ConstIter> ConstIterHolder;
-typedef Holder<Map::Iter> IterHolder;
+template <typename T>
+Holder<T>* MakeHolder(T&& element) {
+  return new Holder<T>(std::move(element));
+}
 
 inline Callables::Procedure MakeProcedure(JNIEnv* env, jobject jprocedure) {
   const auto cls = env->GetObjectClass(jprocedure);

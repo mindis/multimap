@@ -20,10 +20,11 @@
 
 namespace {
 
-inline multimap::jni::ConstIterHolder* Cast(JNIEnv* env, jobject self) {
+typedef multimap::jni::Holder<multimap::Map::ConstIter> ConstIterHolder;
+
+inline ConstIterHolder* Cast(JNIEnv* env, jobject self) {
   assert(self != nullptr);
-  return static_cast<multimap::jni::ConstIterHolder*>(
-      env->GetDirectBufferAddress(self));
+  return static_cast<ConstIterHolder*>(env->GetDirectBufferAddress(self));
 }
 
 }  // namespace

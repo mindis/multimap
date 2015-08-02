@@ -133,7 +133,7 @@ JNIEXPORT jobject JNICALL
   multimap::jni::BytesRaiiHelper key(env, jkey);
   auto iter = Cast(env, self)->Get(key.get());
   if (iter.NumValues() != 0) {
-    const auto holder = multimap::jni::ConstIterHolder::Create(std::move(iter));
+    const auto holder = multimap::jni::MakeHolder(std::move(iter));
     return env->NewDirectByteBuffer(holder, sizeof holder);
   }
   return nullptr;
@@ -150,7 +150,7 @@ JNIEXPORT jobject JNICALL
   multimap::jni::BytesRaiiHelper key(env, jkey);
   auto iter = Cast(env, self)->GetMutable(key.get());
   if (iter.NumValues() != 0) {
-    const auto holder = multimap::jni::IterHolder::Create(std::move(iter));
+    const auto holder = multimap::jni::MakeHolder(std::move(iter));
     return env->NewDirectByteBuffer(holder, sizeof holder);
   }
   return nullptr;
