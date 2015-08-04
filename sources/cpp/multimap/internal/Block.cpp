@@ -34,16 +34,14 @@ double Block::load_factor() const {
 }
 
 std::uint32_t Block::max_value_size() const {
-  const int max_size =
-      (size_ > kSizeOfValueSizeField) ? (size_ - kSizeOfValueSizeField) : 0;
-  return std::min(max_size, 0x7fff);
+  return (size_ > kSizeOfValueSizeField) ? (size_ - kSizeOfValueSizeField) : 0;
 }
 
 bool Block::TryAdd(const Bytes& value) {
   assert(data_);
   Check(value.size() <= max_value_size(),
-        "Reject value of %d bytes because it exceeds the maximum value size "
-        "of %d bytes. Consider to choose a larger block size and try again.",
+        "Block: Reject value because its size of %u bytes exceeds the allowed "
+        "maximum of %u bytes.",
         value.size(), max_value_size());
   const std::int16_t value_size = value.size();
   const auto num_bytes_required = sizeof value_size + value_size;

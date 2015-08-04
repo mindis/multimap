@@ -51,7 +51,7 @@ TEST(UintVectorTest, IsMoveConstructibleAndAssignable) {
 }
 
 TEST(UintVectorTest, AddSingleValueInValidRangeAndUnpack) {
-  std::uint32_t values[] = {0, 1, 10, 1000, 10000000, UintVector::kMaxValue};
+  std::uint32_t values[] = {0, 1, 10, 1000, 10000000, UintVector::max_value()};
   for (auto value : values) {
     UintVector vector;
     vector.Add(value);
@@ -61,7 +61,9 @@ TEST(UintVectorTest, AddSingleValueInValidRangeAndUnpack) {
 }
 
 TEST(UintVectorTest, AddSingleValueInInvalidRangeAndDie) {
-  for (auto value : {UintVector::kMaxValue + 1, UintVector::kMaxValue + 10}) {
+  std::uint32_t values[] = {UintVector::max_value() + 1,
+                            UintVector::max_value() + 10};
+  for (auto value : values) {
     UintVector vector;
     ASSERT_DEATH(vector.Add(value), "");
   }
@@ -69,7 +71,7 @@ TEST(UintVectorTest, AddSingleValueInInvalidRangeAndDie) {
 
 TEST(UintVectorTest, AddIncreasingValuesInValidRangeAndUnpack) {
   UintVector vector;
-  std::uint32_t values[] = {0, 1, 10, 1000, 10000000, UintVector::kMaxValue};
+  std::uint32_t values[] = {0, 1, 10, 1000, 10000000, UintVector::max_value()};
   for (auto value : values) {
     vector.Add(value);
   }
@@ -78,7 +80,7 @@ TEST(UintVectorTest, AddIncreasingValuesInValidRangeAndUnpack) {
 
 TEST(UintVectorTest, AddDecreasingValuesAndDie) {
   UintVector vector;
-  std::uint32_t values[] = {UintVector::kMaxValue, 10000000, 1000, 10, 1, 0};
+  std::uint32_t values[] = {UintVector::max_value(), 10000000, 1000, 10, 1, 0};
   vector.Add(values[0]);
   ASSERT_DEATH(vector.Add(values[1]), "");
 }

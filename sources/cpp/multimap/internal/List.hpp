@@ -15,9 +15,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTIMAP_LIST_HPP
-#define MULTIMAP_LIST_HPP
+#ifndef MULTIMAP_INTERNAL_LIST_HPP
+#define MULTIMAP_INTERNAL_LIST_HPP
 
+#include <cstdio>
 #include <functional>
 #include <mutex>
 #include <boost/thread/shared_mutex.hpp>
@@ -30,18 +31,15 @@
 namespace multimap {
 namespace internal {
 
-// TODO Make interface like std::mutex.
 // TODO Iterate may fail if a complete block gets deleted. Test this.
 class List {
   static std::mutex dynamic_mutex_protector;
 
  public:
   struct Head {
-    // TODO Remove
-    static Head ReadFromStream(std::istream& stream);
+    static Head ReadFromStream(std::FILE* stream);
 
-    // TODO Remove
-    void WriteToStream(std::ostream& stream) const;
+    void WriteToStream(std::FILE* stream) const;
 
     std::size_t num_values_not_deleted() const {
       assert(num_values_total >= num_values_deleted);
@@ -70,14 +68,13 @@ class List {
     Iter(Iter&&) = default;
     Iter& operator=(Iter&&) = default;
 
-    bool Valid() const;
-
     void SeekToFirst();
 
-    void Next();
+    bool HasValue() const;
 
-    // Requires: Valid()
-    Bytes Value() const;
+    Bytes GetValue() const;
+
+    void Next();
 
     // Marks the current value as deleted.
     // EnableIf: not IsConst
@@ -130,8 +127,10 @@ class List {
   void Add(const Bytes& value, const Callbacks::AllocateBlock& allocate_block,
            const Callbacks::CommitBlock& commit_block);
 
-  // TODO Precondition: !locked()
+  // Precondition (not tested internally): !locked()
   void Flush(const Callbacks::CommitBlock& commit_block);
+
+  void Clear() { head_ = Head(); }
 
   const Head& head() const { return head_; }
 
@@ -207,20 +206,25 @@ List::Iter<IsConst>::~Iter() {
 }
 
 template <bool IsConst>
-bool List::Iter<IsConst>::Valid() const {
-  return block_iter_.has_value() && !block_iter_.deleted();
-}
-
-template <bool IsConst>
 void List::Iter<IsConst>::SeekToFirst() {
   if (head_) {
     stats_ = Stats();
     if (RequestNextBlockAndInitIter()) {
-      if (!Valid()) {
+      if (!HasValue()) {
         Next();
       }
     }
   }
+}
+
+template <bool IsConst>
+bool List::Iter<IsConst>::HasValue() const {
+  return block_iter_.has_value() && !block_iter_.deleted();
+}
+
+template <bool IsConst>
+Bytes List::Iter<IsConst>::GetValue() const {
+  return Bytes(block_iter_.value_data(), block_iter_.value_size());
 }
 
 template <bool IsConst>
@@ -234,11 +238,6 @@ void List::Iter<IsConst>::Next() {
     }
     Advance();
   } while (block_iter_.has_value() && block_iter_.deleted());
-}
-
-template <bool IsConst>
-Bytes List::Iter<IsConst>::Value() const {
-  return Bytes(block_iter_.value_data(), block_iter_.value_size());
 }
 
 template <bool IsConst>
@@ -284,4 +283,4 @@ void List::Iter<false>::UpdateCurrentBlock();
 }  // namespace internal
 }  // namespace multimap
 
-#endif  // MULTIMAP_LIST_HPP
+#endif  // MULTIMAP_INTERNAL_LIST_HPP

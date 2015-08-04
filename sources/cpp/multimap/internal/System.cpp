@@ -35,30 +35,11 @@
 namespace multimap {
 namespace internal {
 
-namespace {
-
-const char* kNameOfLockFile = ".lock";
-
-}  // namespace
-
 std::pair<boost::filesystem::path, int> System::Tempfile() {
   char pattern[] = "/tmp/system-tempfile-XXXXXX";
   const auto result = ::mkstemp(pattern);
   assert(result != -1);
   return std::make_pair(pattern, result);
-}
-
-bool System::LockDirectory(const boost::filesystem::path& directory) {
-  const auto fd = System::Create(directory / kNameOfLockFile);
-  if (fd != -1) {
-    System::Close(fd);
-    return true;
-  }
-  return false;
-}
-
-bool System::UnlockDirectory(const boost::filesystem::path& directory) {
-  return boost::filesystem::remove(directory / kNameOfLockFile);
 }
 
 std::ostream& System::Log() { return Log(std::cout); }
@@ -122,13 +103,25 @@ void System::Write(std::FILE* stream, const void* buf, std::size_t count) {
   assert(nbytes == count);
 }
 
-int System::Open(const boost::filesystem::path& filepath) {
+int System::Open(const boost::filesystem::path& filepath,
+                 bool create_if_missing) {
+  if (create_if_missing) {
+    const auto mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
+    return ::open64(filepath.c_str(), O_RDWR | O_NOATIME | O_CREAT, mode);
+  }
   return ::open64(filepath.c_str(), O_RDWR | O_NOATIME);
 }
 
-int System::Create(const boost::filesystem::path& filepath) {
-  const auto mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
-  return ::open64(filepath.c_str(), O_RDWR | O_CREAT, mode);
+bool System::Create(const boost::filesystem::path& filepath) {
+  if (boost::filesystem::exists(filepath)) return false;
+  const auto fd = Open(filepath, true);
+  assert(fd != -1);
+  Close(fd);
+  return true;
+}
+
+bool System::Remove(const boost::filesystem::path& filepath) {
+  return boost::filesystem::remove(filepath);
 }
 
 void System::Close(int fd) {
@@ -210,6 +203,53 @@ bool System::Batch::empty() const { return items_.empty(); }
 bool System::Batch::full() const { return items_.size() == kMaxSize; }
 
 void System::Batch::clear() { items_.clear(); }
+
+const std::string System::DirectoryLockGuard::kDefaultFilename(".lock");
+
+System::DirectoryLockGuard::DirectoryLockGuard() {}
+
+System::DirectoryLockGuard::DirectoryLockGuard(
+    const boost::filesystem::path& directory) {
+  Lock(directory);
+}
+
+System::DirectoryLockGuard::DirectoryLockGuard(
+    const boost::filesystem::path& directory, const std::string filename) {
+  Lock(directory, filename);
+}
+
+System::DirectoryLockGuard::~DirectoryLockGuard() {
+  if (!directory_.empty()) {
+    Check(Remove(directory_ / filename_),
+          "DirectoryLockGuard: Could not unlock directory \"%s\" because it is "
+          "not locked.",
+          directory_.c_str());
+  }
+}
+
+void System::DirectoryLockGuard::Lock(
+    const boost::filesystem::path& directory) {
+  Lock(directory, kDefaultFilename);
+}
+
+void System::DirectoryLockGuard::Lock(const boost::filesystem::path& directory,
+                                      const std::string filename) {
+  Check(directory_.empty(), "DirectoryLockGuard: Already locked.");
+  Check(Create(directory / filename),
+        "DirectoryLockGuard: Could not lock directory \"%s\" because it is "
+        "already locked.",
+        directory.c_str());
+  directory_ = directory;
+  filename_ = filename;
+}
+
+const boost::filesystem::path& System::DirectoryLockGuard::directory() const {
+  return directory_;
+}
+
+const std::string& System::DirectoryLockGuard::filename() const {
+  return filename_;
+}
 
 }  // namespace internal
 }  // namespace multimap

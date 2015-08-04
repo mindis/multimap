@@ -38,6 +38,7 @@ class Map {
   typedef Iterator<true> ConstIter;
 
   Map();
+
   ~Map();
 
   Map(const boost::filesystem::path& directory, const Options& options);
@@ -78,6 +79,14 @@ class Map {
 
   void PrintProperties() const;
 
+  std::size_t max_key_size() const;
+
+  std::size_t max_value_size() const;
+
+  static const char* name_of_data_file();
+
+  static const char* name_of_table_file();
+
   static void Copy(const boost::filesystem::path& from,
                    const boost::filesystem::path& to);
 
@@ -99,18 +108,18 @@ class Map {
 
   std::size_t Delete(const Bytes& key, Callables::Predicate pred, Match match);
 
-  std::size_t Update(const Bytes& key, Callables::Function func, Match match);
+  std::size_t Replace(const Bytes& key, Callables::Function func, Match match);
 
   void InitCallbacks();
 
   // Members may access each other in destructor calls,
   // thus the order of declaration matters - don't reorder.
-  Options options_;
-  boost::filesystem::path directory_;
+  internal::System::DirectoryLockGuard directory_lock_guard_;
   internal::Callbacks callbacks_;
   internal::BlockPool block_pool_;
   internal::DataFile data_file_;
   internal::Table table_;
+  Options options_;
 };
 
 }  // namespace multimap

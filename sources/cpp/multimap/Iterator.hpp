@@ -115,12 +115,12 @@ void Iterator<IsConst>::SeekTo(Callables::Predicate predicate) {
 
 template <bool IsConst>
 bool Iterator<IsConst>::HasValue() const {
-  return list_iter_.Valid();
+  return list_iter_.HasValue();
 }
 
 template <bool IsConst>
 Bytes Iterator<IsConst>::GetValue() const {
-  return list_iter_.Value();
+  return list_iter_.GetValue();
 }
 
 template <>

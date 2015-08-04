@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTIMAP_DATA_FILE_HPP
-#define MULTIMAP_DATA_FILE_HPP
+#ifndef MULTIMAP_INTERNAL_DATA_FILE_HPP
+#define MULTIMAP_INTERNAL_DATA_FILE_HPP
 
 #include <functional>
 #include <memory>
@@ -34,21 +34,21 @@ class DataFile {
 
   DataFile();
 
-  DataFile(const boost::filesystem::path& path);
-
-  DataFile(const boost::filesystem::path& path, std::size_t block_size);
-
-  DataFile(const boost::filesystem::path& path, std::size_t block_size,
+  DataFile(const boost::filesystem::path& path,
            const Callbacks::DeallocateBlocks& deallocate_blocks);
+
+  DataFile(const boost::filesystem::path& path,
+           const Callbacks::DeallocateBlocks& deallocate_blocks,
+           bool create_if_missing, std::size_t block_size);
 
   ~DataFile();
 
-  void Open(const boost::filesystem::path& path);
-
-  void Open(const boost::filesystem::path& path, std::size_t block_size);
-
-  void Open(const boost::filesystem::path& path, std::size_t block_size,
+  void Open(const boost::filesystem::path& path,
             const Callbacks::DeallocateBlocks& deallocate_blocks);
+
+  void Open(const boost::filesystem::path& path,
+            const Callbacks::DeallocateBlocks& deallocate_blocks,
+            bool create_if_missing, std::size_t block_size);
 
   // Thread-safe: yes.
   void Read(std::uint32_t block_id, Block* block) const;
@@ -94,4 +94,4 @@ class DataFile {
 }  // namespace internal
 }  // namespace multimap
 
-#endif  // MULTIMAP_DATA_FILE_HPP
+#endif  // MULTIMAP_INTERNAL_DATA_FILE_HPP

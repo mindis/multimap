@@ -15,35 +15,31 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTIMAP_UINT_VECTOR_HPP
-#define MULTIMAP_UINT_VECTOR_HPP
+#ifndef MULTIMAP_INTERNAL_UINT_VECTOR_HPP
+#define MULTIMAP_INTERNAL_UINT_VECTOR_HPP
 
+#include <cstdio>
 #include <cstdint>
-#include <istream>
-#include <ostream>
 #include <memory>
 #include <vector>
-#include "multimap/internal/Check.hpp"
 #include "multimap/Bytes.hpp"
+#include "multimap/internal/Check.hpp"
+#include "multimap/internal/Varint.hpp"
 
 namespace multimap {
 namespace internal {
 
 class UintVector {
  public:
-  static const std::uint32_t kMaxValue;
-
   UintVector();
 
   UintVector(const UintVector& other);
 
   UintVector& operator=(const UintVector& other);
 
-  // TODO Remove
-  static UintVector ReadFromStream(std::istream& stream);
+  static UintVector ReadFromStream(std::FILE* stream);
 
-  // TODO Remove
-  void WriteToStream(std::ostream& stream) const;
+  void WriteToStream(std::FILE* stream) const;
 
   std::vector<std::uint32_t> Unpack() const;
 
@@ -59,6 +55,10 @@ class UintVector {
     data_.reset();
     end_offset_ = 0;
     put_offset_ = 0;
+  }
+
+  static constexpr std::uint32_t max_value() {
+    return Varint::max_value_32_bits();
   }
 
  private:
@@ -78,4 +78,4 @@ static_assert(HasExpectedSize<UintVector, 16, 16>::value,
 }  // internal
 }  // multimap
 
-#endif  // MULTIMAP_UINT_VECTOR_HPP
+#endif  // MULTIMAP_INTERNAL_UINT_VECTOR_HPP

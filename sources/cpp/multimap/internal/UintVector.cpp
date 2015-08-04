@@ -19,13 +19,10 @@
 
 #include <cassert>
 #include <cstring>
-#include "multimap/internal/Varint.hpp"
+#include "multimap/internal/System.hpp"
 
 namespace multimap {
 namespace internal {
-
-// TODO May be buggy, if Varint::kMaxValueStoredIn32Bits is not initialized.
-const std::uint32_t UintVector::kMaxValue = Varint::kMaxValueStoredIn32Bits;
 
 UintVector::UintVector() : end_offset_(0), put_offset_(0) {}
 
@@ -47,44 +44,43 @@ UintVector& UintVector::operator=(const UintVector& other) {
   return *this;
 }
 
-UintVector UintVector::ReadFromStream(std::istream& stream) {
-  UintVector ids;
-  std::uint16_t ids_size;
-  stream.read(reinterpret_cast<char*>(&ids_size), sizeof ids_size);
-  ids.put_offset_ = ids_size;
-  assert(stream.good());
-  ids.data_.reset(new byte[ids.put_offset_]);
-  stream.read(reinterpret_cast<char*>(ids.data_.get()), ids.put_offset_);
-  assert(stream.good());
-  ids.end_offset_ = ids.put_offset_;
-  return ids;
+UintVector UintVector::ReadFromStream(std::FILE* stream) {
+  std::uint16_t data_size;
+  System::Read(stream, &data_size, sizeof data_size);
+  std::unique_ptr<byte[]> data(new byte[data_size]);
+  System::Read(stream, data.get(), data_size);
+
+  UintVector vector;
+  vector.data_ = std::move(data);
+  vector.end_offset_ = data_size;
+  vector.put_offset_ = data_size;
+  return vector;
 }
 
-void UintVector::WriteToStream(std::ostream& stream) const {
+void UintVector::WriteToStream(std::FILE* stream) const {
   assert(!empty());
-  stream.write(reinterpret_cast<const char*>(&put_offset_), sizeof put_offset_);
-  assert(stream.good());
-  stream.write(reinterpret_cast<const char*>(data_.get()), put_offset_);
-  assert(stream.good());
+  System::Write(stream, &put_offset_, sizeof put_offset_);
+  System::Write(stream, data_.get(), put_offset_);
 }
 
 std::vector<std::uint32_t> UintVector::Unpack() const {
-  std::vector<std::uint32_t> ids;
+  std::vector<std::uint32_t> values;
   if (!empty()) {
-    std::uint32_t delta, id = 0;
+    std::uint32_t delta = 0;
+    std::uint32_t value = 0;
     std::uint32_t get_offset = 0;
-    const auto last_id_offset = put_offset_ - sizeof id;
-    while (get_offset != last_id_offset) {
+    const auto last_value_offset = put_offset_ - sizeof value;
+    while (get_offset != last_value_offset) {
       get_offset += Varint::ReadUint32(data_.get() + get_offset, &delta);
-      ids.push_back(id + delta);
-      id = ids.back();
+      values.push_back(value + delta);
+      value = values.back();
     }
   }
-  return ids;
+  return values;
 }
 
 void UintVector::Add(std::uint32_t value) {
-  assert(value <= kMaxValue);
+  assert(value <= max_value());
   AllocateMoreIfFull();
   if (empty()) {
     put_offset_ += Varint::WriteUint32(value, data_.get());

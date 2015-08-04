@@ -29,25 +29,31 @@ std::uint64_t BlockIdToOffset(std::uint32_t block_id, std::size_t block_size) {
   return internal::SuperBlock::kSerializedSize + block_id * block_size;
 }
 
+void CheckVersion(std::uint32_t major, std::uint32_t /* minor */) {
+  Check(major == SuperBlock::kMajorVersion,
+        "Version check failed: Please install a %u.x version of the library.",
+        major);
+}
+
+bool IsPowerOfTwo(std::size_t value) { return (value & (value - 1)) == 0; }
+
 }  // namespace
 
 const std::size_t DataFile::kMaxBufferSize = sysconf(_SC_IOV_MAX);
 
 DataFile::DataFile() : fd_(-1) {}
 
-DataFile::DataFile(const boost::filesystem::path& path) : DataFile() {
-  Open(path);
-}
-
-DataFile::DataFile(const boost::filesystem::path& path, std::size_t block_size)
-    : DataFile() {
-  Open(path, block_size);
-}
-
-DataFile::DataFile(const boost::filesystem::path& path, std::size_t block_size,
+DataFile::DataFile(const boost::filesystem::path& path,
                    const Callbacks::DeallocateBlocks& deallocate_blocks)
     : DataFile() {
-  Open(path, block_size, deallocate_blocks);
+  Open(path, deallocate_blocks);
+}
+
+DataFile::DataFile(const boost::filesystem::path& path,
+                   const Callbacks::DeallocateBlocks& deallocate_blocks,
+                   bool create_if_missing, std::size_t block_size)
+    : DataFile() {
+  Open(path, deallocate_blocks, create_if_missing, block_size);
 }
 
 DataFile::~DataFile() {
@@ -60,32 +66,29 @@ DataFile::~DataFile() {
   }
 }
 
-void DataFile::Open(const boost::filesystem::path& path) {
-  assert(boost::filesystem::exists(path));
+void DataFile::Open(const boost::filesystem::path& path,
+                    const Callbacks::DeallocateBlocks& deallocate_blocks) {
   fd_ = System::Open(path);
+  Check(fd_ != -1, "Could not open '%s' in read/write mode.", path.c_str());
   super_block_ = SuperBlock::ReadFromFd(fd_);
-  // TODO Verify version numbers and throw if not compatible.
+  CheckVersion(super_block_.major_version, super_block_.minor_version);
+  set_deallocate_blocks(deallocate_blocks);
   path_ = path;
 }
 
 void DataFile::Open(const boost::filesystem::path& path,
-                    std::size_t block_size) {
-  if (boost::filesystem::exists(path)) {
-    fd_ = System::Open(path);
-    super_block_ = SuperBlock::ReadFromFd(fd_);
-    // TODO Verify version numbers and throw if not compatible.
-  } else {
+                    const Callbacks::DeallocateBlocks& deallocate_blocks,
+                    bool create_if_missing, std::size_t block_size) {
+  if (!boost::filesystem::exists(path) && create_if_missing) {
+    Check(IsPowerOfTwo(block_size),
+          "DataFile: block_size must be a power of two.");
     super_block_.block_size = block_size;
-    fd_ = System::Create(path);
+    fd_ = System::Open(path, true);
+    Check(fd_ != -1, "Could not create '%s' in read/write mode.", path.c_str());
     super_block_.WriteToFd(fd_);
+    System::Close(fd_);
   }
-  path_ = path;
-}
-
-void DataFile::Open(const boost::filesystem::path& path, std::size_t block_size,
-                    const Callbacks::DeallocateBlocks& deallocate_blocks) {
-  Open(path, block_size);
-  set_deallocate_blocks(deallocate_blocks);
+  Open(path, deallocate_blocks);
 }
 
 void DataFile::Read(std::uint32_t block_id, Block* block) const {

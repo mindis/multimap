@@ -146,18 +146,18 @@ TEST(BlockTest, AddZeroBytesToBlockOfZeroBytes) {
   ASSERT_THAT(block.TryAdd(Bytes()), Eq(false));
 }
 
-TEST(BlockTest, AddMaxValueToEmptyBlock) {
-  byte data[512];
-  Block block(data, sizeof data);
-  char value[block.max_value_size()];
-  ASSERT_THAT(block.TryAdd(Bytes(value, sizeof value)), Eq(true));
+TEST(BlockTest, AddMaxValueToEmptyBlockWorks) {
+  byte buf[512];
+  Block block(buf, sizeof buf);
+  std::string value(block.max_value_size(), '\0');
+  ASSERT_TRUE(block.TryAdd(value));
 }
 
 TEST(BlockTest, AddTooLargeValueToEmptyBlockThrows) {
-  byte data[512];
-  Block block(data, sizeof data);
-  char value[block.max_value_size() + 1];
-  ASSERT_ANY_THROW(block.TryAdd(Bytes(value, sizeof value)));
+  byte buf[512];
+  Block block(buf, sizeof buf);
+  std::string value(block.max_value_size() + 1, '\0');
+  ASSERT_THROW(block.TryAdd(value), std::runtime_error);
 }
 
 TEST(BlockTest, AddSmallValuesIncreasesLoadFactor) {

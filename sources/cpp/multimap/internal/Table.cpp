@@ -29,59 +29,34 @@
 namespace multimap {
 namespace internal {
 
-TableFile::Entry TableFile::ReadEntryFromStream(std::istream& stream) {
+TableFile::Entry TableFile::ReadEntryFromStream(std::FILE* stream) {
   std::uint16_t key_size;
-  stream.read(reinterpret_cast<char*>(&key_size), sizeof key_size);
+  System::Read(stream, &key_size, sizeof key_size);
   const auto key_data = new byte[key_size];
-  stream.read(reinterpret_cast<char*>(key_data), key_size);
-  auto head = List::Head::ReadFromStream(stream);
-  return std::make_pair(Bytes(key_data, key_size), std::move(head));
+  System::Read(stream, key_data, key_size);
+  const auto head = List::Head::ReadFromStream(stream);
+  return std::make_pair(Bytes(key_data, key_size), head);
 }
 
-void TableFile::WriteEntryToStream(const Entry& entry, std::ostream& stream) {
-  WriteEntryToStream(entry.first, entry.second, stream);
-}
-
-void TableFile::WriteEntryToStream(const Bytes& key, const List::Head& head,
-                                   std::ostream& stream) {
-  assert(key.size() <= std::numeric_limits<std::uint16_t>::max());
-  const std::uint16_t key_size = key.size();
-  stream.write(reinterpret_cast<const char*>(&key_size), sizeof key_size);
-  stream.write(static_cast<const char*>(key.data()), key_size);
-  head.WriteToStream(stream);
+void TableFile::WriteEntryToStream(const Entry& entry, std::FILE* stream) {
+  assert(entry.first.size() <= std::numeric_limits<std::uint16_t>::max());
+  const std::uint16_t key_size = entry.first.size();
+  System::Write(stream, &key_size, sizeof key_size);
+  System::Write(stream, entry.first.data(), key_size);
+  entry.second.WriteToStream(stream);
 }
 
 Table::Table() {}
 
-Table::Table(const boost::filesystem::path& filepath) { Open(filepath); }
-
-Table::Table(const boost::filesystem::path& filepath,
-             const Callbacks::CommitBlock& commit_block) {
-  Open(filepath, commit_block);
+Table::Table(const Callbacks::CommitBlock& commit_block) {
+  set_commit_block(commit_block);
 }
 
 Table::~Table() {
   FlushAllLists();
-  if (!table_file_.empty()) {
-    // TODO Make background thread that writes the table file periodically.
-    WriteMapToFile(map_, table_file_);
-    for (const auto& entry : map_) {
-      delete[] static_cast<const char*>(entry.first.data());
-    }
+  for (const auto& entry : map_) {
+    delete[] static_cast<const char*>(entry.first.data());
   }
-}
-
-void Table::Open(const boost::filesystem::path& filepath) {
-  if (boost::filesystem::exists(filepath)) {
-    map_ = ReadMapFromFile(filepath);
-  }
-  table_file_ = filepath;
-}
-
-void Table::Open(const boost::filesystem::path& filepath,
-                 const Callbacks::CommitBlock& commit_block) {
-  Open(filepath);
-  set_commit_block(commit_block);
 }
 
 SharedListLock Table::GetShared(const Bytes& key) const {
@@ -109,10 +84,14 @@ UniqueListLock Table::GetUnique(const Bytes& key) {
 }
 
 UniqueListLock Table::GetUniqueOrCreate(const Bytes& key) {
+  Check(key.size() <= max_key_size(),
+        "Table: Reject key because its size of %u bytes exceeds the allowed "
+        "maximum of %u bytes.",
+        key.size(), max_key_size());
   List* list = nullptr;
   {
     std::lock_guard<std::mutex> lock(map_mutex_);
-    const auto insert_result = map_.insert(std::make_pair(key, nullptr));
+    const auto insert_result = map_.emplace(key, std::unique_ptr<List>());
     if (insert_result.second) {
       // Override the inserted key with a new deep copy.
       auto new_key_data = new byte[key.size()];
@@ -127,27 +106,12 @@ UniqueListLock Table::GetUniqueOrCreate(const Bytes& key) {
   return UniqueListLock(list);
 }
 
-// TODO This does not work if the list is checked out.
-bool Table::Delete(const Bytes& key) {
-  std::lock_guard<std::mutex> lock(map_mutex_);
-  const auto iter = map_.find(key);
-  if (iter != map_.end()) {
-    delete[] static_cast<const char*>(iter->first.data());
-    map_.erase(iter);
-    return true;
-  }
-  return false;
-}
-
-bool Table::Contains(const Bytes& key) const {
-  std::lock_guard<std::mutex> lock(map_mutex_);
-  return map_.find(key) != map_.end();
-}
-
 void Table::ForEachKey(Callables::Procedure procedure) const {
   std::lock_guard<std::mutex> lock(map_mutex_);
-  for (const auto& pair : map_) {
-    procedure(pair.first);
+  for (const auto& entry : map_) {
+    if (!entry.second->empty()) {
+      procedure(entry.first);
+    }
   }
 }
 
@@ -155,11 +119,11 @@ std::map<std::string, std::string> Table::GetProperties() const {
   std::uint64_t num_values_total = 0;
   std::uint64_t num_values_deleted = 0;
   std::lock_guard<std::mutex> lock(map_mutex_);
-  for (const auto& pair : map_) {
-    if (pair.second->TryLockShared()) {
-      num_values_total += pair.second->chead().num_values_total;
-      num_values_deleted += pair.second->chead().num_values_deleted;
-      pair.second->UnlockShared();
+  for (const auto& entry : map_) {
+    if (entry.second->TryLockShared()) {
+      num_values_total += entry.second->chead().num_values_total;
+      num_values_deleted += entry.second->chead().num_values_deleted;
+      entry.second->UnlockShared();
     }
   }
   return {{"num-keys", std::to_string(map_.size())},
@@ -169,9 +133,10 @@ std::map<std::string, std::string> Table::GetProperties() const {
 
 void Table::FlushLists(double min_load_factor) {
   if (commit_block_) {
-    std::lock_guard<std::mutex> lock(map_mutex_);  // TODO Remove?
+    std::lock_guard<std::mutex> lock(map_mutex_);
     for (const auto& entry : map_) {
       auto list = entry.second.get();
+      // TODO Use ListLock(List*, std::try_to_lock_t) when available.
       if (list->TryLockUnique()) {
         if (list->block().load_factor() >= min_load_factor) {
           list->Flush(commit_block_);
@@ -184,45 +149,32 @@ void Table::FlushLists(double min_load_factor) {
 
 void Table::FlushAllLists() { FlushLists(0); }
 
-const Callbacks::CommitBlock& Table::get_commit_block() const {
-  return commit_block_;
-}
+void Table::InitFromFile(const boost::filesystem::path& path) {
+  const auto stream = std::fopen(path.c_str(), "rb");
+  Check(stream != nullptr, "Could not open '%s'.", path.c_str());
 
-void Table::set_commit_block(const Callbacks::CommitBlock& commit_block) {
-  commit_block_ = commit_block;
-}
-
-Table::Map Table::ReadMapFromFile(const boost::filesystem::path& from) {
-  // TODO Use FILE streams.
-  Map map;
-  std::ifstream stream(from.string(), std::ios_base::binary);
-  assert(stream.is_open());
+  map_.clear();
   std::uint32_t num_keys;
-  stream.read(reinterpret_cast<char*>(&num_keys), sizeof num_keys);
-  assert(stream.good());
+  System::Read(stream, &num_keys, sizeof num_keys);
   for (std::size_t i = 0; i != num_keys; ++i) {
-    auto entry = TableFile::ReadEntryFromStream(stream);
-    std::unique_ptr<List> list(new List(std::move(entry.second)));
-    map.insert(std::make_pair(entry.first, std::move(list)));
-    assert(stream.good());
+    const auto entry = TableFile::ReadEntryFromStream(stream);
+    map_.emplace(entry.first, std::unique_ptr<List>(new List(entry.second)));
   }
-  return map;
 }
 
-void Table::WriteMapToFile(const Map& map, const boost::filesystem::path& to) {
-  assert(boost::filesystem::exists(to.parent_path()));
-  const auto stream = std::fopen(to.c_str(), "wb");
-  assert(stream != nullptr);
+void Table::WriteToFile(const boost::filesystem::path& path) {
+  const auto stream = std::fopen(path.c_str(), "wb");
+  Check(stream != nullptr, "Could not open or create '%s'.", path.c_str());
 
   // Resize internal buffer to 10 MiB.
   auto ret = std::setvbuf(stream, nullptr, _IOFBF, 1024 * 1024 * 10);
   assert(ret == 0);
 
-  const std::uint32_t num_keys = map.size();
+  const std::uint32_t num_keys = map_.size();
   System::Write(stream, &num_keys, sizeof num_keys);
 
   std::uint32_t num_entries_written = 0;
-  for (const auto& entry : map) {
+  for (const auto& entry : map_) {
     const auto list = entry.second.get();
     assert(!list->locked());
     assert(!list->cblock().has_data());
@@ -251,6 +203,14 @@ void Table::WriteMapToFile(const Map& map, const boost::filesystem::path& to) {
 
   ret = std::fclose(stream);
   assert(ret == 0);
+}
+
+const Callbacks::CommitBlock& Table::get_commit_block() const {
+  return commit_block_;
+}
+
+void Table::set_commit_block(const Callbacks::CommitBlock& commit_block) {
+  commit_block_ = commit_block;
 }
 
 }  // namespace internal

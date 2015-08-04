@@ -24,18 +24,6 @@
 namespace multimap {
 namespace internal {
 
-const std::uint32_t Varint::kMinValueStoredIn8Bits = 0;
-const std::uint32_t Varint::kMaxValueStoredIn8Bits = (1 << 6) - 1;
-
-const std::uint32_t Varint::kMinValueStoredIn16Bits = (1 << 6);
-const std::uint32_t Varint::kMaxValueStoredIn16Bits = (1 << 14) - 1;
-
-const std::uint32_t Varint::kMinValueStoredIn24Bits = (1 << 14);
-const std::uint32_t Varint::kMaxValueStoredIn24Bits = (1 << 22) - 1;
-
-const std::uint32_t Varint::kMinValueStoredIn32Bits = (1 << 22);
-const std::uint32_t Varint::kMaxValueStoredIn32Bits = (1 << 30) - 1;
-
 std::size_t Varint::ReadUint32(const byte* source, std::uint32_t* target) {
   assert(source != nullptr);
   assert(target != nullptr);

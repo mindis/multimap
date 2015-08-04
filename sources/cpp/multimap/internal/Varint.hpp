@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTIMAP_VARINT_HPP
-#define MULTIMAP_VARINT_HPP
+#ifndef MULTIMAP_INTERNAL_VARINT_HPP
+#define MULTIMAP_INTERNAL_VARINT_HPP
 
 #include <cstdint>
 #include "multimap/Bytes.hpp"
@@ -25,22 +25,19 @@ namespace multimap {
 namespace internal {
 
 struct Varint {
-  static const std::uint32_t kMinValueStoredIn8Bits;
-  static const std::uint32_t kMaxValueStoredIn8Bits;
-
-  static const std::uint32_t kMinValueStoredIn16Bits;
-  static const std::uint32_t kMaxValueStoredIn16Bits;
-
-  static const std::uint32_t kMinValueStoredIn24Bits;
-  static const std::uint32_t kMaxValueStoredIn24Bits;
-
-  static const std::uint32_t kMinValueStoredIn32Bits;
-  static const std::uint32_t kMaxValueStoredIn32Bits;
-
   static std::size_t ReadUint32(const byte* source, std::uint32_t* target);
 
   // Precondition: target has room for at least 4 bytes.
   static std::size_t WriteUint32(std::uint32_t source, byte* target);
+
+  static constexpr std::uint32_t min_value_8_bits() { return 0; }
+  static constexpr std::uint32_t max_value_8_bits() { return (1 << 6) - 1; }
+  static constexpr std::uint32_t min_value_16_bits() { return (1 << 6); }
+  static constexpr std::uint32_t max_value_16_bits() { return (1 << 14) - 1; }
+  static constexpr std::uint32_t min_value_24_bits() { return (1 << 14); }
+  static constexpr std::uint32_t max_value_24_bits() { return (1 << 22) - 1; }
+  static constexpr std::uint32_t min_value_32_bits() { return (1 << 22); }
+  static constexpr std::uint32_t max_value_32_bits() { return (1 << 30) - 1; }
 
   Varint() = delete;
 };
@@ -48,4 +45,4 @@ struct Varint {
 }  // namespace internal
 }  // namespace multimap
 
-#endif  // MULTIMAP_VARINT_HPP
+#endif  // MULTIMAP_INTERNAL_VARINT_HPP

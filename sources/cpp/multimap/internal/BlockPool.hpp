@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTIMAP_BLOCK_POOL_HPP
-#define MULTIMAP_BLOCK_POOL_HPP
+#ifndef MULTIMAP_INTERNAL_BLOCK_POOL_HPP
+#define MULTIMAP_INTERNAL_BLOCK_POOL_HPP
 
 #include <functional>
 #include <memory>
@@ -80,4 +80,4 @@ class BlockPool {
 }  // namespace internal
 }  // namespace multimap
 
-#endif  // MULTIMAP_BLOCK_POOL_HPP
+#endif  // MULTIMAP_INTERNAL_BLOCK_POOL_HPP

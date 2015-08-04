@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTIMAP_TABLE_HPP
-#define MULTIMAP_TABLE_HPP
+#ifndef MULTIMAP_INTERNAL_TABLE_HPP
+#define MULTIMAP_INTERNAL_TABLE_HPP
 
 #include <functional>
 #include <cstdint>
@@ -36,33 +36,21 @@
 namespace multimap {
 namespace internal {
 
-// TODO Change interface from std::ostream to std::FILE.
 struct TableFile {
   typedef std::pair<Bytes, List::Head> Entry;
 
-  static Entry ReadEntryFromStream(std::istream& stream);
+  static Entry ReadEntryFromStream(std::FILE* stream);
 
-  static void WriteEntryToStream(const Entry& entry, std::ostream& stream);
-
-  static void WriteEntryToStream(const Bytes& key, const List::Head& head,
-                                 std::ostream& stream);
+  static void WriteEntryToStream(const Entry& entry, std::FILE* stream);
 };
 
 class Table {
  public:
   Table();
 
-  Table(const boost::filesystem::path& filepath);
-
-  Table(const boost::filesystem::path& filepath,
-        const Callbacks::CommitBlock& commit_block);
+  Table(const Callbacks::CommitBlock& commit_block);
 
   ~Table();
-
-  void Open(const boost::filesystem::path& filepath);
-
-  void Open(const boost::filesystem::path& filepath,
-            const Callbacks::CommitBlock& commit_block);
 
   SharedListLock GetShared(const Bytes& key) const;
 
@@ -70,13 +58,6 @@ class Table {
 
   UniqueListLock GetUniqueOrCreate(const Bytes& key);
 
-  bool Delete(const Bytes& key);
-
-  bool Contains(const Bytes& key) const;
-
-  // Applies procedure to every key.
-  // The order of keys visited is undefined.
-  // TODO Replace by ForEachEntry.
   void ForEachKey(Callables::Procedure procedure) const;
 
   // Thread-safe: yes.
@@ -86,9 +67,17 @@ class Table {
 
   void FlushAllLists();
 
+  void InitFromFile(const boost::filesystem::path& path);
+
+  void WriteToFile(const boost::filesystem::path& path);
+
   const Callbacks::CommitBlock& get_commit_block() const;
 
   void set_commit_block(const Callbacks::CommitBlock& commit_block);
+
+  static constexpr std::size_t max_key_size() {
+    return std::numeric_limits<std::uint16_t>::max();
+  }
 
  private:
   struct KeyHash {
@@ -99,14 +88,8 @@ class Table {
     }
   };
 
+  // TODO Implement a managed version of Bytes to be used as key_type.
   typedef std::unordered_map<Bytes, std::unique_ptr<List>, KeyHash> Map;
-
-  static Map ReadMapFromFile(const boost::filesystem::path& from);
-
-  // Preconditions:
-  //  * All lists in map are flushed (list.block has no data)
-  //  * No list is currently in use, i.e. is locked.
-  static void WriteMapToFile(const Map& map, const boost::filesystem::path& to);
 
   Map map_;
   mutable std::mutex map_mutex_;
@@ -117,4 +100,4 @@ class Table {
 }  // namespace internal
 }  // namespace multimap
 
-#endif  // MULTIMAP_TABLE_HPP
+#endif  // MULTIMAP_INTERNAL_TABLE_HPP

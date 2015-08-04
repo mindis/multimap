@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTIMAP_CALLBACKS_HPP
-#define MULTIMAP_CALLBACKS_HPP
+#ifndef MULTIMAP_INTERNAL_CALLBACKS_HPP
+#define MULTIMAP_INTERNAL_CALLBACKS_HPP
 
 #include <functional>
 #include <limits>
@@ -27,7 +27,6 @@
 namespace multimap {
 namespace internal {
 
-// TODO Detailed documentation.
 struct Callbacks {
   static const auto kNoBlockId = std::numeric_limits<std::uint32_t>::max();
 
@@ -60,4 +59,4 @@ struct Callbacks {
 }  // namespace internal
 }  // namespace multimap
 
-#endif  // MULTIMAP_CALLBACKS_HPP
+#endif  // MULTIMAP_INTERNAL_CALLBACKS_HPP

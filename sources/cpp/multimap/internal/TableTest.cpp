@@ -33,109 +33,51 @@ using testing::NotNull;
 using testing::ElementsAre;
 using testing::ElementsAreArray;
 
-struct TableTest : public testing::Test {
-  static void SetUpTestCase() {
-    filepath = "/tmp/multimap-TableTest.table";
-    block_cache_size = 1024 * 1024;
-    block_size = 128;
+struct TableTestFixture : public testing::Test {
+  void SetUp() override {
     key1 = Bytes("k1");
     key2 = Bytes("k2");
     key3 = Bytes("k3");
   }
 
-  //  void SetUp() override { boost::filesystem::create_directory(table_file); }
-
-  void TearDown() override { boost::filesystem::remove(filepath); }
-
-  static boost::filesystem::path filepath;
-  static std::size_t block_cache_size;
-  static std::size_t block_size;
-  static Bytes key1;
-  static Bytes key2;
-  static Bytes key3;
+  Bytes key1;
+  Bytes key2;
+  Bytes key3;
 };
 
-boost::filesystem::path TableTest::filepath;
-std::size_t TableTest::block_cache_size;
-std::size_t TableTest::block_size;
-Bytes TableTest::key1;
-Bytes TableTest::key2;
-Bytes TableTest::key3;
-
-TEST_F(TableTest, IsDefaultConstructible) {
+TEST_F(TableTestFixture, IsDefaultConstructible) {
   ASSERT_THAT(std::is_default_constructible<Table>::value, Eq(true));
 }
 
-TEST_F(TableTest, DefaultConstructedState) {
+TEST_F(TableTestFixture, DefaultConstructedHasProperState) {
+  ASSERT_THAT(Table().GetShared(key1).clist(), IsNull());
+  ASSERT_THAT(Table().GetUnique(key1).clist(), IsNull());
+  ASSERT_THAT(Table().GetUniqueOrCreate(key1).clist(), NotNull());
+
+  std::vector<std::string> keys;
+  Callables::Procedure procedure = [&keys](const Bytes& key) {
+    keys.push_back(key.ToString());
+  };
+  Table().ForEachKey(procedure);
+  ASSERT_TRUE(keys.empty());
+
   for (const auto& entry : Table().GetProperties()) {
     ASSERT_THAT(entry.second, Eq("0"));
   }
 }
 
-TEST_F(TableTest, IsNotCopyConstructibleOrAssignable) {
+TEST_F(TableTestFixture, IsNotCopyConstructibleOrAssignable) {
   ASSERT_THAT(std::is_copy_constructible<Table>::value, Eq(false));
   ASSERT_THAT(std::is_copy_assignable<Table>::value, Eq(false));
 }
 
-TEST_F(TableTest, IsNotMoveConstructibleOrAssignable) {
+TEST_F(TableTestFixture, IsNotMoveConstructibleOrAssignable) {
   ASSERT_THAT(std::is_move_constructible<Table>::value, Eq(false));
   ASSERT_THAT(std::is_move_assignable<Table>::value, Eq(false));
-  // Cannot be moved because of mutex member.
 }
 
-TEST_F(TableTest, DefaultConstructedGetShared) {
-  ASSERT_THAT(Table().GetShared(key1).clist(), IsNull());
-}
-
-TEST_F(TableTest, DefaultConstructedGetUnique) {
-  ASSERT_THAT(Table().GetUnique(key1).clist(), IsNull());
-}
-
-TEST_F(TableTest, DefaultConstructedGetUniqueOrCreate) {
-  ASSERT_THAT(Table().GetUniqueOrCreate(key1).clist(), NotNull());
-}
-
-TEST_F(TableTest, DefaultConstructedDelete) {
-  ASSERT_THAT(Table().Delete(key1), Eq(false));
-}
-
-TEST_F(TableTest, DefaultConstructedContains) {
-  ASSERT_THAT(Table().Contains(key1), Eq(false));
-}
-
-TEST_F(TableTest, DefaultConstructedForEachKey) {
-  Callables::Procedure procedure = [](const Bytes& /* key */) {};
-  ASSERT_NO_THROW(Table().ForEachKey(procedure));
-}
-
-// TEST_F(TableTest, OpenInNonExistingDirectory) {
-//  boost::filesystem::remove_all(directory);
-
-//  Table table;
-//  ASSERT_ANY_THROW(table.Init(directory, block_cache_size, block_size));
-//}
-
-// TEST_F(TableTest, OpenInNonEmptyDirectoryWithMissingFiles) {
-//  boost::filesystem::create_directories(directory / "dummy");
-
-//  Table table;
-//  ASSERT_ANY_THROW(table.Init(directory, block_cache_size, block_size));
-//}
-
-// TEST_F(TableTest, OpenInEmptyDirectory) {
-//  Table table;
-//  ASSERT_NO_THROW(table.Init(directory, block_cache_size, block_size));
-//}
-
-// TEST_F(TableTest, OpenInEmptyDirectoryTwice) {
-//  Table table;
-//  ASSERT_NO_THROW(table.Init(directory, block_cache_size, block_size));
-//  ASSERT_ANY_THROW(table.Init(directory, block_cache_size, block_size));
-//}
-
-TEST_F(TableTest, GetUniqueOrCreateInsertsNewKey) {
-  Table table(filepath);
-
+TEST_F(TableTestFixture, GetUniqueOrCreateInsertsNewKey) {
+  Table table;
   table.GetUniqueOrCreate(key1);
   ASSERT_THAT(table.GetShared(key1).clist(), NotNull());
   ASSERT_THAT(table.GetUnique(key1).clist(), NotNull());
@@ -145,9 +87,8 @@ TEST_F(TableTest, GetUniqueOrCreateInsertsNewKey) {
   ASSERT_THAT(table.GetUnique(key2).clist(), NotNull());
 }
 
-TEST_F(TableTest, InsertKeyThenGetSharedTwice) {
-  Table table(filepath);
-
+TEST_F(TableTestFixture, InsertKeyThenGetSharedTwice) {
+  Table table;
   table.GetUniqueOrCreate(key1);
   const auto lock1 = table.GetShared(key1);
   ASSERT_THAT(lock1.clist(), NotNull());
@@ -155,8 +96,8 @@ TEST_F(TableTest, InsertKeyThenGetSharedTwice) {
   ASSERT_THAT(lock2.clist(), NotNull());
 }
 
-TEST_F(TableTest, InsertKeyThenGetUniqueTwice) {
-  Table table(filepath);
+TEST_F(TableTestFixture, InsertKeyThenGetUniqueTwice) {
+  Table table;
   table.GetUniqueOrCreate(key1);
   bool other_thread_got_unique_lock = false;
   {
@@ -176,8 +117,8 @@ TEST_F(TableTest, InsertKeyThenGetUniqueTwice) {
   ASSERT_THAT(other_thread_got_unique_lock, Eq(true));
 }
 
-TEST_F(TableTest, InsertKeyThenGetSharedAndGetUnique) {
-  Table table(filepath);
+TEST_F(TableTestFixture, InsertKeyThenGetSharedAndGetUnique) {
+  Table table;
   table.GetUniqueOrCreate(key1);
   bool other_thread_gots_unique_lock = false;
   {
@@ -197,9 +138,8 @@ TEST_F(TableTest, InsertKeyThenGetSharedAndGetUnique) {
   ASSERT_THAT(other_thread_gots_unique_lock, Eq(true));
 }
 
-TEST_F(TableTest, InsertKeyThenGetUniqueAndGetShared) {
+TEST_F(TableTestFixture, InsertKeyThenGetUniqueAndGetShared) {
   Table table;
-  //  table.Init(directory, block_cache_size, block_size);
   table.GetUniqueOrCreate(key1);
   bool other_thread_gots_shared_lock = false;
   {
@@ -219,9 +159,8 @@ TEST_F(TableTest, InsertKeyThenGetUniqueAndGetShared) {
   ASSERT_THAT(other_thread_gots_shared_lock, Eq(true));
 }
 
-TEST_F(TableTest, InsertKeysThenGetAllShared) {
+TEST_F(TableTestFixture, InsertKeysThenGetAllShared) {
   Table table;
-  //  table.Init(directory, block_cache_size, block_size);
   table.GetUniqueOrCreate(key1);
   table.GetUniqueOrCreate(key2);
   bool other_thread_gots_shared_lock = false;
@@ -239,9 +178,8 @@ TEST_F(TableTest, InsertKeysThenGetAllShared) {
   ASSERT_THAT(other_thread_gots_shared_lock, Eq(true));
 }
 
-TEST_F(TableTest, InsertKeysThenGetAllUnique) {
+TEST_F(TableTestFixture, InsertKeysThenGetAllUnique) {
   Table table;
-  //  table.Init(directory, block_cache_size, block_size);
   table.GetUniqueOrCreate(key1);
   table.GetUniqueOrCreate(key2);
   bool other_thread_gots_unique_lock = false;
@@ -259,36 +197,33 @@ TEST_F(TableTest, InsertKeysThenGetAllUnique) {
   ASSERT_THAT(other_thread_gots_unique_lock, Eq(true));
 }
 
-TEST_F(TableTest, InsertAndDeleteKeys) {
+TEST_F(TableTestFixture, InsertAndDeleteKeys) {
   Table table;
-  //  table.Init(directory, block_cache_size, block_size);
   table.GetUniqueOrCreate(key1);
   table.GetUniqueOrCreate(key2);
 
-  ASSERT_THAT(table.Delete(key1), Eq(true));
-  ASSERT_THAT(table.GetShared(key1).clist(), IsNull());
-  ASSERT_THAT(table.GetUnique(key1).clist(), IsNull());
+  ASSERT_THAT(table.GetShared(key1).clist(), NotNull());
+  ASSERT_THAT(table.GetUnique(key1).clist(), NotNull());
 
-  ASSERT_THAT(table.Delete(key2), Eq(true));
-  ASSERT_THAT(table.GetShared(key2).clist(), IsNull());
-  ASSERT_THAT(table.GetUnique(key2).clist(), IsNull());
+  ASSERT_THAT(table.GetShared(key2).clist(), NotNull());
+  ASSERT_THAT(table.GetUnique(key2).clist(), NotNull());
 
-  ASSERT_THAT(table.Delete(key3), Eq(false));
   ASSERT_THAT(table.GetShared(key3).clist(), IsNull());
   ASSERT_THAT(table.GetUnique(key3).clist(), IsNull());
 }
 
-TEST_F(TableTest, ForEachKeyVisitsLockedEntries) {
+TEST_F(TableTestFixture, ForEachKeyIgnoresEmptyLists) {
   Table table;
-  //  table.Init(directory, block_cache_size, block_size);
   const auto list_lock1 = table.GetUniqueOrCreate(key1);
   const auto list_lock2 = table.GetUniqueOrCreate(key2);
   const auto list_lock3 = table.GetUniqueOrCreate(key3);
 
-  std::vector<Bytes> keys;
-  table.ForEachKey([&keys](const Bytes& key) { keys.push_back(key); });
-  std::sort(keys.begin(), keys.end());
-  ASSERT_THAT(keys, ElementsAre(key1, key2, key3));
+  std::vector<std::string> keys;
+  Callables::Procedure procedure = [&keys](const Bytes& key) {
+    keys.push_back(key.ToString());
+  };
+  Table().ForEachKey(procedure);
+  ASSERT_TRUE(keys.empty());
 }
 
 }  // namespace internal

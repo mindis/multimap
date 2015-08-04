@@ -31,13 +31,11 @@ typedef Iterator<true> ConstIter;
 
 struct IteratorTestFixture : testing::TestWithParam<std::uint32_t> {
   void SetUp() override {
-    directory = "/tmp/multimap-IteratorTest";
+    directory = "/tmp/multimap-IteratorTestFixture";
     boost::filesystem::remove_all(directory);
     assert(boost::filesystem::create_directory(directory));
 
     Options options;
-    options.block_size = 512;
-    options.block_pool_memory = GiB(1);
     options.create_if_missing = true;
     map.reset(new Map(directory, options));
 
@@ -279,17 +277,17 @@ TEST_P(ConstIterTest, IterateAllWhileValid) {
 }
 
 INSTANTIATE_TEST_CASE_P(Parameterized, IterTest,
-                        testing::Values(0, 1, 2, 10, 100, 1000, 1000000));
+                        testing::Values(0, 1, 2, 10, 100, 1000, 10000));
 
 INSTANTIATE_TEST_CASE_P(Parameterized, ConstIterTest,
-                        testing::Values(0, 1, 2, 10, 100, 1000, 1000000));
+                        testing::Values(0, 1, 2, 10, 100, 1000, 10000));
 
 // TODO Micro-benchmark this.
 // INSTANTIATE_TEST_CASE_P(ParameterizedLongRunning, IterTest,
-//                        testing::Values(10000000, 100000000));
+//                        testing::Values(100000, 1000000));
 
 // TODO Micro-benchmark this.
 // INSTANTIATE_TEST_CASE_P(ParameterizedLongRunning, ConstIterTest,
-//                        testing::Values(10000000, 100000000));
+//                        testing::Values(100000, 1000000));
 
 }  // namespace multimap

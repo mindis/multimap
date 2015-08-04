@@ -22,10 +22,8 @@
 namespace multimap {
 namespace internal {
 
-using testing::Eq;
-
 TEST(VarintTest, IsNotDefaultConstructible) {
-  ASSERT_THAT(std::is_default_constructible<Varint>::value, Eq(false));
+  ASSERT_FALSE(std::is_default_constructible<Varint>::value);
 }
 
 TEST(VarintTest, WriteValueToNullPtrAndDie) {
@@ -34,48 +32,48 @@ TEST(VarintTest, WriteValueToNullPtrAndDie) {
 
 TEST(VarintTest, WriteMinValueEncodedInOneByte) {
   byte buf[4];
-  ASSERT_THAT(Varint::WriteUint32(Varint::kMinValueStoredIn8Bits, buf), Eq(1));
+  ASSERT_EQ(Varint::WriteUint32(Varint::min_value_8_bits(), buf), 1);
 }
 
 TEST(VarintTest, WriteMaxValueEncodedInOneByte) {
   byte buf[4];
-  ASSERT_THAT(Varint::WriteUint32(Varint::kMaxValueStoredIn8Bits, buf), Eq(1));
+  ASSERT_EQ(Varint::WriteUint32(Varint::max_value_8_bits(), buf), 1);
 }
 
 TEST(VarintTest, WriteMinValueEncodedInTwoBytes) {
   byte buf[4];
-  ASSERT_THAT(Varint::WriteUint32(Varint::kMinValueStoredIn16Bits, buf), Eq(2));
+  ASSERT_EQ(Varint::WriteUint32(Varint::min_value_16_bits(), buf), 2);
 }
 
 TEST(VarintTest, WriteMaxValueEncodedInTwoBytes) {
   byte buf[4];
-  ASSERT_THAT(Varint::WriteUint32(Varint::kMaxValueStoredIn16Bits, buf), Eq(2));
+  ASSERT_EQ(Varint::WriteUint32(Varint::max_value_16_bits(), buf), 2);
 }
 
 TEST(VarintTest, WriteMinValueEncodedInThreeBytes) {
   byte buf[4];
-  ASSERT_THAT(Varint::WriteUint32(Varint::kMinValueStoredIn24Bits, buf), Eq(3));
+  ASSERT_EQ(Varint::WriteUint32(Varint::min_value_24_bits(), buf), 3);
 }
 
 TEST(VarintTest, WriteMaxValueEncodedInThreeBytes) {
   byte buf[4];
-  ASSERT_THAT(Varint::WriteUint32(Varint::kMaxValueStoredIn24Bits, buf), Eq(3));
+  ASSERT_EQ(Varint::WriteUint32(Varint::max_value_24_bits(), buf), 3);
 }
 
 TEST(VarintTest, WriteMinValueEncodedInFourBytes) {
   byte buf[4];
-  ASSERT_THAT(Varint::WriteUint32(Varint::kMinValueStoredIn32Bits, buf), Eq(4));
+  ASSERT_EQ(Varint::WriteUint32(Varint::min_value_32_bits(), buf), 4);
 }
 
 TEST(VarintTest, WriteMaxValueEncodedInFourBytes) {
   byte buf[4];
-  ASSERT_THAT(Varint::WriteUint32(Varint::kMaxValueStoredIn32Bits, buf), Eq(4));
+  ASSERT_EQ(Varint::WriteUint32(Varint::max_value_32_bits(), buf), 4);
 }
 
 TEST(VarintTest, WriteTooBigValueAndThrow) {
   byte buf[4];
   ASSERT_ANY_THROW(
-      Varint::WriteUint32(Varint::kMaxValueStoredIn32Bits + 1, buf));
+      Varint::WriteUint32(Varint::max_value_32_bits() + 1, buf));
 }
 
 TEST(VarintTest, ReadValueFromNullPtrAndDie) {
@@ -90,93 +88,93 @@ TEST(VarintTest, ReadValueIntoNullPtrAndDie) {
 
 TEST(VarintTest, ReadMinValueEncodedInOneByte) {
   byte buf[4];
-  Varint::WriteUint32(Varint::kMinValueStoredIn8Bits, buf);
+  Varint::WriteUint32(Varint::min_value_8_bits(), buf);
   std::uint32_t target;
-  ASSERT_THAT(Varint::ReadUint32(buf, &target), Eq(1));
-  ASSERT_THAT(target, Eq(Varint::kMinValueStoredIn8Bits));
+  ASSERT_EQ(Varint::ReadUint32(buf, &target), 1);
+  ASSERT_EQ(target, Varint::min_value_8_bits());
 }
 
 TEST(VarintTest, ReadMaxValueEncodedInOneByte) {
   byte buf[4];
-  Varint::WriteUint32(Varint::kMaxValueStoredIn8Bits, buf);
+  Varint::WriteUint32(Varint::max_value_8_bits(), buf);
   std::uint32_t target;
-  ASSERT_THAT(Varint::ReadUint32(buf, &target), Eq(1));
-  ASSERT_THAT(target, Eq(Varint::kMaxValueStoredIn8Bits));
+  ASSERT_EQ(Varint::ReadUint32(buf, &target), 1);
+  ASSERT_EQ(target, Varint::max_value_8_bits());
 }
 
 TEST(VarintTest, ReadMinValueEncodedInTwoBytes) {
   byte buf[4];
-  Varint::WriteUint32(Varint::kMinValueStoredIn16Bits, buf);
+  Varint::WriteUint32(Varint::min_value_16_bits(), buf);
   std::uint32_t target;
-  ASSERT_THAT(Varint::ReadUint32(buf, &target), Eq(2));
-  ASSERT_THAT(target, Eq(Varint::kMinValueStoredIn16Bits));
+  ASSERT_EQ(Varint::ReadUint32(buf, &target), 2);
+  ASSERT_EQ(target, Varint::min_value_16_bits());
 }
 
 TEST(VarintTest, ReadMaxValueEncodedInTwoBytes) {
   byte buf[4];
-  Varint::WriteUint32(Varint::kMaxValueStoredIn16Bits, buf);
+  Varint::WriteUint32(Varint::max_value_16_bits(), buf);
   std::uint32_t target;
-  ASSERT_THAT(Varint::ReadUint32(buf, &target), Eq(2));
-  ASSERT_THAT(target, Eq(Varint::kMaxValueStoredIn16Bits));
+  ASSERT_EQ(Varint::ReadUint32(buf, &target), 2);
+  ASSERT_EQ(target, Varint::max_value_16_bits());
 }
 
 TEST(VarintTest, ReadMinValueEncodedInThreeBytes) {
   byte buf[4];
-  Varint::WriteUint32(Varint::kMinValueStoredIn24Bits, buf);
+  Varint::WriteUint32(Varint::min_value_24_bits(), buf);
   std::uint32_t target;
-  ASSERT_THAT(Varint::ReadUint32(buf, &target), Eq(3));
-  ASSERT_THAT(target, Eq(Varint::kMinValueStoredIn24Bits));
+  ASSERT_EQ(Varint::ReadUint32(buf, &target), 3);
+  ASSERT_EQ(target, Varint::min_value_24_bits());
 }
 
 TEST(VarintTest, ReadMaxValueEncodedInThreeBytes) {
   byte buf[4];
-  Varint::WriteUint32(Varint::kMaxValueStoredIn24Bits, buf);
+  Varint::WriteUint32(Varint::max_value_24_bits(), buf);
   std::uint32_t target;
-  ASSERT_THAT(Varint::ReadUint32(buf, &target), Eq(3));
-  ASSERT_THAT(target, Eq(Varint::kMaxValueStoredIn24Bits));
+  ASSERT_EQ(Varint::ReadUint32(buf, &target), 3);
+  ASSERT_EQ(target, Varint::max_value_24_bits());
 }
 
 TEST(VarintTest, ReadMinValueEncodedInFourBytes) {
   byte buf[4];
-  Varint::WriteUint32(Varint::kMinValueStoredIn32Bits, buf);
+  Varint::WriteUint32(Varint::min_value_32_bits(), buf);
   std::uint32_t target;
-  ASSERT_THAT(Varint::ReadUint32(buf, &target), Eq(4));
-  ASSERT_THAT(target, Eq(Varint::kMinValueStoredIn32Bits));
+  ASSERT_EQ(Varint::ReadUint32(buf, &target), 4);
+  ASSERT_EQ(target, Varint::min_value_32_bits());
 }
 
 TEST(VarintTest, ReadMaxValueEncodedInFourBytes) {
   byte buf[4];
-  Varint::WriteUint32(Varint::kMaxValueStoredIn32Bits, buf);
+  Varint::WriteUint32(Varint::max_value_32_bits(), buf);
   std::uint32_t target;
-  ASSERT_THAT(Varint::ReadUint32(buf, &target), Eq(4));
-  ASSERT_THAT(target, Eq(Varint::kMaxValueStoredIn32Bits));
+  ASSERT_EQ(Varint::ReadUint32(buf, &target), 4);
+  ASSERT_EQ(target, Varint::max_value_32_bits());
 }
 
 TEST(VarintTest, WriteAndReadSomeValuesOfDifferentSize) {
   std::uint32_t values[] = {
-      (Varint::kMaxValueStoredIn8Bits - Varint::kMinValueStoredIn8Bits) / 2,
-      (Varint::kMaxValueStoredIn16Bits - Varint::kMinValueStoredIn16Bits) / 2,
-      (Varint::kMaxValueStoredIn24Bits - Varint::kMinValueStoredIn24Bits) / 2,
-      (Varint::kMaxValueStoredIn32Bits - Varint::kMinValueStoredIn32Bits) / 2};
+      (Varint::max_value_8_bits() - Varint::min_value_8_bits()) / 2,
+      (Varint::max_value_16_bits() - Varint::min_value_16_bits()) / 2,
+      (Varint::max_value_24_bits() - Varint::min_value_24_bits()) / 2,
+      (Varint::max_value_32_bits() - Varint::min_value_32_bits()) / 2};
   byte buf[32];
   auto pos = buf;
   pos += Varint::WriteUint32(values[0], pos);
   pos += Varint::WriteUint32(values[1], pos);
   pos += Varint::WriteUint32(values[2], pos);
   pos += Varint::WriteUint32(values[3], pos);
-  ASSERT_THAT(std::distance(buf, pos), Eq(10));
+  ASSERT_EQ(std::distance(buf, pos), 10);
 
   pos = buf;
   std::uint32_t target;
   pos += Varint::ReadUint32(pos, &target);
-  ASSERT_THAT(target, Eq(values[0]));
+  ASSERT_EQ(target, values[0]);
   pos += Varint::ReadUint32(pos, &target);
-  ASSERT_THAT(target, Eq(values[1]));
+  ASSERT_EQ(target, values[1]);
   pos += Varint::ReadUint32(pos, &target);
-  ASSERT_THAT(target, Eq(values[2]));
+  ASSERT_EQ(target, values[2]);
   pos += Varint::ReadUint32(pos, &target);
-  ASSERT_THAT(target, Eq(values[3]));
-  ASSERT_THAT(std::distance(buf, pos), Eq(10));
+  ASSERT_EQ(target, values[3]);
+  ASSERT_EQ(std::distance(buf, pos), 10);
 }
 
 }  // namespace internal

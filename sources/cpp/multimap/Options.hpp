@@ -30,10 +30,9 @@ inline std::size_t GiB(std::size_t gibibytes) { return gibibytes << 30; }
 
 struct Options {
   // The size of a data block in bytes.
-  // TODO Always round up to next multiple of 2.
   std::size_t block_size = 512;
 
-  // The size of the in-memory cache in bytes.
+  // The size of the in-memory block pool in bytes.
   std::size_t block_pool_memory = GiB(1);
 
   bool create_if_missing = false;

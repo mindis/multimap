@@ -29,7 +29,7 @@ typedef unsigned char byte;
 // A type that wraps a byte array and its size without taking ownership.
 class Bytes {
  public:
-  Bytes() : data_(nullptr), size_(0) {}
+  Bytes() : data_(""), size_(0) {}
 
   Bytes(const char* cstr) : Bytes(cstr, std::strlen(cstr)) {}
 
@@ -44,7 +44,7 @@ class Bytes {
   bool empty() const { return size_ == 0; }
 
   void clear() {
-    data_ = nullptr;
+    data_ = "";
     size_ = 0;
   }
 

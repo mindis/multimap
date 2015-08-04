@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTIMAP_BLOCK_HPP
-#define MULTIMAP_BLOCK_HPP
+#ifndef MULTIMAP_INTERNAL_BLOCK_HPP
+#define MULTIMAP_INTERNAL_BLOCK_HPP
 
 #include <functional>
 #include <limits>
@@ -110,6 +110,7 @@ class Block {
 
   double load_factor() const;
 
+  // Returns the maximum size of a value to be put when the block is empty.
   std::uint32_t max_value_size() const;
 
   Iterator NewIterator() {
@@ -164,14 +165,16 @@ inline void Block::Iter<false>::set_deleted() {
 class SuperBlock {
   // TODO Capture id of FarmHash.
  public:
+  static const std::uint32_t kMajorVersion = 0;
+  static const std::uint32_t kMinorVersion = 1;
   static const std::uint32_t kSerializedSize = 512;
 
   static SuperBlock ReadFromFd(int fd);
 
   void WriteToFd(int fd) const;
 
-  std::uint32_t major_version = 0;
-  std::uint32_t minor_version = 1;
+  std::uint32_t major_version = kMajorVersion;
+  std::uint32_t minor_version = kMinorVersion;
   std::uint32_t block_size = 0;
 
   std::uint64_t num_values_total = 0;
@@ -189,4 +192,4 @@ bool operator==(const SuperBlock& lhs, const SuperBlock& rhs);
 }  // namespace internal
 }  // namespace multimap
 
-#endif  // MULTIMAP_BLOCK_HPP
+#endif  // MULTIMAP_INTERNAL_BLOCK_HPP

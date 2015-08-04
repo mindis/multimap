@@ -23,26 +23,18 @@ namespace internal {
 
 std::mutex List::dynamic_mutex_protector;
 
-List::Head List::Head::ReadFromStream(std::istream& stream) {
+List::Head List::Head::ReadFromStream(std::FILE* fs) {
   Head head;
-  stream.read(reinterpret_cast<char*>(&head.num_values_total),
-              sizeof head.num_values_total);
-  assert(stream.good());
-  stream.read(reinterpret_cast<char*>(&head.num_values_deleted),
-              sizeof head.num_values_deleted);
-  assert(stream.good());
-  head.block_ids = UintVector::ReadFromStream(stream);
+  System::Read(fs, &head.num_values_total, sizeof head.num_values_total);
+  System::Read(fs, &head.num_values_deleted, sizeof head.num_values_deleted);
+  head.block_ids = UintVector::ReadFromStream(fs);
   return head;
 }
 
-void List::Head::WriteToStream(std::ostream& stream) const {
-  stream.write(reinterpret_cast<const char*>(&num_values_total),
-               sizeof num_values_total);
-  assert(stream.good());
-  stream.write(reinterpret_cast<const char*>(&num_values_deleted),
-               sizeof num_values_deleted);
-  assert(stream.good());
-  block_ids.WriteToStream(stream);
+void List::Head::WriteToStream(std::FILE* fs) const {
+  System::Write(fs, &num_values_total, sizeof num_values_total);
+  System::Write(fs, &num_values_deleted, sizeof num_values_deleted);
+  block_ids.WriteToStream(fs);
 }
 
 template <>
@@ -73,7 +65,7 @@ List::Iter<false>::Iter(Head* head, Block* block, const Callbacks& callbacks)
 
 template <>
 void List::Iter<false>::Delete() {
-  assert(Valid());
+  assert(HasValue());
   stats_.block_has_changed |= !block_iter_.deleted();
   block_iter_.set_deleted();
   ++head_->num_values_deleted;
@@ -171,8 +163,8 @@ List::Head List::Copy(const Head& head, const DataFile& from, DataFile* to,
 
   List new_list;
   auto iter = List(head).NewIterator(callbacks);
-  for (iter.SeekToFirst(); iter.Valid(); iter.Next()) {
-    new_list.Add(iter.Value(), callbacks.allocate_block,
+  for (iter.SeekToFirst(); iter.HasValue(); iter.Next()) {
+    new_list.Add(iter.GetValue(), callbacks.allocate_block,
                  callbacks.commit_block);
   }
   new_list.Flush(callbacks.commit_block);

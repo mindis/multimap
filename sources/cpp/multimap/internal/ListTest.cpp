@@ -29,23 +29,23 @@ typedef List::Iterator ListIter;
 typedef List::ConstIterator ListConstIter;
 
 TEST(ListIterTest, IsDefaultConstructible) {
-  ASSERT_THAT(std::is_default_constructible<ListIter>::value, Eq(true));
+  ASSERT_TRUE(std::is_default_constructible<ListIter>::value);
 }
 
 TEST(ListIterTest, DefaultConstructedHasProperState) {
-  ASSERT_THAT(ListIter().Valid(), Eq(false));
+  ASSERT_FALSE(ListIter().HasValue());
 }
 
 TEST(ListConstIterTest, IsDefaultConstructible) {
-  ASSERT_THAT(std::is_default_constructible<ListConstIter>::value, Eq(true));
+  ASSERT_TRUE(std::is_default_constructible<ListConstIter>::value);
 }
 
 TEST(ListConstIterTest, DefaultConstructedHasProperState) {
-  ASSERT_THAT(ListConstIter().Valid(), Eq(false));
+  ASSERT_FALSE(ListConstIter().HasValue());
 }
 
 TEST(ListTest, IsDefaultConstructible) {
-  ASSERT_THAT(std::is_default_constructible<List>::value, Eq(true));
+  ASSERT_TRUE(std::is_default_constructible<List>::value);
 }
 
 TEST(ListTest, DefaultConstructedHasProperState) {
@@ -59,13 +59,13 @@ TEST(ListTest, DefaultConstructedHasProperState) {
 }
 
 TEST(ListTest, IsNotCopyConstructibleOrAssignable) {
-  ASSERT_THAT(std::is_copy_constructible<List>::value, Eq(false));
-  ASSERT_THAT(std::is_copy_assignable<List>::value, Eq(false));
+  ASSERT_FALSE(std::is_copy_constructible<List>::value);
+  ASSERT_FALSE(std::is_copy_assignable<List>::value);
 }
 
 TEST(ListTest, IsNotMoveConstructibleOrAssignable) {
-  ASSERT_THAT(std::is_move_constructible<List>::value, Eq(false));
-  ASSERT_THAT(std::is_move_assignable<List>::value, Eq(false));
+  ASSERT_FALSE(std::is_move_constructible<List>::value);
+  ASSERT_FALSE(std::is_move_assignable<List>::value);
 }
 
 struct ListTestWithParam : testing::TestWithParam<std::uint32_t> {};
@@ -105,15 +105,15 @@ TEST_P(ListTestWithParam, AddValuesAndIterateAll) {
   auto iter = list.NewConstIterator(callbacks);
   iter.SeekToFirst();
   for (std::size_t i = 0; i != GetParam(); ++i) {
-    ASSERT_THAT(iter.Valid(), Eq(true));
-    ASSERT_THAT(iter.Value().ToString(), Eq(std::to_string(i)));
+    ASSERT_THAT(iter.HasValue(), Eq(true));
+    ASSERT_THAT(iter.GetValue().ToString(), Eq(std::to_string(i)));
     iter.Next();
   }
-  ASSERT_THAT(iter.Valid(), Eq(false));
+  ASSERT_THAT(iter.HasValue(), Eq(false));
 
   std::size_t i = 0;
-  for (iter.SeekToFirst(); iter.Valid(); iter.Next(), ++i) {
-    ASSERT_THAT(iter.Value().ToString(), Eq(std::to_string(i)));
+  for (iter.SeekToFirst(); iter.HasValue(); iter.Next(), ++i) {
+    ASSERT_THAT(iter.GetValue().ToString(), Eq(std::to_string(i)));
   }
   ASSERT_THAT(i, Eq(GetParam()));
 }

@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTIMAP_CHECK_HPP
-#define MULTIMAP_CHECK_HPP
+#ifndef MULTIMAP_INTERNAL_CHECK_HPP
+#define MULTIMAP_INTERNAL_CHECK_HPP
 
 #include <cstddef>
 #include <functional>
@@ -60,4 +60,4 @@ void Throw(const char* format, ...);
 }  // namespace internal
 }  // namespace multimap
 
-#endif  // MULTIMAP_CHECK_HPP
+#endif  // MULTIMAP_INTERNAL_CHECK_HPP

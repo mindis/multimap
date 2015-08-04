@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTIMAP_SYSTEM_HPP
-#define MULTIMAP_SYSTEM_HPP
+#ifndef MULTIMAP_INTERNAL_SYSTEM_HPP
+#define MULTIMAP_INTERNAL_SYSTEM_HPP
 
 #include <sys/uio.h>
 #include <cstdio>
@@ -34,11 +34,7 @@ namespace internal {
 struct System {
   static std::pair<boost::filesystem::path, int> Tempfile();
 
-  static bool LockDirectory(const boost::filesystem::path& directory);
-
-  static bool UnlockDirectory(const boost::filesystem::path& directory);
-
-  // TODO Overload for printf-like capabilities.
+  // TODO Implement printf-like overloads.
   // Usage: System::Log() << "Your message here\n";
   static std::ostream& Log();
 
@@ -64,9 +60,12 @@ struct System {
 
   // POSIX-style I/O wrapper.
 
-  static int Open(const boost::filesystem::path& filepath);
+  static int Open(const boost::filesystem::path& filepath,
+                  bool create_if_missing = false);
 
-  static int Create(const boost::filesystem::path& filepath);
+  static bool Create(const boost::filesystem::path& filepath);
+
+  static bool Remove(const boost::filesystem::path& filepath);
 
   static void Close(int fd);
 
@@ -104,9 +103,36 @@ struct System {
    private:
     std::vector<iovec> items_;
   };
+
+  class DirectoryLockGuard {
+   public:
+    static const std::string kDefaultFilename;
+
+    DirectoryLockGuard();
+
+    DirectoryLockGuard(const boost::filesystem::path& directory);
+
+    DirectoryLockGuard(const boost::filesystem::path& directory,
+                       const std::string filename);
+
+    ~DirectoryLockGuard();
+
+    void Lock(const boost::filesystem::path& directory);
+
+    void Lock(const boost::filesystem::path& directory,
+              const std::string filename);
+
+    const boost::filesystem::path& directory() const;
+
+    const std::string& filename() const;
+
+   private:
+    boost::filesystem::path directory_;
+    std::string filename_;
+  };
 };
 
 }  // namespace internal
 }  // namespace multimap
 
-#endif  // MULTIMAP_SYSTEM_HPP
+#endif  // MULTIMAP_INTERNAL_SYSTEM_HPP
