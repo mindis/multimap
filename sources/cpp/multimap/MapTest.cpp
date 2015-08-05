@@ -50,8 +50,8 @@ struct MapTestWithParam : public testing::TestWithParam<std::uint32_t> {
 
 const auto kTruePredicate = [](const Bytes&) { return true; };
 const auto kFalsePredicate = [](const Bytes&) { return false; };
-const auto kEmptyProcedure = [](const Bytes&) {};
-const auto kEmptyFunction = [](const Bytes&) { return std::string(); };
+const auto kNullProcedure = [](const Bytes&) {};
+const auto kNullFunction = [](const Bytes&) { return ""; };
 
 TEST(MapTest, IsDefaultConstructible) {
   ASSERT_THAT(std::is_default_constructible<Map>::value, Eq(true));
@@ -68,13 +68,13 @@ TEST(MapTest, DefaultConstructedHasProperState) {
   ASSERT_FALSE(Map().DeleteFirst(key, kTruePredicate));
   ASSERT_FALSE(Map().DeleteFirst(key, kFalsePredicate));
   ASSERT_FALSE(Map().DeleteFirstEqual(key, value));
-  Map().ForEachKey(kEmptyProcedure);
+  Map().ForEachKey(kNullProcedure);
   ASSERT_EQ(Map().Get(key).NumValues(), 0);
   ASSERT_EQ(Map().GetMutable(key).NumValues(), 0);
   ASSERT_THROW(Map().Put(key, value), std::bad_function_call);
-  ASSERT_EQ(Map().ReplaceAll(key, kEmptyFunction), 0);
+  ASSERT_EQ(Map().ReplaceAll(key, kNullFunction), 0);
   ASSERT_EQ(Map().ReplaceAllEqual(key, value, value), 0);
-  ASSERT_FALSE(Map().ReplaceFirst(key, kEmptyFunction));
+  ASSERT_FALSE(Map().ReplaceFirst(key, kNullFunction));
   ASSERT_FALSE(Map().ReplaceFirstEqual(key, value, value));
 }
 
@@ -352,8 +352,7 @@ TEST_F(MapTestFixture, ReplaceFirstReplacesOneMatch) {
     map.Put("key", std::to_string(i));
   }
 
-  const auto no_match = [](const multimap::Bytes& /* value */) { return ""; };
-  ASSERT_FALSE(map.ReplaceFirst("key", no_match));
+  ASSERT_FALSE(map.ReplaceFirst("key", kNullFunction));
   ASSERT_EQ(map.Get("key").NumValues(), num_values);
 
   const auto map_250_to_2500 = [](const multimap::Bytes& value) {
@@ -394,8 +393,7 @@ TEST_F(MapTestFixture, ReplaceAllReplacesAllMatches) {
     map.Put("key", std::to_string(i));
   }
 
-  const auto no_match = [](const multimap::Bytes& /* value */) { return ""; };
-  ASSERT_EQ(map.ReplaceAll("key", no_match), 0);
+  ASSERT_EQ(map.ReplaceAll("key", kNullFunction), 0);
   ASSERT_EQ(map.Get("key").NumValues(), num_values);
 
   const auto map_250_to_2500 = [](const multimap::Bytes& value) {
