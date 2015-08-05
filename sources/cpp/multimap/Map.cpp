@@ -171,7 +171,8 @@ std::map<std::string, std::string> Map::GetProperties() const {
   props["block-size"] = std::to_string(block_pool_.block_size());
   props["max-key-size"] = std::to_string(max_key_size());
   props["max-value-size"] = std::to_string(max_value_size());
-  props["num-blocks-written"] = std::to_string(data_file_.super_block().num_blocks);
+  props["num-blocks-written"] =
+      std::to_string(data_file_.super_block().num_blocks);
   return props;
 }
 

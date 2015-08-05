@@ -216,4 +216,213 @@ INSTANTIATE_TEST_CASE_P(Parameterized, MapTestWithParam,
 // INSTANTIATE_TEST_CASE_P(ParameterizedLongRunning, MapTestWithParam,
 //                        testing::Values(10000, 100000, 1000000));
 
+TEST_F(MapTestFixture, ContainsReturnsFalseForNonExistingKey) {
+  multimap::Options options;
+  options.create_if_missing = true;
+  multimap::Map map(directory, options);
+  ASSERT_FALSE(map.Contains("key"));
+}
+
+TEST_F(MapTestFixture, ContainsReturnsTrueForExistingKey) {
+  multimap::Options options;
+  options.create_if_missing = true;
+  multimap::Map map(directory, options);
+  map.Put("key", "value");
+  ASSERT_TRUE(map.Contains("key"));
+}
+
+TEST_F(MapTestFixture, ContainsReturnsFalseForDeletedKey) {
+  multimap::Options options;
+  options.create_if_missing = true;
+  multimap::Map map(directory, options);
+  map.Put("key", "value");
+  map.Delete("key");
+  ASSERT_FALSE(map.Contains("key"));
+}
+
+TEST_F(MapTestFixture, DeleteReturnsZeroForNonExistingKey) {
+  multimap::Options options;
+  options.create_if_missing = true;
+  multimap::Map map(directory, options);
+  ASSERT_EQ(map.Delete("key"), 0);
+}
+
+TEST_F(MapTestFixture, DeleteReturnsNumValuesForExistingKey) {
+  multimap::Options options;
+  options.create_if_missing = true;
+  multimap::Map map(directory, options);
+  map.Put("key", "1");
+  map.Put("key", "2");
+  map.Put("key", "3");
+  ASSERT_EQ(map.Delete("key"), 3);
+}
+
+TEST_F(MapTestFixture, DeleteFirstDeletesOneMatch) {
+  multimap::Options options;
+  options.create_if_missing = true;
+  multimap::Map map(directory, options);
+
+  std::size_t num_values = 1000;
+  for (std::size_t i = 0; i != num_values / 2; ++i) {
+    map.Put("key", std::to_string(i));
+    map.Put("key", std::to_string(i));
+  }
+
+  const auto is_500 = [](const multimap::Bytes& value) {
+    return value == std::to_string(500);
+  };
+  ASSERT_FALSE(map.DeleteFirst("key", is_500));
+  ASSERT_EQ(map.Get("key").NumValues(), num_values);
+
+  const auto is_250 = [](const multimap::Bytes& value) {
+    return value == std::to_string(250);
+  };
+  ASSERT_TRUE(map.DeleteFirst("key", is_250));
+  ASSERT_EQ(map.Get("key").NumValues(), num_values - 1);
+}
+
+TEST_F(MapTestFixture, DeleteFirstEqualDeletesOneMatch) {
+  multimap::Options options;
+  options.create_if_missing = true;
+  multimap::Map map(directory, options);
+
+  std::size_t num_values = 1000;
+  for (std::size_t i = 0; i != num_values / 2; ++i) {
+    map.Put("key", std::to_string(i));
+    map.Put("key", std::to_string(i));
+  }
+
+  ASSERT_FALSE(map.DeleteFirstEqual("key", "500"));
+  ASSERT_EQ(map.Get("key").NumValues(), num_values);
+
+  ASSERT_TRUE(map.DeleteFirstEqual("key", "250"));
+  ASSERT_EQ(map.Get("key").NumValues(), num_values - 1);
+}
+
+TEST_F(MapTestFixture, DeleteAllDeletesAllMatches) {
+  multimap::Options options;
+  options.create_if_missing = true;
+  multimap::Map map(directory, options);
+
+  std::size_t num_values = 1000;
+  for (std::size_t i = 0; i != num_values / 2; ++i) {
+    map.Put("key", std::to_string(i));
+    map.Put("key", std::to_string(i));
+  }
+
+  const auto is_500 = [](const multimap::Bytes& value) {
+    return value == std::to_string(500);
+  };
+  ASSERT_EQ(map.DeleteAll("key", is_500), 0);
+  ASSERT_EQ(map.Get("key").NumValues(), num_values);
+
+  const auto is_250 = [](const multimap::Bytes& value) {
+    return value == std::to_string(250);
+  };
+  ASSERT_EQ(map.DeleteAll("key", is_250), 2);
+  ASSERT_EQ(map.Get("key").NumValues(), num_values - 2);
+}
+
+TEST_F(MapTestFixture, DeleteAllEqualDeletesAllMatches) {
+  multimap::Options options;
+  options.create_if_missing = true;
+  multimap::Map map(directory, options);
+
+  std::size_t num_values = 1000;
+  for (std::size_t i = 0; i != num_values / 2; ++i) {
+    map.Put("key", std::to_string(i));
+    map.Put("key", std::to_string(i));
+  }
+
+  ASSERT_EQ(map.DeleteAllEqual("key", "500"), 0);
+  ASSERT_EQ(map.Get("key").NumValues(), num_values);
+
+  ASSERT_EQ(map.DeleteAllEqual("key", "250"), 2);
+  ASSERT_EQ(map.Get("key").NumValues(), num_values - 2);
+}
+
+TEST_F(MapTestFixture, ReplaceFirstReplacesOneMatch) {
+  multimap::Options options;
+  options.create_if_missing = true;
+  multimap::Map map(directory, options);
+
+  std::size_t num_values = 1000;
+  for (std::size_t i = 0; i != num_values / 2; ++i) {
+    map.Put("key", std::to_string(i));
+    map.Put("key", std::to_string(i));
+  }
+
+  const auto no_match = [](const multimap::Bytes& /* value */) { return ""; };
+  ASSERT_FALSE(map.ReplaceFirst("key", no_match));
+  ASSERT_EQ(map.Get("key").NumValues(), num_values);
+
+  const auto map_250_to_2500 = [](const multimap::Bytes& value) {
+    return (value.ToString() == "250") ? "2500" : "";
+  };
+  ASSERT_TRUE(map.ReplaceFirst("key", map_250_to_2500));
+  ASSERT_EQ(map.Get("key").NumValues(), num_values);
+  // TODO Iterate list and check if replacement.
+}
+
+TEST_F(MapTestFixture, ReplaceFirstEqualReplacesOneMatch) {
+  multimap::Options options;
+  options.create_if_missing = true;
+  multimap::Map map(directory, options);
+
+  std::size_t num_values = 1000;
+  for (std::size_t i = 0; i != num_values / 2; ++i) {
+    map.Put("key", std::to_string(i));
+    map.Put("key", std::to_string(i));
+  }
+
+  ASSERT_FALSE(map.ReplaceFirstEqual("key", "500", "2500"));
+  ASSERT_EQ(map.Get("key").NumValues(), num_values);
+
+  ASSERT_TRUE(map.ReplaceFirstEqual("key", "250", "2500"));
+  ASSERT_EQ(map.Get("key").NumValues(), num_values);
+  // TODO Iterate list and check replacement.
+}
+
+TEST_F(MapTestFixture, ReplaceAllReplacesAllMatches) {
+  multimap::Options options;
+  options.create_if_missing = true;
+  multimap::Map map(directory, options);
+
+  std::size_t num_values = 1000;
+  for (std::size_t i = 0; i != num_values / 2; ++i) {
+    map.Put("key", std::to_string(i));
+    map.Put("key", std::to_string(i));
+  }
+
+  const auto no_match = [](const multimap::Bytes& /* value */) { return ""; };
+  ASSERT_EQ(map.ReplaceAll("key", no_match), 0);
+  ASSERT_EQ(map.Get("key").NumValues(), num_values);
+
+  const auto map_250_to_2500 = [](const multimap::Bytes& value) {
+    return (value.ToString() == "250") ? "2500" : "";
+  };
+  ASSERT_EQ(map.ReplaceAll("key", map_250_to_2500), 2);
+  ASSERT_EQ(map.Get("key").NumValues(), num_values);
+  // TODO Iterate list and check replacement.
+}
+
+TEST_F(MapTestFixture, ReplaceAllEqualReplacesAllMatches) {
+  multimap::Options options;
+  options.create_if_missing = true;
+  multimap::Map map(directory, options);
+
+  std::size_t num_values = 1000;
+  for (std::size_t i = 0; i != num_values / 2; ++i) {
+    map.Put("key", std::to_string(i));
+    map.Put("key", std::to_string(i));
+  }
+
+  ASSERT_EQ(map.ReplaceAllEqual("key", "500", "2500"), 0);
+  ASSERT_EQ(map.Get("key").NumValues(), num_values);
+
+  ASSERT_EQ(map.ReplaceAllEqual("key", "250", "2500"), 2);
+  ASSERT_EQ(map.Get("key").NumValues(), num_values);
+  // TODO Iterate list and check replacement.
+}
+
 }  // namespace multimap
