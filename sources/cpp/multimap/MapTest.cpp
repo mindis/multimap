@@ -361,7 +361,7 @@ TEST_F(MapTestFixture, ReplaceFirstReplacesOneMatch) {
   };
   ASSERT_TRUE(map.ReplaceFirst("key", map_250_to_2500));
   ASSERT_EQ(map.Get("key").NumValues(), num_values);
-  // TODO Iterate list and check if replacement.
+  // TODO Iterate list and check replacement.
 }
 
 TEST_F(MapTestFixture, ReplaceFirstEqualReplacesOneMatch) {
