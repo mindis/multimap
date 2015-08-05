@@ -30,14 +30,14 @@ struct Varint {
   // Precondition: target has room for at least 4 bytes.
   static std::size_t WriteUint32(std::uint32_t source, byte* target);
 
-  static constexpr std::uint32_t min_value_8_bits() { return 0; }
-  static constexpr std::uint32_t max_value_8_bits() { return (1 << 6) - 1; }
-  static constexpr std::uint32_t min_value_16_bits() { return (1 << 6); }
-  static constexpr std::uint32_t max_value_16_bits() { return (1 << 14) - 1; }
-  static constexpr std::uint32_t min_value_24_bits() { return (1 << 14); }
-  static constexpr std::uint32_t max_value_24_bits() { return (1 << 22) - 1; }
-  static constexpr std::uint32_t min_value_32_bits() { return (1 << 22); }
-  static constexpr std::uint32_t max_value_32_bits() { return (1 << 30) - 1; }
+  static constexpr std::uint32_t min_value_1_byte() { return 0; }
+  static constexpr std::uint32_t max_value_1_byte() { return (1 << 6) - 1; }
+  static constexpr std::uint32_t min_value_2_bytes() { return (1 << 6); }
+  static constexpr std::uint32_t max_value_2_bytes() { return (1 << 14) - 1; }
+  static constexpr std::uint32_t min_value_3_bytes() { return (1 << 14); }
+  static constexpr std::uint32_t max_value_3_bytes() { return (1 << 22) - 1; }
+  static constexpr std::uint32_t min_value_4_bytes() { return (1 << 22); }
+  static constexpr std::uint32_t max_value_4_bytes() { return (1 << 30) - 1; }
 
   Varint() = delete;
 };

@@ -268,15 +268,13 @@ TEST_F(MapTestFixture, DeleteFirstDeletesOneMatch) {
     map.Put("key", std::to_string(i));
   }
 
-  const auto is_500 = [](const multimap::Bytes& value) {
-    return value == std::to_string(500);
-  };
+  const auto is_500 =
+      [](const multimap::Bytes& value) { return value == std::to_string(500); };
   ASSERT_FALSE(map.DeleteFirst("key", is_500));
   ASSERT_EQ(map.Get("key").NumValues(), num_values);
 
-  const auto is_250 = [](const multimap::Bytes& value) {
-    return value == std::to_string(250);
-  };
+  const auto is_250 =
+      [](const multimap::Bytes& value) { return value == std::to_string(250); };
   ASSERT_TRUE(map.DeleteFirst("key", is_250));
   ASSERT_EQ(map.Get("key").NumValues(), num_values - 1);
 }
@@ -310,15 +308,13 @@ TEST_F(MapTestFixture, DeleteAllDeletesAllMatches) {
     map.Put("key", std::to_string(i));
   }
 
-  const auto is_500 = [](const multimap::Bytes& value) {
-    return value == std::to_string(500);
-  };
+  const auto is_500 =
+      [](const multimap::Bytes& value) { return value == std::to_string(500); };
   ASSERT_EQ(map.DeleteAll("key", is_500), 0);
   ASSERT_EQ(map.Get("key").NumValues(), num_values);
 
-  const auto is_250 = [](const multimap::Bytes& value) {
-    return value == std::to_string(250);
-  };
+  const auto is_250 =
+      [](const multimap::Bytes& value) { return value == std::to_string(250); };
   ASSERT_EQ(map.DeleteAll("key", is_250), 2);
   ASSERT_EQ(map.Get("key").NumValues(), num_values - 2);
 }

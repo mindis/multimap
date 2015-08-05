@@ -58,7 +58,7 @@ class UintVector {
   }
 
   static constexpr std::uint32_t max_value() {
-    return Varint::max_value_32_bits();
+    return Varint::max_value_4_bytes();
   }
 
  private:

@@ -32,48 +32,47 @@ TEST(VarintTest, WriteValueToNullPtrAndDie) {
 
 TEST(VarintTest, WriteMinValueEncodedInOneByte) {
   byte buf[4];
-  ASSERT_EQ(Varint::WriteUint32(Varint::min_value_8_bits(), buf), 1);
+  ASSERT_EQ(Varint::WriteUint32(Varint::min_value_1_byte(), buf), 1);
 }
 
 TEST(VarintTest, WriteMaxValueEncodedInOneByte) {
   byte buf[4];
-  ASSERT_EQ(Varint::WriteUint32(Varint::max_value_8_bits(), buf), 1);
+  ASSERT_EQ(Varint::WriteUint32(Varint::max_value_1_byte(), buf), 1);
 }
 
 TEST(VarintTest, WriteMinValueEncodedInTwoBytes) {
   byte buf[4];
-  ASSERT_EQ(Varint::WriteUint32(Varint::min_value_16_bits(), buf), 2);
+  ASSERT_EQ(Varint::WriteUint32(Varint::min_value_2_bytes(), buf), 2);
 }
 
 TEST(VarintTest, WriteMaxValueEncodedInTwoBytes) {
   byte buf[4];
-  ASSERT_EQ(Varint::WriteUint32(Varint::max_value_16_bits(), buf), 2);
+  ASSERT_EQ(Varint::WriteUint32(Varint::max_value_2_bytes(), buf), 2);
 }
 
 TEST(VarintTest, WriteMinValueEncodedInThreeBytes) {
   byte buf[4];
-  ASSERT_EQ(Varint::WriteUint32(Varint::min_value_24_bits(), buf), 3);
+  ASSERT_EQ(Varint::WriteUint32(Varint::min_value_3_bytes(), buf), 3);
 }
 
 TEST(VarintTest, WriteMaxValueEncodedInThreeBytes) {
   byte buf[4];
-  ASSERT_EQ(Varint::WriteUint32(Varint::max_value_24_bits(), buf), 3);
+  ASSERT_EQ(Varint::WriteUint32(Varint::max_value_3_bytes(), buf), 3);
 }
 
 TEST(VarintTest, WriteMinValueEncodedInFourBytes) {
   byte buf[4];
-  ASSERT_EQ(Varint::WriteUint32(Varint::min_value_32_bits(), buf), 4);
+  ASSERT_EQ(Varint::WriteUint32(Varint::min_value_4_bytes(), buf), 4);
 }
 
 TEST(VarintTest, WriteMaxValueEncodedInFourBytes) {
   byte buf[4];
-  ASSERT_EQ(Varint::WriteUint32(Varint::max_value_32_bits(), buf), 4);
+  ASSERT_EQ(Varint::WriteUint32(Varint::max_value_4_bytes(), buf), 4);
 }
 
 TEST(VarintTest, WriteTooBigValueAndThrow) {
   byte buf[4];
-  ASSERT_ANY_THROW(
-      Varint::WriteUint32(Varint::max_value_32_bits() + 1, buf));
+  ASSERT_ANY_THROW(Varint::WriteUint32(Varint::max_value_4_bytes() + 1, buf));
 }
 
 TEST(VarintTest, ReadValueFromNullPtrAndDie) {
@@ -88,74 +87,74 @@ TEST(VarintTest, ReadValueIntoNullPtrAndDie) {
 
 TEST(VarintTest, ReadMinValueEncodedInOneByte) {
   byte buf[4];
-  Varint::WriteUint32(Varint::min_value_8_bits(), buf);
+  Varint::WriteUint32(Varint::min_value_1_byte(), buf);
   std::uint32_t target;
   ASSERT_EQ(Varint::ReadUint32(buf, &target), 1);
-  ASSERT_EQ(target, Varint::min_value_8_bits());
+  ASSERT_EQ(target, Varint::min_value_1_byte());
 }
 
 TEST(VarintTest, ReadMaxValueEncodedInOneByte) {
   byte buf[4];
-  Varint::WriteUint32(Varint::max_value_8_bits(), buf);
+  Varint::WriteUint32(Varint::max_value_1_byte(), buf);
   std::uint32_t target;
   ASSERT_EQ(Varint::ReadUint32(buf, &target), 1);
-  ASSERT_EQ(target, Varint::max_value_8_bits());
+  ASSERT_EQ(target, Varint::max_value_1_byte());
 }
 
 TEST(VarintTest, ReadMinValueEncodedInTwoBytes) {
   byte buf[4];
-  Varint::WriteUint32(Varint::min_value_16_bits(), buf);
+  Varint::WriteUint32(Varint::min_value_2_bytes(), buf);
   std::uint32_t target;
   ASSERT_EQ(Varint::ReadUint32(buf, &target), 2);
-  ASSERT_EQ(target, Varint::min_value_16_bits());
+  ASSERT_EQ(target, Varint::min_value_2_bytes());
 }
 
 TEST(VarintTest, ReadMaxValueEncodedInTwoBytes) {
   byte buf[4];
-  Varint::WriteUint32(Varint::max_value_16_bits(), buf);
+  Varint::WriteUint32(Varint::max_value_2_bytes(), buf);
   std::uint32_t target;
   ASSERT_EQ(Varint::ReadUint32(buf, &target), 2);
-  ASSERT_EQ(target, Varint::max_value_16_bits());
+  ASSERT_EQ(target, Varint::max_value_2_bytes());
 }
 
 TEST(VarintTest, ReadMinValueEncodedInThreeBytes) {
   byte buf[4];
-  Varint::WriteUint32(Varint::min_value_24_bits(), buf);
+  Varint::WriteUint32(Varint::min_value_3_bytes(), buf);
   std::uint32_t target;
   ASSERT_EQ(Varint::ReadUint32(buf, &target), 3);
-  ASSERT_EQ(target, Varint::min_value_24_bits());
+  ASSERT_EQ(target, Varint::min_value_3_bytes());
 }
 
 TEST(VarintTest, ReadMaxValueEncodedInThreeBytes) {
   byte buf[4];
-  Varint::WriteUint32(Varint::max_value_24_bits(), buf);
+  Varint::WriteUint32(Varint::max_value_3_bytes(), buf);
   std::uint32_t target;
   ASSERT_EQ(Varint::ReadUint32(buf, &target), 3);
-  ASSERT_EQ(target, Varint::max_value_24_bits());
+  ASSERT_EQ(target, Varint::max_value_3_bytes());
 }
 
 TEST(VarintTest, ReadMinValueEncodedInFourBytes) {
   byte buf[4];
-  Varint::WriteUint32(Varint::min_value_32_bits(), buf);
+  Varint::WriteUint32(Varint::min_value_4_bytes(), buf);
   std::uint32_t target;
   ASSERT_EQ(Varint::ReadUint32(buf, &target), 4);
-  ASSERT_EQ(target, Varint::min_value_32_bits());
+  ASSERT_EQ(target, Varint::min_value_4_bytes());
 }
 
 TEST(VarintTest, ReadMaxValueEncodedInFourBytes) {
   byte buf[4];
-  Varint::WriteUint32(Varint::max_value_32_bits(), buf);
+  Varint::WriteUint32(Varint::max_value_4_bytes(), buf);
   std::uint32_t target;
   ASSERT_EQ(Varint::ReadUint32(buf, &target), 4);
-  ASSERT_EQ(target, Varint::max_value_32_bits());
+  ASSERT_EQ(target, Varint::max_value_4_bytes());
 }
 
 TEST(VarintTest, WriteAndReadSomeValuesOfDifferentSize) {
   std::uint32_t values[] = {
-      (Varint::max_value_8_bits() - Varint::min_value_8_bits()) / 2,
-      (Varint::max_value_16_bits() - Varint::min_value_16_bits()) / 2,
-      (Varint::max_value_24_bits() - Varint::min_value_24_bits()) / 2,
-      (Varint::max_value_32_bits() - Varint::min_value_32_bits()) / 2};
+      (Varint::max_value_1_byte() - Varint::min_value_1_byte()) / 2,
+      (Varint::max_value_2_bytes() - Varint::min_value_2_bytes()) / 2,
+      (Varint::max_value_3_bytes() - Varint::min_value_3_bytes()) / 2,
+      (Varint::max_value_4_bytes() - Varint::min_value_4_bytes()) / 2};
   byte buf[32];
   auto pos = buf;
   pos += Varint::WriteUint32(values[0], pos);

@@ -55,9 +55,8 @@ TEST_F(TableTestFixture, DefaultConstructedHasProperState) {
   ASSERT_THAT(Table().GetUniqueOrCreate(key1).clist(), NotNull());
 
   std::vector<std::string> keys;
-  Callables::Procedure procedure = [&keys](const Bytes& key) {
-    keys.push_back(key.ToString());
-  };
+  Callables::Procedure procedure =
+      [&keys](const Bytes& key) { keys.push_back(key.ToString()); };
   Table().ForEachKey(procedure);
   ASSERT_TRUE(keys.empty());
 
@@ -219,9 +218,8 @@ TEST_F(TableTestFixture, ForEachKeyIgnoresEmptyLists) {
   const auto list_lock3 = table.GetUniqueOrCreate(key3);
 
   std::vector<std::string> keys;
-  Callables::Procedure procedure = [&keys](const Bytes& key) {
-    keys.push_back(key.ToString());
-  };
+  Callables::Procedure procedure =
+      [&keys](const Bytes& key) { keys.push_back(key.ToString()); };
   Table().ForEachKey(procedure);
   ASSERT_TRUE(keys.empty());
 }
