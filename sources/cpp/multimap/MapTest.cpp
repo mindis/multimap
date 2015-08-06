@@ -106,6 +106,19 @@ TEST_F(MapTestFixture, OpenDoesNotThrowIfCreateIsMissingIsTrue) {
   ASSERT_TRUE(boost::filesystem::exists(directory / Map::name_of_table_file()));
 }
 
+TEST_F(MapTestFixture, OpenThrowsIfMapExistsAndErrorIfExistsIsTrue) {
+  {
+    Map map;
+    Options options;
+    options.create_if_missing = true;
+    map.Open(directory, options);
+  }
+  Map map;
+  Options options;
+  options.error_if_exists = true;
+  ASSERT_THROW(map.Open(directory, options), std::runtime_error);
+}
+
 TEST_F(MapTestFixture, OpenThrowsIfBlockPoolMemoryIsTooSmall) {
   Map map;
   Options options;
