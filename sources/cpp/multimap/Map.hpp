@@ -19,7 +19,6 @@
 #define MULTIMAP_MAP_HPP
 
 #include <map>
-#include <memory>
 #include <string>
 #include <boost/filesystem/path.hpp>
 #include "multimap/Callables.hpp"
@@ -29,6 +28,7 @@
 #include "multimap/internal/Callbacks.hpp"
 #include "multimap/internal/DataFile.hpp"
 #include "multimap/internal/Table.hpp"
+#include "multimap/internal/System.hpp"
 
 namespace multimap {
 

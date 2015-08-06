@@ -16,14 +16,9 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "multimap/Map.hpp"
-
-#include <cstring>
-#include <fstream>
+#include <algorithm>
 #include <boost/filesystem/operations.hpp>
-#include "multimap/internal/BlockPool.hpp"
-#include "multimap/internal/Block.hpp"
 #include "multimap/internal/Check.hpp"
-#include "multimap/internal/System.hpp"
 
 namespace multimap {
 
@@ -59,6 +54,12 @@ void Map::Open(const boost::filesystem::path& directory,
   const auto data_file_exists = boost::filesystem::exists(data_filepath);
   const auto table_file_exists = boost::filesystem::exists(table_filepath);
 
+  const auto exists = data_file_exists && table_file_exists;
+  if (exists && options.error_if_exists) {
+    internal::Throw("A Multimap in '%s' does already exist.",
+                    absolute_directory.c_str());
+  }
+
   const auto only_one_file_exists = data_file_exists != table_file_exists;
   if (only_one_file_exists) {
     internal::Throw(
@@ -68,18 +69,19 @@ void Map::Open(const boost::filesystem::path& directory,
 
   internal::Check(options.block_pool_memory >= options.block_size,
                   "options.block_pool_memory is too small.\n"
-                  "Visit 'http://multimap.io/#limitations' for more details.");
+                  "Visit 'http://multimap.io' for more details.");
 
   InitCallbacks();
-  options_ = options;
-  const auto num_blocks = options.block_pool_memory / options.block_size;
-  block_pool_.Init(num_blocks, options.block_size);
   data_file_.Open(data_filepath, callbacks_.deallocate_blocks,
                   options.create_if_missing, options.block_size);
-  table_.set_commit_block(callbacks_.commit_block);
+  table_.set_commit_block_callback(callbacks_.commit_block);
   if (table_file_exists) {
     table_.InitFromFile(table_filepath);
   }
+  options_ = options;
+  options_.block_size = data_file_.block_size();
+  const auto num_blocks = options_.block_pool_memory / options_.block_size;
+  block_pool_.Init(num_blocks, options_.block_size);
 }
 
 void Map::Put(const Bytes& key, const Bytes& value) {
@@ -208,48 +210,54 @@ void Map::Copy(const boost::filesystem::path& from,
   Copy(from, to, compare, -1);
 }
 
+// TODO https://bitbucket.org/mtrenkmann/multimap/issues/4
 void Map::Copy(const boost::filesystem::path& from,
                const boost::filesystem::path& to,
                const Callables::Compare& compare, std::size_t new_block_size) {
-  //  using namespace internal;
-  //  namespace fs = boost::filesystem;
-  //  const auto table_path = from / kNameOfTableFile;
-  //  const auto data_path = from / kNameOfDataFile;
-  //  const auto err_msg1 = "Does not exist or is not a regular file: %s.";
-  //  const auto err_msg2 = "Directory does not exist: %s.";
-  //  const auto err_mgs3 = "Directory is not empty: %s.";
-  //  Check(fs::is_regular_file(table_path), err_msg1, table_path.c_str());
-  //  Check(fs::is_regular_file(data_path), err_msg1, data_path.c_str());
-  //  Check(fs::is_directory(to), err_msg2, to.c_str());
-  //  Check(fs::is_empty(to), err_mgs3, to.c_str());
-  //  internal::System::DirectoryLockGuard lock_from(from);
-  //  internal::System::DirectoryLockGuard lock_to(to);
+  using namespace internal;
+  System::DirectoryLockGuard from_lock(from, kNameOfLockFile);
+  System::DirectoryLockGuard to_lock(to, kNameOfLockFile);
 
-  //  const auto new_table_path = to / kNameOfTableFile;
-  //  const auto new_data_path = to / kNameOfDataFile;
+  const auto from_table_filename = from / kNameOfTableFile;
+  const auto from_table_file = std::fopen(from_table_filename.c_str(), "rb");
+  Check(from_table_file != nullptr, "Could not open '%s'.",
+        from_table_filename.c_str());
 
-  //  std::ifstream table_ifs(table_path.string(), std::ios_base::binary);
-  //  std::ofstream new_table_ofs(new_table_path.string(),
-  //  std::ios_base::binary);
+  const auto from_data_filename = from / kNameOfDataFile;
+  DataFile from_data_file(from_data_filename);
+  BlockPool from_block_pool(1, from_data_file.block_size());
 
-  //  DataFile data_file(data_path);
-  //  DataFile new_data_file(new_data_path, new_block_size);
+  const auto to_table_filename = to / kNameOfTableFile;
+  const auto to_table_file = std::fopen(to_table_filename.c_str(), "wb");
+  Check(to_table_file != nullptr, "Could not create '%s'.",
+        to_table_filename.c_str());
 
-  //  std::uint32_t num_keys;
-  //  table_ifs.read(reinterpret_cast<char*>(&num_keys), sizeof num_keys);
-  //  assert(table_ifs.good());
-  //  for (std::size_t i = 0; i != num_keys; ++i) {
-  //    const auto entry = TableFile::ReadEntryFromStream(table_ifs);
-  //    const auto head = entry.second;
-  //    const auto new_head = List::Copy(head, data_file, &new_data_file,
-  //    compare);
-  //    if (new_head.num_values_total != 0) {
-  //      const auto key = entry.first;
-  //      const auto new_entry = TableFile::Entry(key, new_head);
-  //      TableFile::WriteEntryToStream(new_entry, new_table_ofs);
-  //    }
-  //    delete[] static_cast<const char*>(entry.first.data());
-  //  }
+  const auto to_data_filename = to / kNameOfDataFile;
+  const auto to_block_size = (new_block_size != static_cast<std::size_t>(-1))
+                                 ? new_block_size
+                                 : from_data_file.block_size();
+  BlockPool to_block_pool(DataFile::max_block_buffer_size() + 1, to_block_size);
+  const auto deallocate_blocks = [&to_block_pool](std::vector<Block>* blocks) {
+    to_block_pool.Push(blocks);
+  };
+  DataFile to_data_file(to_data_filename, deallocate_blocks, true,
+                        to_block_size);
+
+  std::uint32_t num_keys;
+  System::Read(from_table_file, &num_keys, sizeof num_keys);
+  System::Write(to_table_file, &num_keys, sizeof num_keys);
+  for (std::size_t i = 0; i != num_keys; ++i) {
+    const auto entry = TableFile::ReadEntryFromStream(from_table_file);
+    const auto new_head =
+        List::Copy(entry.second, from_data_file, &from_block_pool,
+                   &to_data_file, &to_block_pool, compare);
+    const TableFile::Entry new_entry(entry.first, new_head);
+    TableFile::WriteEntryToStream(new_entry, to_table_file);
+    delete[] static_cast<const byte*>(entry.first.data());
+  }
+
+  std::fclose(to_table_file);
+  std::fclose(from_table_file);
 }
 
 std::size_t Map::Delete(const Bytes& key, Callables::Predicate predicate,
@@ -315,7 +323,7 @@ void Map::InitCallbacks() {
     auto new_block = block_pool_.Pop();
     if (!new_block.has_data()) {
       if (options_.verbose) {
-        internal::System::Log("Multimap") << "block pool ran out of blocks\n";
+        internal::System::Log("Map") << "block pool ran out of blocks\n";
       }
       double load_factor = 0.8;
       while (block_pool_.empty()) {
