@@ -19,11 +19,10 @@
 #define MULTIMAP_INTERNAL_LIST_HPP
 
 #include <cstdio>
-#include <functional>
 #include <mutex>
 #include <boost/thread/shared_mutex.hpp>
 #include "multimap/Callables.hpp"
-#include "multimap/internal/Block.hpp"
+#include "multimap/internal/BlockPool.hpp"
 #include "multimap/internal/Callbacks.hpp"
 #include "multimap/internal/DataFile.hpp"
 #include "multimap/internal/UintVector.hpp"
@@ -31,7 +30,6 @@
 namespace multimap {
 namespace internal {
 
-// TODO Iterate may fail if a complete block gets deleted. Test this.
 class List {
   static std::mutex dynamic_mutex_protector;
 
@@ -68,6 +66,8 @@ class List {
     Iter(Iter&&) = default;
     Iter& operator=(Iter&&) = default;
 
+    std::size_t NumValues() const;
+
     void SeekToFirst();
 
     bool HasValue() const;
@@ -77,8 +77,7 @@ class List {
     void Next();
 
     // Marks the current value as deleted.
-    // EnableIf: not IsConst
-    // Requires: Valid()
+    // Requires: HasValue()
     void Delete();
 
    private:
@@ -95,7 +94,6 @@ class List {
 
     void Advance();
 
-    // EnableIf: IsConst == false
     void UpdateCurrentBlock();
 
     // This method must only be called when the end of the current block_ is
@@ -150,10 +148,9 @@ class List {
 
   ConstIterator NewConstIterator(const Callbacks& callbacks) const;
 
-  static Head Copy(const Head& head, const DataFile& from, DataFile* to);
-
-  static Head Copy(const Head& head, const DataFile& from, DataFile* to,
-                   const Callables::Compare& compare);
+  static Head Copy(const Head& head, const DataFile& from_data_file,
+                   BlockPool* from_block_pool, DataFile* to_data_file,
+                   BlockPool* to_block_pool, const Callables::Compare& compare);
 
   // Synchronization interface in tradition of std::mutex.
 
@@ -203,6 +200,11 @@ List::Iter<IsConst>::~Iter() {
   if (requested_block_.has_data()) {
     callbacks_.deallocate_block(std::move(requested_block_));
   }
+}
+
+template <bool IsConst>
+std::size_t List::Iter<IsConst>::NumValues() const {
+  return head_ ? head_->num_values_not_deleted() : 0;
 }
 
 template <bool IsConst>

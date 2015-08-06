@@ -17,6 +17,7 @@
 
 #include "multimap/internal/List.hpp"
 #include "multimap/internal/BlockPool.hpp"
+#include "multimap/internal/System.hpp"
 
 namespace multimap {
 namespace internal {
@@ -130,44 +131,54 @@ List::ConstIterator List::NewConstIterator(const Callbacks& callbacks) const {
   return ConstIterator(head_, block_, callbacks);
 }
 
-List::Head List::Copy(const Head& head, const DataFile& from, DataFile* to) {
-  return Copy(head, from, to, Callables::Compare());
-}
-
-List::Head List::Copy(const Head& head, const DataFile& from, DataFile* to,
+List::Head List::Copy(const Head& head, const DataFile& from_data_file,
+                      BlockPool* from_block_pool, DataFile* to_data_file,
+                      BlockPool* to_block_pool,
                       const Callables::Compare& compare) {
-  BlockPool block_pool;
-  block_pool.Init(DataFile::kMaxBufferSize, to->block_size());
-
-  Callbacks callbacks;
-  callbacks.allocate_block = [&block_pool, to]() {
-    auto block = block_pool.Pop();
-    if (!block.has_data()) {
-      to->Flush();
-    }
-    block = block_pool.Pop();
+  Callbacks iter_callbacks;
+  iter_callbacks.allocate_block = [from_block_pool]() {
+    const auto block = from_block_pool->Pop();
     assert(block.has_data());
     return block;
   };
+  iter_callbacks.deallocate_block = [from_block_pool](Block&& block) {
+    from_block_pool->Push(std::move(block));
+  };
+  iter_callbacks.request_block =
+      [&from_data_file](std::uint32_t block_id,
+                        Block* block) { from_data_file.Read(block_id, block); };
 
-  callbacks.deallocate_blocks =
-      [&block_pool](std::vector<Block>* blocks) { block_pool.Push(blocks); };
-
-  callbacks.commit_block =
-      [to](Block&& block) { return to->Append(std::move(block)); };
-
-  callbacks.request_block = [&from](
-      std::uint32_t block_id, Block* block) { from.Read(block_id, block); };
-
-  to->set_deallocate_blocks(callbacks.deallocate_blocks);
+  Callbacks list_callbacks;
+  list_callbacks.allocate_block = [to_block_pool]() {
+    const auto block = to_block_pool->Pop();
+    assert(block.has_data());
+    return block;
+  };
+  list_callbacks.commit_block = [to_data_file](Block&& block) {
+    return to_data_file->Append(std::move(block));
+  };
 
   List new_list;
-  auto iter = List(head).NewIterator(callbacks);
-  for (iter.SeekToFirst(); iter.HasValue(); iter.Next()) {
-    new_list.Add(iter.GetValue(), callbacks.allocate_block,
-                 callbacks.commit_block);
+  auto iter = List(head).NewConstIterator(iter_callbacks);
+  if (compare) {
+    // https://bitbucket.org/mtrenkmann/multimap/issues/5
+    std::vector<std::string> values;
+    values.reserve(iter.NumValues());
+    for (iter.SeekToFirst(); iter.HasValue(); iter.Next()) {
+      values.push_back(iter.GetValue().ToString());
+    }
+    std::sort(values.begin(), values.end(), compare);
+    for (const auto& value : values) {
+      new_list.Add(value, list_callbacks.allocate_block,
+                   list_callbacks.commit_block);
+    }
+  } else {
+    for (iter.SeekToFirst(); iter.HasValue(); iter.Next()) {
+      new_list.Add(iter.GetValue(), list_callbacks.allocate_block,
+                   list_callbacks.commit_block);
+    }
   }
-  new_list.Flush(callbacks.commit_block);
+  new_list.Flush(list_callbacks.commit_block);
   return new_list.head();
 }
 
