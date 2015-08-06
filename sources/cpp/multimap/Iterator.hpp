@@ -37,7 +37,7 @@ class Iterator {
   Iterator(Iterator&&) = default;
   Iterator& operator=(Iterator&&) = default;
 
-  // Returns the total number of the underlying values, even if not Valid().
+  // Returns the total number of the underlying values, even if not HasValue().
   std::size_t NumValues() const;
 
   // Support for lazy iterator initialization.
