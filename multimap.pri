@@ -2,7 +2,7 @@ CONFIG -= qt
 CONFIG += c++11
 
 #QMAKE_CXXFLAGS_RELEASE += -mavx -maes
-QMAKE_CXXFLAGS_RELEASE += -mtune=native
+#QMAKE_CXXFLAGS_RELEASE += -mtune=native
 
 INCLUDEPATH += \
     $$PWD/sources/cpp
