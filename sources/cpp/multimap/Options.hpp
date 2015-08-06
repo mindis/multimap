@@ -37,6 +37,8 @@ struct Options {
 
   bool create_if_missing = false;
 
+  bool error_if_exists = false;
+
   bool verbose = false;
 };
 
