@@ -5,7 +5,7 @@ repo_url: https://bitbucket.org/mtrenkmann/multimap
 site_description: The 1:n key-value store.
 site_author: Martin Trenkmann
 site_favicon: theme/favicon.ico
-copyright: Copyright © 2015 <a href="mailto:martin.trenkmann@multimap.io">Martin Trenkmann</a>
+copyright: Copyright © 2015 <a href="mailto:martin@multimap.io">Martin Trenkmann</a>
 google_analytics: null
 remote_branch: null
 remote_name: null
