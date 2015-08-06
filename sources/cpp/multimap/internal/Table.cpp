@@ -16,15 +16,9 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "multimap/internal/Table.hpp"
-
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <cstdlib>
-#include <fstream>
 #include <boost/filesystem/operations.hpp>
+#include <boost/thread/locks.hpp>
 #include "multimap/internal/System.hpp"
-#include "multimap/internal/Varint.hpp"
 
 namespace multimap {
 namespace internal {
@@ -48,8 +42,8 @@ void TableFile::WriteEntryToStream(const Entry& entry, std::FILE* stream) {
 
 Table::Table() {}
 
-Table::Table(const Callbacks::CommitBlock& commit_block) {
-  set_commit_block(commit_block);
+Table::Table(const Callbacks::CommitBlock& callback) {
+  set_commit_block_callback(callback);
 }
 
 Table::~Table() {
@@ -62,7 +56,7 @@ Table::~Table() {
 SharedListLock Table::GetShared(const Bytes& key) const {
   const List* list = nullptr;
   {
-    std::lock_guard<std::mutex> lock(map_mutex_);
+    boost::shared_lock<boost::shared_mutex> lock(mutex_);
     const auto iter = map_.find(key);
     if (iter != map_.end()) {
       list = iter->second.get();
@@ -71,10 +65,11 @@ SharedListLock Table::GetShared(const Bytes& key) const {
   return list ? SharedListLock(*list) : SharedListLock();
 }
 
-UniqueListLock Table::GetUnique(const Bytes& key) {
+UniqueListLock Table::GetUnique(const Bytes& key) const {
   List* list = nullptr;
   {
-    std::lock_guard<std::mutex> lock(map_mutex_);
+    boost::shared_lock<boost::shared_mutex> lock(mutex_);
+    // map_ is accessed read-only, so a shared_lock is sufficient.
     const auto iter = map_.find(key);
     if (iter != map_.end()) {
       list = iter->second.get();
@@ -90,26 +85,27 @@ UniqueListLock Table::GetUniqueOrCreate(const Bytes& key) {
         key.size(), max_key_size());
   List* list = nullptr;
   {
-    std::lock_guard<std::mutex> lock(map_mutex_);
-    const auto insert_result = map_.emplace(key, std::unique_ptr<List>());
-    if (insert_result.second) {
-      // Override the inserted key with a new deep copy.
+    boost::lock_guard<boost::shared_mutex> lock(mutex_);
+    const auto emplace_result = map_.emplace(key, std::unique_ptr<List>());
+    if (emplace_result.second) {
+      // Overrides the inserted key with a new deep copy.
       auto new_key_data = new byte[key.size()];
       std::memcpy(new_key_data, key.data(), key.size());
-      const auto old_key_ptr = const_cast<Bytes*>(&insert_result.first->first);
+      const auto old_key_ptr = const_cast<Bytes*>(&emplace_result.first->first);
       *old_key_ptr = Bytes(new_key_data, key.size());
-      insert_result.first->second.reset(new List());
+      emplace_result.first->second.reset(new List());
     }
-    const auto iter = insert_result.first;
+    const auto iter = emplace_result.first;
     list = iter->second.get();
   }
   return UniqueListLock(list);
 }
 
 void Table::ForEachKey(Callables::Procedure procedure) const {
-  std::lock_guard<std::mutex> lock(map_mutex_);
+  boost::shared_lock<boost::shared_mutex> lock(mutex_);
   for (const auto& entry : map_) {
-    if (!entry.second->empty()) {
+    SharedListLock lock(*entry.second);
+    if (!lock.clist()->empty()) {
       procedure(entry.first);
     }
   }
@@ -118,8 +114,9 @@ void Table::ForEachKey(Callables::Procedure procedure) const {
 std::map<std::string, std::string> Table::GetProperties() const {
   std::uint64_t num_values_total = 0;
   std::uint64_t num_values_deleted = 0;
-  std::lock_guard<std::mutex> lock(map_mutex_);
+  boost::shared_lock<boost::shared_mutex> lock(mutex_);
   for (const auto& entry : map_) {
+    // TODO Introduce parameter to force waiting.
     if (entry.second->TryLockShared()) {
       num_values_total += entry.second->chead().num_values_total;
       num_values_deleted += entry.second->chead().num_values_deleted;
@@ -131,23 +128,21 @@ std::map<std::string, std::string> Table::GetProperties() const {
           {"num-values-total", std::to_string(num_values_total)}};
 }
 
-void Table::FlushLists(double min_load_factor) {
-  if (commit_block_) {
-    std::lock_guard<std::mutex> lock(map_mutex_);
-    for (const auto& entry : map_) {
-      auto list = entry.second.get();
-      // TODO Use ListLock(List*, std::try_to_lock_t) when available.
-      if (list->TryLockUnique()) {
-        if (list->block().load_factor() >= min_load_factor) {
-          list->Flush(commit_block_);
-        }
-        list->UnlockUnique();
+void Table::FlushLists(double min_load_factor) const {
+  boost::shared_lock<boost::shared_mutex> lock(mutex_);
+  for (const auto& entry : map_) {
+    auto list = entry.second.get();
+    // TODO Use UniqueListLock(List*, std::try_to_lock_t) when available.
+    if (list->TryLockUnique()) {
+      if (list->cblock().load_factor() >= min_load_factor) {
+        list->Flush(commit_block_);
       }
+      list->UnlockUnique();
     }
   }
 }
 
-void Table::FlushAllLists() { FlushLists(0); }
+void Table::FlushAllLists() const { FlushLists(0); }
 
 void Table::InitFromFile(const boost::filesystem::path& path) {
   const auto stream = std::fopen(path.c_str(), "rb");
@@ -166,9 +161,9 @@ void Table::WriteToFile(const boost::filesystem::path& path) {
   const auto stream = std::fopen(path.c_str(), "wb");
   Check(stream != nullptr, "Could not open or create '%s'.", path.c_str());
 
-  // Resize internal buffer to 10 MiB.
-  auto ret = std::setvbuf(stream, nullptr, _IOFBF, 1024 * 1024 * 10);
-  assert(ret == 0);
+  // Resize buffer to 10 MiB.
+  auto status = std::setvbuf(stream, nullptr, _IOFBF, 1024 * 1024 * 10);
+  assert(status == 0);
 
   const std::uint32_t num_keys = map_.size();
   System::Write(stream, &num_keys, sizeof num_keys);
@@ -179,19 +174,8 @@ void Table::WriteToFile(const boost::filesystem::path& path) {
     assert(!list->locked());
     assert(!list->cblock().has_data());
     if (!list->empty()) {
-      const auto& key = entry.first;
-      const std::uint16_t key_size = key.size();
-      System::Write(stream, &key_size, sizeof key_size);
-      System::Write(stream, key.data(), key.size());
-
-      const auto& head = list->chead();
-      System::Write(stream, &head.num_values_total,
-                    sizeof head.num_values_total);
-      System::Write(stream, &head.num_values_deleted,
-                    sizeof head.num_values_deleted);
-      const std::uint16_t ids_size = head.block_ids.size();
-      System::Write(stream, &ids_size, sizeof ids_size);
-      System::Write(stream, head.block_ids.data(), head.block_ids.size());
+      TableFile::WriteEntryToStream(
+          TableFile::Entry(entry.first, list->chead()), stream);
       ++num_entries_written;
     }
   }
@@ -201,16 +185,16 @@ void Table::WriteToFile(const boost::filesystem::path& path) {
     System::Write(stream, &num_entries_written, sizeof num_entries_written);
   }
 
-  ret = std::fclose(stream);
-  assert(ret == 0);
+  status = std::fclose(stream);
+  assert(status == 0);
 }
 
-const Callbacks::CommitBlock& Table::get_commit_block() const {
+const Callbacks::CommitBlock& Table::get_commit_block_callback() const {
   return commit_block_;
 }
 
-void Table::set_commit_block(const Callbacks::CommitBlock& commit_block) {
-  commit_block_ = commit_block;
+void Table::set_commit_block_callback(const Callbacks::CommitBlock& callback) {
+  commit_block_ = callback;
 }
 
 }  // namespace internal

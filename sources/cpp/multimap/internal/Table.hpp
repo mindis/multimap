@@ -18,19 +18,16 @@
 #ifndef MULTIMAP_INTERNAL_TABLE_HPP
 #define MULTIMAP_INTERNAL_TABLE_HPP
 
-#include <functional>
-#include <cstdint>
-#include <istream>
-#include <ostream>
+#include <cstdio>
+#include <map>
 #include <memory>
-#include <vector>
-#include <mutex>
+#include <string>
 #include <unordered_map>
 #include <boost/filesystem/path.hpp>
-#include "multimap/internal/Block.hpp"
-#include "multimap/internal/Check.hpp"
+#include <boost/thread/shared_mutex.hpp>
+#include "multimap/Callables.hpp"
+#include "multimap/internal/Callbacks.hpp"
 #include "multimap/internal/ListLock.hpp"
-#include "multimap/internal/UintVector.hpp"
 #include "multimap/internal/thirdparty/farmhash.h"
 
 namespace multimap {
@@ -48,13 +45,13 @@ class Table {
  public:
   Table();
 
-  Table(const Callbacks::CommitBlock& commit_block);
+  Table(const Callbacks::CommitBlock& callback);
 
   ~Table();
 
   SharedListLock GetShared(const Bytes& key) const;
 
-  UniqueListLock GetUnique(const Bytes& key);
+  UniqueListLock GetUnique(const Bytes& key) const;
 
   UniqueListLock GetUniqueOrCreate(const Bytes& key);
 
@@ -63,17 +60,17 @@ class Table {
   // Thread-safe: yes.
   std::map<std::string, std::string> GetProperties() const;
 
-  void FlushLists(double min_load_factor);
+  void FlushLists(double min_load_factor) const;
 
-  void FlushAllLists();
+  void FlushAllLists() const;
 
   void InitFromFile(const boost::filesystem::path& path);
 
   void WriteToFile(const boost::filesystem::path& path);
 
-  const Callbacks::CommitBlock& get_commit_block() const;
+  const Callbacks::CommitBlock& get_commit_block_callback() const;
 
-  void set_commit_block(const Callbacks::CommitBlock& commit_block);
+  void set_commit_block_callback(const Callbacks::CommitBlock& callback);
 
   static constexpr std::size_t max_key_size() {
     return std::numeric_limits<std::uint16_t>::max();
@@ -92,7 +89,7 @@ class Table {
   typedef std::unordered_map<Bytes, std::unique_ptr<List>, KeyHash> Map;
 
   Map map_;
-  mutable std::mutex map_mutex_;
+  mutable boost::shared_mutex mutex_;
   boost::filesystem::path table_file_;
   Callbacks::CommitBlock commit_block_;
 };
