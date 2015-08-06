@@ -18,11 +18,8 @@
 #ifndef MULTIMAP_INTERNAL_DATA_FILE_HPP
 #define MULTIMAP_INTERNAL_DATA_FILE_HPP
 
-#include <functional>
-#include <memory>
 #include <mutex>
 #include <boost/filesystem/path.hpp>
-#include "multimap/internal/Block.hpp"
 #include "multimap/internal/Callbacks.hpp"
 
 namespace multimap {
@@ -30,25 +27,27 @@ namespace internal {
 
 class DataFile {
  public:
-  static const std::size_t kMaxBufferSize;
-
   DataFile();
 
-  DataFile(const boost::filesystem::path& path,
-           const Callbacks::DeallocateBlocks& deallocate_blocks);
+  DataFile(const boost::filesystem::path& path);
 
   DataFile(const boost::filesystem::path& path,
-           const Callbacks::DeallocateBlocks& deallocate_blocks,
-           bool create_if_missing, std::size_t block_size);
+           const Callbacks::DeallocateBlocks& callback);
+
+  DataFile(const boost::filesystem::path& path,
+           const Callbacks::DeallocateBlocks& callback, bool create_if_missing,
+           std::size_t block_size);
 
   ~DataFile();
 
-  void Open(const boost::filesystem::path& path,
-            const Callbacks::DeallocateBlocks& deallocate_blocks);
+  void Open(const boost::filesystem::path& path);
 
   void Open(const boost::filesystem::path& path,
-            const Callbacks::DeallocateBlocks& deallocate_blocks,
-            bool create_if_missing, std::size_t block_size);
+            const Callbacks::DeallocateBlocks& callback);
+
+  void Open(const boost::filesystem::path& path,
+            const Callbacks::DeallocateBlocks& callback, bool create_if_missing,
+            std::size_t block_size);
 
   // Thread-safe: yes.
   void Read(std::uint32_t block_id, Block* block) const;
@@ -75,10 +74,13 @@ class DataFile {
   SuperBlock super_block() const;
 
   // Thread-safe: no.
-  const Callbacks::DeallocateBlocks& get_deallocate_blocks() const;
+  const Callbacks::DeallocateBlocks& get_deallocate_blocks_callback() const;
 
   // Thread-safe: no.
-  void set_deallocate_blocks(const Callbacks::DeallocateBlocks& callback);
+  void set_deallocate_blocks_callback(
+      const Callbacks::DeallocateBlocks& callback);
+
+  static std::size_t max_block_buffer_size();
 
  private:
   std::size_t FlushUnlocked();

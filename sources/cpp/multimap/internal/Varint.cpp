@@ -16,9 +16,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "multimap/internal/Varint.hpp"
-
 #include <cassert>
-#include <cstring>
 #include "multimap/internal/Check.hpp"
 
 namespace multimap {

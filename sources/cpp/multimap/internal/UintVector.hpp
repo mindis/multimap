@@ -22,7 +22,6 @@
 #include <cstdint>
 #include <memory>
 #include <vector>
-#include "multimap/Bytes.hpp"
 #include "multimap/internal/Check.hpp"
 #include "multimap/internal/Varint.hpp"
 

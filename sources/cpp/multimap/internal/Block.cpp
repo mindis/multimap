@@ -16,8 +16,10 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "multimap/internal/Block.hpp"
+#include <cassert>
 #include <cstring>
 #include <array>
+#include "multimap/internal/System.hpp"
 
 namespace multimap {
 namespace internal {

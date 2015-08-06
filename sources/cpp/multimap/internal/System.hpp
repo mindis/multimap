@@ -26,7 +26,6 @@
 #include <utility>
 #include <vector>
 #include <boost/filesystem/path.hpp>
-#include "multimap/Bytes.hpp"
 
 namespace multimap {
 namespace internal {

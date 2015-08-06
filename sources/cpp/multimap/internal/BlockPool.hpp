@@ -18,7 +18,6 @@
 #ifndef MULTIMAP_INTERNAL_BLOCK_POOL_HPP
 #define MULTIMAP_INTERNAL_BLOCK_POOL_HPP
 
-#include <functional>
 #include <memory>
 #include <mutex>
 #include <vector>

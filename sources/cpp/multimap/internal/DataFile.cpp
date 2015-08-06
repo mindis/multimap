@@ -15,9 +15,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include <unistd.h>
-#include "boost/filesystem/operations.hpp"
 #include "multimap/internal/DataFile.hpp"
+#include <unistd.h>  // For sysconf(_SC_IOV_MAX)
+#include "boost/filesystem/operations.hpp"
 #include "multimap/internal/System.hpp"
 
 namespace multimap {
@@ -39,21 +39,23 @@ bool IsPowerOfTwo(std::size_t value) { return (value & (value - 1)) == 0; }
 
 }  // namespace
 
-const std::size_t DataFile::kMaxBufferSize = sysconf(_SC_IOV_MAX);
-
 DataFile::DataFile() : fd_(-1) {}
 
-DataFile::DataFile(const boost::filesystem::path& path,
-                   const Callbacks::DeallocateBlocks& deallocate_blocks)
-    : DataFile() {
-  Open(path, deallocate_blocks);
+DataFile::DataFile(const boost::filesystem::path& path) : DataFile() {
+  Open(path);
 }
 
 DataFile::DataFile(const boost::filesystem::path& path,
-                   const Callbacks::DeallocateBlocks& deallocate_blocks,
+                   const Callbacks::DeallocateBlocks& callback)
+    : DataFile() {
+  Open(path, callback);
+}
+
+DataFile::DataFile(const boost::filesystem::path& path,
+                   const Callbacks::DeallocateBlocks& callback,
                    bool create_if_missing, std::size_t block_size)
     : DataFile() {
-  Open(path, deallocate_blocks, create_if_missing, block_size);
+  Open(path, callback, create_if_missing, block_size);
 }
 
 DataFile::~DataFile() {
@@ -66,32 +68,36 @@ DataFile::~DataFile() {
   }
 }
 
-void DataFile::Open(const boost::filesystem::path& path,
-                    const Callbacks::DeallocateBlocks& deallocate_blocks) {
+void DataFile::Open(const boost::filesystem::path& path) {
   fd_ = System::Open(path);
   Check(fd_ != -1, "Could not open '%s' in read/write mode.", path.c_str());
   super_block_ = SuperBlock::ReadFromFd(fd_);
   CheckVersion(super_block_.major_version, super_block_.minor_version);
-  set_deallocate_blocks(deallocate_blocks);
   path_ = path;
 }
 
 void DataFile::Open(const boost::filesystem::path& path,
-                    const Callbacks::DeallocateBlocks& deallocate_blocks,
+                    const Callbacks::DeallocateBlocks& callback) {
+  Open(path);
+  set_deallocate_blocks_callback(callback);
+}
+
+void DataFile::Open(const boost::filesystem::path& path,
+                    const Callbacks::DeallocateBlocks& callback,
                     bool create_if_missing, std::size_t block_size) {
   if (!boost::filesystem::exists(path) && create_if_missing) {
-    Check(IsPowerOfTwo(block_size),
-          "DataFile: block_size must be a power of two.");
+    Check(IsPowerOfTwo(block_size), "block_size must be a power of two.");
     super_block_.block_size = block_size;
     fd_ = System::Open(path, true);
     Check(fd_ != -1, "Could not create '%s' in read/write mode.", path.c_str());
     super_block_.WriteToFd(fd_);
     System::Close(fd_);
   }
-  Open(path, deallocate_blocks);
+  Open(path, callback);
 }
 
 void DataFile::Read(std::uint32_t block_id, Block* block) const {
+  assert(block != nullptr);
   assert(block->has_data());
   assert(block->size() == super_block_.block_size);
   const std::lock_guard<std::mutex> lock(mutex_);
@@ -123,7 +129,7 @@ std::uint32_t DataFile::Append(Block&& block) {
   assert(block.has_data());
   assert(block.size() == super_block_.block_size);
   const std::lock_guard<std::mutex> lock(mutex_);
-  if (buffer_.size() == kMaxBufferSize) {
+  if (buffer_.size() == max_block_buffer_size()) {
     FlushUnlocked();
   }
   buffer_.push_back(block);
@@ -143,13 +149,19 @@ std::size_t DataFile::buffer_size() const { return buffer_.size(); }
 
 SuperBlock DataFile::super_block() const { return super_block_; }
 
-const Callbacks::DeallocateBlocks& DataFile::get_deallocate_blocks() const {
+const Callbacks::DeallocateBlocks& DataFile::get_deallocate_blocks_callback()
+    const {
   return deallocate_blocks_;
 }
 
-void DataFile::set_deallocate_blocks(
+void DataFile::set_deallocate_blocks_callback(
     const Callbacks::DeallocateBlocks& callback) {
   deallocate_blocks_ = callback;
+}
+
+std::size_t DataFile::max_block_buffer_size() {
+  static const auto size = sysconf(_SC_IOV_MAX);
+  return size;
 }
 
 std::size_t DataFile::FlushUnlocked() {

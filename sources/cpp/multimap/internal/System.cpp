@@ -16,21 +16,17 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "multimap/internal/System.hpp"
-
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/uio.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <cassert>
 #include <cstdio>
 #include <ctime>
 #include <iomanip>
-#include <iostream>
-#include <mutex>
-#include <boost/filesystem/fstream.hpp>
 #include <boost/filesystem/operations.hpp>
 #include "multimap/internal/Check.hpp"
+#include "multimap/Bytes.hpp"
 
 namespace multimap {
 namespace internal {
@@ -221,7 +217,7 @@ System::DirectoryLockGuard::DirectoryLockGuard(
 System::DirectoryLockGuard::~DirectoryLockGuard() {
   if (!directory_.empty()) {
     Check(Remove(directory_ / filename_),
-          "DirectoryLockGuard: Could not unlock directory \"%s\" because it is "
+          "DirectoryLockGuard: Could not unlock directory '%s' because it is "
           "not locked.",
           directory_.c_str());
   }
@@ -236,7 +232,7 @@ void System::DirectoryLockGuard::Lock(const boost::filesystem::path& directory,
                                       const std::string filename) {
   Check(directory_.empty(), "DirectoryLockGuard: Already locked.");
   Check(Create(directory / filename),
-        "DirectoryLockGuard: Could not lock directory \"%s\" because it is "
+        "DirectoryLockGuard: Could not lock directory '%s' because it is "
         "already locked.",
         directory.c_str());
   directory_ = directory;

@@ -16,7 +16,6 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "multimap/internal/UintVector.hpp"
-
 #include <cassert>
 #include <cstring>
 #include "multimap/internal/System.hpp"
@@ -45,15 +44,11 @@ UintVector& UintVector::operator=(const UintVector& other) {
 }
 
 UintVector UintVector::ReadFromStream(std::FILE* stream) {
-  std::uint16_t data_size;
-  System::Read(stream, &data_size, sizeof data_size);
-  std::unique_ptr<byte[]> data(new byte[data_size]);
-  System::Read(stream, data.get(), data_size);
-
   UintVector vector;
-  vector.data_ = std::move(data);
-  vector.end_offset_ = data_size;
-  vector.put_offset_ = data_size;
+  System::Read(stream, &vector.put_offset_, sizeof vector.put_offset_);
+  vector.data_.reset(new byte[vector.put_offset_]);
+  System::Read(stream, vector.data_.get(), vector.put_offset_);
+  vector.end_offset_ = vector.put_offset_;
   return vector;
 }
 

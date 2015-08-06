@@ -19,8 +19,6 @@
 #define MULTIMAP_INTERNAL_CALLBACKS_HPP
 
 #include <functional>
-#include <limits>
-#include <utility>
 #include <vector>
 #include "multimap/internal/Block.hpp"
 
@@ -28,8 +26,6 @@ namespace multimap {
 namespace internal {
 
 struct Callbacks {
-  static const auto kNoBlockId = std::numeric_limits<std::uint32_t>::max();
-
   typedef std::function<Block()> AllocateBlock;
 
   typedef std::function<void(Block&&)> DeallocateBlock;
@@ -37,7 +33,6 @@ struct Callbacks {
   typedef std::function<void(std::vector<Block>*)> DeallocateBlocks;
 
   // Commits a block getting back an id for later identification.
-  // Returns kNoBlockId if the given block has no data, i.e. !block.has_data().
   // Note that the block is moved and therefore not usable anymore.
   typedef std::function<std::uint32_t(Block&&)> CommitBlock;
 
@@ -45,7 +40,6 @@ struct Callbacks {
   typedef std::function<void(std::uint32_t, const Block&)> UpdateBlock;
 
   // Requests the block with the given id which was commited previously.
-  // Inits the output parameter with Block::kNullBlock, if the id was unknown.
   typedef std::function<void(std::uint32_t, Block*)> RequestBlock;
 
   AllocateBlock allocate_block;

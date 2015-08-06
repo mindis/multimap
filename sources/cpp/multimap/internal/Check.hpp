@@ -19,7 +19,6 @@
 #define MULTIMAP_INTERNAL_CHECK_HPP
 
 #include <cstddef>
-#include <functional>
 
 namespace multimap {
 namespace internal {

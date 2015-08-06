@@ -16,7 +16,6 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "multimap/internal/BlockPool.hpp"
-
 #include <cassert>
 
 namespace multimap {

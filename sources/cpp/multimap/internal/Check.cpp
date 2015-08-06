@@ -16,7 +16,6 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "multimap/internal/Check.hpp"
-
 #include <cstdarg>
 #include <cstdio>
 #include <stdexcept>

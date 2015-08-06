@@ -18,11 +18,10 @@
 #ifndef MULTIMAP_INTERNAL_BLOCK_HPP
 #define MULTIMAP_INTERNAL_BLOCK_HPP
 
+#include <cassert>
 #include <functional>
-#include <limits>
 #include "multimap/Bytes.hpp"
 #include "multimap/internal/Check.hpp"
-#include "multimap/internal/System.hpp"
 
 namespace multimap {
 namespace internal {
@@ -38,7 +37,7 @@ namespace internal {
 // +---------+------+------+
 
 // Note: When the raw data of a block obtained via data() and size() is written
-// to disk the current put offset obtained via used() is not kept. Therefore,
+// to disk the current put offset obtained via used() is not stored. Therefore,
 // when the block is read back into memory its content can only be read via
 // forward interation. In particular, because the former put offset is unknown
 // then, it is not possible to add new values to the end of the block. Doing so
@@ -114,13 +113,13 @@ class Block {
   std::uint32_t max_value_size() const;
 
   Iterator NewIterator() {
-    // We do not use offset_ to indicate the end of data, because
+    // We do not use this->offset_ to indicate the end of data, because
     // this member is always zero when the block is read from disk.
     return has_data() ? Iterator(data_, size_) : Iterator();
   }
 
   ConstIterator NewIterator() const {
-    // We do not use offset_ to indicate the end of data, because
+    // We do not use this->offset_ to indicate the end of data, because
     // this member is always zero when the block is read from disk.
     return has_data() ? ConstIterator(data_, size_) : ConstIterator();
   }
