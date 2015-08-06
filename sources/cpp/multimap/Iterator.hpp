@@ -51,7 +51,7 @@ class Iterator {
   bool HasValue() const;
 
   // Returns a read-only pointer to the data of the current value.
-  // Precondition: Valid()
+  // Precondition: HasValue()
   Bytes GetValue() const;
 
   // Marks the current value as deleted.
