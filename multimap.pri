@@ -1,8 +1,11 @@
-CONFIG -= qt
-CONFIG += c++11
+# For qmake 4.x
 
-#QMAKE_CXXFLAGS_RELEASE += -mavx -maes
-#QMAKE_CXXFLAGS_RELEASE += -mtune=native
+CONFIG -= qt
+DEFINES -= QT_WEBKIT
+
+QMAKE_CXXFLAGS_RELEASE += -std=c++11
+QMAKE_CXXFLAGS_RELEASE += -march=native
+QMAKE_CXXFLAGS_RELEASE += -mtune=native
 
 INCLUDEPATH += \
     $$PWD/sources/cpp

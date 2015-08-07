@@ -1,7 +1,5 @@
 TEMPLATE = app
 CONFIG += console
-CONFIG -= app_bundle
-CONFIG -= qt
 
 COMMON = multimap.pri
 !include(../../$$COMMON) {
@@ -28,16 +26,16 @@ SOURCES += \
     /usr/src/gtest/src/gtest-test-part.cc \
     /usr/src/gtest/src/gtest-typed-test.cc \
     /usr/src/gtest/src/gtest.cc \
-    $$PWD/../../sources/cpp/multimap/internal/BlockPoolTest.cpp \
-    $$PWD/../../sources/cpp/multimap/internal/BlockTest.cpp \
-    $$PWD/../../sources/cpp/multimap/internal/ListLockTest.cpp \
-    $$PWD/../../sources/cpp/multimap/internal/ListTest.cpp \
-    $$PWD/../../sources/cpp/multimap/internal/TableTest.cpp \
-    $$PWD/../../sources/cpp/multimap/internal/UintVectorTest.cpp \
-    $$PWD/../../sources/cpp/multimap/internal/VarintTest.cpp \
-    $$PWD/../../sources/cpp/multimap/IteratorTest.cpp \
-    $$PWD/../../sources/cpp/multimap/RunAllTests.cpp \
-    ../../sources/cpp/multimap/MapTest.cpp
+    ../../sources/cpp/multimap/internal/BlockPoolTest.cpp \
+    ../../sources/cpp/multimap/internal/BlockTest.cpp \
+    ../../sources/cpp/multimap/internal/ListLockTest.cpp \
+    ../../sources/cpp/multimap/internal/ListTest.cpp \
+    ../../sources/cpp/multimap/internal/TableTest.cpp \
+    ../../sources/cpp/multimap/internal/UintVectorTest.cpp \
+    ../../sources/cpp/multimap/internal/VarintTest.cpp \
+    ../../sources/cpp/multimap/IteratorTest.cpp \
+    ../../sources/cpp/multimap/MapTest.cpp \
+    ../../sources/cpp/multimap/RunAllTests.cpp
 
 #unix {
 #    OBJECTS_DIR = $$PWD
