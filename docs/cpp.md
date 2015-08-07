@@ -1,8 +1,6 @@
-<!--
-```{cpp}
+```cpp
 #include "multimap/Map.hpp"
 ```
--->
 
 ## Map::Open
 
@@ -14,7 +12,7 @@ Opens a map or creates a new one from/in `directory`.
 
 Throws: `std::runtime_error` if something went wrong.
 
-```{cpp}
+```cpp
 multimap::Options options;
 options.block_size = 512;
 options.block_pool_memory = multimap::GiB(2);
@@ -32,7 +30,7 @@ Puts `value` into the list associated with `key`.
 
 Throws: `std::runtime_error` if the value was too big. See [Limitations](index.md#limitations) for more details.
 
-```{cpp}
+```cpp
 map.Put("key", "value");
 map.Put("key", std::to_string(12));
 
@@ -47,7 +45,7 @@ map.Put("key", multimap::Bytes(&pair, sizeof pair));
 
 Tries to acquire a read lock on the list associated with `key` and, if successful, returns a read-only iterator on it. If another thread already holds a write lock on the same list, the method blocks until the write lock is released. Multiple threads may acquire a read lock on the same list at the same time.
 
-```{cpp}
+```cpp
 auto iter = map.Get("key");
 for (iter.SeekToFirst(); iter.HasValue(); iter.Next()) {
   const multimap::Bytes value = iter.GetValue();
@@ -66,7 +64,7 @@ for (iter.SeekToFirst(); iter.HasValue(); iter.Next()) {
 
 Tries to acquire a write lock on the list associated with `key` and, if successful, returns an iterator that implements a `Delete` operation. If another thread already holds a read or write lock on the same list, the method blocks until all locks are released.
 
-```{cpp}
+```cpp
 auto iter = map.GetMutable("key");
 for (iter.SeekToFirst(); iter.HasValue(); iter.Next()) {
   if (CanBeDeleted(iter.GetValue())) {
@@ -85,7 +83,7 @@ for (iter.SeekToFirst(); iter.HasValue(); iter.Next()) {
 Checks if there is a list associated with `key`. Note that [Map::Get](#mapget) or [Map::GetMutable](#mapgetmutable) cannot be used for a containment check, because they always return an iterator of zero size if the underlying list is empty or even does not exist.
 
 
-```{cpp}
+```cpp
 const bool exists = map.Contains("key");
 ```
 
@@ -97,7 +95,7 @@ Deletes the entire list associated with `key`. If the list is currently locked, 
 
 Returns: The number of deleted values.
 
-```{cpp}
+```cpp
 const std::size_t num_deleted = map.Delete("key");
 ```
 
@@ -109,7 +107,7 @@ Deletes the first value in the list associated with `key` for which `predicate` 
 
 Returns: `true` if a value was deleted, `false` otherwise.
 
-```{cpp}
+```cpp
 const auto predicate = [](const multimap::Bytes& value) {
   bool can_be_deleted = false;
   // Check value and set can_be_deleted = true to delete it.
@@ -126,7 +124,7 @@ Deletes all values in the list associated with `key` that are equal to `value` a
 
 Returns: `true` if a value was deleted, `false` otherwise.
 
-```{cpp}
+```cpp
 const bool success = map.DeleteFirstEqual("key", "pattern");
 ```
 
@@ -138,7 +136,7 @@ Deletes all values in the list associated with `key` for which `predicate` retur
 
 Returns: The number of values deleted.
 
-```{cpp}
+```cpp
 const auto predicate = [](const multimap::Bytes& value) {
   bool can_be_deleted = false;
   // Check value and set can_be_deleted = true to delete it.
@@ -155,7 +153,7 @@ Deletes all values in the list associated with `key` that are equal to `value` a
 
 Returns: The number of values deleted.
 
-```{cpp}
+```cpp
 const auto num_deleted = map.DeleteAllEqual("key", "pattern");
 ```
 
@@ -167,7 +165,7 @@ Replaces the first value in the list associated with `key` by the result of `fun
 
 Returns: `true` if a value was replaced, `false` otherwise.
 
-```{cpp}
+```cpp
 const auto replace = [](const multimap::Bytes& value) {
   std::string new_value;
   // Fill new_value with content or leave it empty.
@@ -187,7 +185,7 @@ Replaces the first occurrence of `old_value` in the list associated with `key` b
 
 Returns: `true` if a value was replaced, `false` otherwise.
 
-```{cpp}
+```cpp
 const auto success = map.ReplaceFirstEqual("key", "old value", "new value");
 ```
 
@@ -199,7 +197,7 @@ Replaces all values in the list associated with `key` by the result of `function
 
 Returns: The number of replaced values.
 
-```{cpp}
+```cpp
 const auto replace = [](const multimap::Bytes& value) {
   std::string new_value;
   // Fill new_value with content or leave it empty.
@@ -219,7 +217,7 @@ Replaces all occurrences of `old_value` in the list associated with `key` by `ne
 
 Returns: The number of replaced values.
 
-```{cpp}
+```cpp
 const auto num_replaced = map.ReplaceAllEqual("key", "old value", "new value");
 ```
 
@@ -229,7 +227,7 @@ const auto num_replaced = map.ReplaceAllEqual("key", "old value", "new value");
 
 Applies `procedure` to each key of the map. The procedure must be a callable that is convertible or can be bound to an object of type [Procedure](#mapProcedure). For the time of execution the entire map is locked, so that all other operations will block.
 
-```{cpp}
+```cpp
 const auto print = [](const multimap::Bytes& key) {
   std::cout << key.ToString() << '\n';
 };
@@ -242,7 +240,7 @@ map.ForEachKey(print);
 
 Collects and returns current properties of the map. This operation requires a scan of the entire internal table. For the time of execution the map is locked, so that all other operations will block.
 
-```{cpp}
+```cpp
 const auto properties = map.GetProperties();
 for (const auto& entry : properties) {
   std::cout << entry.first << ": " << entry.second << '\n';
@@ -255,7 +253,7 @@ for (const auto& entry : properties) {
 
 Prints current properties of the map to `std::cout`. This operation requires a scan of the entire internal table. For the time of execution the map is locked, so that all other operations will block.
 
-```{cpp}
+```cpp
 map.PrintProperties();
 ```
 
