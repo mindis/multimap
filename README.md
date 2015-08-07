@@ -1,1 +1,1 @@
-Official project website: [http://multimap.io](http://multimap.io/)
+Official project website: [multimap.io](http://multimap.io/)
