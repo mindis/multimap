@@ -138,7 +138,8 @@ inline std::string MakeString(JNIEnv* env, jstring string) {
 }
 
 inline void ThrowException(JNIEnv* env, const char* message) {
-  static const auto clazz = env->FindClass("java/lang/Exception");
+  /* static */ const auto clazz = env->FindClass("java/lang/Exception");
+  // static lets the VM crash.
   env->ThrowNew(clazz, message);
 }
 
