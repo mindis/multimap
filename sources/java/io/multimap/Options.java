@@ -24,6 +24,7 @@ public class Options {
   private int blockSize = 512;
   private long blockPoolMemory = GiB(1);
   private boolean createIfMissing = false;
+  private boolean errorIfExists = false;
   private boolean verbose = false;
   
   public int getBlockSize() {
@@ -44,12 +45,20 @@ public class Options {
     this.blockPoolMemory = numBytes;
   }
   
-  public boolean canCreateIfMissing() {
+  public boolean getCreateIfMissing() {
     return createIfMissing;
   }
   
   public void setCreateIfMissing(boolean createIfMissing) {
     this.createIfMissing = createIfMissing;
+  }
+  
+  public boolean getErrorIfExists() {
+    return errorIfExists;
+  }
+  
+  public void setErrorIfExists(boolean errorIfExists) {
+    this.errorIfExists = errorIfExists;
   }
   
   public boolean isVerbose() {
@@ -67,7 +76,8 @@ public class Options {
     StringBuilder sb = new StringBuilder();
     sb.append("block-size").append(delim).append(getBlockSize()).append(newline);
     sb.append("block-pool-memory").append(delim).append(getBlockPoolMemory()).append(newline);
-    sb.append("create-if-missing").append(delim).append(canCreateIfMissing()).append(newline);
+    sb.append("create-if-missing").append(delim).append(getCreateIfMissing()).append(newline);
+    sb.append("error-if-exists").append(delim).append(getErrorIfExists()).append(newline);
     sb.append("verbose").append(delim).append(isVerbose());
     return sb.toString();
   }
