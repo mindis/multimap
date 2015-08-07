@@ -42,7 +42,7 @@ sudo apt-get install openjdk-7-jdk
 ```
 
 Set the `JAVA_HOME` environment variable pointing to your JDK. This is only a
-temporary configuration required by the subsequent compilation setp.
+temporary configuration required by the subsequent compilation step.
 
 ```bash
 export JAVA_HOME=/usr/lib/jvm/java-7-openjdk-amd64
@@ -58,7 +58,7 @@ qmake && make
 sudo make install
 ```
 
-If you don't have permission to install the library system-wide, you can also
-set `-Djava.library.path=/path/to/lib` as VM argument in your Java project.
+If you don't have permission to install the library system-wide, you might also
+set `-Djava.library.path=/path/to/lib` as VM argument of your Java project.
 
-Download: [multimap-0.1.jar](https://bitbucket.org/mtrenkmann/multimap/downloads/multimap-0.1.jar)
+Download: [multimap-0.1.jar](https://bitbucket.org/mtrenkmann/multimap/downloads/multimap-0.1-alpha.jar)

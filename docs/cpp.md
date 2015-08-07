@@ -64,7 +64,7 @@ for (iter.SeekToFirst(); iter.HasValue(); iter.Next()) {
 
 `Iter GetMutable(const Bytes& key)`
 
-Tries to acquire a write lock on the list associated with `key` and, if successful, returns an iterator that implements a `Delete` operation. If another thread already holds a read or write lock on the same list, the method blocks until all locks are released.
+Tries to acquire a write lock on the list associated with `key` and, if successful, returns an iterator that implements a `DeleteValue` operation. If another thread already holds a read or write lock on the same list, the method blocks until all locks are released.
 
 ```cpp
 auto iter = map.GetMutable("key");
@@ -72,7 +72,7 @@ for (iter.SeekToFirst(); iter.HasValue(); iter.Next()) {
   if (CanBeDeleted(iter.GetValue())) {
     iter.DeleteValue();
     // The value is now marked as deleted.  The operation is not reversible.
-    // iter.Valid() would yield false, so you must not call iter.Value() again.
+    // iter.HasValue() would yield false, so do not call iter.GetValue() again.
     // iter.Next() will advance the iterator to the next valid value.
   }
 }
@@ -82,7 +82,7 @@ for (iter.SeekToFirst(); iter.HasValue(); iter.Next()) {
 
 `bool Contains(const Bytes& key) const`
 
-Checks if there is a list associated with `key`. Note that [Map::Get](#mapget) or [Map::GetMutable](#mapgetmutable) cannot be used for a containment check, because they always return an iterator of zero size if the underlying list is empty or even does not exist.
+Checks if there is at least one value associated with `key`.
 
 
 ```cpp
@@ -227,11 +227,11 @@ const auto num_replaced = map.ReplaceAllEqual("key", "old value", "new value");
 
 `void ForEachKey(Procedure procedure) const`
 
-Applies `procedure` to each key of the map. The procedure must be a callable that is convertible or can be bound to an object of type [Procedure](#mapProcedure). For the time of execution the entire map is locked, so that all other operations will block.
+Applies `procedure` to each key of the map. The procedure must be a callable that is convertible or can be bound to an object of type [Procedure](#callablesprocedure). For the time of execution the entire map is locked for read-only operations, so you may call [Map::Get](#mapget) within `procedure`, but calling [Map::GetMutable](#mapgetmutable) would cause in a deadlock.
 
 ```cpp
-const auto print = [](const multimap::Bytes& key) {
-  std::cout << key.ToString() << '\n';
+const auto print = [&map](const multimap::Bytes& key) {
+  std::cout << key.ToString() << " -> " << map.Get(key).NumValues() << '\n';
 };
 map.ForEachKey(print);
 ```
@@ -259,34 +259,44 @@ Prints current properties of the map to `std::cout`. This operation requires a s
 map.PrintProperties();
 ```
 
-## Map::Procedure
+## Map::ConstIter
+
+An iterator type for read-only forward iteration. An iterator object owns a read lock on the underlying list. The lock is released automatically when the iterator gets destroyed. Iterators cannot be copied for single ownership reasons, but moving is allowed.
+
+Apart from that, an iterator
+
+- must always be initialized via `SeekToFirst` before iteration. This allows for lazy initialization of the interator, since `SeekToFirst` will cause a first disk access.
+- has a `NumValues` method that returns the number of values, even if not yet initialized via `SeekToFirst`. If multiple iterators need to be processed, e.g. for intersection, `NumValues` should be used to select the shortest list.
+
+```cpp
+auto iter_a = map.Get("a");
+auto iter_b = map.Get("b");
+std::set<std::string> intersection;
+if (iter_a.NumValues() < iter_b.NumValues()) {
+  intersection = Intersect(iter_a, iter_b);
+} else {
+  intersection = Intersect(iter_b, iter_a);
+}
+```
+
+## Map::Iter
+
+Same as [Map::ConstIter](#mapconstiter), but acquires exclusive ownership of the underlying list. This iterator has a `DeleteValue` method that allows to mark values as deleted. Such values will be ignored on any subsequent iterations.
+
+## Callables::Procedure
 
 `typedef std::function<void(const Bytes&)> Procedure`
 
 A callable type that processes an object of type `const Bytes&`. See [std::function](http://en.cppreference.com/w/cpp/utility/functional/function) for more details on how to create such an object from lambda or free functions functions.
 
-## Map::Predicate
+## Callables::Predicate
 
 `typedef std::function<bool(const Bytes&)> Predicate`
 
 A callable type that processes an object of type `const Bytes&` and outputs a boolean value. See [std::function](http://en.cppreference.com/w/cpp/utility/functional/function) for more details on how to create such an object from lambda or free functions functions.
 
-## Map::Function
+## Callables::Function
 
 `typedef std::function<std::string(const Bytes&)> Function`
 
 A callable type that processes an object of type `const Bytes&` and outputs an object of type `std::string`. The returned string is used as a raw memory wrapper in lieu of `Bytes`, because it manages its own memory so that the caller is not responsible for deallocation. See [std::function](http://en.cppreference.com/w/cpp/utility/functional/function) for more details on how to create such an object from lambda or free functions functions.
-
-## Map::ConstIter
-
-An iterator type for read-only forward iteration. An iterator object owns a read lock on the underlying list. The lock is released automatically when the iterator gets destroyed. Iterators cannot be copied for single ownership reasons of the internal lock, but moving is allowed.
-
-Apart from that, an iterator
-
-- must be initialized via `SeekToFirst` before iteration.
-- has a `Size` method that returns the number of values, even if not yet initialized.
-- has a size of zero, if no mapping for the given key exists.
-
-## Map::Iter
-
-Has exclusive ownership.
