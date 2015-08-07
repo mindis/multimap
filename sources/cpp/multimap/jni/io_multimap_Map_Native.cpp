@@ -68,7 +68,9 @@ multimap::Options MakeOptions(JNIEnv* env, jstring joptions) {
       options.block_pool_memory = std::stoul(entry.second);
     } else if (entry.first == "create-if-missing") {
       options.create_if_missing = (entry.second == "true");
-    } else if (entry.first == "verbose") {
+    } else if (entry.first == "error-if-exists") {
+      options.error_if_exists = (entry.second == "true");
+    }else if (entry.first == "verbose") {
       options.verbose = (entry.second == "true");
     } else {
       std::cerr << "WARNING Unknown option: " << entry.first << '\n';
