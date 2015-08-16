@@ -1,7 +1,7 @@
 <br />
 <br />
 <br />
-**Multimap** is a 1:n key-value store optimized for large numbers of n. Originally developed as a light-weight implementation of the [inverted index data structure](https://en.wikipedia.org/wiki/Inverted_index) commonly used in information retrieval systems, it matured into a general-purpose persistent map where one key is mapped to n values.
+**Multimap** is a 1:n key-value store optimized for large numbers of n. Originally developed as a light-weight implementation of the [inverted index data structure](https://en.wikipedia.org/wiki/Inverted_index) commonly used in information retrieval systems, it matured into a general-purpose persistent map where a key is associated with n values.
 
 Multimap is [free software](https://www.fsf.org/about/what-is-free-software) implemented in Standard C++11 licensed under the [GNU AGPL](http://www.gnu.org/licenses/agpl-3.0.en.html). Although it comes with a Java language binding onboard, its only supported target platform at the moment is GNU/Linux.
 
