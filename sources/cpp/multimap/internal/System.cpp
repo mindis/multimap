@@ -24,6 +24,7 @@
 #include <cstdio>
 #include <ctime>
 #include <iomanip>
+#include <iostream>
 #include <boost/filesystem/operations.hpp>
 #include "multimap/internal/Check.hpp"
 #include "multimap/Bytes.hpp"
