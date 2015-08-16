@@ -18,7 +18,7 @@ sudo apt-get install libboost-filesystem-dev libboost-thread-dev qt4-qmake
 ### Clone Git Repository
 
 ```bash
-git clone git@bitbucket.org:mtrenkmann/multimap.git
+git clone https://bitbucket.org/mtrenkmann/multimap.git
 cd multimap
 ```
 
