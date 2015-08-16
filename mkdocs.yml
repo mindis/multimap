@@ -25,6 +25,7 @@ extra_css: ['http://fonts.googleapis.com/css?family=Faster+One', 'http://fonts.g
 
 # Others
 include_next_prev: false
+use_directory_urls: false
 extra:
   twitter_url: https://twitter.com/multimapio
 
