@@ -1,1 +1,0 @@
-Official project website: [multimap.io](http://multimap.io/)
