@@ -2,9 +2,8 @@
 site_name: Multimap
 site_url: http://multimap.io
 repo_url: https://bitbucket.org/mtrenkmann/multimap
-site_description: 1:n key-value store for C++ and Java.
+site_description: 1:n key-value store for C++ and Java
 site_author: Martin Trenkmann
-site_favicon: theme/favicon.ico
 copyright: Copyright © 2015 <a href="mailto:martin@multimap.io">Martin Trenkmann</a>
 google_analytics: null
 remote_branch: null
@@ -21,11 +20,10 @@ pages:
 theme: yeti  # Take mkdocs' blue color
 theme_dir: docs/theme
 site_dir: site  # docs/site does not work properly
-extra_css: ['https://fonts.googleapis.com/css?family=Faster+One', 'https://fonts.googleapis.com/css?family=Inconsolata', multimap.css]
+extra_css: ['https://fonts.googleapis.com/css?family=Faster+One|Inconsolata', multimap.css]
 
 # Others
 include_next_prev: false
-use_directory_urls: false
 extra:
   twitter_url: https://twitter.com/multimapio
 

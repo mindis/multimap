@@ -9,10 +9,14 @@ Due to compiler optimizations, the produced binary might not run on
 different machines. If you want to minimize dependencies, consider to copy/paste
 the source code into your project.
 
-### Install Dependencies (Debian-7-based)
+### Install Dependencies
 
 ```bash
+# For Debian 7 based distros
 sudo apt-get install libboost-filesystem-dev libboost-thread-dev qt4-qmake
+
+# For Debian 8 based distros
+sudo apt-get install libboost-filesystem-dev libboost-thread-dev qt5-qmake
 ```
 
 ### Clone Git Repository
@@ -20,12 +24,19 @@ sudo apt-get install libboost-filesystem-dev libboost-thread-dev qt4-qmake
 ```bash
 git clone https://bitbucket.org/mtrenkmann/multimap.git
 cd multimap
+git checkout release-0.2
 ```
 
 ### Build and Install Shared Library
 ```bash
 cd targets/shared-library
+
+# For Debian 7 based distros
 qmake && make
+
+# For Debian 8 based distros
+/usr/lib/x86_64-linux-gnu/qt5/bin/qmake && make
+
 sudo make install
 ```
 
@@ -33,9 +44,9 @@ sudo make install
 
 Multimap comes with a language binding for Java based on JNI. In order to make
 use of the provided Java library, you need to compile and install a dedicated
-version of the native library.
+version of Multimap's native library.
 
-First, if not already done, install a Java Development Kit (JDK) **in addition** to [Install Dependencies (Debian-7-based)](#install-dependencies-debian-7-based).
+First, if not already done, install a Java Development Kit (JDK) **in addition** to [Install Dependencies](#install-dependencies).
 
 ```bash
 sudo apt-get install openjdk-7-jdk
@@ -54,11 +65,17 @@ Compile and install the native library with JNI support.
 
 ```bash
 cd targets/shared-library-jni
+
+# For Debian 7 based distros
 qmake && make
+
+# For Debian 8 based distros
+/usr/lib/x86_64-linux-gnu/qt5/bin/qmake && make
+
 sudo make install
 ```
 
 If you don't have permission to install the library system-wide, you might also
 set `-Djava.library.path=/path/to/lib` as VM argument of your Java project.
 
-Download: [multimap-0.1.jar](https://bitbucket.org/mtrenkmann/multimap/downloads/multimap-0.1-alpha.jar)
+Download: [multimap-0.1-alpha.jar](https://bitbucket.org/mtrenkmann/multimap/downloads/multimap-0.1-alpha.jar)
