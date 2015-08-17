@@ -11,6 +11,7 @@ INCLUDEPATH += \
     $$PWD/sources/cpp
 
 HEADERS += \
+    $$PWD/sources/cpp/multimap/internal/Arena.hpp \
     $$PWD/sources/cpp/multimap/internal/Block.hpp \
     $$PWD/sources/cpp/multimap/internal/BlockPool.hpp \
     $$PWD/sources/cpp/multimap/internal/Callbacks.hpp \
@@ -30,6 +31,7 @@ HEADERS += \
     $$PWD/sources/cpp/multimap/Callables.hpp
 
 SOURCES += \
+    $$PWD/sources/cpp/multimap/internal/Arena.cpp \
     $$PWD/sources/cpp/multimap/internal/Check.cpp \
     $$PWD/sources/cpp/multimap/internal/Block.cpp \
     $$PWD/sources/cpp/multimap/internal/BlockPool.cpp \
