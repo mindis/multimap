@@ -26,6 +26,7 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/thread/shared_mutex.hpp>
 #include "multimap/Callables.hpp"
+#include "multimap/internal/Arena.hpp"
 #include "multimap/internal/Callbacks.hpp"
 #include "multimap/internal/ListLock.hpp"
 #include "multimap/internal/thirdparty/farmhash.h"
@@ -89,6 +90,7 @@ class Table {
   typedef std::unordered_map<Bytes, std::unique_ptr<List>, KeyHash> Map;
 
   Map map_;
+  Arena arena_;
   mutable boost::shared_mutex mutex_;
   boost::filesystem::path table_file_;
   Callbacks::CommitBlock commit_block_;

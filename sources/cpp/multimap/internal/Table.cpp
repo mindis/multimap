@@ -48,9 +48,6 @@ Table::Table(const Callbacks::CommitBlock& callback) {
 
 Table::~Table() {
   FlushAllLists();
-  for (const auto& entry : map_) {
-    delete[] static_cast<const char*>(entry.first.data());
-  }
 }
 
 SharedListLock Table::GetShared(const Bytes& key) const {
@@ -85,11 +82,11 @@ UniqueListLock Table::GetUniqueOrCreate(const Bytes& key) {
         key.size(), max_key_size());
   List* list = nullptr;
   {
-    boost::lock_guard<boost::shared_mutex> lock(mutex_);
+    std::lock_guard<boost::shared_mutex> lock(mutex_);
     const auto emplace_result = map_.emplace(key, std::unique_ptr<List>());
     if (emplace_result.second) {
       // Overrides the inserted key with a new deep copy.
-      auto new_key_data = new byte[key.size()];
+      const auto new_key_data = arena_.Allocate(key.size());
       std::memcpy(new_key_data, key.data(), key.size());
       const auto old_key_ptr = const_cast<Bytes*>(&emplace_result.first->first);
       *old_key_ptr = Bytes(new_key_data, key.size());
