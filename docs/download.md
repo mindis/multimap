@@ -24,7 +24,7 @@ sudo apt-get install libboost-filesystem-dev libboost-thread-dev qt5-qmake
 ```bash
 git clone https://bitbucket.org/mtrenkmann/multimap.git
 cd multimap
-git checkout release-0.2
+git checkout release-0.1
 ```
 
 ### Build and Install Shared Library
