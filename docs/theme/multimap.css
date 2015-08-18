@@ -20,7 +20,7 @@ a:focus {
 
 h1, h2, h3 {
   line-height: 40px;
-  margin-top: 53px;
+  margin-top: 55px;
 }
 
 h1[id]:before,
@@ -52,7 +52,7 @@ pre {
 
 .navbar {
   background-color: #663366;
-  box-shadow: 0px 0px 15px gray;
+  box-shadow: 0px 0px 20px #666;
 }
 
 .navbar .navbar-brand {
@@ -60,7 +60,7 @@ pre {
   font-family: 'Faster One', cursive;
   font-size: 40px;
   line-height: 1.0;
-  margin-right: 20px;
+  margin-right: 34px;
   outline: 0px none;
   padding-left: 30px;
 }
@@ -114,20 +114,26 @@ pre {
   border: 0px;
 }
 
+.bs-sidenav {
+  padding: 0;
+}
+
+.bs-sidebar {
+  background-color: white;
+  border: 0;
+}
+
 .bs-sidebar ul.nav li.main {
   font-weight: normal;
 }
 
 .bs-sidebar.affix {
-  top: 124px;
-  overflow-x: hidden;
-  overflow-y: auto;
+  padding-top: 130px;
+  top: 0px;
 }
 
 .bs-sidebar.well {
-  background-color: white;
-  border: 0px;
-  box-shadow: none;
+  box-shadow: 0px 0px 10px silver;
 }
 
 .bs-sidebar .nav > li > a {
@@ -137,15 +143,21 @@ pre {
 
 .bs-sidebar .nav > li > a:hover,
 .bs-sidebar .nav > li > a:focus {
-  background-color: white;
-  border: 0px;
+  background-color: #663366;
+  border: 0;
+  color: white;
 }
 
 .bs-sidebar .nav > .active > a,
 .bs-sidebar .nav > .active:hover > a,
-.bs-sidebar .nav > .active:focus > a { 
-  border: 0px;
-  color: #111;
-  font-weight: bold;
+.bs-sidebar .nav > .active:focus > a {
+  background-color: #663366;
+  border: 0;
+  color: white;
+  font-weight: normal;
+}
+
+.col-md-9 {
+  padding-left: 30px;
 }
 
