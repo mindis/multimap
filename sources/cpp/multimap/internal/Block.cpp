@@ -24,15 +24,15 @@
 namespace multimap {
 namespace internal {
 
-Block::Block() : data_(nullptr), size_(0), offset_(0) {}
+Block::Block() : data_(nullptr), size_(0), used_(0) {}
 
 Block::Block(byte* data, std::uint32_t size)
-    : data_(data), size_(size), offset_(0) {
+    : data_(data), size_(size), used_(0) {
   assert(data != nullptr);
 }
 
 double Block::load_factor() const {
-  return (size_ != 0) ? (static_cast<double>(offset_) / size_) : 0;
+  return (size_ != 0) ? (static_cast<double>(used_) / size_) : 0;
 }
 
 std::uint32_t Block::max_value_size() const {
@@ -51,12 +51,12 @@ bool Block::TryAdd(const Bytes& value) {
     return false;
   }
   // For little-endian only.
-  byte* ptr = data_ + offset_;
+  byte* ptr = data_ + used_;
   *(ptr++) = value_size >> 8;
   *(ptr++) = value_size;
   std::memcpy(ptr, value.data(), value_size);
-  offset_ += sizeof value_size;
-  offset_ += value_size;
+  used_ += sizeof value_size;
+  used_ += value_size;
   return true;
 }
 

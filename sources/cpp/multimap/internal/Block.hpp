@@ -103,7 +103,7 @@ class Block {
 
   std::uint32_t size() const { return size_; }
 
-  std::uint32_t used() const { return offset_; }
+  std::uint32_t used() const { return used_; }
 
   bool has_data() const { return data_ != nullptr; }
 
@@ -130,11 +130,11 @@ class Block {
   bool TryAdd(const Bytes& value);
 
  private:
-  std::size_t num_bytes_free() const { return size_ - offset_; }
+  std::size_t num_bytes_free() const { return size_ - used_; }
 
   byte* data_;
   std::uint32_t size_;
-  std::uint32_t offset_;
+  std::uint32_t used_;
 };
 
 static_assert(HasExpectedSize<Block, 16, 16>::value,
