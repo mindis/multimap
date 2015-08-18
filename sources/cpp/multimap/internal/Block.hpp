@@ -107,6 +107,15 @@ class Block {
 
   bool has_data() const { return data_ != nullptr; }
 
+  void set_data(byte* data, std::uint32_t size) {
+    assert(data != nullptr);
+    assert(size != 0);
+    data_ = data;
+    size_ = size;
+    used_ = 0;
+    std::memset(data_, 0, size_);
+  }
+
   double load_factor() const;
 
   // Returns the maximum size of a value to be put when the block is empty.

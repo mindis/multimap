@@ -132,18 +132,17 @@ TEST(BlockTest, DefaultConstructedHasProperState) {
 }
 
 TEST(BlockTest, ConstructedWithNullDataDies) {
-  ASSERT_DEATH(Block(nullptr, 0), "");
+  ASSERT_DEATH(Block(nullptr, 1), "");
+}
+
+TEST(BlockTest, ConstructedWithNullSizeDies) {
+  byte data[1];
+  ASSERT_DEATH(Block(data, 0), "");
 }
 
 TEST(BlockTest, AddToDefaultConstructedDies) {
   Block block;
   ASSERT_DEATH(block.TryAdd(Bytes()), "");
-}
-
-TEST(BlockTest, AddZeroBytesToBlockOfZeroBytes) {
-  byte data[0];
-  Block block(data, sizeof data);
-  ASSERT_THAT(block.TryAdd(Bytes()), Eq(false));
 }
 
 TEST(BlockTest, AddMaxValueToEmptyBlockWorks) {

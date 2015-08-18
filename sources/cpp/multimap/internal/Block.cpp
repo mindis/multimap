@@ -26,9 +26,8 @@ namespace internal {
 
 Block::Block() : data_(nullptr), size_(0), used_(0) {}
 
-Block::Block(byte* data, std::uint32_t size)
-    : data_(data), size_(size), used_(0) {
-  assert(data != nullptr);
+Block::Block(byte* data, std::uint32_t size) {
+  set_data(data, size);
 }
 
 double Block::load_factor() const {
