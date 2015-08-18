@@ -99,13 +99,11 @@ void List::Add(const Bytes& value,
                const Callbacks::CommitBlock& commit_block) {
   if (!block_.has_data()) {
     block_ = allocate_block();
-    std::memset(block_.data(), 0, block_.size());
   }
   auto ok = block_.TryAdd(value);
   if (!ok) {
     head_.block_ids.Add(commit_block(std::move(block_)));
     block_ = allocate_block();
-    std::memset(block_.data(), 0, block_.size());
     ok = block_.TryAdd(value);
     assert(ok);
   }
