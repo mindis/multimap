@@ -3,13 +3,15 @@
 CONFIG -= qt
 DEFINES -= QT_WEBKIT
 
-QMAKE_CXXFLAGS_RELEASE += -std=c++11
-QMAKE_CXXFLAGS_RELEASE += -march=native
+QMAKE_CXXFLAGS += -std=c++11
+QMAKE_CXXFLAGS += -march=native
+# https://wiki.gentoo.org/wiki/GCC_optimization
 
 INCLUDEPATH += \
     $$PWD/sources/cpp
 
 HEADERS += \
+    $$PWD/sources/cpp/multimap/internal/AutoCloseFile.hpp \
     $$PWD/sources/cpp/multimap/internal/Arena.hpp \
     $$PWD/sources/cpp/multimap/internal/Block.hpp \
     $$PWD/sources/cpp/multimap/internal/BlockPool.hpp \
@@ -27,7 +29,7 @@ HEADERS += \
     $$PWD/sources/cpp/multimap/Iterator.hpp \
     $$PWD/sources/cpp/multimap/Options.hpp \
     $$PWD/sources/cpp/multimap/Map.hpp \
-    $$PWD/sources/cpp/multimap/Callables.hpp
+    $$PWD/sources/cpp/multimap/Callables.hpp \
 
 SOURCES += \
     $$PWD/sources/cpp/multimap/internal/Arena.cpp \

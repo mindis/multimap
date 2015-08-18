@@ -2,6 +2,7 @@ TEMPLATE = subdirs
 
 SUBDIRS = \
   targets/shared-library \
+  targets/shared-library-dbg \
   targets/shared-library-jni \
   targets/unit-tests
 
