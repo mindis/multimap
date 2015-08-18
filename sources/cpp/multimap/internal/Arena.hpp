@@ -33,6 +33,9 @@ class Arena {
   char* Allocate(std::size_t num_bytes);
 
   // Thread-safe: no.
+  void Reset();
+
+  // Thread-safe: no.
   std::size_t block_size() const { return block_size_; }
 
   // Thread-safe: no.
@@ -44,7 +47,7 @@ class Arena {
   // Thread-safe: no.
   std::size_t size() const { return size_; }
 
-private:
+ private:
   // Thread-safe: no.
   void AllocateNewBlock(std::size_t block_size);
 

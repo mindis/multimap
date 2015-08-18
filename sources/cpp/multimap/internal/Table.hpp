@@ -37,18 +37,20 @@ namespace internal {
 struct TableFile {
   typedef std::pair<Bytes, List::Head> Entry;
 
-  static Entry ReadEntryFromStream(std::FILE* stream);
+  static void CreateInitialFile(const boost::filesystem::path& path);
 
-  static void WriteEntryToStream(const Entry& entry, std::FILE* stream);
+  static Entry ReadEntryFromFile(std::FILE* file, Arena* arena);
+
+  static void WriteEntryToFile(const Entry& entry, std::FILE* file);
 };
 
 class Table {
  public:
   Table();
 
-  Table(const Callbacks::CommitBlock& callback);
-
   ~Table();
+
+  void InitFromFile(std::FILE* file);
 
   SharedListLock GetShared(const Bytes& key) const;
 
@@ -65,9 +67,9 @@ class Table {
 
   void FlushAllLists() const;
 
-  void InitFromFile(const boost::filesystem::path& path);
+  const std::FILE* get_backing_file() const;
 
-  void WriteToFile(const boost::filesystem::path& path);
+  void set_backing_file(std::FILE* file);
 
   const Callbacks::CommitBlock& get_commit_block_callback() const;
 
@@ -92,8 +94,8 @@ class Table {
   Map map_;
   Arena arena_;
   mutable boost::shared_mutex mutex_;
-  boost::filesystem::path table_file_;
   Callbacks::CommitBlock commit_block_;
+  std::FILE* backing_file_;
 };
 
 }  // namespace internal

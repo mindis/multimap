@@ -18,36 +18,87 @@
 #include "multimap/internal/Table.hpp"
 #include <boost/filesystem/operations.hpp>
 #include <boost/thread/locks.hpp>
+#include "multimap/internal/AutoCloseFile.hpp"
 #include "multimap/internal/System.hpp"
 
 namespace multimap {
 namespace internal {
 
-TableFile::Entry TableFile::ReadEntryFromStream(std::FILE* stream) {
+void TableFile::CreateInitialFile(const boost::filesystem::path& path) {
+  const auto file = std::fopen(path.c_str(), "w");
+  Check(file != nullptr, "Could not create '%s'.", path.c_str());
+  AutoCloseFile auto_file(file);
+  const std::uint32_t num_keys = 0;
+  System::Write(auto_file.get(), &num_keys, sizeof num_keys);
+}
+
+TableFile::Entry TableFile::ReadEntryFromFile(std::FILE* file, Arena* arena) {
   std::uint16_t key_size;
-  System::Read(stream, &key_size, sizeof key_size);
-  const auto key_data = new byte[key_size];
-  System::Read(stream, key_data, key_size);
-  const auto head = List::Head::ReadFromStream(stream);
+  System::Read(file, &key_size, sizeof key_size);
+  const auto key_data = arena->Allocate(key_size);
+  System::Read(file, key_data, key_size);
+  const auto head = List::Head::ReadFromStream(file);
   return std::make_pair(Bytes(key_data, key_size), head);
 }
 
-void TableFile::WriteEntryToStream(const Entry& entry, std::FILE* stream) {
+void TableFile::WriteEntryToFile(const Entry& entry, std::FILE* file) {
   assert(entry.first.size() <= std::numeric_limits<std::uint16_t>::max());
   const std::uint16_t key_size = entry.first.size();
-  System::Write(stream, &key_size, sizeof key_size);
-  System::Write(stream, entry.first.data(), key_size);
-  entry.second.WriteToStream(stream);
+  System::Write(file, &key_size, sizeof key_size);
+  System::Write(file, entry.first.data(), key_size);
+  entry.second.WriteToStream(file);
 }
 
-Table::Table() {}
-
-Table::Table(const Callbacks::CommitBlock& callback) {
-  set_commit_block_callback(callback);
-}
+Table::Table() : backing_file_(nullptr) {}
 
 Table::~Table() {
-  FlushAllLists();
+  if (backing_file_) {
+    // Resize buffer to 10 MiB.
+    const auto status = std::setvbuf(backing_file_, nullptr, _IOFBF, 1 << 7);
+    assert(status == 0);
+
+    // Write num_keys header.
+    std::rewind(backing_file_);
+    const std::uint32_t num_keys = map_.size();
+    System::Write(backing_file_, &num_keys, sizeof num_keys);
+  }
+
+  std::uint32_t num_keys_written = 0;
+  for (const auto& entry : map_) {
+    const auto list = entry.second.get();
+    // assert(!list->locked());
+    // TODO Use UniqueListLock(List*, std::try_to_lock_t) when available.
+    if (list->TryLockUnique()) {
+      if (!list->empty()) {
+        list->Flush(commit_block_);
+        if (backing_file_) {
+          TableFile::WriteEntryToFile(
+                TableFile::Entry(entry.first, list->chead()), backing_file_);
+          ++num_keys_written;
+        }
+      }
+      list->UnlockUnique();
+    } else {
+      System::Log("Table::~Table") << "List is still locked. Data is lost.";
+    }
+  }
+
+  if (backing_file_ && (num_keys_written != map_.size())) {
+    std::rewind(backing_file_);
+    System::Write(backing_file_, &num_keys_written, sizeof num_keys_written);
+  }
+}
+
+void Table::InitFromFile(std::FILE* file) {
+  map_.clear();
+  arena_.Reset();
+  std::uint32_t num_keys;
+  System::Read(file, &num_keys, sizeof num_keys);
+  for (std::size_t i = 0; i != num_keys; ++i) {
+    const auto entry = TableFile::ReadEntryFromFile(file, &arena_);
+    map_.emplace(entry.first, std::unique_ptr<List>(new List(entry.second)));
+  }
+  set_backing_file(file);
 }
 
 SharedListLock Table::GetShared(const Bytes& key) const {
@@ -141,49 +192,13 @@ void Table::FlushLists(double min_load_factor) const {
 
 void Table::FlushAllLists() const { FlushLists(0); }
 
-void Table::InitFromFile(const boost::filesystem::path& path) {
-  const auto stream = std::fopen(path.c_str(), "rb");
-  Check(stream != nullptr, "Could not open '%s'.", path.c_str());
-
-  map_.clear();
-  std::uint32_t num_keys;
-  System::Read(stream, &num_keys, sizeof num_keys);
-  for (std::size_t i = 0; i != num_keys; ++i) {
-    const auto entry = TableFile::ReadEntryFromStream(stream);
-    map_.emplace(entry.first, std::unique_ptr<List>(new List(entry.second)));
-  }
+const std::FILE* Table::get_backing_file() const {
+  return backing_file_;
 }
 
-void Table::WriteToFile(const boost::filesystem::path& path) {
-  const auto stream = std::fopen(path.c_str(), "wb");
-  Check(stream != nullptr, "Could not open or create '%s'.", path.c_str());
-
-  // Resize buffer to 10 MiB.
-  auto status = std::setvbuf(stream, nullptr, _IOFBF, 1024 * 1024 * 10);
-  assert(status == 0);
-
-  const std::uint32_t num_keys = map_.size();
-  System::Write(stream, &num_keys, sizeof num_keys);
-
-  std::uint32_t num_entries_written = 0;
-  for (const auto& entry : map_) {
-    const auto list = entry.second.get();
-    assert(!list->locked());
-    assert(!list->cblock().has_data());
-    if (!list->empty()) {
-      TableFile::WriteEntryToStream(
-          TableFile::Entry(entry.first, list->chead()), stream);
-      ++num_entries_written;
-    }
-  }
-
-  if (num_entries_written != num_keys) {
-    System::Seek(stream, 0);
-    System::Write(stream, &num_entries_written, sizeof num_entries_written);
-  }
-
-  status = std::fclose(stream);
-  assert(status == 0);
+void Table::set_backing_file(std::FILE* file) {
+  assert(file != nullptr);
+  backing_file_ = file;
 }
 
 const Callbacks::CommitBlock& Table::get_commit_block_callback() const {

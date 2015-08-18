@@ -22,7 +22,8 @@
 namespace multimap {
 namespace internal {
 
-Arena::Arena(std::size_t block_size) : block_size_(block_size), capacity_(0), size_(0) {
+Arena::Arena(std::size_t block_size)
+    : block_size_(block_size), capacity_(0), size_(0) {
   Check(block_size > 0, "Arena::Arena: block_size must be positive");
 }
 
@@ -37,11 +38,17 @@ char* Arena::Allocate(std::size_t num_bytes) {
   return data;
 }
 
+void Arena::Reset() {
+  blocks_.clear();
+  capacity_ = 0;
+  size_ = 0;
+}
+
 void Arena::AllocateNewBlock(std::size_t block_size) {
   blocks_.emplace_back(new char[block_size]);
   capacity_ = block_size_;
   size_ = 0;
 }
 
-} // namespace internal
-} // namespace multimap
+}  // namespace internal
+}  // namespace multimap

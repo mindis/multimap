@@ -32,11 +32,6 @@ const char* kNameOfTableFile = "multimap.table";
 
 Map::Map() {}
 
-Map::~Map() {
-  table_.FlushAllLists();
-  table_.WriteToFile(directory_lock_guard_.directory() / kNameOfTableFile);
-}
-
 Map::Map(const boost::filesystem::path& directory, const Options& options) {
   Open(directory, options);
 }
@@ -74,10 +69,18 @@ void Map::Open(const boost::filesystem::path& directory,
   InitCallbacks();
   data_file_.Open(data_filepath, callbacks_.deallocate_blocks,
                   options.create_if_missing, options.block_size);
-  table_.set_commit_block_callback(callbacks_.commit_block);
-  if (table_file_exists) {
-    table_.InitFromFile(table_filepath);
+
+  // Open table file.
+  if (!table_file_exists) {
+    internal::TableFile::CreateInitialFile(table_filepath);
   }
+  const auto table_file = std::fopen(table_filepath.c_str(), "r+");
+  internal::Check(table_file != nullptr, "Could not open '%s'.",
+                  table_filepath.c_str());
+  table_.InitFromFile(table_file);
+  table_.set_commit_block_callback(callbacks_.commit_block);
+  table_file_.reset(table_file);
+
   options_ = options;
   options_.block_size = data_file_.block_size();
   const auto num_blocks = options_.block_pool_memory / options_.block_size;
@@ -243,17 +246,17 @@ void Map::Copy(const boost::filesystem::path& from,
   DataFile to_data_file(to_data_filename, deallocate_blocks, true,
                         to_block_size);
 
+  Arena arena;
   std::uint32_t num_keys;
   System::Read(from_table_file, &num_keys, sizeof num_keys);
   System::Write(to_table_file, &num_keys, sizeof num_keys);
   for (std::size_t i = 0; i != num_keys; ++i) {
-    const auto entry = TableFile::ReadEntryFromStream(from_table_file);
+    const auto entry = TableFile::ReadEntryFromFile(from_table_file, &arena);
     const auto new_head =
         List::Copy(entry.second, from_data_file, &from_block_pool,
                    &to_data_file, &to_block_pool, compare);
     const TableFile::Entry new_entry(entry.first, new_head);
-    TableFile::WriteEntryToStream(new_entry, to_table_file);
-    delete[] static_cast<const byte*>(entry.first.data());
+    TableFile::WriteEntryToFile(new_entry, to_table_file);
   }
 
   std::fclose(to_table_file);

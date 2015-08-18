@@ -24,6 +24,7 @@
 #include "multimap/Callables.hpp"
 #include "multimap/Options.hpp"
 #include "multimap/Iterator.hpp"
+#include "multimap/internal/AutoCloseFile.hpp"
 #include "multimap/internal/BlockPool.hpp"
 #include "multimap/internal/Callbacks.hpp"
 #include "multimap/internal/DataFile.hpp"
@@ -38,8 +39,6 @@ class Map {
   typedef Iterator<true> ConstIter;
 
   Map();
-
-  ~Map();
 
   Map(const boost::filesystem::path& directory, const Options& options);
 
@@ -118,7 +117,10 @@ class Map {
   internal::Callbacks callbacks_;
   internal::BlockPool block_pool_;
   internal::DataFile data_file_;
+
+  internal::AutoCloseFile table_file_;
   internal::Table table_;
+
   Options options_;
 };
 
