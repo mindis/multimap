@@ -20,6 +20,7 @@
 
 #include <functional>
 #include <vector>
+#include "multimap/internal/Arena.hpp"
 #include "multimap/internal/Block.hpp"
 
 namespace multimap {
@@ -40,7 +41,9 @@ struct Callbacks {
   typedef std::function<void(std::uint32_t, const Block&)> ReplaceBlock;
 
   // Requests the block with the given id which was commited previously.
-  typedef std::function<void(std::uint32_t, Block*)> RequestBlock;
+  // The given block must not be NULL, but might have no backing data.
+  // The given arena has to be used to allocate backing data if needed.
+  typedef std::function<void(std::uint32_t, Block*, Arena*)> RequestBlock;
 
   AllocateBlock allocate_block;
   DeallocateBlock deallocate_block;

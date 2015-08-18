@@ -73,7 +73,7 @@ Table::~Table() {
         list->Flush(commit_block_);
         if (backing_file_) {
           TableFile::WriteEntryToFile(
-                TableFile::Entry(entry.first, list->chead()), backing_file_);
+              TableFile::Entry(entry.first, list->chead()), backing_file_);
           ++num_keys_written;
         }
       }
@@ -192,9 +192,7 @@ void Table::FlushLists(double min_load_factor) const {
 
 void Table::FlushAllLists() const { FlushLists(0); }
 
-const std::FILE* Table::get_backing_file() const {
-  return backing_file_;
-}
+const std::FILE* Table::get_backing_file() const { return backing_file_; }
 
 void Table::set_backing_file(std::FILE* file) {
   assert(file != nullptr);

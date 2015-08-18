@@ -22,6 +22,7 @@
 #include <mutex>
 #include <boost/thread/shared_mutex.hpp>
 #include "multimap/Callables.hpp"
+#include "multimap/internal/Arena.hpp"
 #include "multimap/internal/BlockPool.hpp"
 #include "multimap/internal/Callbacks.hpp"
 #include "multimap/internal/DataFile.hpp"
@@ -107,6 +108,7 @@ class List {
     Block::Iter<IsConst> block_iter_;
     Block requested_block_;
     Callbacks callbacks_;
+    Arena arena_;
     Stats stats_;
   };
 
@@ -259,7 +261,7 @@ bool List::Iter<IsConst>::RequestNextBlockAndInitIter() {
         requested_block_ = callbacks_.allocate_block();
       }
       const auto block_id = block_ids_[stats_.block_id_index];
-      callbacks_.request_block(block_id, &requested_block_);
+      callbacks_.request_block(block_id, &requested_block_, &arena_);
       block_iter_ =
           static_cast<
               typename std::conditional<IsConst, const Block, Block>::type*>(

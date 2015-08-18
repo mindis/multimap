@@ -361,9 +361,9 @@ void Map::InitCallbacks() {
   };
 
   // Thread-safe: yes.
-  callbacks_.request_block =
-      [this](std::uint32_t block_id,
-             internal::Block* block) { data_file_.Read(block_id, block); };
+  callbacks_.request_block = [this](
+      std::uint32_t block_id, internal::Block* block,
+      internal::Arena* arena) { data_file_.Read(block_id, block, arena); };
 }
 
 }  // namespace multimap

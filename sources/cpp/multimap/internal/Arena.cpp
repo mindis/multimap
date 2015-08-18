@@ -27,7 +27,7 @@ Arena::Arena(std::size_t block_size)
   Check(block_size > 0, "Arena::Arena: block_size must be positive");
 }
 
-char* Arena::Allocate(std::size_t num_bytes) {
+byte* Arena::Allocate(std::size_t num_bytes) {
   Check(num_bytes > 0, "Arena::Allocate: num_bytes must be positive");
   const auto num_bytes_free = capacity_ - size_;
   if (num_bytes_free < num_bytes) {
@@ -45,7 +45,7 @@ void Arena::Reset() {
 }
 
 void Arena::AllocateNewBlock(std::size_t block_size) {
-  blocks_.emplace_back(new char[block_size]);
+  blocks_.emplace_back(new byte[block_size]);
   capacity_ = block_size;
   size_ = 0;
 }

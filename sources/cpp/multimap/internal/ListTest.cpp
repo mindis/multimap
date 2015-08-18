@@ -97,7 +97,8 @@ TEST_P(ListTestWithParam, AddValuesAndIterateAll) {
   callbacks.deallocate_block =
       [&block_pool](Block&& block) { block_pool.Push(std::move(block)); };
 
-  callbacks.request_block = [&blocks](std::uint32_t id, Block* block) {
+  callbacks.request_block =
+      [&blocks](std::uint32_t id, Block* block, Arena* arena) {
     assert(id < blocks.size());
     std::memcpy(block->data(), blocks[id].data(), block->size());
   };

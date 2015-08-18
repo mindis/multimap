@@ -20,6 +20,7 @@
 
 #include <mutex>
 #include <boost/filesystem/path.hpp>
+#include "multimap/internal/Arena.hpp"
 #include "multimap/internal/Callbacks.hpp"
 
 namespace multimap {
@@ -50,7 +51,7 @@ class DataFile {
             std::size_t block_size);
 
   // Thread-safe: yes.
-  void Read(std::uint32_t block_id, Block* block) const;
+  void Read(std::uint32_t block_id, Block* block, Arena* arena) const;
 
   // Thread-safe: yes.
   void Write(std::uint32_t block_id, const Block& block);

@@ -133,51 +133,52 @@ List::Head List::Copy(const Head& head, const DataFile& from_data_file,
                       BlockPool* from_block_pool, DataFile* to_data_file,
                       BlockPool* to_block_pool,
                       const Callables::Compare& compare) {
-  Callbacks iter_callbacks;
-  iter_callbacks.allocate_block = [from_block_pool]() {
-    const auto block = from_block_pool->Pop();
-    assert(block.has_data());
-    return block;
-  };
-  iter_callbacks.deallocate_block = [from_block_pool](Block&& block) {
-    from_block_pool->Push(std::move(block));
-  };
-  iter_callbacks.request_block =
-      [&from_data_file](std::uint32_t block_id,
-                        Block* block) { from_data_file.Read(block_id, block); };
+  //  Callbacks iter_callbacks;
+  //  iter_callbacks.allocate_block = [from_block_pool]() {
+  //    const auto block = from_block_pool->Pop();
+  //    assert(block.has_data());
+  //    return block;
+  //  };
+  //  iter_callbacks.deallocate_block = [from_block_pool](Block&& block) {
+  //    from_block_pool->Push(std::move(block));
+  //  };
+  //  iter_callbacks.request_block =
+  //      [&from_data_file](std::uint32_t block_id,
+  //                        Block* block) { from_data_file.Read(block_id,
+  //                        block); };
 
-  Callbacks list_callbacks;
-  list_callbacks.allocate_block = [to_block_pool]() {
-    const auto block = to_block_pool->Pop();
-    assert(block.has_data());
-    return block;
-  };
-  list_callbacks.commit_block = [to_data_file](Block&& block) {
-    return to_data_file->Append(std::move(block));
-  };
+  //  Callbacks list_callbacks;
+  //  list_callbacks.allocate_block = [to_block_pool]() {
+  //    const auto block = to_block_pool->Pop();
+  //    assert(block.has_data());
+  //    return block;
+  //  };
+  //  list_callbacks.commit_block = [to_data_file](Block&& block) {
+  //    return to_data_file->Append(std::move(block));
+  //  };
 
-  List new_list;
-  auto iter = List(head).NewConstIterator(iter_callbacks);
-  if (compare) {
-    // https://bitbucket.org/mtrenkmann/multimap/issues/5
-    std::vector<std::string> values;
-    values.reserve(iter.NumValues());
-    for (iter.SeekToFirst(); iter.HasValue(); iter.Next()) {
-      values.push_back(iter.GetValue().ToString());
-    }
-    std::sort(values.begin(), values.end(), compare);
-    for (const auto& value : values) {
-      new_list.Add(value, list_callbacks.allocate_block,
-                   list_callbacks.commit_block);
-    }
-  } else {
-    for (iter.SeekToFirst(); iter.HasValue(); iter.Next()) {
-      new_list.Add(iter.GetValue(), list_callbacks.allocate_block,
-                   list_callbacks.commit_block);
-    }
-  }
-  new_list.Flush(list_callbacks.commit_block);
-  return new_list.head();
+  //  List new_list;
+  //  auto iter = List(head).NewConstIterator(iter_callbacks);
+  //  if (compare) {
+  //    // https://bitbucket.org/mtrenkmann/multimap/issues/5
+  //    std::vector<std::string> values;
+  //    values.reserve(iter.NumValues());
+  //    for (iter.SeekToFirst(); iter.HasValue(); iter.Next()) {
+  //      values.push_back(iter.GetValue().ToString());
+  //    }
+  //    std::sort(values.begin(), values.end(), compare);
+  //    for (const auto& value : values) {
+  //      new_list.Add(value, list_callbacks.allocate_block,
+  //                   list_callbacks.commit_block);
+  //    }
+  //  } else {
+  //    for (iter.SeekToFirst(); iter.HasValue(); iter.Next()) {
+  //      new_list.Add(iter.GetValue(), list_callbacks.allocate_block,
+  //                   list_callbacks.commit_block);
+  //    }
+  //  }
+  //  new_list.Flush(list_callbacks.commit_block);
+  //  return new_list.head();
 }
 
 void List::LockShared() const {

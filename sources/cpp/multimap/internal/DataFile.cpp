@@ -96,10 +96,14 @@ void DataFile::Open(const boost::filesystem::path& path,
   Open(path, callback);
 }
 
-void DataFile::Read(std::uint32_t block_id, Block* block) const {
+void DataFile::Read(std::uint32_t block_id, Block* block, Arena* arena) const {
   assert(block != nullptr);
-  assert(block->has_data());
-  assert(block->size() == super_block_.block_size);
+
+  if (!block->has_data()) {
+    const auto data = arena->Allocate(super_block_.block_size);
+    block->set_data(data, super_block_.block_size);
+  }
+
   const std::lock_guard<std::mutex> lock(mutex_);
   if (block_id < super_block_.num_blocks) {
     const auto offset = BlockIdToOffset(block_id, block->size());
