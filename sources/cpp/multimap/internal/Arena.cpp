@@ -46,7 +46,7 @@ void Arena::Reset() {
 
 void Arena::AllocateNewBlock(std::size_t block_size) {
   blocks_.emplace_back(new char[block_size]);
-  capacity_ = block_size_;
+  capacity_ = block_size;
   size_ = 0;
 }
 
