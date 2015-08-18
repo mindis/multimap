@@ -61,7 +61,7 @@ List::Iter<false>::Iter(Head* head, Block* block, const Callbacks& callbacks)
   assert(callbacks_.allocate_block);
   assert(callbacks_.deallocate_block);
   assert(callbacks_.request_block);
-  assert(callbacks_.update_block);
+  assert(callbacks_.replace_block);
 }
 
 template <>
@@ -87,7 +87,7 @@ template <>
 void List::Iter<false>::UpdateCurrentBlock() {
   if (stats_.block_id_index < block_ids_.size()) {
     const auto block_id = block_ids_[stats_.block_id_index];
-    callbacks_.update_block(block_id, requested_block_);
+    callbacks_.replace_block(block_id, requested_block_);
   }
   // block_ is in-memory and therefore updated in-place.
 }

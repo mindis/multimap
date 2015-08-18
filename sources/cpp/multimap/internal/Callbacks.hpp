@@ -37,7 +37,7 @@ struct Callbacks {
   typedef std::function<std::uint32_t(Block&&)> CommitBlock;
 
   // Updates the content of an already existing block.
-  typedef std::function<void(std::uint32_t, const Block&)> UpdateBlock;
+  typedef std::function<void(std::uint32_t, const Block&)> ReplaceBlock;
 
   // Requests the block with the given id which was commited previously.
   typedef std::function<void(std::uint32_t, Block*)> RequestBlock;
@@ -46,7 +46,7 @@ struct Callbacks {
   DeallocateBlock deallocate_block;
   DeallocateBlocks deallocate_blocks;
   CommitBlock commit_block;
-  UpdateBlock update_block;
+  ReplaceBlock replace_block;
   RequestBlock request_block;
 };
 

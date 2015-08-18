@@ -355,7 +355,7 @@ void Map::InitCallbacks() {
   };
 
   // Thread-safe: yes.
-  callbacks_.update_block =
+  callbacks_.replace_block =
       [this](std::uint32_t block_id, const internal::Block& block) {
     data_file_.Write(block_id, block);
   };
