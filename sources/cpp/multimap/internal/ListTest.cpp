@@ -71,16 +71,14 @@ TEST(ListTest, IsNotMoveConstructibleOrAssignable) {
 struct ListTestWithParam : testing::TestWithParam<std::uint32_t> {};
 
 TEST_P(ListTestWithParam, AddValuesAndIterateAll) {
-  Callbacks callbacks;
-
   BlockPool block_pool(100000, 128);
-  callbacks.allocate_block = [&block_pool]() {
+  const auto allocate_block_callback = [&block_pool]() {
     assert(!block_pool.empty());
     return block_pool.Pop();
   };
 
   std::vector<Block> blocks;
-  callbacks.commit_block = [&blocks](Block&& block) {
+  const auto commit_block_callback = [&blocks](Block&& block) {
     blocks.push_back(std::move(block));
     return blocks.size() - 1;
   };
@@ -88,16 +86,13 @@ TEST_P(ListTestWithParam, AddValuesAndIterateAll) {
   List list;
   for (std::size_t i = 0; i != GetParam(); ++i) {
     const auto value = std::to_string(i);
-    list.Add(value, callbacks.allocate_block, callbacks.commit_block);
+    list.Add(value, allocate_block_callback, commit_block_callback);
     ASSERT_THAT(list.head().num_values_deleted, Eq(0));
     ASSERT_THAT(list.head().num_values_total, Eq(i + 1));
   }
   ASSERT_THAT(list.size(), Eq(GetParam()));
 
-  callbacks.deallocate_block =
-      [&block_pool](Block&& block) { block_pool.Push(std::move(block)); };
-
-  callbacks.request_block =
+  const auto request_block_callback =
       [&blocks](std::uint32_t id, Block* block, Arena* arena) {
     assert(id < blocks.size());
 
@@ -108,7 +103,7 @@ TEST_P(ListTestWithParam, AddValuesAndIterateAll) {
     std::memcpy(block->data(), blocks[id].data(), block->size());
   };
 
-  auto iter = list.NewConstIterator(callbacks);
+  auto iter = list.NewConstIterator(request_block_callback);
   iter.SeekToFirst();
   for (std::size_t i = 0; i != GetParam(); ++i) {
     ASSERT_THAT(iter.HasValue(), Eq(true));

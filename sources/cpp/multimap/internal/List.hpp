@@ -58,9 +58,12 @@ class List {
    public:
     Iter();
 
-    Iter(const Head& head, const Block& block, const Callbacks& callbacks);
+    Iter(const Head& head, const Block& block,
+         const Callbacks::RequestBlock& request_block_callback);
 
-    Iter(Head* head, Block* block, const Callbacks& callbacks);
+    Iter(Head* head, Block* block,
+         const Callbacks::RequestBlock& request_block_callback,
+         const Callbacks::ReplaceBlock& replace_block_callback);
 
     Iter(Iter&&) = default;
     Iter& operator=(Iter&&) = default;
@@ -101,11 +104,12 @@ class List {
     bool RequestNextBlockAndInitIter();
 
     typename std::conditional<IsConst, const Head, Head>::type* head_;
-    typename std::conditional<IsConst, const Block, Block>::type* block_;
+    typename std::conditional<IsConst, const Block, Block>::type* last_block_;
     std::vector<std::uint32_t> block_ids_;
     Block::Iter<IsConst> block_iter_;
-    Block requested_block_;
-    Callbacks callbacks_;
+    Block current_block_;
+    Callbacks::RequestBlock request_block_callback_;
+    Callbacks::ReplaceBlock replace_block_callback_;
     Arena arena_;
     Stats stats_;
   };
@@ -142,11 +146,14 @@ class List {
 
   bool empty() const { return size() == 0; }
 
-  Iterator NewIterator(const Callbacks& callbacks);
+  Iterator NewIterator(const Callbacks::RequestBlock& request_block_callback,
+                       const Callbacks::ReplaceBlock& replace_block_callback);
 
-  ConstIterator NewIterator(const Callbacks& callbacks) const;
+  ConstIterator NewIterator(
+      const Callbacks::RequestBlock& request_block_callback) const;
 
-  ConstIterator NewConstIterator(const Callbacks& callbacks) const;
+  ConstIterator NewConstIterator(
+      const Callbacks::RequestBlock& request_block_callback) const;
 
   static Head Copy(const Head& head, const DataFile& from_data_file,
                    BlockPool* from_block_pool, DataFile* to_data_file,
@@ -186,14 +193,16 @@ static_assert(HasExpectedSize<List, 56, 56>::value,
 
 template <bool IsConst>
 List::Iter<IsConst>::Iter()
-    : head_(nullptr), block_(nullptr) {}
+    : head_(nullptr), last_block_(nullptr) {}
 
 template <>
 List::Iter<true>::Iter(const Head& head, const Block& block,
-                       const Callbacks& callbacks);
+                       const Callbacks::RequestBlock& request_block_callback);
 
 template <>
-List::Iter<false>::Iter(Head* head, Block* block, const Callbacks& callbacks);
+List::Iter<false>::Iter(Head* head, Block* block,
+                        const Callbacks::RequestBlock& request_block_callback,
+                        const Callbacks::ReplaceBlock& replace_block_callback);
 
 template <bool IsConst>
 std::size_t List::Iter<IsConst>::NumValues() const {
@@ -249,13 +258,13 @@ bool List::Iter<IsConst>::RequestNextBlockAndInitIter() {
     ++stats_.block_id_index;
     if (stats_.block_id_index < block_ids_.size()) {
       const auto block_id = block_ids_[stats_.block_id_index];
-      callbacks_.request_block(block_id, &requested_block_, &arena_);
+      request_block_callback_(block_id, &current_block_, &arena_);
       block_iter_ =
           static_cast<
               typename std::conditional<IsConst, const Block, Block>::type*>(
-              &requested_block_)->NewIterator();
+              &current_block_)->NewIterator();
     } else {
-      block_iter_ = block_->NewIterator();
+      block_iter_ = last_block_->NewIterator();
     }
     stats_.block_has_changed = false;
     return true;

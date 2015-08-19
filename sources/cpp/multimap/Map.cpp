@@ -93,11 +93,12 @@ void Map::Put(const Bytes& key, const Bytes& value) {
 }
 
 Map::ConstIter Map::Get(const Bytes& key) const {
-  return ConstIter(table_.GetShared(key), callbacks_);
+  return ConstIter(table_.GetShared(key), callbacks_.request_block);
 }
 
 Map::Iter Map::GetMutable(const Bytes& key) {
-  return Iter(table_.GetUnique(key), callbacks_);
+  return Iter(table_.GetUnique(key), callbacks_.request_block,
+              callbacks_.replace_block);
 }
 
 bool Map::Contains(const Bytes& key) const {

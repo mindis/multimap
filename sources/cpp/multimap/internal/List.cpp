@@ -40,28 +40,27 @@ void List::Head::WriteToStream(std::FILE* fs) const {
 
 template <>
 List::Iter<true>::Iter(const Head& head, const Block& block,
-                       const Callbacks& callbacks)
+                       const Callbacks::RequestBlock& request_block_callback)
     : head_(&head),
-      block_(&block),
+      last_block_(&block),
       block_ids_(head_->block_ids.Unpack()),
-      callbacks_(callbacks) {
-  assert(callbacks_.allocate_block);
-  assert(callbacks_.deallocate_block);
-  assert(callbacks_.request_block);
+      request_block_callback_(request_block_callback) {
+  assert(request_block_callback_);
 }
 
 template <>
-List::Iter<false>::Iter(Head* head, Block* block, const Callbacks& callbacks)
+List::Iter<false>::Iter(Head* head, Block* block,
+                        const Callbacks::RequestBlock& request_block_callback,
+                        const Callbacks::ReplaceBlock& replace_block_callback)
     : head_(head),
-      block_(block),
+      last_block_(block),
       block_ids_(head_->block_ids.Unpack()),
-      callbacks_(callbacks) {
+      request_block_callback_(request_block_callback),
+      replace_block_callback_(replace_block_callback) {
   assert(head_);
-  assert(block_);
-  assert(callbacks_.allocate_block);
-  assert(callbacks_.deallocate_block);
-  assert(callbacks_.request_block);
-  assert(callbacks_.replace_block);
+  assert(last_block_);
+  assert(request_block_callback_);
+  assert(replace_block_callback_);
 }
 
 template <>
@@ -87,7 +86,7 @@ template <>
 void List::Iter<false>::ReplaceCurrentBlock() {
   if (stats_.block_id_index < block_ids_.size()) {
     const auto block_id = block_ids_[stats_.block_id_index];
-    callbacks_.replace_block(block_id, requested_block_);
+    replace_block_callback_(block_id, current_block_);
   }
   // block_ is in-memory and therefore updated in-place.
 }
@@ -117,16 +116,21 @@ void List::Flush(const Callbacks::CommitBlock& commit_block) {
   }
 }
 
-List::Iterator List::NewIterator(const Callbacks& callbacks) {
-  return Iterator(&head_, &block_, callbacks);
+List::Iterator List::NewIterator(
+    const Callbacks::RequestBlock& request_block_callback,
+    const Callbacks::ReplaceBlock& replace_block_callback) {
+  return Iterator(&head_, &block_, request_block_callback,
+                  replace_block_callback);
 }
 
-List::ConstIterator List::NewIterator(const Callbacks& callbacks) const {
-  return ConstIterator(head_, block_, callbacks);
+List::ConstIterator List::NewIterator(
+    const Callbacks::RequestBlock& request_block_callback) const {
+  return ConstIterator(head_, block_, request_block_callback);
 }
 
-List::ConstIterator List::NewConstIterator(const Callbacks& callbacks) const {
-  return ConstIterator(head_, block_, callbacks);
+List::ConstIterator List::NewConstIterator(
+    const Callbacks::RequestBlock& request_block_callback) const {
+  return ConstIterator(head_, block_, request_block_callback);
 }
 
 List::Head List::Copy(const Head& head, const DataFile& from_data_file,

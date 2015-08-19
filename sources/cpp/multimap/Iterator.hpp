@@ -28,11 +28,14 @@ namespace multimap {
 template <bool IsConst>
 class Iterator {
  public:
-  typedef internal::ListLock</* IsShared = */ IsConst> ListLockType;
-
   Iterator() = default;
 
-  Iterator(ListLockType&& list_lock, const internal::Callbacks& callbacks);
+  Iterator(internal::ListLock<IsConst>&& list_lock,
+           const internal::Callbacks::RequestBlock& request_block_callback);
+
+  Iterator(internal::ListLock<IsConst>&& list_lock,
+           const internal::Callbacks::RequestBlock& request_block_callback,
+           const internal::Callbacks::ReplaceBlock& replace_block_callback);
 
   Iterator(Iterator&&) = default;
   Iterator& operator=(Iterator&&) = default;
@@ -63,28 +66,32 @@ class Iterator {
   // Moves the iterator to the next value.
   void Next();
 
-  ListLockType ReleaseListLock();
+  internal::ListLock<IsConst> ReleaseListLock();
 
  private:
-  ListLockType list_lock_;
+  internal::ListLock<IsConst> list_lock_;
   internal::List::Iter<IsConst> list_iter_;
 };
 
 template <>
-inline Iterator<true>::Iterator(internal::ListLock<true>&& list_lock,
-                                const internal::Callbacks& callbacks)
+inline Iterator<true>::Iterator(
+    internal::ListLock<true>&& list_lock,
+    const internal::Callbacks::RequestBlock& request_block_callback)
     : list_lock_(std::move(list_lock)) {
   if (list_lock_.clist()) {
-    list_iter_ = list_lock_.clist()->NewIterator(callbacks);
+    list_iter_ = list_lock_.clist()->NewIterator(request_block_callback);
   }
 }
 
 template <>
-inline Iterator<false>::Iterator(internal::ListLock<false>&& list_lock,
-                                 const internal::Callbacks& callbacks)
+inline Iterator<false>::Iterator(
+    internal::ListLock<false>&& list_lock,
+    const internal::Callbacks::RequestBlock& request_block_callback,
+    const internal::Callbacks::ReplaceBlock& replace_block_callback)
     : list_lock_(std::move(list_lock)) {
   if (list_lock_.list()) {
-    list_iter_ = list_lock_.list()->NewIterator(callbacks);
+    list_iter_ = list_lock_.list()->NewIterator(request_block_callback,
+                                                replace_block_callback);
   }
 }
 
