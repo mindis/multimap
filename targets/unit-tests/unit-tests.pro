@@ -36,9 +36,3 @@ SOURCES += \
     ../../sources/cpp/multimap/IteratorTest.cpp \
     ../../sources/cpp/multimap/MapTest.cpp \
     ../../sources/cpp/multimap/RunAllTests.cpp
-
-#unix {
-#    OBJECTS_DIR = $$PWD
-#    DESTDIR = $$PWD
-#    OUT_PWD = $$PWD
-#}
