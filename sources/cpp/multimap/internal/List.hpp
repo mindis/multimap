@@ -62,8 +62,6 @@ class List {
 
     Iter(Head* head, Block* block, const Callbacks& callbacks);
 
-    ~Iter();
-
     Iter(Iter&&) = default;
     Iter& operator=(Iter&&) = default;
 
@@ -198,13 +196,6 @@ template <>
 List::Iter<false>::Iter(Head* head, Block* block, const Callbacks& callbacks);
 
 template <bool IsConst>
-List::Iter<IsConst>::~Iter() {
-  if (requested_block_.has_data()) {
-    callbacks_.deallocate_block(std::move(requested_block_));
-  }
-}
-
-template <bool IsConst>
 std::size_t List::Iter<IsConst>::NumValues() const {
   return head_ ? head_->num_values_not_deleted() : 0;
 }
@@ -257,9 +248,6 @@ bool List::Iter<IsConst>::RequestNextBlockAndInitIter() {
   if (stats_.num_values_read_not_deleted() < head_->num_values_not_deleted()) {
     ++stats_.block_id_index;
     if (stats_.block_id_index < block_ids_.size()) {
-      if (!requested_block_.has_data()) {
-        requested_block_ = callbacks_.allocate_block();
-      }
       const auto block_id = block_ids_[stats_.block_id_index];
       callbacks_.request_block(block_id, &requested_block_, &arena_);
       block_iter_ =
