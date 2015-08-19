@@ -122,13 +122,13 @@ class Block {
   std::uint32_t max_value_size() const;
 
   Iterator NewIterator() {
-    // We do not use this->offset_ to indicate the end of data, because
+    // We do not use this->used_ to indicate the end of data, because
     // this member is always zero when the block is read from disk.
     return has_data() ? Iterator(data_, size_) : Iterator();
   }
 
   ConstIterator NewIterator() const {
-    // We do not use this->offset_ to indicate the end of data, because
+    // We do not use this->used_ to indicate the end of data, because
     // this member is always zero when the block is read from disk.
     return has_data() ? ConstIterator(data_, size_) : ConstIterator();
   }
