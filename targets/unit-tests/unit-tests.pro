@@ -1,4 +1,5 @@
 TEMPLATE = app
+TARGET = multimap-unit-tests
 CONFIG += console
 
 COMMON = multimap.pri
