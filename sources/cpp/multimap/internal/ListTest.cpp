@@ -87,8 +87,8 @@ TEST_P(ListTestWithParam, AddValuesAndIterateAll) {
 
   List list;
   for (std::size_t i = 0; i != GetParam(); ++i) {
-    const auto key = std::to_string(i);
-    list.Add(key, callbacks.allocate_block, callbacks.commit_block);
+    const auto value = std::to_string(i);
+    list.Add(value, callbacks.allocate_block, callbacks.commit_block);
     ASSERT_THAT(list.head().num_values_deleted, Eq(0));
     ASSERT_THAT(list.head().num_values_total, Eq(i + 1));
   }
@@ -100,6 +100,13 @@ TEST_P(ListTestWithParam, AddValuesAndIterateAll) {
   callbacks.request_block =
       [&blocks](std::uint32_t id, Block* block, Arena* arena) {
     assert(id < blocks.size());
+
+    if (!block->has_data()) {
+      const auto block_size = blocks[id].size();
+      assert(block_size == 128);
+      block->set_data(arena->Allocate(block_size), block_size);
+    }
+    assert(block->size() == 128);
     std::memcpy(block->data(), blocks[id].data(), block->size());
   };
 

@@ -45,4 +45,4 @@ SOURCES += \
     $$PWD/sources/cpp/multimap/internal/thirdparty/farmhash.cc \
     $$PWD/sources/cpp/multimap/Map.cpp
 
-unix|win32: LIBS += -lboost_filesystem -lboost_system -lboost_thread
+unix|win32: LIBS += -lboost_filesystem -lboost_system -lboost_thread -pthread

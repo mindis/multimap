@@ -57,7 +57,9 @@ class Block {
 
     Iter(Byte* data, std::size_t size);
 
-    bool has_value() const { return (offset_ < size_) && (value_size() != 0); }
+    bool has_value() const {
+      return ((offset_ + kSizeOfValueSizeField) < size_) && (value_size() > 0);
+    }
 
     // Requires: has_value()
     Byte* value_data() const { return tellg() + kSizeOfValueSizeField; }
@@ -80,7 +82,11 @@ class Block {
     void set_deleted();
 
     // Requires: has_value()
-    void advance() { offset_ += kSizeOfValueSizeField + value_size(); }
+    void advance() {
+      if ((offset_ + kSizeOfValueSizeField) < size_) {
+        offset_ += kSizeOfValueSizeField + value_size();
+      }
+    }
 
    private:
     Byte* tellg() const { return data_ + offset_; }
