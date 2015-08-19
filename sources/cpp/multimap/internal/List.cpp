@@ -77,14 +77,14 @@ void List::Iter<false>::Advance() {
   block_iter_.advance();
   if (!block_iter_.has_value()) {
     if (stats_.block_has_changed) {
-      UpdateCurrentBlock();
+      ReplaceCurrentBlock();
     }
     RequestNextBlockAndInitIter();
   }
 }
 
 template <>
-void List::Iter<false>::UpdateCurrentBlock() {
+void List::Iter<false>::ReplaceCurrentBlock() {
   if (stats_.block_id_index < block_ids_.size()) {
     const auto block_id = block_ids_[stats_.block_id_index];
     callbacks_.replace_block(block_id, requested_block_);

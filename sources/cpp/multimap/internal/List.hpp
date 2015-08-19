@@ -93,7 +93,7 @@ class List {
 
     void Advance();
 
-    void UpdateCurrentBlock();
+    void ReplaceCurrentBlock();
 
     // This method must only be called when the end of the current block_ is
     // reached. Otherwise values in the current block_ will be skipped and
@@ -270,7 +270,7 @@ template <>
 void List::Iter<false>::Advance();
 
 template <>
-void List::Iter<false>::UpdateCurrentBlock();
+void List::Iter<false>::ReplaceCurrentBlock();
 
 }  // namespace internal
 }  // namespace multimap
