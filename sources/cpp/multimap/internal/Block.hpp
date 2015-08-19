@@ -186,7 +186,7 @@ class SuperBlock {
   // TODO Capture id of FarmHash.
  public:
   static const std::uint32_t kMajorVersion = 0;
-  static const std::uint32_t kMinorVersion = 1;
+  static const std::uint32_t kMinorVersion = 2;
   static const std::uint32_t kSerializedSize = 512;
 
   static SuperBlock ReadFromFd(int fd);
