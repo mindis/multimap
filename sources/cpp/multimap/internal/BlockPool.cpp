@@ -42,7 +42,7 @@ Block BlockPool::Pop() {
   Block block;
   const std::lock_guard<std::mutex> lock(mutex_);
   if (!ids_.empty()) {
-    auto block_data = data_.get() + ids_.back() * block_size_;
+    const auto block_data = data_.get() + ids_.back() * block_size_;
     block.set_data(block_data, block_size_);
     ids_.pop_back();
   }
