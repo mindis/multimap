@@ -37,7 +37,7 @@ TableFile::Entry TableFile::ReadEntryFromFile(std::FILE* file, Arena* arena) {
   System::Read(file, &key_size, sizeof key_size);
   const auto key_data = arena->Allocate(key_size);
   System::Read(file, key_data, key_size);
-  const auto head = List::Head::ReadFromStream(file);
+  const auto head = List::Head::ReadFromFile(file);
   return std::make_pair(Bytes(key_data, key_size), head);
 }
 
@@ -46,7 +46,7 @@ void TableFile::WriteEntryToFile(const Entry& entry, std::FILE* file) {
   const std::uint16_t key_size = entry.first.size();
   System::Write(file, &key_size, sizeof key_size);
   System::Write(file, entry.first.data(), key_size);
-  entry.second.WriteToStream(file);
+  entry.second.WriteToFile(file);
 }
 
 Table::Table() : backing_file_(nullptr) {}

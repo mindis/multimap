@@ -36,9 +36,9 @@ class List {
 
  public:
   struct Head {
-    static Head ReadFromStream(std::FILE* stream);
+    static Head ReadFromFile(std::FILE* file);
 
-    void WriteToStream(std::FILE* stream) const;
+    void WriteToFile(std::FILE* file) const;
 
     std::size_t num_values_not_deleted() const {
       assert(num_values_total >= num_values_deleted);
@@ -58,10 +58,10 @@ class List {
    public:
     Iter();
 
-    Iter(const Head& head, const Block& block,
+    Iter(const Head& head, const Block& last_block,
          const Callbacks::RequestBlock& request_block_callback);
 
-    Iter(Head* head, Block* block,
+    Iter(Head* head, Block* last_block,
          const Callbacks::RequestBlock& request_block_callback,
          const Callbacks::ReplaceBlock& replace_block_callback);
 
@@ -105,13 +105,14 @@ class List {
 
     typename std::conditional<IsConst, const Head, Head>::type* head_;
     typename std::conditional<IsConst, const Block, Block>::type* last_block_;
-    std::vector<std::uint32_t> block_ids_;
-    Block::Iter<IsConst> block_iter_;
-    Block current_block_;
-    Callbacks::RequestBlock request_block_callback_;
-    Callbacks::ReplaceBlock replace_block_callback_;
+
     Arena arena_;
     Stats stats_;
+    Block current_block_;
+    Block::Iter<IsConst> block_iter_;
+    std::vector<std::uint32_t> block_ids_;
+    Callbacks::RequestBlock request_block_callback_;
+    Callbacks::ReplaceBlock replace_block_callback_;
   };
 
   typedef Iter<false> Iterator;
@@ -126,11 +127,12 @@ class List {
   List(const List&) = delete;
   List& operator=(const List&) = delete;
 
-  void Add(const Bytes& value, const Callbacks::AllocateBlock& allocate_block,
-           const Callbacks::CommitBlock& commit_block);
+  void Add(const Bytes& value,
+           const Callbacks::AllocateBlock& allocate_block_callback,
+           const Callbacks::CommitBlock& commit_block_callback);
 
   // Precondition (not tested internally): !locked()
-  void Flush(const Callbacks::CommitBlock& commit_block);
+  void Flush(const Callbacks::CommitBlock& commit_block_callback);
 
   void Clear() { head_ = Head(); }
 
@@ -196,11 +198,11 @@ List::Iter<IsConst>::Iter()
     : head_(nullptr), last_block_(nullptr) {}
 
 template <>
-List::Iter<true>::Iter(const Head& head, const Block& block,
+List::Iter<true>::Iter(const Head& head, const Block& last_block,
                        const Callbacks::RequestBlock& request_block_callback);
 
 template <>
-List::Iter<false>::Iter(Head* head, Block* block,
+List::Iter<false>::Iter(Head* head, Block* last_block,
                         const Callbacks::RequestBlock& request_block_callback,
                         const Callbacks::ReplaceBlock& replace_block_callback);
 

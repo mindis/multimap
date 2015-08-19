@@ -122,6 +122,12 @@ class Block {
     std::memset(data_, 0, size_);
   }
 
+  void reset() {
+    data_ = nullptr;
+    size_ = 0;
+    used_ = 0;
+  }
+
   double load_factor() const;
 
   // Returns the maximum size of a value to be put when the block is empty.

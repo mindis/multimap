@@ -24,36 +24,36 @@ namespace internal {
 
 std::mutex List::dynamic_mutex_protector;
 
-List::Head List::Head::ReadFromStream(std::FILE* fs) {
+List::Head List::Head::ReadFromFile(std::FILE* file) {
   Head head;
-  System::Read(fs, &head.num_values_total, sizeof head.num_values_total);
-  System::Read(fs, &head.num_values_deleted, sizeof head.num_values_deleted);
-  head.block_ids = UintVector::ReadFromStream(fs);
+  System::Read(file, &head.num_values_total, sizeof head.num_values_total);
+  System::Read(file, &head.num_values_deleted, sizeof head.num_values_deleted);
+  head.block_ids = UintVector::ReadFromStream(file);
   return head;
 }
 
-void List::Head::WriteToStream(std::FILE* fs) const {
-  System::Write(fs, &num_values_total, sizeof num_values_total);
-  System::Write(fs, &num_values_deleted, sizeof num_values_deleted);
-  block_ids.WriteToStream(fs);
+void List::Head::WriteToFile(std::FILE* file) const {
+  System::Write(file, &num_values_total, sizeof num_values_total);
+  System::Write(file, &num_values_deleted, sizeof num_values_deleted);
+  block_ids.WriteToStream(file);
 }
 
 template <>
-List::Iter<true>::Iter(const Head& head, const Block& block,
+List::Iter<true>::Iter(const Head& head, const Block& last_block,
                        const Callbacks::RequestBlock& request_block_callback)
     : head_(&head),
-      last_block_(&block),
+      last_block_(&last_block),
       block_ids_(head_->block_ids.Unpack()),
       request_block_callback_(request_block_callback) {
   assert(request_block_callback_);
 }
 
 template <>
-List::Iter<false>::Iter(Head* head, Block* block,
+List::Iter<false>::Iter(Head* head, Block* last_block,
                         const Callbacks::RequestBlock& request_block_callback,
                         const Callbacks::ReplaceBlock& replace_block_callback)
     : head_(head),
-      last_block_(block),
+      last_block_(last_block),
       block_ids_(head_->block_ids.Unpack()),
       request_block_callback_(request_block_callback),
       replace_block_callback_(replace_block_callback) {
@@ -88,31 +88,31 @@ void List::Iter<false>::ReplaceCurrentBlock() {
     const auto block_id = block_ids_[stats_.block_id_index];
     replace_block_callback_(block_id, current_block_);
   }
-  // block_ is in-memory and therefore updated in-place.
+  // last_block_ is in-memory and therefore updated in-place.
 }
 
 List::List(const Head& head) : head_(head) {}
 
 void List::Add(const Bytes& value,
-               const Callbacks::AllocateBlock& allocate_block,
-               const Callbacks::CommitBlock& commit_block) {
+               const Callbacks::AllocateBlock& allocate_block_callback,
+               const Callbacks::CommitBlock& commit_block_callback) {
   if (!block_.has_data()) {
-    block_ = allocate_block();
+    block_ = allocate_block_callback();
   }
   auto ok = block_.TryAdd(value);
   if (!ok) {
-    head_.block_ids.Add(commit_block(std::move(block_)));
-    block_ = allocate_block();
+    head_.block_ids.Add(commit_block_callback(std::move(block_)));
+    block_ = allocate_block_callback();
     ok = block_.TryAdd(value);
     assert(ok);
   }
   ++head_.num_values_total;
 }
 
-void List::Flush(const Callbacks::CommitBlock& commit_block) {
+void List::Flush(const Callbacks::CommitBlock& commit_block_callback) {
   if (block_.has_data()) {
-    head_.block_ids.Add(commit_block(std::move(block_)));
-    block_ = Block();
+    head_.block_ids.Add(commit_block_callback(std::move(block_)));
+    block_.reset();
   }
 }
 
