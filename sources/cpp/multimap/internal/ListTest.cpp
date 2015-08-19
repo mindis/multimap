@@ -103,10 +103,8 @@ TEST_P(ListTestWithParam, AddValuesAndIterateAll) {
 
     if (!block->has_data()) {
       const auto block_size = blocks[id].size();
-      assert(block_size == 128);
       block->set_data(arena->Allocate(block_size), block_size);
     }
-    assert(block->size() == 128);
     std::memcpy(block->data(), blocks[id].data(), block->size());
   };
 
