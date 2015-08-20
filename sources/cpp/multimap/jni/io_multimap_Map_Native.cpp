@@ -338,7 +338,7 @@ JNIEXPORT void JNICALL
         JNIEnv* env, jclass, jstring jfrom, jstring jto) {
   const auto from = multimap::jni::MakeString(env, jfrom);
   const auto to = multimap::jni::MakeString(env, jto);
-  multimap::Map::Copy(from, to);
+  multimap::Copy(from, to);
 }
 
 /*
@@ -352,7 +352,7 @@ JNIEXPORT void JNICALL
         jshort new_block_size) {
   const auto from = multimap::jni::MakeString(env, jfrom);
   const auto to = multimap::jni::MakeString(env, jto);
-  multimap::Map::Copy(from, to, new_block_size);
+  multimap::Copy(from, to, new_block_size);
 }
 
 /*
@@ -367,7 +367,7 @@ JNIEXPORT void JNICALL
   const auto from = multimap::jni::MakeString(env, jfrom);
   const auto to = multimap::jni::MakeString(env, jto);
   const auto less = multimap::jni::MakeCompare(env, jless_than);
-  multimap::Map::Copy(from, to, less);
+  multimap::Copy(from, to, less);
 }
 
 /*
@@ -383,5 +383,5 @@ JNIEXPORT void JNICALL
   const auto from = multimap::jni::MakeString(env, jfrom);
   const auto to = multimap::jni::MakeString(env, jto);
   const auto less = multimap::jni::MakeCompare(env, jless_than);
-  multimap::Map::Copy(from, to, less, new_block_size);
+  multimap::Copy(from, to, less, new_block_size);
 }
