@@ -198,72 +198,6 @@ const char* Map::name_of_data_file() { return kNameOfDataFile; }
 
 const char* Map::name_of_table_file() { return kNameOfTableFile; }
 
-void Map::Copy(const boost::filesystem::path& from,
-               const boost::filesystem::path& to) {
-  Copy(from, to, -1);
-}
-
-void Map::Copy(const boost::filesystem::path& from,
-               const boost::filesystem::path& to, std::size_t new_block_size) {
-  Copy(from, to, Callables::Compare(), new_block_size);
-}
-
-void Map::Copy(const boost::filesystem::path& from,
-               const boost::filesystem::path& to,
-               const Callables::Compare& compare) {
-  Copy(from, to, compare, -1);
-}
-
-// TODO https://bitbucket.org/mtrenkmann/multimap/issues/4
-void Map::Copy(const boost::filesystem::path& from,
-               const boost::filesystem::path& to,
-               const Callables::Compare& compare, std::size_t new_block_size) {
-  using namespace internal;
-  System::DirectoryLockGuard from_lock(from, kNameOfLockFile);
-  System::DirectoryLockGuard to_lock(to, kNameOfLockFile);
-
-  const auto from_table_filename = from / kNameOfTableFile;
-  const auto from_table_file = std::fopen(from_table_filename.c_str(), "rb");
-  Check(from_table_file != nullptr, "Could not open '%s'.",
-        from_table_filename.c_str());
-
-  const auto from_data_filename = from / kNameOfDataFile;
-  DataFile from_data_file(from_data_filename);
-  BlockPool from_block_pool(1, from_data_file.block_size());
-
-  const auto to_table_filename = to / kNameOfTableFile;
-  const auto to_table_file = std::fopen(to_table_filename.c_str(), "wb");
-  Check(to_table_file != nullptr, "Could not create '%s'.",
-        to_table_filename.c_str());
-
-  const auto to_data_filename = to / kNameOfDataFile;
-  const auto to_block_size = (new_block_size != static_cast<std::size_t>(-1))
-                                 ? new_block_size
-                                 : from_data_file.block_size();
-  BlockPool to_block_pool(DataFile::max_block_buffer_size() + 1, to_block_size);
-  const auto deallocate_blocks = [&to_block_pool](std::vector<Block>* blocks) {
-    to_block_pool.Push(blocks);
-  };
-  DataFile to_data_file(to_data_filename, deallocate_blocks, true,
-                        to_block_size);
-
-  Arena arena;
-  std::uint32_t num_keys;
-  System::Read(from_table_file, &num_keys, sizeof num_keys);
-  System::Write(to_table_file, &num_keys, sizeof num_keys);
-  for (std::size_t i = 0; i != num_keys; ++i) {
-    const auto entry = TableFile::ReadEntryFromFile(from_table_file, &arena);
-    const auto new_head =
-        List::Copy(entry.second, from_data_file, &from_block_pool,
-                   &to_data_file, &to_block_pool, compare);
-    const TableFile::Entry new_entry(entry.first, new_head);
-    TableFile::WriteEntryToFile(new_entry, to_table_file);
-  }
-
-  std::fclose(to_table_file);
-  std::fclose(from_table_file);
-}
-
 std::size_t Map::Delete(const Bytes& key, Callables::Predicate predicate,
                         Match match) {
   std::size_t num_deleted = 0;
@@ -365,6 +299,72 @@ void Map::InitCallbacks() {
   callbacks_.request_block = [this](
       std::uint32_t block_id, internal::Block* block,
       internal::Arena* arena) { data_file_.Read(block_id, block, arena); };
+}
+
+void Copy(const boost::filesystem::path& from,
+          const boost::filesystem::path& to) {
+  Copy(from, to, -1);
+}
+
+void Copy(const boost::filesystem::path& from,
+          const boost::filesystem::path& to, std::size_t new_block_size) {
+  Copy(from, to, Callables::Compare(), new_block_size);
+}
+
+void Copy(const boost::filesystem::path& from,
+          const boost::filesystem::path& to,
+          const Callables::Compare& compare) {
+  Copy(from, to, compare, -1);
+}
+
+// TODO https://bitbucket.org/mtrenkmann/multimap/issues/4
+void Copy(const boost::filesystem::path& from,
+          const boost::filesystem::path& to, const Callables::Compare& compare,
+          std::size_t new_block_size) {
+  using namespace internal;
+  System::DirectoryLockGuard from_lock(from, kNameOfLockFile);
+  System::DirectoryLockGuard to_lock(to, kNameOfLockFile);
+
+  const auto from_table_filename = from / kNameOfTableFile;
+  const auto from_table_file = std::fopen(from_table_filename.c_str(), "rb");
+  Check(from_table_file != nullptr, "Could not open '%s'.",
+        from_table_filename.c_str());
+
+  const auto from_data_filename = from / kNameOfDataFile;
+  DataFile from_data_file(from_data_filename);
+  BlockPool from_block_pool(1, from_data_file.block_size());
+
+  const auto to_table_filename = to / kNameOfTableFile;
+  const auto to_table_file = std::fopen(to_table_filename.c_str(), "wb");
+  Check(to_table_file != nullptr, "Could not create '%s'.",
+        to_table_filename.c_str());
+
+  const auto to_data_filename = to / kNameOfDataFile;
+  const auto to_block_size = (new_block_size != static_cast<std::size_t>(-1))
+                                 ? new_block_size
+                                 : from_data_file.block_size();
+  BlockPool to_block_pool(DataFile::max_block_buffer_size() + 1, to_block_size);
+  const auto deallocate_blocks = [&to_block_pool](std::vector<Block>* blocks) {
+    to_block_pool.Push(blocks);
+  };
+  DataFile to_data_file(to_data_filename, deallocate_blocks, true,
+                        to_block_size);
+
+  Arena arena;
+  std::uint32_t num_keys;
+  System::Read(from_table_file, &num_keys, sizeof num_keys);
+  System::Write(to_table_file, &num_keys, sizeof num_keys);
+  for (std::size_t i = 0; i != num_keys; ++i) {
+    const auto entry = TableFile::ReadEntryFromFile(from_table_file, &arena);
+    const auto new_head =
+        List::Copy(entry.second, from_data_file, &from_block_pool,
+                   &to_data_file, &to_block_pool, compare);
+    const TableFile::Entry new_entry(entry.first, new_head);
+    TableFile::WriteEntryToFile(new_entry, to_table_file);
+  }
+
+  std::fclose(to_table_file);
+  std::fclose(from_table_file);
 }
 
 }  // namespace multimap

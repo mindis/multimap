@@ -86,22 +86,6 @@ class Map {
 
   static const char* name_of_table_file();
 
-  static void Copy(const boost::filesystem::path& from,
-                   const boost::filesystem::path& to);
-
-  static void Copy(const boost::filesystem::path& from,
-                   const boost::filesystem::path& to,
-                   std::size_t new_block_size);
-
-  static void Copy(const boost::filesystem::path& from,
-                   const boost::filesystem::path& to,
-                   const Callables::Compare& compare);
-
-  static void Copy(const boost::filesystem::path& from,
-                   const boost::filesystem::path& to,
-                   const Callables::Compare& compare,
-                   std::size_t new_block_size);
-
  private:
   enum class Match { kAll, kOne };
 
@@ -123,6 +107,19 @@ class Map {
 
   Options options_;
 };
+
+void Copy(const boost::filesystem::path& from,
+          const boost::filesystem::path& to);
+
+void Copy(const boost::filesystem::path& from,
+          const boost::filesystem::path& to, std::size_t new_block_size);
+
+void Copy(const boost::filesystem::path& from,
+          const boost::filesystem::path& to, const Callables::Compare& compare);
+
+void Copy(const boost::filesystem::path& from,
+          const boost::filesystem::path& to, const Callables::Compare& compare,
+          std::size_t new_block_size);
 
 }  // namespace multimap
 
