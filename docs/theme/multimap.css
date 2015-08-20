@@ -128,12 +128,13 @@ pre {
 }
 
 .bs-sidebar.affix {
+  height: 100%;
   padding-top: 130px;
   top: 0px;
 }
 
 .bs-sidebar.well {
-  box-shadow: 0px 0px 10px silver;
+  box-shadow: 15px 15px 15px -15px silver;
 }
 
 .bs-sidebar .nav > li > a {
@@ -159,5 +160,9 @@ pre {
 
 .col-md-9 {
   padding-left: 30px;
+}
+
+footer.col-md-9 {
+  padding-top: 30px;
 }
 

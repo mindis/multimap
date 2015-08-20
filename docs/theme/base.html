@@ -49,14 +49,17 @@
    {% endblock %}
   </div>
 
-  <footer class="col-md-12">
-   <hr>
-   <a href="http://www.gnu.org/licenses/agpl-3.0.en.html" target="_blank"><img style="float:right" src="{{ base_url }}/img/logo-agpl.png" /></a>
-   {% if copyright %}
-   <p>{{ copyright }}</p>
-   {% endif %}
-   <p>Documentation built with <a href="http://www.mkdocs.org/">MkDocs</a>.</p>
-  </footer>
+  <div class="container">
+   <footer class="col-md-3">
+   </footer>
+   <footer class="col-md-9">
+    <a href="http://www.gnu.org/licenses/agpl-3.0.en.html" target="_blank"><img style="float:right" src="{{ base_url }}/img/logo-agpl.png" /></a>
+    {% if copyright %}
+    <p>{{ copyright }}</p>
+    {% endif %}
+    <p>Documentation built with <a href="http://www.mkdocs.org/">MkDocs</a>.</p>
+   </footer>
+  </div>
         
   <script src="http://code.jquery.com/jquery-1.11.3.min.js"></script>
   <script src="http://code.jquery.com/jquery-migrate-1.2.1.min.js"></script>
