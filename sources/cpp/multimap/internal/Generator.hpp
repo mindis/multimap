@@ -15,58 +15,32 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTIMAP_GENERATOR_HPP
-#define MULTIMAP_GENERATOR_HPP
+#ifndef MULTIMAP_INTERNAL_GENERATOR_HPP
+#define MULTIMAP_INTERNAL_GENERATOR_HPP
 
-#include <limits>
 #include <random>
 #include <string>
 
 namespace multimap {
 namespace internal {
 
-typedef std::uint16_t S;  // min/max/avg = 1/ 6/ 3.5 bytes.
-typedef std::uint32_t M;  // min/max/avg = 1/10/ 5.5 bytes.
-typedef std::uint64_t L;  // min/max/avg = 1/20/10.5 bytes.
-
-template <typename Size>
 class Generator {
  public:
-  static const std::size_t min_size;
-  static const std::size_t max_size;
-  static const std::size_t avg_size;
-
   // Creates a Generator that is able to produce an evenly distributed
-  // sequence of 'num' unique byte patterns of [min, max] bytes in size.
+  // sequence of 'num_unique' byte patterns.
   Generator(std::size_t num_unique);
 
-  std::string Generate() const;
+  std::string Generate();
+
+  std::string Generate(std::size_t size);
+
+  std::size_t num_unique() const { return num_unique_; }
 
  private:
   std::size_t num_unique_;
   std::default_random_engine engine_;
-  std::uniform_int_distribution<Size> distribution_;
+  std::uniform_int_distribution<std::uint64_t> distribution_;
 };
-
-template <typename Size>
-const std::size_t Generator<Size>::min_size(
-    std::to_string(std::numeric_limits<Size>::min()).size());
-
-template <typename Size>
-const std::size_t Generator<Size>::max_size(
-    std::to_string(std::numeric_limits<Size>::max()).size());
-
-template <typename Size>
-const std::size_t Generator<Size>::avg_size((max_size - min_size) / 2);
-
-template <typename Size>
-Generator<Size>::Generator(std::size_t num_unique)
-    : num_unique_(num_unique) {}
-
-template <typename Size>
-std::string Generator<Size>::Generate() const {
-  return std::to_string(distribution_(engine_) % num_unique_);
-}
 
 }  // namespace internal
 }  // namespace multimap

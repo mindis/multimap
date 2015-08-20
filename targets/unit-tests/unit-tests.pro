@@ -10,7 +10,7 @@ COMMON = multimap.pri
 INCLUDEPATH += /usr/src/gtest
 
 HEADERS += \
-    $$PWD/../../sources/cpp/multimap/internal/Generator.hpp
+    ../../sources/cpp/multimap/internal/Generator.hpp
 
 # sudo apt-get install libgtest-dev
 # sudo apt-get install google-mock
@@ -36,4 +36,4 @@ SOURCES += \
     ../../sources/cpp/multimap/internal/VarintTest.cpp \
     ../../sources/cpp/multimap/IteratorTest.cpp \
     ../../sources/cpp/multimap/MapTest.cpp \
-    ../../sources/cpp/multimap/RunAllTests.cpp
+    ../../sources/cpp/multimap/RunUnitTests.cpp

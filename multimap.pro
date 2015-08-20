@@ -1,6 +1,7 @@
 TEMPLATE = subdirs
 
 SUBDIRS = \
+  targets/benchmarks \
   targets/shared-library \
   targets/shared-library-dbg \
   targets/shared-library-jni \
