@@ -100,7 +100,20 @@ void RunReadCommand(const po::variables_map& variables) {
 // user 0m1.460s
 // sys  0m3.024s
 //
-// time ./multimap-benchmarks --read --from /media/disk2/multimap (--nkeys 100000 --nvalues 2000)
+// time ./multimap-benchmarks --read --from /media/disk2/multimap (--nkeys 100000 --nvalues 2000) run #1
+// real 74m22.456s
+// user 0m5.856s
+// sys  0m44.103s
+//
+// time ./multimap-benchmarks --read --from /media/disk2/multimap (--nkeys 100000 --nvalues 2000) run #2
+// real 0m7.222s
+// user 0m2.432s
+// sys  0m4.656s
+//
+// time ./multimap-benchmarks --read --from /media/disk2/multimap (--nkeys 100000 --nvalues 2000) with aio
+// real 41m48.499s
+// user 0m14.069s
+// sys  0m37.522s
 
 void RunCopyCommand(const po::variables_map& variables) {
   CheckOption(variables, "from");
@@ -111,6 +124,9 @@ void RunCopyCommand(const po::variables_map& variables) {
 }
 
 // TODO Add options for block-size and sort.
+// http://unix.stackexchange.com/questions/87908/how-do-you-empty-the-buffers-and-cache-on-a-linux-system
+// ~/bin/linux-fincore --pages=false --summarize --only-cached /media/disk2/multimap/*
+// sudo sh -c 'echo {1,2,3} >/proc/sys/vm/drop_caches'
 int main(int argc, char* argv[]) {
   po::options_description commands_description("COMMANDS");
   commands_description.add_options()(
