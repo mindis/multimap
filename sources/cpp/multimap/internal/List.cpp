@@ -40,55 +40,45 @@ void List::Head::WriteToFile(std::FILE* file) const {
 
 template <>
 List::Iter<true>::Iter(const Head& head, const Block& last_block,
-                       const Callbacks::RequestBlock& request_block_callback)
+                       const Callbacks::RequestBlocks& request_blocks_callback)
     : head_(&head),
       last_block_(&last_block),
-      block_ids_(head_->block_ids.Unpack()),
-      request_block_callback_(request_block_callback) {
-  assert(request_block_callback_);
+      block_ids_(head.block_ids.Unpack()),
+      request_blocks_callback_(request_blocks_callback) {
+  assert(request_blocks_callback_);
 }
 
 template <>
 List::Iter<false>::Iter(Head* head, Block* last_block,
-                        const Callbacks::RequestBlock& request_block_callback,
-                        const Callbacks::ReplaceBlock& replace_block_callback)
+                        const Callbacks::RequestBlocks& request_blocks_callback,
+                        const Callbacks::ReplaceBlocks& replace_blocks_callback)
     : head_(head),
       last_block_(last_block),
-      block_ids_(head_->block_ids.Unpack()),
-      request_block_callback_(request_block_callback),
-      replace_block_callback_(replace_block_callback) {
-  assert(head_);
-  assert(last_block_);
-  assert(request_block_callback_);
-  assert(replace_block_callback_);
+      block_ids_(head->block_ids.Unpack()),
+      request_blocks_callback_(request_blocks_callback),
+      replace_blocks_callback_(replace_blocks_callback) {
+  assert(last_block);
+  assert(request_blocks_callback);
+  assert(replace_blocks_callback);
 }
 
 template <>
 void List::Iter<false>::Delete() {
-  assert(HasValue());
-  stats_.block_has_changed |= !block_iter_.deleted();
+  assert(HasValue());  // Assert no double deletion
   block_iter_.set_deleted();
   ++head_->num_values_deleted;
-}
-
-template <>
-void List::Iter<false>::Advance() {
-  block_iter_.advance();
-  if (!block_iter_.has_value()) {
-    if (stats_.block_has_changed) {
-      ReplaceCurrentBlock();
-    }
-    RequestNextBlockAndInitIter();
+  if (state_.cached_blocks_index < cached_blocks_.size()) {
+    cached_blocks_[state_.cached_blocks_index].ignore = false;
+    // last_block_ is in-memory and therefore updated in-place.
   }
 }
 
 template <>
-void List::Iter<false>::ReplaceCurrentBlock() {
-  if (stats_.block_id_index < block_ids_.size()) {
-    const auto block_id = block_ids_[stats_.block_id_index];
-    replace_block_callback_(block_id, current_block_);
+void List::Iter<false>::ReplaceChangedBlocks() {
+  if (replace_blocks_callback_) {
+    replace_blocks_callback_(cached_blocks_);
+    // last_block_ is in-memory and therefore updated in-place.
   }
-  // last_block_ is in-memory and therefore updated in-place.
 }
 
 List::List(const Head& head) : head_(head) {}
@@ -117,20 +107,20 @@ void List::Flush(const Callbacks::CommitBlock& commit_block_callback) {
 }
 
 List::Iterator List::NewIterator(
-    const Callbacks::RequestBlock& request_block_callback,
-    const Callbacks::ReplaceBlock& replace_block_callback) {
-  return Iterator(&head_, &block_, request_block_callback,
-                  replace_block_callback);
+    const Callbacks::RequestBlocks& request_blocks_callback,
+    const Callbacks::ReplaceBlocks& replace_blocks_callback) {
+  return Iterator(&head_, &block_, request_blocks_callback,
+                  replace_blocks_callback);
 }
 
 List::ConstIterator List::NewIterator(
-    const Callbacks::RequestBlock& request_block_callback) const {
-  return ConstIterator(head_, block_, request_block_callback);
+    const Callbacks::RequestBlocks& request_blocks_callback) const {
+  return ConstIterator(head_, block_, request_blocks_callback);
 }
 
 List::ConstIterator List::NewConstIterator(
-    const Callbacks::RequestBlock& request_block_callback) const {
-  return ConstIterator(head_, block_, request_block_callback);
+    const Callbacks::RequestBlocks& request_blocks_callback) const {
+  return ConstIterator(head_, block_, request_blocks_callback);
 }
 
 List::Head List::Copy(const Head& head, const DataFile& from_data_file,

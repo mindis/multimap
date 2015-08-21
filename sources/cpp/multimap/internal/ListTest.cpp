@@ -92,18 +92,21 @@ TEST_P(ListTestWithParam, AddValuesAndIterateAll) {
   }
   ASSERT_THAT(list.size(), Eq(GetParam()));
 
-  const auto request_block_callback =
-      [&blocks](std::uint32_t id, Block* block, Arena* arena) {
-    assert(id < blocks.size());
-
-    if (!block->has_data()) {
-      const auto block_size = blocks[id].size();
-      block->set_data(arena->Allocate(block_size), block_size);
+  const auto request_blocks_callback =
+      [&blocks](std::vector<Callbacks::Job>* jobs, Arena* arena) {
+    assert(jobs);
+    for (auto& job : *jobs) {
+      assert(job.block_id < blocks.size());
+      if (!job.block.has_data()) {
+        const auto block_size = blocks[job.block_id].size();
+        job.block.set_data(arena->Allocate(block_size), block_size);
+      }
+      std::memcpy(job.block.data(), blocks[job.block_id].data(),
+                  job.block.size());
     }
-    std::memcpy(block->data(), blocks[id].data(), block->size());
   };
 
-  auto iter = list.NewConstIterator(request_block_callback);
+  auto iter = list.NewConstIterator(request_blocks_callback);
   iter.SeekToFirst();
   for (std::size_t i = 0; i != GetParam(); ++i) {
     ASSERT_THAT(iter.HasValue(), Eq(true));

@@ -18,7 +18,9 @@
 #ifndef MULTIMAP_INTERNAL_LIST_HPP
 #define MULTIMAP_INTERNAL_LIST_HPP
 
+#include <unistd.h>  // For sysconf
 #include <cstdio>
+#include <functional>
 #include <mutex>
 #include <boost/thread/shared_mutex.hpp>
 #include "multimap/Callables.hpp"
@@ -56,14 +58,16 @@ class List {
   template <bool IsConst>
   class Iter {
    public:
-    Iter();
+    Iter() : head_(nullptr), last_block_(nullptr) {}
 
     Iter(const Head& head, const Block& last_block,
-         const Callbacks::RequestBlock& request_block_callback);
+         const Callbacks::RequestBlocks& request_blocks_callback);
 
     Iter(Head* head, Block* last_block,
-         const Callbacks::RequestBlock& request_block_callback,
-         const Callbacks::ReplaceBlock& replace_block_callback);
+         const Callbacks::RequestBlocks& request_blocks_callback,
+         const Callbacks::ReplaceBlocks& replace_blocks_callback);
+
+    ~Iter() { ReplaceChangedBlocks(); }
 
     Iter(Iter&&) = default;
     Iter& operator=(Iter&&) = default;
@@ -83,11 +87,11 @@ class List {
     void Delete();
 
    private:
-    struct Stats {
+    struct State {
+      std::uint32_t cached_blocks_index = -1;
+      std::uint32_t cached_blocks_offset = 0;
       std::uint32_t num_values_read_total = 0;
       std::uint32_t num_values_read_deleted = 0;
-      std::uint32_t block_id_index = -1;
-      bool block_has_changed = false;
 
       std::uint32_t num_values_read_not_deleted() const {
         return num_values_read_total - num_values_read_deleted;
@@ -96,23 +100,22 @@ class List {
 
     void Advance();
 
-    void ReplaceCurrentBlock();
+    void InitBlockIterWithNextBlock();
 
-    // This method must only be called when the end of the current block_ is
-    // reached. Otherwise values in the current block_ will be skipped and
-    // the counters in stats_ will become invalid.
-    bool RequestNextBlockAndInitIter();
+    void ReplaceChangedBlocks();
+
+    void RequestNextBlocks();
 
     typename std::conditional<IsConst, const Head, Head>::type* head_;
     typename std::conditional<IsConst, const Block, Block>::type* last_block_;
 
     Arena arena_;
-    Stats stats_;
-    Block current_block_;
+    State state_;
     Block::Iter<IsConst> block_iter_;
     std::vector<std::uint32_t> block_ids_;
-    Callbacks::RequestBlock request_block_callback_;
-    Callbacks::ReplaceBlock replace_block_callback_;
+    std::vector<Callbacks::Job> cached_blocks_;
+    Callbacks::RequestBlocks request_blocks_callback_;
+    Callbacks::ReplaceBlocks replace_blocks_callback_;
   };
 
   typedef Iter<false> Iterator;
@@ -148,14 +151,14 @@ class List {
 
   bool empty() const { return size() == 0; }
 
-  Iterator NewIterator(const Callbacks::RequestBlock& request_block_callback,
-                       const Callbacks::ReplaceBlock& replace_block_callback);
+  Iterator NewIterator(const Callbacks::RequestBlocks& request_blocks_callback,
+                       const Callbacks::ReplaceBlocks& replace_blocks_callback);
 
   ConstIterator NewIterator(
-      const Callbacks::RequestBlock& request_block_callback) const;
+      const Callbacks::RequestBlocks& request_blocks_callback) const;
 
   ConstIterator NewConstIterator(
-      const Callbacks::RequestBlock& request_block_callback) const;
+      const Callbacks::RequestBlocks& request_blocks_callback) const;
 
   static Head Copy(const Head& head, const DataFile& from_data_file,
                    BlockPool* from_block_pool, DataFile* to_data_file,
@@ -193,32 +196,30 @@ class List {
 static_assert(HasExpectedSize<List, 56, 56>::value,
               "class List does not have expected size");
 
-template <bool IsConst>
-List::Iter<IsConst>::Iter()
-    : head_(nullptr), last_block_(nullptr) {}
-
 template <>
 List::Iter<true>::Iter(const Head& head, const Block& last_block,
-                       const Callbacks::RequestBlock& request_block_callback);
+                       const Callbacks::RequestBlocks& request_blocks_callback);
 
 template <>
-List::Iter<false>::Iter(Head* head, Block* last_block,
-                        const Callbacks::RequestBlock& request_block_callback,
-                        const Callbacks::ReplaceBlock& replace_block_callback);
+List::Iter<false>::Iter(
+    Head* head, Block* last_block,
+    const Callbacks::RequestBlocks& request_blocks_callback,
+    const Callbacks::ReplaceBlocks& replace_blocks_callback);
 
 template <bool IsConst>
 std::size_t List::Iter<IsConst>::NumValues() const {
-  return head_ ? head_->num_values_not_deleted() : 0;
+  return state_.head ? state_.heads->num_values_not_deleted() : 0;
 }
 
 template <bool IsConst>
 void List::Iter<IsConst>::SeekToFirst() {
   if (head_) {
-    stats_ = Stats();
-    if (RequestNextBlockAndInitIter()) {
-      if (!HasValue()) {
-        Next();
-      }
+    arena_.Reset();
+    state_ = State();
+    cached_blocks_.clear();
+    InitBlockIterWithNextBlock();
+    if (!HasValue()) {
+      Next();
     }
   }
 }
@@ -237,9 +238,9 @@ template <bool IsConst>
 void List::Iter<IsConst>::Next() {
   do {
     if (block_iter_.has_value()) {
-      ++stats_.num_values_read_total;
+      ++state_.num_values_read_total;
       if (block_iter_.deleted()) {
-        ++stats_.num_values_read_deleted;
+        ++state_.num_values_read_deleted;
       }
     }
     Advance();
@@ -250,38 +251,61 @@ template <bool IsConst>
 void List::Iter<IsConst>::Advance() {
   block_iter_.advance();
   if (!block_iter_.has_value()) {
-    RequestNextBlockAndInitIter();
+    InitBlockIterWithNextBlock();
   }
 }
 
 template <bool IsConst>
-bool List::Iter<IsConst>::RequestNextBlockAndInitIter() {
-  if (stats_.num_values_read_not_deleted() < head_->num_values_not_deleted()) {
-    ++stats_.block_id_index;
-    if (stats_.block_id_index < block_ids_.size()) {
-      const auto block_id = block_ids_[stats_.block_id_index];
-      request_block_callback_(block_id, &current_block_, &arena_);
-      block_iter_ =
-          static_cast<
-              typename std::conditional<IsConst, const Block, Block>::type*>(
-              &current_block_)->NewIterator();
-    } else {
+void List::Iter<IsConst>::InitBlockIterWithNextBlock() {
+  ++state_.cached_blocks_index;
+  if (state_.cached_blocks_index == cached_blocks_.size()) {
+    ReplaceChangedBlocks();
+    RequestNextBlocks();
+    state_.cached_blocks_index = 0;
+  }
+
+  if (cached_blocks_.empty()) {
+    auto abs_index = state_.cached_blocks_offset + state_.cached_blocks_index;
+    if (abs_index == block_ids_.size()) {
       block_iter_ = last_block_->NewIterator();
     }
-    stats_.block_has_changed = false;
-    return true;
+  } else {
+    auto& block = cached_blocks_[state_.cached_blocks_index].block;
+    block_iter_ =
+        static_cast<
+            typename std::conditional<IsConst, const Block, Block>::type*>(
+            &block)->NewIterator();
   }
-  return false;
+}
+
+template <bool IsConst>
+void List::Iter<IsConst>::ReplaceChangedBlocks() {
+  // The default template does nothing.
+}
+
+template <bool IsConst>
+void List::Iter<IsConst>::RequestNextBlocks() {
+  static const std::size_t max_num_blocks_to_request = sysconf(_SC_IOV_MAX);
+  state_.cached_blocks_offset += cached_blocks_.size();
+  const auto num_blocks_to_request =
+      std::min(max_num_blocks_to_request,
+               block_ids_.size() - state_.cached_blocks_offset);
+  cached_blocks_.resize(num_blocks_to_request);
+  for (std::size_t i = 0; i != cached_blocks_.size(); ++i) {
+    cached_blocks_[i].ignore = false;
+    cached_blocks_[i].block_id = block_ids_[state_.cached_blocks_offset + i];
+  }
+  request_blocks_callback_(&cached_blocks_, &arena_);
+  for (auto& block : cached_blocks_) {
+    block.ignore = true;  // For subsequent replace_blocks_callback_.
+  }
 }
 
 template <>
 void List::Iter<false>::Delete();
 
 template <>
-void List::Iter<false>::Advance();
-
-template <>
-void List::Iter<false>::ReplaceCurrentBlock();
+void List::Iter<false>::ReplaceChangedBlocks();
 
 }  // namespace internal
 }  // namespace multimap

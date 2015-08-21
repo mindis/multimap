@@ -27,9 +27,14 @@ namespace multimap {
 namespace internal {
 
 struct Callbacks {
-  typedef std::function<Block()> AllocateBlock;
 
-  typedef std::function<void(Block&&)> DeallocateBlock;
+  struct Job {
+    Block block;
+    std::uint32_t block_id = -1;
+    bool ignore = false;
+  };
+
+  typedef std::function<Block()> AllocateBlock;
 
   typedef std::function<void(std::vector<Block>*)> DeallocateBlocks;
 
@@ -37,20 +42,15 @@ struct Callbacks {
   // Note that the block is moved and therefore not usable anymore.
   typedef std::function<std::uint32_t(Block&&)> CommitBlock;
 
-  // Updates the content of an already existing block.
-  typedef std::function<void(std::uint32_t, const Block&)> ReplaceBlock;
+  typedef std::function<void(const std::vector<Job>&)> ReplaceBlocks;
 
-  // Requests the block with the given id which was commited previously.
-  // The given block must not be NULL, but might have no backing data.
-  // The given arena has to be used to allocate backing data if needed.
-  typedef std::function<void(std::uint32_t, Block*, Arena*)> RequestBlock;
+  typedef std::function<void(std::vector<Job>*, Arena*)> RequestBlocks;
 
   AllocateBlock allocate_block;
-  DeallocateBlock deallocate_block;
   DeallocateBlocks deallocate_blocks;
   CommitBlock commit_block;
-  ReplaceBlock replace_block;
-  RequestBlock request_block;
+  ReplaceBlocks replace_blocks;
+  RequestBlocks request_blocks;
 };
 
 }  // namespace internal

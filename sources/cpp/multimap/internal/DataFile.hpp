@@ -54,7 +54,13 @@ class DataFile {
   void Read(std::uint32_t block_id, Block* block, Arena* arena) const;
 
   // Thread-safe: yes.
+  void Read(std::vector<Callbacks::Job>* jobs, Arena* arena) const;
+
+  // Thread-safe: yes.
   void Write(std::uint32_t block_id, const Block& block);
+
+  // Thread-safe: yes.
+  void Write(const std::vector<Callbacks::Job>& jobs);
 
   // Thread-safe: yes.
   std::uint32_t Append(Block&& block);
@@ -84,6 +90,8 @@ class DataFile {
   static std::size_t max_block_buffer_size();
 
  private:
+  std::uint64_t Offset(std::uint32_t block_id) const;
+
   std::size_t FlushUnlocked();
 
   mutable std::mutex mutex_;

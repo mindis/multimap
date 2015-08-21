@@ -31,11 +31,11 @@ class Iterator {
   Iterator() = default;
 
   Iterator(internal::ListLock<IsConst>&& list_lock,
-           const internal::Callbacks::RequestBlock& request_block_callback);
+           const internal::Callbacks::RequestBlocks& request_blocks_callback);
 
   Iterator(internal::ListLock<IsConst>&& list_lock,
-           const internal::Callbacks::RequestBlock& request_block_callback,
-           const internal::Callbacks::ReplaceBlock& replace_block_callback);
+           const internal::Callbacks::RequestBlocks& request_blocks_callback,
+           const internal::Callbacks::ReplaceBlocks& replace_blocks_callback);
 
   Iterator(Iterator&&) = default;
   Iterator& operator=(Iterator&&) = default;
@@ -76,22 +76,22 @@ class Iterator {
 template <>
 inline Iterator<true>::Iterator(
     internal::ListLock<true>&& list_lock,
-    const internal::Callbacks::RequestBlock& request_block_callback)
+    const internal::Callbacks::RequestBlocks& request_blocks_callback)
     : list_lock_(std::move(list_lock)) {
   if (list_lock_.clist()) {
-    list_iter_ = list_lock_.clist()->NewIterator(request_block_callback);
+    list_iter_ = list_lock_.clist()->NewIterator(request_blocks_callback);
   }
 }
 
 template <>
 inline Iterator<false>::Iterator(
     internal::ListLock<false>&& list_lock,
-    const internal::Callbacks::RequestBlock& request_block_callback,
-    const internal::Callbacks::ReplaceBlock& replace_block_callback)
+    const internal::Callbacks::RequestBlocks& request_blocks_callback,
+    const internal::Callbacks::ReplaceBlocks& replace_blocks_callback)
     : list_lock_(std::move(list_lock)) {
   if (list_lock_.list()) {
-    list_iter_ = list_lock_.list()->NewIterator(request_block_callback,
-                                                replace_block_callback);
+    list_iter_ = list_lock_.list()->NewIterator(request_blocks_callback,
+                                                replace_blocks_callback);
   }
 }
 

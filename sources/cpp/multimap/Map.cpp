@@ -93,12 +93,12 @@ void Map::Put(const Bytes& key, const Bytes& value) {
 }
 
 Map::ConstIter Map::Get(const Bytes& key) const {
-  return ConstIter(table_.GetShared(key), callbacks_.request_block);
+  return ConstIter(table_.GetShared(key), callbacks_.request_blocks);
 }
 
 Map::Iter Map::GetMutable(const Bytes& key) {
-  return Iter(table_.GetUnique(key), callbacks_.request_block,
-              callbacks_.replace_block);
+  return Iter(table_.GetUnique(key), callbacks_.request_blocks,
+              callbacks_.replace_blocks);
 }
 
 bool Map::Contains(const Bytes& key) const {
@@ -276,10 +276,6 @@ void Map::InitCallbacks() {
   };
 
   // Thread-safe: yes.
-  callbacks_.deallocate_block =
-      [this](internal::Block&& block) { block_pool_.Push(std::move(block)); };
-
-  // Thread-safe: yes.
   callbacks_.deallocate_blocks = [this](std::vector<internal::Block>* blocks) {
     block_pool_.Push(blocks);
   };
@@ -290,15 +286,15 @@ void Map::InitCallbacks() {
   };
 
   // Thread-safe: yes.
-  callbacks_.replace_block =
-      [this](std::uint32_t block_id, const internal::Block& block) {
-    data_file_.Write(block_id, block);
+  callbacks_.replace_blocks =
+      [this](const std::vector<internal::Callbacks::Job>& jobs) {
+    data_file_.Write(jobs);
   };
 
   // Thread-safe: yes.
-  callbacks_.request_block = [this](
-      std::uint32_t block_id, internal::Block* block,
-      internal::Arena* arena) { data_file_.Read(block_id, block, arena); };
+  callbacks_.request_blocks = [this](
+      std::vector<internal::Callbacks::Job>* jobs,
+      internal::Arena* arena) { data_file_.Read(jobs, arena); };
 }
 
 void Copy(const boost::filesystem::path& from,

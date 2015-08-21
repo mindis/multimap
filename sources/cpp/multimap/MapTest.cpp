@@ -432,4 +432,35 @@ TEST_F(MapTestFixture, ReplaceAllEqualReplacesAllMatches) {
   // TODO Iterate list and check replacement.
 }
 
+TEST_F(MapTestFixture, IteratorWritesBackMutatedBlocks) {
+  multimap::Options options;
+  options.create_if_missing = true;
+  multimap::Map map(directory, options);
+
+  std::size_t num_values = 100000;
+  for (std::size_t i = 0; i != num_values; ++i) {
+    map.Put("key", "value" + std::to_string(i));
+  }
+
+  {
+    auto iter = map.GetMutable("key");
+    ASSERT_EQ(iter.NumValues(), num_values);
+    iter.SeekToFirst();
+    for (std::size_t i = 0; i != num_values / 2; ++i) {
+      ASSERT_TRUE(iter.HasValue());
+      iter.DeleteValue();
+      iter.Next();
+    }
+  }
+
+  auto iter = map.Get("key");
+  ASSERT_EQ(iter.NumValues(), num_values / 2);
+  iter.SeekToFirst();
+  for (std::size_t i = num_values / 2; i != num_values; ++i) {
+    ASSERT_TRUE(iter.HasValue());
+    ASSERT_EQ(iter.GetValue().ToString(), "value" + std::to_string(i));
+    iter.Next();
+  }
+}
+
 }  // namespace multimap

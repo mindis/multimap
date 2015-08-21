@@ -16,7 +16,9 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "multimap/internal/DataFile.hpp"
-#include <unistd.h>  // For sysconf(_SC_IOV_MAX)
+#include <aio.h>     // For lio_listio
+#include <unistd.h>  // For sysconf
+#include <cstring>
 #include "boost/filesystem/operations.hpp"
 #include "multimap/internal/System.hpp"
 
@@ -24,10 +26,6 @@ namespace multimap {
 namespace internal {
 
 namespace {
-
-std::uint64_t BlockIdToOffset(std::uint32_t block_id, std::size_t block_size) {
-  return internal::SuperBlock::kSerializedSize + block_id * block_size;
-}
 
 void CheckVersion(std::uint32_t major, std::uint32_t /* minor */) {
   Check(major == SuperBlock::kMajorVersion,
@@ -97,16 +95,19 @@ void DataFile::Open(const boost::filesystem::path& path,
 }
 
 void DataFile::Read(std::uint32_t block_id, Block* block, Arena* arena) const {
-  assert(block != nullptr);
+  assert(block);
+  assert(arena);
 
-  if (!block->has_data()) {
+  if (block->has_data()) {
+    assert(block->size() == super_block_.block_size);
+  } else {
     const auto data = arena->Allocate(super_block_.block_size);
     block->set_data(data, super_block_.block_size);
   }
 
   const std::lock_guard<std::mutex> lock(mutex_);
   if (block_id < super_block_.num_blocks) {
-    const auto offset = BlockIdToOffset(block_id, block->size());
+    const auto offset = Offset(block_id);
     System::Read(fd_, block->data(), block->size(), offset);
   } else {
     const auto index = block_id - super_block_.num_blocks;
@@ -115,18 +116,98 @@ void DataFile::Read(std::uint32_t block_id, Block* block, Arena* arena) const {
   }
 }
 
+void DataFile::Read(std::vector<Callbacks::Job>* jobs, Arena* arena) const {
+  assert(jobs);
+
+  for (auto& job : *jobs) {
+    if (!job.ignore) {
+      if (job.block.has_data()) {
+        assert(job.block.size() == super_block_.block_size);
+      } else {
+        const auto data = arena->Allocate(super_block_.block_size);
+        job.block.set_data(data, super_block_.block_size);
+      }
+    }
+  }
+
+  std::vector<aiocb64> aio_list;
+  aio_list.reserve(jobs->size());
+  {
+    const std::lock_guard<std::mutex> lock(mutex_);
+    for (auto& job : *jobs) {
+      if (!job.ignore) {
+        if (job.block_id < super_block_.num_blocks) {
+          aio_list.emplace_back();
+          aio_list.back().aio_fildes = fd_;
+          aio_list.back().aio_lio_opcode = LIO_READ;
+          aio_list.back().aio_buf = job.block.data();
+          aio_list.back().aio_nbytes = job.block.size();
+          aio_list.back().aio_offset = Offset(job.block_id);
+        } else {
+          const auto idx = job.block_id - super_block_.num_blocks;
+          assert(idx < buffer_.size());
+          std::memcpy(job.block.data(), buffer_[idx].data(), job.block.size());
+        }
+      }
+    }
+  }  // End of locked scope.
+
+  std::vector<aiocb64*> aio_ptrs(aio_list.size());
+  for (std::size_t i = 0; i != aio_list.size(); ++i) {
+    aio_ptrs[i] = &aio_list[i];
+  }
+
+  const auto status =
+      lio_listio64(LIO_WAIT, aio_ptrs.data(), aio_ptrs.size(), nullptr);
+  Check(status == 0, "DataFile: lio_listio failed: %s", std::strerror(errno));
+}
+
 void DataFile::Write(std::uint32_t block_id, const Block& block) {
   assert(block.has_data());
   assert(block.size() == super_block_.block_size);
   const std::lock_guard<std::mutex> lock(mutex_);
   if (block_id < super_block_.num_blocks) {
-    const auto offset = BlockIdToOffset(block_id, block.size());
-    System::Write(fd_, block.data(), block.size(), offset);
+    System::Write(fd_, block.data(), block.size(), Offset(block_id));
   } else {
     const auto index = block_id - super_block_.num_blocks;
     assert(index < buffer_.size());
     std::memcpy(buffer_[index].data(), block.data(), block.size());
   }
+}
+
+void DataFile::Write(const std::vector<Callbacks::Job>& jobs) {
+  std::vector<aiocb64> aio_list;
+  aio_list.reserve(jobs.size());
+  {
+    const std::lock_guard<std::mutex> lock(mutex_);
+    for (const auto& job : jobs) {
+      if (!job.ignore) {
+        assert(job.block.has_data());
+        assert(job.block.size() == super_block_.block_size);
+        if (job.block_id < super_block_.num_blocks) {
+          aio_list.emplace_back();
+          aio_list.back().aio_fildes = fd_;
+          aio_list.back().aio_lio_opcode = LIO_WRITE;
+          aio_list.back().aio_buf = const_cast<byte*>(job.block.data());
+          aio_list.back().aio_nbytes = job.block.size();
+          aio_list.back().aio_offset = Offset(job.block_id);
+        } else {
+          const auto idx = job.block_id - super_block_.num_blocks;
+          assert(idx < buffer_.size());
+          std::memcpy(buffer_[idx].data(), job.block.data(), job.block.size());
+        }
+      }
+    }
+  }  // End of locked scope.
+
+  std::vector<aiocb64*> aio_ptrs(aio_list.size());
+  for (std::size_t i = 0; i != aio_list.size(); ++i) {
+    aio_ptrs[i] = &aio_list[i];
+  }
+
+  const auto status =
+      lio_listio64(LIO_WAIT, aio_ptrs.data(), aio_ptrs.size(), nullptr);
+  Check(status == 0, "DataFile: lio_listio failed: %s", std::strerror(errno));
 }
 
 std::uint32_t DataFile::Append(Block&& block) {
@@ -166,6 +247,10 @@ void DataFile::set_deallocate_blocks_callback(
 std::size_t DataFile::max_block_buffer_size() {
   static const auto size = sysconf(_SC_IOV_MAX);
   return size;
+}
+
+std::uint64_t DataFile::Offset(std::uint32_t block_id) const {
+  return SuperBlock::kSerializedSize + block_id * super_block_.block_size;
 }
 
 std::size_t DataFile::FlushUnlocked() {
