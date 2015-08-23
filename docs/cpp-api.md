@@ -1,7 +1,9 @@
-<br />
-<br />
+# C++ API
+
+<br>
 ```cpp
 #include "multimap/Map.hpp"
+namespace multimap
 ```
 
 ## Map::Open

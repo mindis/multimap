@@ -12,9 +12,12 @@ remote_name: null
 # Documentation layout
 pages:
   - Home: index.md
-  - C++: cpp.md
-  - Java: java.md
+  - Guide: guide.md
+  - Reference:
+    - 'C++ API': 'cpp-api.md'
+    - 'Java API': 'java-api.md'
   - Download: download.md
+#  - Donate: donate.md
 
 # Build directories
 theme: yeti  # Take mkdocs' blue color
