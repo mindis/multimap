@@ -36,7 +36,7 @@ std::uint32_t Block::max_value_size() const {
   return (size_ > kSizeOfValueSizeField) ? (size_ - kSizeOfValueSizeField) : 0;
 }
 
-bool Block::TryAdd(const Bytes& value) {
+bool Block::Add(const Bytes& value) {
   assert(data_);
   Check(value.size() <= max_value_size(),
         "Block: Reject value because its size of %u bytes exceeds the allowed "

@@ -142,21 +142,21 @@ TEST(BlockTest, ConstructedWithNullSizeDies) {
 
 TEST(BlockTest, AddToDefaultConstructedDies) {
   Block block;
-  ASSERT_DEATH(block.TryAdd(Bytes()), "");
+  ASSERT_DEATH(block.Add(Bytes()), "");
 }
 
 TEST(BlockTest, AddMaxValueToEmptyBlockWorks) {
   byte buf[512];
   Block block(buf, sizeof buf);
   std::string value(block.max_value_size(), '\0');
-  ASSERT_TRUE(block.TryAdd(value));
+  ASSERT_TRUE(block.Add(value));
 }
 
 TEST(BlockTest, AddTooLargeValueToEmptyBlockThrows) {
   byte buf[512];
   Block block(buf, sizeof buf);
   std::string value(block.max_value_size() + 1, '\0');
-  ASSERT_THROW(block.TryAdd(value), std::runtime_error);
+  ASSERT_THROW(block.Add(value), std::runtime_error);
 }
 
 TEST(BlockTest, AddSmallValuesIncreasesLoadFactor) {
@@ -168,7 +168,7 @@ TEST(BlockTest, AddSmallValuesIncreasesLoadFactor) {
   double prev_load_factor = 0;
   for (auto i = 0; i != num_values; ++i) {
     ByteArray170 value;
-    ASSERT_THAT(block.TryAdd(value.ToBytes()), Eq(true));
+    ASSERT_THAT(block.Add(value.ToBytes()), Eq(true));
     ASSERT_THAT(block.load_factor(), Gt(prev_load_factor));
     prev_load_factor = block.load_factor();
   }
@@ -183,7 +183,7 @@ TEST(BlockTest, AddLargeValuesIncreasesLoadFactor) {
   double prev_load_factor = 0;
   for (auto i = 0; i != num_values; ++i) {
     ByteArray21845 value;
-    ASSERT_THAT(block.TryAdd(value.ToBytes()), Eq(true));
+    ASSERT_THAT(block.Add(value.ToBytes()), Eq(true));
     ASSERT_THAT(block.load_factor(), Gt(prev_load_factor));
     prev_load_factor = block.load_factor();
   }
@@ -197,10 +197,10 @@ TEST(BlockTest, AddSmallValuesAndIterateAll) {
   Block block(data, sizeof data);
   for (auto i = 0; i != num_values; ++i) {
     ByteArray170 value;
-    ASSERT_THAT(block.TryAdd(value.ToBytes()), Eq(true));
+    ASSERT_THAT(block.Add(value.ToBytes()), Eq(true));
   }
   ByteArray170 value;
-  ASSERT_THAT(block.TryAdd(value.ToBytes()), Eq(false));
+  ASSERT_THAT(block.Add(value.ToBytes()), Eq(false));
 
   auto iter = block.NewIterator();
   for (auto i = 0; i != num_values; ++i) {
@@ -224,10 +224,10 @@ TEST(BlockTest, AddLargeValuesAndIterateAll) {
   Block block(data, sizeof data);
   for (auto i = 0; i != num_values; ++i) {
     ByteArray21845 value;
-    ASSERT_THAT(block.TryAdd(value.ToBytes()), Eq(true));
+    ASSERT_THAT(block.Add(value.ToBytes()), Eq(true));
   }
   ByteArray21845 value;
-  ASSERT_THAT(block.TryAdd(value.ToBytes()), Eq(false));
+  ASSERT_THAT(block.Add(value.ToBytes()), Eq(false));
 
   auto iter = block.NewIterator();
   for (auto i = 0; i != num_values; ++i) {
@@ -248,7 +248,7 @@ TEST(BlockTest, AddSmallValuesAndDeleteEvery2ndWhileIterating) {
   Block block(data, sizeof data);
   for (auto i = 0; i != num_values; ++i) {
     ByteArray170 value;
-    ASSERT_THAT(block.TryAdd(value.ToBytes()), Eq(true));
+    ASSERT_THAT(block.Add(value.ToBytes()), Eq(true));
   }
 
   auto iter = block.NewIterator();
@@ -284,7 +284,7 @@ TEST(BlockTest, AddLargeValuesAndDeleteEvery2ndWhileIterating) {
   Block block(data, sizeof data);
   for (auto i = 0; i != num_values; ++i) {
     ByteArray21845 value;
-    ASSERT_THAT(block.TryAdd(value.ToBytes()), Eq(true));
+    ASSERT_THAT(block.Add(value.ToBytes()), Eq(true));
   }
 
   auto iter = block.NewIterator();

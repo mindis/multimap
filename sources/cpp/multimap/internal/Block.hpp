@@ -148,7 +148,7 @@ class Block {
   // Writes a copy of value's data into the block.
   // Returns true if the value could be written successfully.
   // Returns false if the block has not enough room to store the data.
-  bool TryAdd(const Bytes& value);
+  bool Add(const Bytes& value);
 
  private:
   std::size_t num_bytes_free() const { return size_ - used_; }

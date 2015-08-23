@@ -89,11 +89,11 @@ void List::Add(const Bytes& value,
   if (!block_.has_data()) {
     block_ = allocate_block_callback();
   }
-  auto ok = block_.TryAdd(value);
+  auto ok = block_.Add(value);
   if (!ok) {
     head_.block_ids.Add(commit_block_callback(std::move(block_)));
     block_ = allocate_block_callback();
-    ok = block_.TryAdd(value);
+    ok = block_.Add(value);
     assert(ok);
   }
   ++head_.num_values_total;
