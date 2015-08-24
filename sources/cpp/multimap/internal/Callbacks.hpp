@@ -27,7 +27,6 @@ namespace multimap {
 namespace internal {
 
 struct Callbacks {
-
   struct Job {
     Block block;
     std::uint32_t block_id = -1;
