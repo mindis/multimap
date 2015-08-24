@@ -20,9 +20,9 @@ pages:
 #  - Donate: donate.md
 
 # Build directories
-theme: yeti  # Take mkdocs' blue color
-theme_dir: docs/theme
-site_dir: site  # docs/site does not work properly
+theme: yeti
+theme_dir: doc/theme
+docs_dir: doc
 extra_css: ['https://fonts.googleapis.com/css?family=Faster+One|Inconsolata', multimap.css]
 
 # Others

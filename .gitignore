@@ -1,6 +1,6 @@
 multimap.pro.user
-targets/*/*
-!targets/*/*.pro
+build/*
+!build/*.pro
 Makefile
 site/
 *~

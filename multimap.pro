@@ -1,11 +1,11 @@
 TEMPLATE = subdirs
 
 SUBDIRS = \
-  targets/benchmarks \
-  targets/shared-library \
-  targets/shared-library-dbg \
-  targets/shared-library-jni \
-  targets/unit-tests
+  build/benchmarks.pro \
+  build/shared-library.pro \
+  build/shared-library-dbg.pro \
+  build/shared-library-jni.pro \
+  build/unit-tests.pro
 
-# To generate Makefiles, object files, and build targets in the respective
-# targets/* sub-directories, you need to disable Shadow build in QtCreator.
+# To generate Makefiles, object files, and build targets in the build directory
+# you need to disable Shadow build in QtCreator.

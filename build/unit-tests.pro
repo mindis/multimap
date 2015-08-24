@@ -1,16 +1,16 @@
 TEMPLATE = app
-TARGET = multimap-unit-tests
+TARGET = unit-tests
 CONFIG += console
 
 COMMON = multimap.pri
-!include(../../$$COMMON) {
+!include(../$$COMMON) {
     error("Could not find $$COMMON file")
 }
 
 INCLUDEPATH += /usr/src/gtest
 
 HEADERS += \
-    ../../sources/cpp/multimap/internal/Generator.hpp
+    ../src/cpp/multimap/internal/Generator.hpp
 
 # sudo apt-get install libgtest-dev
 # sudo apt-get install google-mock
@@ -27,13 +27,13 @@ SOURCES += \
     /usr/src/gtest/src/gtest-test-part.cc \
     /usr/src/gtest/src/gtest-typed-test.cc \
     /usr/src/gtest/src/gtest.cc \
-    ../../sources/cpp/multimap/internal/BlockPoolTest.cpp \
-    ../../sources/cpp/multimap/internal/BlockTest.cpp \
-    ../../sources/cpp/multimap/internal/ListLockTest.cpp \
-    ../../sources/cpp/multimap/internal/ListTest.cpp \
-    ../../sources/cpp/multimap/internal/TableTest.cpp \
-    ../../sources/cpp/multimap/internal/UintVectorTest.cpp \
-    ../../sources/cpp/multimap/internal/VarintTest.cpp \
-    ../../sources/cpp/multimap/IteratorTest.cpp \
-    ../../sources/cpp/multimap/MapTest.cpp \
-    ../../sources/cpp/multimap/RunUnitTests.cpp
+    ../src/cpp/multimap/internal/BlockPoolTest.cpp \
+    ../src/cpp/multimap/internal/BlockTest.cpp \
+    ../src/cpp/multimap/internal/ListLockTest.cpp \
+    ../src/cpp/multimap/internal/ListTest.cpp \
+    ../src/cpp/multimap/internal/TableTest.cpp \
+    ../src/cpp/multimap/internal/UintVectorTest.cpp \
+    ../src/cpp/multimap/internal/VarintTest.cpp \
+    ../src/cpp/multimap/IteratorTest.cpp \
+    ../src/cpp/multimap/MapTest.cpp \
+    ../src/cpp/multimap/RunUnitTests.cpp
