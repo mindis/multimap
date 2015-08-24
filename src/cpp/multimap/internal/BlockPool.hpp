@@ -63,7 +63,7 @@ class BlockPool {
 
  private:
   // Thread-safe: yes.
-  bool valid(byte* ptr) const;
+  bool valid(char* ptr) const;
 
   // THread-safe: no.
   void PushUnlocked(Block&& block);
@@ -71,7 +71,7 @@ class BlockPool {
   std::size_t num_blocks_;
   std::size_t block_size_;
   std::uint64_t end_of_data_;
-  std::unique_ptr<byte[]> data_;
+  std::unique_ptr<char[]> data_;
   std::vector<std::uint32_t> ids_;
   mutable std::mutex mutex_;
 };

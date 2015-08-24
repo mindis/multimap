@@ -51,18 +51,18 @@ class Block {
   template <bool IsConst>
   class Iter {
    public:
-    typedef typename std::conditional<IsConst, const byte, byte>::type Byte;
+    typedef typename std::conditional<IsConst, const char, char>::type Char;
 
     Iter() : data_(nullptr), size_(0), offset_(0) {}
 
-    Iter(Byte* data, std::size_t size) : data_(data), size_(size), offset_(0) {
+    Iter(Char* data, std::size_t size) : data_(data), size_(size), offset_(0) {
       assert(data);
     }
 
     bool has_value() const { return has_data() && (value_size() != 0); }
 
     // @pre has_value()
-    Byte* value_data() const { return tellg() + kSizeOfValueSizeField; }
+    Char* value_data() const { return tellg() + kSizeOfValueSizeField; }
 
     // @pre has_value()
     std::size_t value_size() const {
@@ -94,9 +94,9 @@ class Block {
    private:
     bool has_data() const { return (offset_ + kSizeOfValueSizeField) < size_; }
 
-    Byte* tellg() const { return data_ + offset_; }
+    Char* tellg() const { return data_ + offset_; }
 
-    Byte* data_;
+    Char* data_;
     std::uint32_t size_;
     std::uint32_t offset_;
   };
@@ -106,11 +106,11 @@ class Block {
 
   Block();
 
-  Block(byte* data, std::uint32_t size);
+  Block(void* data, std::uint32_t size);
 
-  byte* data() { return data_; }
+  char* data() { return data_; }
 
-  const byte* data() const { return data_; }
+  const char* data() const { return data_; }
 
   std::uint32_t size() const { return size_; }
 
@@ -118,10 +118,10 @@ class Block {
 
   bool has_data() const { return data_ != nullptr; }
 
-  void set_data(byte* data, std::uint32_t size) {
+  void set_data(void* data, std::uint32_t size) {
     assert(data != nullptr);
     assert(size != 0);
-    data_ = data;
+    data_ = static_cast<char*>(data);
     size_ = size;
     used_ = 0;
     std::memset(data_, 0, size_);
@@ -158,7 +158,7 @@ class Block {
  private:
   std::size_t num_bytes_free() const { return size_ - used_; }
 
-  byte* data_;
+  char* data_;
   std::uint32_t size_;
   std::uint32_t used_;
 };

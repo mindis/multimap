@@ -141,8 +141,8 @@ TEST(BlockTest, ConstructedWithNullDataDies) {
 }
 
 TEST(BlockTest, ConstructedWithNullSizeDies) {
-  byte data[1];
-  ASSERT_DEATH(Block(data, 0), "");
+  char data[0];
+  ASSERT_DEATH(Block(data, sizeof data), "");
 }
 
 TEST(BlockTest, AddToDefaultConstructedDies) {
@@ -151,14 +151,14 @@ TEST(BlockTest, AddToDefaultConstructedDies) {
 }
 
 TEST(BlockTest, AddMaxValueToEmptyBlockWorks) {
-  byte buf[512];
+  char buf[512];
   Block block(buf, sizeof buf);
   std::string value(block.max_value_size(), '\0');
   ASSERT_TRUE(block.Add(value));
 }
 
 TEST(BlockTest, AddTooLargeValueToEmptyBlockThrows) {
-  byte buf[512];
+  char buf[512];
   Block block(buf, sizeof buf);
   std::string value(block.max_value_size() + 1, '\0');
   ASSERT_THROW(block.Add(value), std::runtime_error);
@@ -169,7 +169,7 @@ TEST_P(BlockTestParam, AddingValuesIncreasesLoadFactor) {
   const auto value_size = GetParam();
   const auto block_size =
       (Block::kSizeOfValueSizeField + value_size) * num_values;
-  byte block_data[block_size];
+  char block_data[block_size];
   Block block(block_data, block_size);
   auto generator = SequenceGenerator::New();
   double prev_load_factor = 0;
@@ -185,7 +185,7 @@ TEST_P(BlockTestParam, AddValuesAndIterateAll) {
   const auto value_size = GetParam();
   const auto block_size =
       (Block::kSizeOfValueSizeField + value_size) * num_values;
-  byte block_data[block_size];
+  char block_data[block_size];
   Block block(block_data, block_size);
   auto generator = SequenceGenerator::New();
   for (auto i = 0; i != num_values; ++i) {
@@ -208,7 +208,7 @@ TEST_P(BlockTestParam, AddValuesAndDeleteEvery2ndWhileIterating) {
   const auto value_size = GetParam();
   const auto block_size =
       (Block::kSizeOfValueSizeField + value_size) * num_values;
-  byte block_data[block_size];
+  char block_data[block_size];
   Block block(block_data, block_size);
   auto generator = SequenceGenerator::New();
   for (auto i = 0; i != num_values; ++i) {

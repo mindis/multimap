@@ -29,7 +29,7 @@ using testing::Gt;
 using testing::IsNull;
 using testing::NotNull;
 
-byte data[] = "data";
+char data[] = "data";
 Block non_empty_block(data, sizeof data);
 
 TEST(BlockPoolTest, IsDefaultConstructible) {

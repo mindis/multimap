@@ -18,10 +18,8 @@
 #ifndef MULTIMAP_INTERNAL_ARENA_HPP
 #define MULTIMAP_INTERNAL_ARENA_HPP
 
-#include <cstdlib>
 #include <memory>
 #include <vector>
-#include "multimap/Bytes.hpp"
 
 namespace multimap {
 namespace internal {
@@ -31,7 +29,7 @@ class Arena {
   Arena(std::size_t block_size = 4096);
 
   // Thread-safe: no.
-  byte* Allocate(std::size_t num_bytes);
+  char* Allocate(std::size_t num_bytes);
 
   // Thread-safe: no.
   void Reset();
@@ -52,7 +50,7 @@ class Arena {
   // Thread-safe: no.
   void AllocateNewBlock(std::size_t block_size);
 
-  std::vector<std::unique_ptr<byte[]>> blocks_;
+  std::vector<std::unique_ptr<char[]>> blocks_;
   std::size_t block_size_;
   std::size_t capacity_;
   std::size_t size_;

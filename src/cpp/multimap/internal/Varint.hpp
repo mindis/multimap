@@ -19,16 +19,17 @@
 #define MULTIMAP_INTERNAL_VARINT_HPP
 
 #include <cstdint>
-#include "multimap/Bytes.hpp"
 
 namespace multimap {
 namespace internal {
 
 struct Varint {
-  static std::size_t ReadUint32(const byte* source, std::uint32_t* target);
+  typedef unsigned char uchar;
+
+  static std::size_t ReadUint32(const uchar* source, std::uint32_t* target);
 
   // Precondition: target has room for at least 4 bytes.
-  static std::size_t WriteUint32(std::uint32_t source, byte* target);
+  static std::size_t WriteUint32(std::uint32_t source, uchar* target);
 
   static constexpr std::uint32_t min_value_1_byte() { return 0; }
   static constexpr std::uint32_t max_value_1_byte() { return (1 << 6) - 1; }

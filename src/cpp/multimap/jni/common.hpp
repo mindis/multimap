@@ -21,7 +21,6 @@
 #include <jni.h>
 #include "multimap/Map.hpp"
 
-// TODO Name all inclusion guards after directory structure.
 namespace multimap {
 namespace jni {
 
@@ -36,7 +35,7 @@ struct BytesRaiiHelper {
       : BytesRaiiHelper(env, static_cast<jbyteArray>(array)) {}
 
   ~BytesRaiiHelper() {
-    auto elements = reinterpret_cast<jbyte*>(const_cast<void*>(bytes_.data()));
+    auto elements = reinterpret_cast<jbyte*>(const_cast<char*>(bytes_.data()));
     env_->ReleaseByteArrayElements(array_, elements, JNI_ABORT);
   }
 
@@ -78,7 +77,7 @@ inline Callables::Procedure MakeProcedure(JNIEnv* env, jobject jprocedure) {
     // However, on Java side we will call ByteBuffer.asReadOnlyBuffer().
     env->CallVoidMethod(jprocedure, mid,
                         env->NewDirectByteBuffer(
-                            const_cast<void*>(bytes.data()), bytes.size()));
+                            const_cast<char*>(bytes.data()), bytes.size()));
     // TODO Check for excpetions.
   };
 }
@@ -92,7 +91,7 @@ inline Callables::Predicate MakePredicate(JNIEnv* env, jobject jpredicate) {
     // However, on Java side we will call ByteBuffer.asReadOnlyBuffer().
     return env->CallBooleanMethod(
         jpredicate, mid, env->NewDirectByteBuffer(
-                             const_cast<void*>(bytes.data()), bytes.size()));
+                             const_cast<char*>(bytes.data()), bytes.size()));
     // TODO Check for excpetions.
   };
 }
@@ -106,7 +105,7 @@ inline Callables::Function MakeFunction(JNIEnv* env, jobject jfunction) {
     // However, on Java side we will call ByteBuffer.asReadOnlyBuffer().
     const auto result = env->CallObjectMethod(
         jfunction, mid, env->NewDirectByteBuffer(
-                            const_cast<void*>(bytes.data()), bytes.size()));
+                            const_cast<char*>(bytes.data()), bytes.size()));
     // result is a jbyteArray that is copied into a std::string.
     return (result != nullptr) ? BytesRaiiHelper(env, result).get().ToString()
                                : std::string();
@@ -124,8 +123,8 @@ inline Callables::Compare MakeCompare(JNIEnv* env, jobject jless_than) {
     // However, on Java side we will call ByteBuffer.asReadOnlyBuffer().
     return env->CallBooleanMethod(
         jless_than, mid,
-        env->NewDirectByteBuffer(const_cast<void*>(lhs.data()), lhs.size()),
-        env->NewDirectByteBuffer(const_cast<void*>(rhs.data()), rhs.size()));
+        env->NewDirectByteBuffer(const_cast<char*>(lhs.data()), lhs.size()),
+        env->NewDirectByteBuffer(const_cast<char*>(rhs.data()), rhs.size()));
     // TODO Check for excpetions.
   };
 }

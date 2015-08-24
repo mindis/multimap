@@ -91,12 +91,12 @@ void System::Seek(std::FILE* stream, std::uint64_t offset) {
 }
 
 void System::Read(std::FILE* stream, void* buf, std::size_t count) {
-  const auto nbytes = std::fread(buf, sizeof(byte), count, stream);
+  const auto nbytes = std::fread(buf, sizeof(char), count, stream);
   assert(nbytes == count);
 }
 
 void System::Write(std::FILE* stream, const void* buf, std::size_t count) {
-  const auto nbytes = std::fwrite(buf, sizeof(byte), count, stream);
+  const auto nbytes = std::fwrite(buf, sizeof(char), count, stream);
   assert(nbytes == count);
 }
 

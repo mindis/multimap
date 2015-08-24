@@ -24,8 +24,6 @@
 
 namespace multimap {
 
-typedef unsigned char byte;
-
 // A type that wraps a byte array and its size without taking ownership.
 class Bytes {
  public:
@@ -35,9 +33,10 @@ class Bytes {
 
   Bytes(const std::string& str) : Bytes(str.data(), str.size()) {}
 
-  Bytes(const void* data, std::size_t size) : data_(data), size_(size) {}
+  Bytes(const void* data, std::size_t size)
+      : data_(static_cast<const char*>(data)), size_(size) {}
 
-  const void* data() const { return data_; }
+  const char* data() const { return data_; }
 
   std::size_t size() const { return size_; }
 
@@ -48,12 +47,10 @@ class Bytes {
     size_ = 0;
   }
 
-  std::string ToString() const {
-    return std::string(static_cast<const char*>(data_), size_);
-  }
+  std::string ToString() const { return std::string(data_, size_); }
 
  private:
-  const void* data_;
+  const char* data_;
   std::size_t size_;
 };
 

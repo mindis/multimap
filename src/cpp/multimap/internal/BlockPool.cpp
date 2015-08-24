@@ -31,7 +31,7 @@ void BlockPool::Init(std::size_t num_blocks, std::size_t block_size) {
   num_blocks_ = num_blocks;
   block_size_ = block_size;
   end_of_data_ = num_blocks * block_size;
-  data_.reset(new byte[end_of_data_]);
+  data_.reset(new char[end_of_data_]);
   ids_.resize(num_blocks);
   for (std::size_t i = 0; i != ids_.size(); ++i) {
     ids_[i] = i;
@@ -82,7 +82,7 @@ bool BlockPool::full() const {
   return ids_.size() == num_blocks_;
 }
 
-bool BlockPool::valid(byte* ptr) const {
+bool BlockPool::valid(char* ptr) const {
   const auto end_of_range = data_.get() + end_of_data_;
   const auto ptr_in_range = ptr >= data_.get() && ptr < end_of_range;
   const auto block_aligned = (ptr - data_.get()) % block_size_ == 0;

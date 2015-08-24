@@ -36,8 +36,6 @@ TEST(UintVectorTest, IsDefaultConstructible) {
 TEST(UintVectorTest, DefaultConstructedHasProperState) {
   ASSERT_THAT(UintVector().Unpack().empty(), Eq(true));
   ASSERT_THAT(UintVector().empty(), Eq(true));
-  ASSERT_THAT(UintVector().data(), IsNull());
-  ASSERT_THAT(UintVector().size(), Eq(0));
 }
 
 TEST(UintVectorTest, IsCopyConstructibleAndAssignable) {

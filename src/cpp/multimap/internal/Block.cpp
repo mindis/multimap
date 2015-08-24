@@ -26,7 +26,7 @@ namespace internal {
 
 Block::Block() : data_(nullptr), size_(0), used_(0) {}
 
-Block::Block(byte* data, std::uint32_t size) { set_data(data, size); }
+Block::Block(void* data, std::uint32_t size) { set_data(data, size); }
 
 double Block::load_factor() const {
   return (size_ != 0) ? (static_cast<double>(used_) / size_) : 0;
@@ -48,7 +48,7 @@ bool Block::Add(const Bytes& value) {
     return false;
   }
   // For little-endian only.
-  byte* ptr = data_ + used_;
+  unsigned char* ptr = reinterpret_cast<unsigned char*>(data_) + used_;
   *(ptr++) = value_size >> 8;
   *(ptr++) = value_size;
   std::memcpy(ptr, value.data(), value_size);
@@ -65,7 +65,7 @@ bool operator==(const Block& lhs, const Block& rhs) {
 }
 
 SuperBlock SuperBlock::ReadFromFd(int fd) {
-  std::array<byte, kSerializedSize> buffer;
+  std::array<char, kSerializedSize> buffer;
   System::Read(fd, buffer.data(), buffer.size());
   SuperBlock super_block;
   std::memcpy(&super_block, buffer.data(), sizeof super_block);
@@ -73,7 +73,7 @@ SuperBlock SuperBlock::ReadFromFd(int fd) {
 }
 
 void SuperBlock::WriteToFd(int fd) const {
-  std::array<byte, kSerializedSize> buffer;
+  std::array<char, kSerializedSize> buffer;
   std::memcpy(buffer.data(), this, sizeof *this);
   System::Write(fd, buffer.data(), buffer.size());
 }

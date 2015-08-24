@@ -188,7 +188,7 @@ void DataFile::Write(const std::vector<Callbacks::Job>& jobs) {
           aio_list.emplace_back();
           aio_list.back().aio_fildes = fd_;
           aio_list.back().aio_lio_opcode = LIO_WRITE;
-          aio_list.back().aio_buf = const_cast<byte*>(job.block.data());
+          aio_list.back().aio_buf = const_cast<char*>(job.block.data());
           aio_list.back().aio_nbytes = job.block.size();
           aio_list.back().aio_offset = Offset(job.block_id);
         } else {

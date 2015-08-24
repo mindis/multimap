@@ -95,7 +95,7 @@ JNIEXPORT jobject JNICALL
     Java_io_multimap_Map_00024ImmutableListIter_00024Native_getValue(
         JNIEnv* env, jclass, jobject self) {
   const auto val = Cast(env, self)->get().GetValue();
-  return env->NewDirectByteBuffer(const_cast<void*>(val.data()), val.size());
+  return env->NewDirectByteBuffer(const_cast<char*>(val.data()), val.size());
 }
 
 /*

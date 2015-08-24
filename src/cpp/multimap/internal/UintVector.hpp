@@ -44,10 +44,6 @@ class UintVector {
 
   void Add(std::uint32_t value);
 
-  const byte* data() const { return data_.get(); }
-
-  std::size_t size() const { return put_offset_; }
-
   bool empty() const { return put_offset_ == 0; }
 
   void clear() {
@@ -61,12 +57,9 @@ class UintVector {
   }
 
  private:
-  static std::size_t ReadUint32(const byte* source, std::uint32_t* target);
-  static std::size_t WriteUint32(std::uint32_t source, byte* target);
-
   void AllocateMoreIfFull();
 
-  std::unique_ptr<byte[]> data_;
+  std::unique_ptr<Varint::uchar[]> data_;
   std::uint32_t end_offset_;
   std::uint32_t put_offset_;
 };

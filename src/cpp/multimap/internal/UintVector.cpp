@@ -23,12 +23,26 @@
 namespace multimap {
 namespace internal {
 
+namespace {
+
+std::size_t ReadUint32(const Varint::uchar* source, std::uint32_t* target) {
+  std::memcpy(target, source, sizeof *target);
+  return sizeof *target;
+}
+
+std::size_t WriteUint32(std::uint32_t source, Varint::uchar* target) {
+  std::memcpy(target, &source, sizeof source);
+  return sizeof source;
+}
+
+}  // namespace
+
 UintVector::UintVector() : end_offset_(0), put_offset_(0) {}
 
 UintVector::UintVector(const UintVector& other)
     : end_offset_(other.end_offset_), put_offset_(other.put_offset_) {
   if (other.data_) {
-    data_.reset(new byte[end_offset_]);
+    data_.reset(new Varint::uchar[end_offset_]);
     std::memcpy(data_.get(), other.data_.get(), end_offset_);
   }
 }
@@ -37,7 +51,7 @@ UintVector& UintVector::operator=(const UintVector& other) {
   if (&other != this) {
     end_offset_ = other.end_offset_;
     put_offset_ = other.put_offset_;
-    data_.reset(new byte[end_offset_]);
+    data_.reset(new Varint::uchar[end_offset_]);
     std::memcpy(data_.get(), other.data_.get(), end_offset_);
   }
   return *this;
@@ -46,7 +60,7 @@ UintVector& UintVector::operator=(const UintVector& other) {
 UintVector UintVector::ReadFromStream(std::FILE* stream) {
   UintVector vector;
   System::Read(stream, &vector.put_offset_, sizeof vector.put_offset_);
-  vector.data_.reset(new byte[vector.put_offset_]);
+  vector.data_.reset(new Varint::uchar[vector.put_offset_]);
   System::Read(stream, vector.data_.get(), vector.put_offset_);
   vector.end_offset_ = vector.put_offset_;
   return vector;
@@ -91,22 +105,12 @@ void UintVector::Add(std::uint32_t value) {
   }
 }
 
-std::size_t UintVector::ReadUint32(const byte* source, std::uint32_t* target) {
-  std::memcpy(target, source, sizeof *target);
-  return sizeof *target;
-}
-
-std::size_t UintVector::WriteUint32(std::uint32_t source, byte* target) {
-  std::memcpy(target, &source, sizeof source);
-  return sizeof source;
-}
-
 void UintVector::AllocateMoreIfFull() {
   const auto required_size = sizeof(std::uint32_t) * 2;
   if (end_offset_ - put_offset_ < required_size) {
     const std::size_t new_end_offset = end_offset_ * 1.5;
     const auto new_size = std::max(new_end_offset, required_size);
-    std::unique_ptr<byte[]> new_data(new byte[new_size]);
+    std::unique_ptr<Varint::uchar[]> new_data(new Varint::uchar[new_size]);
     std::memcpy(new_data.get(), data_.get(), put_offset_);
     data_ = std::move(new_data);
     end_offset_ = new_size;
