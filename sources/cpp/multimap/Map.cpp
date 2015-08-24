@@ -292,9 +292,9 @@ void Map::InitCallbacks() {
   };
 
   // Thread-safe: yes.
-  callbacks_.request_blocks = [this](
-      std::vector<internal::Callbacks::Job>* jobs,
-      internal::Arena* arena) { data_file_.Read(jobs, arena); };
+  callbacks_.request_blocks =
+      [this](std::vector<internal::Callbacks::Job>* jobs,
+             internal::Arena* arena) { data_file_.Read(jobs, arena); };
 }
 
 void Copy(const boost::filesystem::path& from,
