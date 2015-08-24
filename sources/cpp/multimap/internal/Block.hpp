@@ -53,18 +53,18 @@ class Block {
    public:
     typedef typename std::conditional<IsConst, const byte, byte>::type Byte;
 
-    Iter();
+    Iter() : data_(nullptr), size_(0), offset_(0) {}
 
-    Iter(Byte* data, std::size_t size);
-
-    bool has_value() const {
-      return ((offset_ + kSizeOfValueSizeField) < size_) && (value_size() > 0);
+    Iter(Byte* data, std::size_t size) : data_(data), size_(size), offset_(0) {
+      assert(data);
     }
 
-    // Requires: has_value()
+    bool has_value() const { return has_data() && (value_size() != 0); }
+
+    // @pre has_value()
     Byte* value_data() const { return tellg() + kSizeOfValueSizeField; }
 
-    // Requires: has_value()
+    // @pre has_value()
     std::size_t value_size() const {
       std::int16_t size = 0;
       size += tellg()[0] << 8;
@@ -72,23 +72,28 @@ class Block {
       return size & 0x7fff;
     }
 
+    // @pre has_value()
     Bytes value() const { return Bytes(value_data(), value_size()); }
 
-    // Requires: has_value()
+    // @pre has_value()
     bool deleted() const { return *tellg() & 0x80; }
 
-    // EnableIf: not IsConst
-    // Requires: has_value()
-    void set_deleted();
+    // @pre has_value()
+    void set_deleted() { *tellg() |= 0x80; }
 
-    // Requires: has_value()
-    void advance() {
-      if ((offset_ + kSizeOfValueSizeField) < size_) {
-        offset_ += kSizeOfValueSizeField + value_size();
-      }
+    // @pre has_value()
+    void next() { offset_ += kSizeOfValueSizeField + value_size(); }
+
+    // @pre has_value()
+    void next_not_deleted() {
+      do {
+        next();
+      } while (has_value() && deleted());
     }
 
    private:
+    bool has_data() const { return (offset_ + kSizeOfValueSizeField) < size_; }
+
     Byte* tellg() const { return data_ + offset_; }
 
     Byte* data_;
@@ -163,27 +168,11 @@ static_assert(HasExpectedSize<Block, 16, 16>::value,
 
 bool operator==(const Block& lhs, const Block& rhs);
 
-template <bool IsConst>
-Block::Iter<IsConst>::Iter()
-    : data_(nullptr), size_(0), offset_(0) {}
-
-template <bool IsConst>
-Block::Iter<IsConst>::Iter(Byte* data, std::size_t size)
-    : data_(data), size_(size), offset_(0) {
-  assert(data != nullptr);
-}
-
-template <>
-inline void Block::Iter<false>::set_deleted() {
-  *tellg() |= 0x80;
-}
-
 //  1    SerializedSize
 // +-------------------+
 // |     meta data     |
 // +-------------------+
 class SuperBlock {
-  // TODO Capture id of FarmHash.
  public:
   static const std::uint32_t kMajorVersion = 0;
   static const std::uint32_t kMinorVersion = 2;

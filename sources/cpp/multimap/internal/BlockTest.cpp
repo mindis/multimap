@@ -23,11 +23,13 @@
 #include <boost/filesystem/operations.hpp>
 #include "gmock/gmock.h"
 #include "multimap/internal/Block.hpp"
+#include "multimap/internal/Generator.hpp"
 #include "multimap/internal/System.hpp"
 
 namespace multimap {
 namespace internal {
 
+/*
 namespace {
 
 template <std::size_t Size>
@@ -61,6 +63,7 @@ static_assert(
     "size of ByteArray1000 does not need 15 bits to be stored");
 
 }  // namespace
+*/
 
 using testing::Eq;
 using testing::Ne;
@@ -71,6 +74,8 @@ using testing::NotNull;
 
 typedef Block::Iterator ListIter;
 typedef Block::ConstIterator ListConstIter;
+
+class BlockTestParam : public testing::TestWithParam<std::uint32_t> {};
 
 TEST(BlockIterTest, IsDefaultConstructible) {
   ASSERT_THAT(std::is_default_constructible<ListIter>::value, Eq(true));
@@ -159,158 +164,85 @@ TEST(BlockTest, AddTooLargeValueToEmptyBlockThrows) {
   ASSERT_THROW(block.Add(value), std::runtime_error);
 }
 
-TEST(BlockTest, AddSmallValuesIncreasesLoadFactor) {
+TEST_P(BlockTestParam, AddingValuesIncreasesLoadFactor) {
   const auto num_values = 100;
-  const auto required_size =
-      (Block::kSizeOfValueSizeField + ByteArray170::kSize) * num_values;
-  byte data[required_size];
-  Block block(data, sizeof data);
+  const auto value_size = GetParam();
+  const auto block_size =
+      (Block::kSizeOfValueSizeField + value_size) * num_values;
+  byte block_data[block_size];
+  Block block(block_data, block_size);
+  auto generator = SequenceGenerator::New();
   double prev_load_factor = 0;
   for (auto i = 0; i != num_values; ++i) {
-    ByteArray170 value;
-    ASSERT_THAT(block.Add(value.ToBytes()), Eq(true));
+    ASSERT_TRUE(block.Add(generator->Generate(value_size)));
     ASSERT_THAT(block.load_factor(), Gt(prev_load_factor));
     prev_load_factor = block.load_factor();
   }
 }
 
-TEST(BlockTest, AddLargeValuesIncreasesLoadFactor) {
+TEST_P(BlockTestParam, AddValuesAndIterateAll) {
   const auto num_values = 100;
-  const auto required_size =
-      (Block::kSizeOfValueSizeField + ByteArray21845::kSize) * num_values;
-  byte data[required_size];
-  Block block(data, sizeof data);
-  double prev_load_factor = 0;
+  const auto value_size = GetParam();
+  const auto block_size =
+      (Block::kSizeOfValueSizeField + value_size) * num_values;
+  byte block_data[block_size];
+  Block block(block_data, block_size);
+  auto generator = SequenceGenerator::New();
   for (auto i = 0; i != num_values; ++i) {
-    ByteArray21845 value;
-    ASSERT_THAT(block.Add(value.ToBytes()), Eq(true));
-    ASSERT_THAT(block.load_factor(), Gt(prev_load_factor));
-    prev_load_factor = block.load_factor();
+    ASSERT_TRUE(block.Add(generator->Generate(value_size)));
   }
-}
+  ASSERT_FALSE(block.Add(generator->Generate(value_size)));
 
-TEST(BlockTest, AddSmallValuesAndIterateAll) {
-  const auto num_values = 100;
-  const auto required_size =
-      (Block::kSizeOfValueSizeField + ByteArray170::kSize) * num_values;
-  byte data[required_size];
-  Block block(data, sizeof data);
-  for (auto i = 0; i != num_values; ++i) {
-    ByteArray170 value;
-    ASSERT_THAT(block.Add(value.ToBytes()), Eq(true));
-  }
-  ByteArray170 value;
-  ASSERT_THAT(block.Add(value.ToBytes()), Eq(false));
-
+  generator->Reset();
   auto iter = block.NewIterator();
   for (auto i = 0; i != num_values; ++i) {
-    ByteArray170 value;
-    ASSERT_THAT(iter.has_value(), Eq(true));
-
-    ASSERT_THAT(iter.value().size(), Eq(value.ToBytes().size()));
-
-    ASSERT_THAT(iter.value(), Eq(value.ToBytes()));
-    ASSERT_THAT(iter.deleted(), Eq(false));
-    iter.advance();
+    ASSERT_TRUE(iter.has_value());
+    ASSERT_THAT(iter.value(), Eq(generator->Generate(value_size)));
+    iter.next();
   }
-  ASSERT_THAT(iter.has_value(), Eq(false));
+  ASSERT_FALSE(iter.has_value());
 }
 
-TEST(BlockTest, AddLargeValuesAndIterateAll) {
+TEST_P(BlockTestParam, AddValuesAndDeleteEvery2ndWhileIterating) {
   const auto num_values = 100;
-  const auto required_size =
-      (Block::kSizeOfValueSizeField + ByteArray21845::kSize) * num_values;
-  byte data[required_size];
-  Block block(data, sizeof data);
+  const auto value_size = GetParam();
+  const auto block_size =
+      (Block::kSizeOfValueSizeField + value_size) * num_values;
+  byte block_data[block_size];
+  Block block(block_data, block_size);
+  auto generator = SequenceGenerator::New();
   for (auto i = 0; i != num_values; ++i) {
-    ByteArray21845 value;
-    ASSERT_THAT(block.Add(value.ToBytes()), Eq(true));
-  }
-  ByteArray21845 value;
-  ASSERT_THAT(block.Add(value.ToBytes()), Eq(false));
-
-  auto iter = block.NewIterator();
-  for (auto i = 0; i != num_values; ++i) {
-    ByteArray21845 value;
-    ASSERT_THAT(iter.has_value(), Eq(true));
-    ASSERT_THAT(iter.value(), Eq(value.ToBytes()));
-    ASSERT_THAT(iter.deleted(), Eq(false));
-    iter.advance();
-  }
-  ASSERT_THAT(iter.has_value(), Eq(false));
-}
-
-TEST(BlockTest, AddSmallValuesAndDeleteEvery2ndWhileIterating) {
-  const auto num_values = 100;
-  const auto required_size =
-      (Block::kSizeOfValueSizeField + ByteArray170::kSize) * num_values;
-  byte data[required_size];
-  Block block(data, sizeof data);
-  for (auto i = 0; i != num_values; ++i) {
-    ByteArray170 value;
-    ASSERT_THAT(block.Add(value.ToBytes()), Eq(true));
+    ASSERT_TRUE(block.Add(generator->Generate(value_size)));
   }
 
   auto iter = block.NewIterator();
   for (auto i = 0; i != num_values; ++i) {
-    ASSERT_THAT(iter.has_value(), Eq(true));
+    ASSERT_TRUE(iter.has_value());
     if (i % 2 == 0) {
       iter.set_deleted();
     }
-    iter.advance();
+    iter.next();
   }
-  ASSERT_THAT(iter.has_value(), Eq(false));
+  ASSERT_FALSE(iter.has_value());
 
+  generator->Reset();
   iter = block.NewIterator();
   for (auto i = 0; i != num_values; ++i) {
-    ASSERT_THAT(iter.has_value(), Eq(true));
+    const auto expected_value = generator->Generate(value_size);
+    ASSERT_TRUE(iter.has_value());
     if (i % 2 == 0) {
-      ASSERT_THAT(iter.deleted(), Eq(true));
+      ASSERT_TRUE(iter.deleted());
     } else {
-      ASSERT_THAT(iter.deleted(), Eq(false));
-      ByteArray170 value;
-      ASSERT_THAT(iter.value(), Eq(value.ToBytes()));
+      ASSERT_FALSE(iter.deleted());
+      ASSERT_THAT(iter.value(), Eq(expected_value));
     }
-    iter.advance();
+    iter.next();
   }
-  ASSERT_THAT(iter.has_value(), Eq(false));
+  ASSERT_FALSE(iter.has_value());
 }
 
-TEST(BlockTest, AddLargeValuesAndDeleteEvery2ndWhileIterating) {
-  const auto num_values = 100;
-  const auto required_size =
-      (Block::kSizeOfValueSizeField + ByteArray21845::kSize) * num_values;
-  byte data[required_size];
-  Block block(data, sizeof data);
-  for (auto i = 0; i != num_values; ++i) {
-    ByteArray21845 value;
-    ASSERT_THAT(block.Add(value.ToBytes()), Eq(true));
-  }
-
-  auto iter = block.NewIterator();
-  for (auto i = 0; i != num_values; ++i) {
-    ASSERT_THAT(iter.has_value(), Eq(true));
-    if (i % 2 == 0) {
-      iter.set_deleted();
-    }
-    iter.advance();
-  }
-  ASSERT_THAT(iter.has_value(), Eq(false));
-
-  iter = block.NewIterator();
-  for (auto i = 0; i != num_values; ++i) {
-    ASSERT_THAT(iter.has_value(), Eq(true));
-    if (i % 2 == 0) {
-      ASSERT_THAT(iter.deleted(), Eq(true));
-    } else {
-      ASSERT_THAT(iter.deleted(), Eq(false));
-      ByteArray21845 value;
-      ASSERT_THAT(iter.value(), Eq(value.ToBytes()));
-    }
-    iter.advance();
-  }
-  ASSERT_THAT(iter.has_value(), Eq(false));
-}
+INSTANTIATE_TEST_CASE_P(Parameterized, BlockTestParam,
+                        testing::Values(100, 10000));
 
 TEST(SuperBlockTest, IsDefaultConstructible) {
   ASSERT_THAT(std::is_default_constructible<SuperBlock>::value, Eq(true));

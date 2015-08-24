@@ -64,7 +64,6 @@ List::Iter<false>::Iter(Head* head, Block* last_block,
 
 template <>
 void List::Iter<false>::Delete() {
-  assert(HasValue());  // Assert no double deletion
   block_iter_.set_deleted();
   ++head_->num_values_deleted;
   if (state_.cached_blocks_index < cached_blocks_.size()) {
@@ -74,7 +73,7 @@ void List::Iter<false>::Delete() {
 }
 
 template <>
-void List::Iter<false>::ReplaceChangedBlocks() {
+void List::Iter<false>::WriteBackMutatedBlocks() {
   if (replace_blocks_callback_) {
     replace_blocks_callback_(cached_blocks_);
     // last_block_ is in-memory and therefore updated in-place.
