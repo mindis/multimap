@@ -13,6 +13,7 @@ INCLUDEPATH += \
 HEADERS += \
     $$PWD/src/cpp/multimap/internal/AutoCloseFile.hpp \
     $$PWD/src/cpp/multimap/internal/Arena.hpp \
+    $$PWD/src/cpp/multimap/internal/Base64.hpp \
     $$PWD/src/cpp/multimap/internal/Block.hpp \
     $$PWD/src/cpp/multimap/internal/BlockPool.hpp \
     $$PWD/src/cpp/multimap/internal/Callbacks.hpp \
@@ -29,10 +30,11 @@ HEADERS += \
     $$PWD/src/cpp/multimap/Iterator.hpp \
     $$PWD/src/cpp/multimap/Options.hpp \
     $$PWD/src/cpp/multimap/Map.hpp \
-    $$PWD/src/cpp/multimap/Callables.hpp \
+    $$PWD/src/cpp/multimap/Callables.hpp
 
 SOURCES += \
     $$PWD/src/cpp/multimap/internal/Arena.cpp \
+    $$PWD/src/cpp/multimap/internal/Base64.cpp \
     $$PWD/src/cpp/multimap/internal/Check.cpp \
     $$PWD/src/cpp/multimap/internal/Block.cpp \
     $$PWD/src/cpp/multimap/internal/BlockPool.cpp \
