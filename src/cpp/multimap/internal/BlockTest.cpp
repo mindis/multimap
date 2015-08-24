@@ -29,42 +29,6 @@
 namespace multimap {
 namespace internal {
 
-/*
-namespace {
-
-template <std::size_t Size>
-struct ByteArray : public std::array<byte, Size> {
-  static const std::size_t kSize = Size;
-
-  ByteArray() {
-    for (std::size_t i = 0; i != Size; ++i) {
-      (*this)[i] = std::numeric_limits<byte>::max() - i;
-    }
-  }
-
-  Bytes ToBytes() const { return Bytes(this->data(), this->size()); }
-};
-
-typedef ByteArray<170> ByteArray170;      // ::kSize -> 10101010
-typedef ByteArray<21845> ByteArray21845;  // ::kSize -> 101010101010101
-
-static_assert(
-    (ByteArray170::kSize >
-     static_cast<std::size_t>(std::numeric_limits<std::int8_t>::max())) &&
-        (ByteArray170::kSize <=
-         static_cast<std::size_t>(std::numeric_limits<std::uint8_t>::max())),
-    "size of ByteArray100 does not need 8 bits to be stored");
-
-static_assert(
-    (ByteArray21845::kSize >
-     static_cast<std::size_t>(std::numeric_limits<std::uint8_t>::max())) &&
-        (ByteArray21845::kSize <=
-         static_cast<std::size_t>(std::numeric_limits<std::int16_t>::max())),
-    "size of ByteArray1000 does not need 15 bits to be stored");
-
-}  // namespace
-*/
-
 using testing::Eq;
 using testing::Ne;
 using testing::Gt;
