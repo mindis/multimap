@@ -54,9 +54,9 @@ void RunWriteCommand(const po::variables_map& variables) {
 
   const auto one_million = 1000000;
   const auto ten_million = 10 * one_million;
-  multimap::internal::Generator generator(nkeys);
+  auto random = multimap::internal::RandomGenerator::New(nkeys);
   for (std::size_t i = 0; i != nvalues_total;) {
-    map.Put(generator.Generate(42), generator.Generate(23));
+    map.Put(random->Generate(42), random->Generate(23));
     if (++i % ten_million == 0) {
       const auto num_written = i / one_million;
       multimap::internal::System::Log() << num_written << "M values written\n";
@@ -64,12 +64,14 @@ void RunWriteCommand(const po::variables_map& variables) {
   }
   map.PrintProperties();
 }
-// time ./multimap-benchmarks --write --to /media/disk2/multimap/ --nkeys 100000 --nvalues 1000
+// time ./multimap-benchmarks --write --to /media/disk2/multimap/ --nkeys 100000
+// --nvalues 1000
 // real 2m17.776s
 // user 2m6.780s
 // sys  0m1.876s
 //
-// time ./multimap-benchmarks --write --to /media/disk2/multimap/ --nkeys 100000 --nvalues 2000
+// time ./multimap-benchmarks --write --to /media/disk2/multimap/ --nkeys 100000
+// --nvalues 2000
 // real 4m26.646s
 // user 4m12.912s
 // sys  0m3.980s
@@ -95,22 +97,26 @@ void RunReadCommand(const po::variables_map& variables) {
     }
   });
 }
-// time ./multimap-benchmarks --read --from /media/disk2/multimap (--nkeys 100000 --nvalues 1000)
+// time ./multimap-benchmarks --read --from /media/disk2/multimap (--nkeys
+// 100000 --nvalues 1000)
 // real 0m49.474s
 // user 0m1.460s
 // sys  0m3.024s
 //
-// time ./multimap-benchmarks --read --from /media/disk2/multimap (--nkeys 100000 --nvalues 2000) run #1
+// time ./multimap-benchmarks --read --from /media/disk2/multimap (--nkeys
+// 100000 --nvalues 2000) run #1
 // real 74m22.456s
 // user 0m5.856s
 // sys  0m44.103s
 //
-// time ./multimap-benchmarks --read --from /media/disk2/multimap (--nkeys 100000 --nvalues 2000) run #2
+// time ./multimap-benchmarks --read --from /media/disk2/multimap (--nkeys
+// 100000 --nvalues 2000) run #2
 // real 0m7.222s
 // user 0m2.432s
 // sys  0m4.656s
 //
-// time ./multimap-benchmarks --read --from /media/disk2/multimap (--nkeys 100000 --nvalues 2000) with aio
+// time ./multimap-benchmarks --read --from /media/disk2/multimap (--nkeys
+// 100000 --nvalues 2000) with aio
 // real 41m48.499s
 // user 0m14.069s
 // sys  0m37.522s
@@ -125,19 +131,20 @@ void RunCopyCommand(const po::variables_map& variables) {
 
 // TODO Add options for block-size and sort.
 // http://unix.stackexchange.com/questions/87908/how-do-you-empty-the-buffers-and-cache-on-a-linux-system
-// ~/bin/linux-fincore --pages=false --summarize --only-cached /media/disk2/multimap/*
+// ~/bin/linux-fincore --pages=false --summarize --only-cached
+// /media/disk2/multimap/*
 // sudo sh -c 'echo {1,2,3} >/proc/sys/vm/drop_caches'
 int main(int argc, char* argv[]) {
   po::options_description commands_description("COMMANDS");
-  commands_description.add_options()(
-      "help", "Print this help message and exit.")(
+  commands_description.add_options()("help",
+                                     "Print this help message and exit.")(
       "write", "Write a Multimap to directory.")(
       "read", "Read a Multimap from directory.")(
       "copy", "Copy a Multimap from one directory to another.");
 
   po::options_description options_description("OPTIONS");
-  options_description.add_options()(
-      "from", po::value<std::string>(), "Directory to read a Multimap from.")(
+  options_description.add_options()("from", po::value<std::string>(),
+                                    "Directory to read a Multimap from.")(
       "to", po::value<std::string>(), "Directory to write a Multimap to.")(
       "nkeys", po::value<std::size_t>(), "Number of keys to put.")(
       "nvalues", po::value<std::size_t>(), "Number of values per key to put.");

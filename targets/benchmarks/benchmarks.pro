@@ -11,7 +11,6 @@ HEADERS += \
     ../../sources/cpp/multimap/internal/Generator.hpp
 
 SOURCES += \
-    ../../sources/cpp/multimap/RunBenchmarks.cpp \
-    ../../sources/cpp/multimap/internal/Generator.cpp
+    ../../sources/cpp/multimap/RunBenchmarks.cpp
 
 unix: LIBS += -lboost_program_options
