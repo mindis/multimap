@@ -121,6 +121,12 @@ void Copy(const boost::filesystem::path& from,
           const boost::filesystem::path& to, const Callables::Compare& compare,
           std::size_t new_block_size);
 
+void Import(const boost::filesystem::path& directory,
+            const boost::filesystem::path& file);
+
+void Export(const boost::filesystem::path& directory,
+            const boost::filesystem::path& file);
+
 }  // namespace multimap
 
 #endif  // MULTIMAP_MAP_HPP

@@ -17,8 +17,10 @@
 
 #include "multimap/Map.hpp"
 #include <algorithm>
+#include <fstream>
 #include <boost/filesystem/operations.hpp>
 #include "multimap/internal/Check.hpp"
+#include "multimap/internal/Base64.hpp"
 
 namespace multimap {
 
@@ -361,6 +363,68 @@ void Copy(const boost::filesystem::path& from,
 
   std::fclose(to_table_file);
   std::fclose(from_table_file);
+}
+
+void Import(const boost::filesystem::path& directory,
+            const boost::filesystem::path& file) {
+  Options options;
+  options.verbose = true;
+  Map map(directory, options);
+  std::ifstream ifs(file.string());
+  internal::Check(ifs, "Cannot open '%s'.", file.c_str());
+
+  std::string base64_key;
+  std::string binary_key;
+  std::string base64_value;
+  std::string binary_value;
+  if (ifs >> base64_key) {
+    internal::Base64::Decode(base64_key, &binary_key);
+    while (ifs) {
+      switch (ifs.peek()) {
+        case '\n':
+        case '\r':
+          ifs >> base64_key;
+          internal::Base64::Decode(base64_key, &binary_key);
+          break;
+        case '\f':
+        case '\t':
+        case '\v':
+        case ' ':
+          ifs.ignore();
+          break;
+        default:
+          ifs >> base64_value;
+          internal::Base64::Decode(base64_value, &binary_value);
+          map.Put(binary_key, binary_value);
+      }
+    }
+  }
+}
+
+void Export(const boost::filesystem::path& directory,
+            const boost::filesystem::path& file) {
+  Map map(directory, Options());
+  std::ofstream ofs(file.string());
+  internal::Check(ofs, "Cannot create '%s'.", file.c_str());
+
+  std::string base64_key;
+  std::string base64_value;
+  map.ForEachKey([&](const Bytes& binary_key) {
+    auto iter = map.Get(binary_key);
+    iter.SeekToFirst();
+    if (iter.HasValue()) {
+      internal::Base64::Encode(binary_key, &base64_key);
+      internal::Base64::Encode(iter.GetValue(), &base64_value);
+      ofs << base64_key << ' ' << base64_value;
+      iter.Next();
+    }
+    while (iter.HasValue()) {
+      internal::Base64::Encode(iter.GetValue(), &base64_value);
+      ofs << ' ' << base64_value;
+      iter.Next();
+    }
+    ofs << '\n';
+  });
 }
 
 }  // namespace multimap

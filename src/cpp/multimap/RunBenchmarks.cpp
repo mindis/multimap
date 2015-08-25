@@ -129,6 +129,26 @@ void RunCopyCommand(const po::variables_map& variables) {
                  variables["to"].as<std::string>());
 }
 
+void RunImportCommand(const po::variables_map& variables) {
+  CheckOption(variables, "from");
+  CheckOption(variables, "to");
+
+  multimap::Import(variables["to"].as<std::string>(),
+                   variables["from"].as<std::string>());
+}
+
+void RunExportCommand(const po::variables_map& variables) {
+  CheckOption(variables, "from");
+  CheckOption(variables, "to");
+
+  multimap::Export(variables["from"].as<std::string>(),
+                   variables["to"].as<std::string>());
+}
+// time ./benchmarks --export --from /media/disk2/multimap --to /tmp/multimap-export.csv (--nkeys 100000 --nvalues 2000))
+// real 176m9.858s
+// user 3m9.320s
+// sys  1m38.142s
+
 // TODO Add options for block-size and sort.
 // http://unix.stackexchange.com/questions/87908/how-do-you-empty-the-buffers-and-cache-on-a-linux-system
 // ~/bin/linux-fincore --pages=false --summarize --only-cached
@@ -140,12 +160,14 @@ int main(int argc, char* argv[]) {
                                      "Print this help message and exit.")(
       "write", "Write a Multimap to directory.")(
       "read", "Read a Multimap from directory.")(
-      "copy", "Copy a Multimap from one directory to another.");
+      "copy", "Copy a Multimap from one directory to another.")(
+      "import", "Import base64 encoded csv data into a Multimap.")(
+      "export", "Export a Multimap to a base64 encoded csv file.");
 
   po::options_description options_description("OPTIONS");
   options_description.add_options()("from", po::value<std::string>(),
-                                    "Directory to read a Multimap from.")(
-      "to", po::value<std::string>(), "Directory to write a Multimap to.")(
+                                    "Directory or file to read from.")(
+      "to", po::value<std::string>(), "Directory or file to write to.")(
       "nkeys", po::value<std::size_t>(), "Number of keys to put.")(
       "nvalues", po::value<std::size_t>(), "Number of values per key to put.");
 
@@ -165,6 +187,10 @@ int main(int argc, char* argv[]) {
       RunReadCommand(variables);
     } else if (variables.count("copy")) {
       RunCopyCommand(variables);
+    } else if (variables.count("import")) {
+      RunImportCommand(variables);
+    } else if (variables.count("export")) {
+      RunExportCommand(variables);
     } else {
       std::cout << "Try with --help\n";
     }
