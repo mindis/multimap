@@ -75,6 +75,11 @@ void RunWriteCommand(const po::variables_map& variables) {
 // real 4m26.646s
 // user 4m12.912s
 // sys  0m3.980s
+//
+// time ./benchmarks --write --to /media/disk2/multimap/ --nkeys 100000 --nvalues 2000 (block size 4096)
+// real 4m9.552s
+// user 4m0.355s
+// sys  0m2.496s
 
 void RunReadCommand(const po::variables_map& variables) {
   CheckOption(variables, "from");
@@ -120,6 +125,11 @@ void RunReadCommand(const po::variables_map& variables) {
 // real 41m48.499s
 // user 0m14.069s
 // sys  0m37.522s
+//
+// time ./benchmarks --read --from /media/disk2/multimap/ (--nkeys 100000 --nvalues 2000) (block size 4096)
+// real 30m34.760s
+// user 0m8.573s
+// sys  0m22.769s
 
 void RunCopyCommand(const po::variables_map& variables) {
   CheckOption(variables, "from");
