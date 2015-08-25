@@ -64,13 +64,13 @@ void RunWriteCommand(const po::variables_map& variables) {
   }
   map.PrintProperties();
 }
-// time ./multimap-benchmarks --write --to /media/disk2/multimap/ --nkeys 100000
+// time ./benchmarks --write --to /media/disk2/multimap/ --nkeys 100000
 // --nvalues 1000
 // real 2m17.776s
 // user 2m6.780s
 // sys  0m1.876s
 //
-// time ./multimap-benchmarks --write --to /media/disk2/multimap/ --nkeys 100000
+// time ./benchmarks --write --to /media/disk2/multimap/ --nkeys 100000
 // --nvalues 2000
 // real 4m26.646s
 // user 4m12.912s
@@ -97,25 +97,25 @@ void RunReadCommand(const po::variables_map& variables) {
     }
   });
 }
-// time ./multimap-benchmarks --read --from /media/disk2/multimap (--nkeys
+// time ./benchmarks --read --from /media/disk2/multimap (--nkeys
 // 100000 --nvalues 1000)
 // real 0m49.474s
 // user 0m1.460s
 // sys  0m3.024s
 //
-// time ./multimap-benchmarks --read --from /media/disk2/multimap (--nkeys
+// time ./benchmarks --read --from /media/disk2/multimap (--nkeys
 // 100000 --nvalues 2000) run #1
 // real 74m22.456s
 // user 0m5.856s
 // sys  0m44.103s
 //
-// time ./multimap-benchmarks --read --from /media/disk2/multimap (--nkeys
+// time ./benchmarks --read --from /media/disk2/multimap (--nkeys
 // 100000 --nvalues 2000) run #2
 // real 0m7.222s
 // user 0m2.432s
 // sys  0m4.656s
 //
-// time ./multimap-benchmarks --read --from /media/disk2/multimap (--nkeys
+// time ./benchmarks --read --from /media/disk2/multimap (--nkeys
 // 100000 --nvalues 2000) with aio
 // real 41m48.499s
 // user 0m14.069s
