@@ -112,11 +112,6 @@ List::Iterator List::NewIterator(
                   replace_blocks_callback);
 }
 
-List::ConstIterator List::NewIterator(
-    const Callbacks::RequestBlocks& request_blocks_callback) const {
-  return ConstIterator(head_, block_, request_blocks_callback);
-}
-
 List::ConstIterator List::NewConstIterator(
     const Callbacks::RequestBlocks& request_blocks_callback) const {
   return ConstIterator(head_, block_, request_blocks_callback);

@@ -147,9 +147,6 @@ class List {
   Iterator NewIterator(const Callbacks::RequestBlocks& request_blocks_callback,
                        const Callbacks::ReplaceBlocks& replace_blocks_callback);
 
-  ConstIterator NewIterator(
-      const Callbacks::RequestBlocks& request_blocks_callback) const;
-
   ConstIterator NewConstIterator(
       const Callbacks::RequestBlocks& request_blocks_callback) const;
 

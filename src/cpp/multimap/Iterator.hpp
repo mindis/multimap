@@ -79,7 +79,7 @@ inline Iterator<true>::Iterator(
     const internal::Callbacks::RequestBlocks& request_blocks_callback)
     : list_lock_(std::move(list_lock)) {
   if (list_lock_.clist()) {
-    list_iter_ = list_lock_.clist()->NewIterator(request_blocks_callback);
+    list_iter_ = list_lock_.clist()->NewConstIterator(request_blocks_callback);
   }
 }
 
