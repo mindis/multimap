@@ -30,10 +30,10 @@ inline std::size_t GiB(std::size_t gibibytes) { return gibibytes << 30; }
 
 struct Options {
   // The size of a data block in bytes.
-  std::size_t block_size = 512;
+  std::size_t block_size = 4096;
 
   // The size of the in-memory block pool in bytes.
-  std::size_t block_pool_memory = GiB(1);
+  std::size_t block_pool_memory = GiB(2);
 
   bool create_if_missing = false;
 
