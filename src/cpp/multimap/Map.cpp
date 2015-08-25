@@ -165,6 +165,20 @@ void Map::ForEachKey(Callables::Procedure procedure) const {
   table_.ForEachKey(procedure);
 }
 
+void Map::ForEachValue(const Bytes& key, Callables::Procedure procedure) const {
+  const auto list_lock = table_.GetShared(key);
+  if (list_lock.has_list()) {
+    list_lock.list()->ForEach(procedure, callbacks_.request_blocks);
+  }
+}
+
+void Map::ForEachValue(const Bytes& key, Callables::Predicate predicate) const {
+  const auto list_lock = table_.GetShared(key);
+  if (list_lock.has_list()) {
+    list_lock.list()->ForEach(predicate, callbacks_.request_blocks);
+  }
+}
+
 // TODO Make thread-safe.
 // TODO Property names need improvement.
 std::map<std::string, std::string> Map::GetProperties() const {

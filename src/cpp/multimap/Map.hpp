@@ -74,6 +74,10 @@ class Map {
 
   void ForEachKey(Callables::Procedure procedure) const;
 
+  void ForEachValue(const Bytes& key, Callables::Procedure procedure) const;
+
+  void ForEachValue(const Bytes& key, Callables::Predicate predicate) const;
+
   std::map<std::string, std::string> GetProperties() const;
 
   void PrintProperties() const;
