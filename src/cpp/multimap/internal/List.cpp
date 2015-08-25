@@ -117,6 +117,26 @@ List::ConstIterator List::NewConstIterator(
   return ConstIterator(head_, block_, request_blocks_callback);
 }
 
+void List::ForEach(
+    const Callables::Procedure& procedure,
+    const Callbacks::RequestBlocks& request_blocks_callback) const {
+  auto iter = NewConstIterator(request_blocks_callback);
+  for (iter.SeekToFirst(); iter.HasValue(); iter.Next()) {
+    procedure(iter.GetValue());
+  }
+}
+
+void List::ForEach(
+    const Callables::Predicate& predicate,
+    const Callbacks::RequestBlocks& request_blocks_callback) const {
+  auto iter = NewConstIterator(request_blocks_callback);
+  for (iter.SeekToFirst(); iter.HasValue(); iter.Next()) {
+    if (!predicate(iter.GetValue())) {
+      break;
+    }
+  }
+}
+
 List::Head List::Copy(const Head& head, const DataFile& from_data_file,
                       BlockPool* from_block_pool, DataFile* to_data_file,
                       BlockPool* to_block_pool,

@@ -150,6 +150,12 @@ class List {
   ConstIterator NewConstIterator(
       const Callbacks::RequestBlocks& request_blocks_callback) const;
 
+  void ForEach(const Callables::Procedure& procedure,
+               const Callbacks::RequestBlocks& request_blocks_callback) const;
+
+  void ForEach(const Callables::Predicate& predicate,
+               const Callbacks::RequestBlocks& request_blocks_callback) const;
+
   static Head Copy(const Head& head, const DataFile& from_data_file,
                    BlockPool* from_block_pool, DataFile* to_data_file,
                    BlockPool* to_block_pool, const Callables::Compare& compare);
