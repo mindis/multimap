@@ -153,7 +153,9 @@ void RunExportCommand(const po::variables_map& variables) {
 // http://unix.stackexchange.com/questions/87908/how-do-you-empty-the-buffers-and-cache-on-a-linux-system
 // ~/bin/linux-fincore --pages=false --summarize --only-cached
 // /media/disk2/multimap/*
-// sudo sh -c 'echo {1,2,3} >/proc/sys/vm/drop_caches'
+// sudo sh -c 'echo 1 >/proc/sys/vm/drop_caches'
+// sudo sh -c 'echo 2 >/proc/sys/vm/drop_caches'
+// sudo sh -c 'echo 3 >/proc/sys/vm/drop_caches'
 int main(int argc, char* argv[]) {
   po::options_description commands_description("COMMANDS");
   commands_description.add_options()("help",
