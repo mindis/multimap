@@ -176,7 +176,7 @@ class SuperBlock {
  public:
   static const std::uint32_t kMajorVersion = 0;
   static const std::uint32_t kMinorVersion = 2;
-  static const std::uint32_t kSerializedSize = 512;
+  static const std::uint32_t kSerializedSize = 4096;
 
   static SuperBlock ReadFromFd(int fd);
 
