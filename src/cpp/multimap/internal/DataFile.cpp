@@ -68,7 +68,7 @@ DataFile::~DataFile() {
 
 void DataFile::Open(const boost::filesystem::path& path) {
   fd_ = System::Open(path);
-  Check(fd_ != -1, "Could not open '%s' in read/write mode.", path.c_str());
+  Check(fd_ != -1, "Could not open '%s'.", path.c_str());
   super_block_ = SuperBlock::ReadFromFd(fd_);
   CheckVersion(super_block_.major_version, super_block_.minor_version);
   path_ = path;
@@ -87,7 +87,7 @@ void DataFile::Open(const boost::filesystem::path& path,
     Check(IsPowerOfTwo(block_size), "block_size must be a power of two.");
     super_block_.block_size = block_size;
     fd_ = System::Open(path, true);
-    Check(fd_ != -1, "Could not create '%s' in read/write mode.", path.c_str());
+    Check(fd_ != -1, "Could not create '%s'.", path.c_str());
     super_block_.WriteToFd(fd_);
     System::Close(fd_);
   }
