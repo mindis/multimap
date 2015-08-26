@@ -30,10 +30,12 @@ class Generator {
  public:
   virtual std::string Generate() = 0;
 
-  std::string Generate(std::size_t min_size) {
+  std::string Generate(std::size_t len) {
     auto value = this->Generate();
-    if (value.size() < min_size) {
-      value.append(min_size - value.size(), 'x');
+    if (value.size() < len) {
+      value.append(len - value.size(), 'x');
+    } else if (value.size() > len) {
+      value.erase(len);
     }
     return value;
   }
