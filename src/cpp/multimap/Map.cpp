@@ -170,7 +170,7 @@ void Map::Open(const boost::filesystem::path& directory,
     const auto num_blocks = options_.write_buffer_size / options_.block_size;
     block_pool_.Init(num_blocks, options_.block_size);
 
-    internal::DataFile::Options store_options;
+    internal::Store::Options store_options;
     store_options.block_size = options_.block_size;
     store_.Open(path_to_store, store_options);
     table_.Open(path_to_table);
@@ -182,10 +182,10 @@ void Map::Open(const boost::filesystem::path& directory,
     const auto num_blocks = options_.write_buffer_size / options_.block_size;
     block_pool_.Init(num_blocks, options_.block_size);
 
-    internal::DataFile::Options data_file_opts;
-    data_file_opts.block_size = options_.block_size;
-    data_file_opts.create_if_missing = true;
-    store_.Open(path_to_store, data_file_opts);
+    internal::Store::Options store_options;
+    store_options.block_size = options_.block_size;
+    store_options.create_if_missing = true;
+    store_.Open(path_to_store, store_options);
     table_.Open(path_to_table, true);
 
   } else {

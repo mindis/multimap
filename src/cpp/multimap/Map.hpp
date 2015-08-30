@@ -27,7 +27,7 @@
 #include "multimap/internal/AutoCloseFile.hpp"
 #include "multimap/internal/BlockPool.hpp"
 #include "multimap/internal/Callbacks.hpp"
-#include "multimap/internal/DataFile.hpp"
+#include "multimap/internal/Store.hpp"
 #include "multimap/internal/Table.hpp"
 #include "multimap/internal/System.hpp"
 
@@ -101,7 +101,7 @@ class Map {
   internal::System::DirectoryLockGuard directory_lock_guard_;
   internal::Callbacks callbacks_;
   internal::BlockPool block_pool_;
-  internal::DataFile store_;
+  internal::Store store_;
   internal::Table table_;
   Options options_;
 };

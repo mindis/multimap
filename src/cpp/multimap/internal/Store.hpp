@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTIMAP_INTERNAL_DATA_FILE_HPP
-#define MULTIMAP_INTERNAL_DATA_FILE_HPP
+#ifndef MULTIMAP_INTERNAL_STORE_HPP
+#define MULTIMAP_INTERNAL_STORE_HPP
 
 #include <map>
 #include <mutex>
@@ -27,7 +27,7 @@
 namespace multimap {
 namespace internal {
 
-class DataFile {
+class Store {
  public:
   struct Stats {
     std::size_t block_size = 0;
@@ -47,11 +47,11 @@ class DataFile {
     std::size_t remap_every_nblocks = 1024;
   };
 
-  DataFile();
+  Store();
 
-  DataFile(const boost::filesystem::path& path, const Options& options);
+  Store(const boost::filesystem::path& path, const Options& options);
 
-  ~DataFile();
+  ~Store();
 
   void Open(const boost::filesystem::path& path, const Options& options);
 
@@ -99,4 +99,4 @@ class DataFile {
 }  // namespace internal
 }  // namespace multimap
 
-#endif  // MULTIMAP_INTERNAL_DATA_FILE_HPP
+#endif  // MULTIMAP_INTERNAL_STORE_HPP

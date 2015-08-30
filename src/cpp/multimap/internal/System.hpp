@@ -72,8 +72,7 @@ struct System {
 
     void Lock(const boost::filesystem::path& path);
 
-    void Lock(const boost::filesystem::path& path,
-              const std::string filename);
+    void Lock(const boost::filesystem::path& path, const std::string filename);
 
     const boost::filesystem::path& path() const;
 

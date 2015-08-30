@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "multimap/internal/DataFile.hpp"
+#include "multimap/internal/Store.hpp"
 #include <aio.h>
 #include <errno.h>
 #include <unistd.h>
@@ -28,11 +28,11 @@
 namespace multimap {
 namespace internal {
 
-std::map<std::string, std::string> DataFile::Stats::ToMap() const {
+std::map<std::string, std::string> Store::Stats::ToMap() const {
   return ToMap("");
 }
 
-std::map<std::string, std::string> DataFile::Stats::ToMap(
+std::map<std::string, std::string> Store::Stats::ToMap(
     const std::string& prefix) const {
   auto prefix_copy = prefix;
   if (!prefix_copy.empty()) {
@@ -42,24 +42,24 @@ std::map<std::string, std::string> DataFile::Stats::ToMap(
   map[prefix_copy + "block_size"] = std::to_string(block_size);
   map[prefix_copy + "num_blocks"] = std::to_string(num_blocks);
   map[prefix_copy + "load_factor_avg"] = std::to_string(load_factor_avg);
-//  map[prefix_copy + "load_factor_max"] = std::to_string(load_factor_max);
-//  map[prefix_copy + "load_factor_min"] = std::to_string(load_factor_min);
+  //  map[prefix_copy + "load_factor_max"] = std::to_string(load_factor_max);
+  //  map[prefix_copy + "load_factor_min"] = std::to_string(load_factor_min);
   return map;
 }
 
-DataFile::DataFile()
+Store::Store()
     : num_blocks_written_(0),
       num_blocks_mapped_(0),
       load_factor_total_(0),
       data_(nullptr),
       fd_(-1) {}
 
-DataFile::DataFile(const boost::filesystem::path& path, const Options& options)
-    : DataFile() {
+Store::Store(const boost::filesystem::path& path, const Options& options)
+    : Store() {
   Open(path, options);
 }
 
-DataFile::~DataFile() {
+Store::~Store() {
   try {
     Close();
   } catch (std::exception& error) {
@@ -67,8 +67,7 @@ DataFile::~DataFile() {
   }
 }
 
-void DataFile::Open(const boost::filesystem::path& path,
-                    const Options& options) {
+void Store::Open(const boost::filesystem::path& path, const Options& options) {
   assert(fd_ == -1);
   assert(options.block_size != 0);
 
@@ -101,7 +100,7 @@ void DataFile::Open(const boost::filesystem::path& path,
   options_ = options;
 }
 
-void DataFile::Close() {
+void Store::Close() {
   if (fd_ != -1) {
     const auto status = close(fd_);
     Check(status != -1, "%s: close() failed.", __PRETTY_FUNCTION__);
@@ -109,7 +108,7 @@ void DataFile::Close() {
   }
 }
 
-std::uint32_t DataFile::Append(const Block& block) {
+std::uint32_t Store::Append(const Block& block) {
   assert(fd_ != -1);
   assert(block.size() == options_.block_size);
 
@@ -143,7 +142,7 @@ std::uint32_t DataFile::Append(const Block& block) {
   return num_blocks_written_ - 1;
 }
 
-void DataFile::Read(std::uint32_t block_id, Block* block, Arena* arena) const {
+void Store::Read(std::uint32_t block_id, Block* block, Arena* arena) const {
   assert(fd_ != -1);
   assert(block != nullptr);
   assert(block_id < num_blocks_written_);
@@ -166,7 +165,7 @@ void DataFile::Read(std::uint32_t block_id, Block* block, Arena* arena) const {
   }
 }
 
-void DataFile::Read(std::vector<BlockWithId>* blocks, Arena* arena) const {
+void Store::Read(std::vector<BlockWithId>* blocks, Arena* arena) const {
   assert(fd_ != -1);
   assert(blocks != nullptr);
 
@@ -211,7 +210,7 @@ void DataFile::Read(std::vector<BlockWithId>* blocks, Arena* arena) const {
   }
 }
 
-void DataFile::Write(std::uint32_t block_id, const Block& block) {
+void Store::Write(std::uint32_t block_id, const Block& block) {
   assert(fd_ != -1);
   assert(block_id < num_blocks_written_);
   assert(block.size() == options_.block_size);
@@ -227,7 +226,7 @@ void DataFile::Write(std::uint32_t block_id, const Block& block) {
   }
 }
 
-void DataFile::Write(const std::vector<BlockWithId>& blocks) {
+void Store::Write(const std::vector<BlockWithId>& blocks) {
   assert(fd_ != -1);
 
   std::vector<aiocb64> aio_list;
@@ -265,7 +264,7 @@ void DataFile::Write(const std::vector<BlockWithId>& blocks) {
 }
 
 // https://bitbucket.org/mtrenkmann/multimap/issues/11
-DataFile::Stats DataFile::GetStats() const {
+Store::Stats Store::GetStats() const {
   const std::lock_guard<std::mutex> lock(mutex_);
   Stats stats;
   stats.block_size = options_.block_size;
@@ -278,21 +277,21 @@ DataFile::Stats DataFile::GetStats() const {
   return stats;
 }
 
-const boost::filesystem::path& DataFile::path() const {
+const boost::filesystem::path& Store::path() const {
   // Is read-only after Open and needs no locking.
   return path_;
 }
 
-const DataFile::Options& DataFile::options() const {
+const Store::Options& Store::options() const {
   // Is read-only after Open and needs no locking.
   return options_;
 }
 
-std::uint64_t DataFile::offset(std::uint32_t block_id) const {
+std::uint64_t Store::offset(std::uint32_t block_id) const {
   return options_.block_size * block_id;
 }
 
-char* DataFile::address(std::uint32_t block_id) const {
+char* Store::address(std::uint32_t block_id) const {
   return static_cast<char*>(data_) + offset(block_id);
 }
 
