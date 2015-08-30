@@ -168,35 +168,10 @@ static_assert(HasExpectedSize<Block, 16, 16>::value,
 
 bool operator==(const Block& lhs, const Block& rhs);
 
-//  1    SerializedSize
-// +-------------------+
-// |     meta data     |
-// +-------------------+
-class SuperBlock {
- public:
-  static const std::uint32_t kMajorVersion = 0;
-  static const std::uint32_t kMinorVersion = 2;
-  static const std::uint32_t kSerializedSize = 4096;
-
-  static SuperBlock ReadFromFd(int fd);
-
-  void WriteToFd(int fd) const;
-
-  std::uint32_t major_version = kMajorVersion;
-  std::uint32_t minor_version = kMinorVersion;
-  std::uint32_t block_size = 0;
-
-  std::uint64_t num_values_total = 0;
-  std::uint64_t num_values_deleted = 0;
-  std::uint64_t num_blocks = 0;
-
-  double load_factor_total = 0;
-} __attribute__((packed));
-
-static_assert(sizeof(SuperBlock) <= SuperBlock::kSerializedSize,
-              "sizeof(SuperBlock) > SuperBlock::kSerializedSize");
-
-bool operator==(const SuperBlock& lhs, const SuperBlock& rhs);
+struct BlockWithId : Block {
+  std::uint32_t id = -1;
+  bool ignore = false;
+};
 
 }  // namespace internal
 }  // namespace multimap

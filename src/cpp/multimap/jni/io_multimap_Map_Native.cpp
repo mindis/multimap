@@ -65,7 +65,7 @@ multimap::Options MakeOptions(JNIEnv* env, jstring joptions) {
     if (entry.first == "block-size") {
       options.block_size = std::stoul(entry.second);
     } else if (entry.first == "block-pool-memory") {
-      options.block_pool_memory = std::stoul(entry.second);
+      options.write_buffer_size = std::stoul(entry.second);
     } else if (entry.first == "create-if-missing") {
       options.create_if_missing = (entry.second == "true");
     } else if (entry.first == "error-if-exists") {

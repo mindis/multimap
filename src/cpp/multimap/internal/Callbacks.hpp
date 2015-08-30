@@ -27,26 +27,17 @@ namespace multimap {
 namespace internal {
 
 struct Callbacks {
-  struct Job {
-    Block block;
-    std::uint32_t block_id = -1;
-    bool ignore = false;
-  };
-
-  typedef std::function<Block()> AllocateBlock;
-
-  typedef std::function<void(std::vector<Block>*)> DeallocateBlocks;
+  typedef std::function<Block()> NewBlock;
 
   // Commits a block getting back an id for later identification.
   // Note that the block is moved and therefore not usable anymore.
   typedef std::function<std::uint32_t(Block&&)> CommitBlock;
 
-  typedef std::function<void(const std::vector<Job>&)> ReplaceBlocks;
+  typedef std::function<void(const std::vector<BlockWithId>&)> ReplaceBlocks;
 
-  typedef std::function<void(std::vector<Job>*, Arena*)> RequestBlocks;
+  typedef std::function<void(std::vector<BlockWithId>*, Arena*)> RequestBlocks;
 
-  AllocateBlock allocate_block;
-  DeallocateBlocks deallocate_blocks;
+  NewBlock new_block;
   CommitBlock commit_block;
   ReplaceBlocks replace_blocks;
   RequestBlocks request_blocks;

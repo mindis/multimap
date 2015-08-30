@@ -64,23 +64,5 @@ bool operator==(const Block& lhs, const Block& rhs) {
              : false;
 }
 
-SuperBlock SuperBlock::ReadFromFd(int fd) {
-  std::array<char, kSerializedSize> buffer;
-  System::Read(fd, buffer.data(), buffer.size());
-  SuperBlock super_block;
-  std::memcpy(&super_block, buffer.data(), sizeof super_block);
-  return super_block;
-}
-
-void SuperBlock::WriteToFd(int fd) const {
-  std::array<char, kSerializedSize> buffer;
-  std::memcpy(buffer.data(), this, sizeof *this);
-  System::Write(fd, buffer.data(), buffer.size());
-}
-
-bool operator==(const SuperBlock& lhs, const SuperBlock& rhs) {
-  return std::memcmp(&lhs, &rhs, sizeof lhs) == 0;
-}
-
 }  // namespace internal
 }  // namespace multimap

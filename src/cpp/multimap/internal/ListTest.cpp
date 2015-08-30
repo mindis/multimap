@@ -77,10 +77,10 @@ TEST_P(ListTestWithParam, AddValuesAndIterateAll) {
     return block_pool.Pop();
   };
 
-  std::vector<Block> blocks;
-  const auto commit_block_callback = [&blocks](Block&& block) {
-    blocks.push_back(std::move(block));
-    return blocks.size() - 1;
+  std::vector<Block> data_file;
+  const auto commit_block_callback = [&data_file](Block&& block) {
+    data_file.push_back(std::move(block));
+    return data_file.size() - 1;
   };
 
   List list;
@@ -93,16 +93,16 @@ TEST_P(ListTestWithParam, AddValuesAndIterateAll) {
   ASSERT_THAT(list.size(), Eq(GetParam()));
 
   const auto request_blocks_callback =
-      [&blocks](std::vector<Callbacks::Job>* jobs, Arena* arena) {
-    assert(jobs);
-    for (auto& job : *jobs) {
-      assert(job.block_id < blocks.size());
-      if (!job.block.has_data()) {
-        const auto block_size = blocks[job.block_id].size();
-        job.block.set_data(arena->Allocate(block_size), block_size);
+      [&data_file](std::vector<BlockWithId>* blocks, Arena* arena) {
+    assert(blocks);
+    for (auto& block : *blocks) {
+      assert(block.id < data_file.size());
+      if (!block.has_data()) {
+        assert(arena);
+        const auto block_size = data_file[block.id].size();
+        block.set_data(arena->Allocate(block_size), block_size);
       }
-      std::memcpy(job.block.data(), blocks[job.block_id].data(),
-                  job.block.size());
+      std::memcpy(block.data(), data_file[block.id].data(), block.size());
     }
   };
 

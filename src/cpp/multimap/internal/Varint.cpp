@@ -53,28 +53,28 @@ std::size_t Varint::ReadUint32(const uchar* source, std::uint32_t* target) {
 std::size_t Varint::WriteUint32(std::uint32_t source, uchar* target) {
   assert(target != nullptr);
   if (source < 0x00000040) {  // 00000000 00000000 00000000 01000000
-    target[0] = static_cast<std::uint8_t>(source);
+    target[0] = static_cast<uchar>(source);
     return 1;
   }
   if (source < 0x00004000) {  // 00000000 00000000 01000000 00000000
     source |= 0x00004000;     // 00000000 00000000 01000000 00000000
-    target[0] = static_cast<std::uint8_t>(source >> 8);
-    target[1] = static_cast<std::uint8_t>(source);
+    target[0] = static_cast<uchar>(source >> 8);
+    target[1] = static_cast<uchar>(source);
     return 2;
   }
   if (source < 0x00400000) {  // 00000000 01000000 00000000 00000000
     source |= 0x00800000;     // 00000000 10000000 00000000 00000000
-    target[0] = static_cast<std::uint8_t>(source >> 16);
-    target[1] = static_cast<std::uint8_t>(source >> 8);
-    target[2] = static_cast<std::uint8_t>(source);
+    target[0] = static_cast<uchar>(source >> 16);
+    target[1] = static_cast<uchar>(source >> 8);
+    target[2] = static_cast<uchar>(source);
     return 3;
   }
   if (source < 0x40000000) {  // 01000000 00000000 00000000 00000000
     source |= 0xC0000000;     // 11000000 00000000 00000000 00000000
-    target[0] = static_cast<std::uint8_t>(source >> 24);
-    target[1] = static_cast<std::uint8_t>(source >> 16);
-    target[2] = static_cast<std::uint8_t>(source >> 8);
-    target[3] = static_cast<std::uint8_t>(source);
+    target[0] = static_cast<uchar>(source >> 24);
+    target[1] = static_cast<uchar>(source >> 16);
+    target[2] = static_cast<uchar>(source >> 8);
+    target[3] = static_cast<uchar>(source);
     return 4;
   }
   Throw("Varint::WriteUint32 source is out of range");

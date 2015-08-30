@@ -41,11 +41,13 @@ void RunWriteCommand(const po::variables_map& variables) {
   CheckOption(variables, "to");
   CheckOption(variables, "nkeys");
   CheckOption(variables, "nvalues");
+  CheckOption(variables, "bs");
 
   multimap::Options options;
   options.verbose = true;
   options.error_if_exists = true;
   options.create_if_missing = true;
+  options.block_size = variables["bs"].as<std::size_t>();
   multimap::Map map(variables["to"].as<std::string>(), options);
 
   const auto nkeys = variables["nkeys"].as<std::size_t>();
@@ -54,15 +56,14 @@ void RunWriteCommand(const po::variables_map& variables) {
 
   const auto one_million = 1000000;
   const auto ten_million = 10 * one_million;
-  auto random = multimap::internal::RandomGenerator::New(nkeys);
+  auto gen = multimap::internal::SequenceGenerator::New();
   for (std::size_t i = 0; i != nvalues_total;) {
-    map.Put(random->Generate(42), random->Generate(23));
+    map.Put(std::to_string(i % nkeys), gen->Generate(100));
     if (++i % ten_million == 0) {
       const auto num_written = i / one_million;
       multimap::internal::System::Log() << num_written << "M values written\n";
     }
   }
-  map.PrintProperties();
 }
 // time ./benchmarks --write --to /media/disk2/multimap/ --nkeys 100000
 // --nvalues 1000
@@ -80,11 +81,52 @@ void RunWriteCommand(const po::variables_map& variables) {
 // real 4m9.552s
 // user 4m0.355s
 // sys  0m2.496s
+//
+// time ./benchmarks --write --to /media/disk2/multimap/ --nkeys 100000 --nvalues 2000 (block size 4096 incl superblock)
+// real 4m18.683s
+// user 4m13.120s
+// sys  0m2.988s
+//
+// http://leveldb.googlecode.com/svn/tags/1.17/doc/benchmark.html
+//
+// time ./benchmarks --write --to /media/disk1/multimap/ --nkeys 1000000 --nvalues 1 (block size 1024)
+// real 0m3.341s
+// user 0m2.388s
+// sys  0m0.780s
+//
+// AFTER USING MMAP
+//
+// time ./benchmarks --write --to /media/disk1/multimap/ --nkeys 100000 --nvalues 1000 --bs 512
+// real 1m42.164s
+// user 1m33.414s
+// sys  0m8.373s
+//
+// time ./benchmarks --write --to /media/disk1/multimap/ --nkeys 100000 --nvalues 2000 --bs 512
+// real 3m29.256s
+// user 3m9.988s
+// sys  0m15.693s
+//
+// time ./benchmarks --write --to /media/disk1/multimap/ --nkeys 100000 --nvalues 2000 --bs 4096
+// real 3m9.738s
+// user 3m3.219s
+// sys  0m5.420s
+//
+// time ./benchmarks --write --to /media/disk1/multimap/ --nkeys 1000000 --nvalues 1 --bs 1024
+// real 0m7.047s
+// user 0m2.600s
+// sys  0m2.132s
+//
+// time ./benchmarks --write --to /media/disk1/multimap/ --nkeys 1000000 --nvalues 1 --bs 128
+// real 0m3.146s
+// user 0m1.992s
+// sys  0m1.140s
 
 void RunReadCommand(const po::variables_map& variables) {
   CheckOption(variables, "from");
+  CheckOption(variables, "bs");
 
   multimap::Options options;
+  options.block_size = variables["bs"].as<std::size_t>();
   multimap::Map map(variables["from"].as<std::string>(), options);
 
   map.ForEachKey([&map](const multimap::Bytes& key) {
@@ -130,6 +172,50 @@ void RunReadCommand(const po::variables_map& variables) {
 // real 30m34.760s
 // user 0m8.573s
 // sys  0m22.769s
+//
+// time ./benchmarks --read --from /media/disk2/multimap/ (--nkeys 100000 --nvalues 2000) (block size 4096 incl superblock)
+// real 48m3.614s
+// user 0m9.593s
+// sys  0m33.486s
+//
+// http://leveldb.googlecode.com/svn/tags/1.17/doc/benchmark.html
+//
+// time ./benchmarks --read --from /media/disk1/multimap/ [--nkeys 1000000 --nvalues 1 (block size 1024)]
+// real 2m51.915s
+// user 0m8.229s
+// sys  0m10.305s
+//
+// AFTER USING MMAP
+//
+// time ./benchmarks --read --from /media/disk1/multimap/ --bs 512 (--nkeys 100000 --nvalues 1000)
+// real 3m4.845s
+// user 0m2.308s
+// sys  0m2.740s
+//
+// time ./benchmarks --read --from /media/disk1/multimap/ --bs 512 (--nkeys 100000 --nvalues 2000) run #1
+// real 6m8.760s
+// user 0m4.332s
+// sys  0m5.552s
+//
+// time ./benchmarks --read --from /media/disk1/multimap/ --bs 512 (--nkeys 100000 --nvalues 2000) run #2
+// real 0m4.880s
+// user 0m3.928s
+// sys  0m0.932s
+//
+// time ./benchmarks --read --from /media/disk1/multimap/ --nkeys 100000 --nvalues 2000 --bs 4096
+// real 7m44.459s
+// user 0m3.160s
+// sys  0m6.004s
+//
+// time ./benchmarks --read --from /media/disk1/multimap/ --nkeys 1000000 --nvalues 1 --bs 1024
+// real 1m13.829s
+// user 0m2.784s
+// sys  0m1.236s
+//
+// time ./benchmarks --read --from /media/disk1/multimap/ --nkeys 1000000 --nvalues 1 --bs 128
+// real 0m9.749s
+// user 0m2.272s
+// sys  0m0.240s
 
 void RunCopyCommand(const po::variables_map& variables) {
   CheckOption(variables, "from");
@@ -158,6 +244,13 @@ void RunExportCommand(const po::variables_map& variables) {
 // real 176m9.858s
 // user 3m9.320s
 // sys  1m38.142s
+//
+// AFTER USING MMAP
+//
+// time ./benchmarks --export --from /media/disk1/multimap/ --to /tmp/multimap-export.csv --bs 512
+// real 173m23.808s
+// user 135m7.251s
+// sys  0m29.298s
 
 // TODO Add options for block-size and sort.
 // http://unix.stackexchange.com/questions/87908/how-do-you-empty-the-buffers-and-cache-on-a-linux-system
@@ -181,7 +274,8 @@ int main(int argc, char* argv[]) {
                                     "Directory or file to read from.")(
       "to", po::value<std::string>(), "Directory or file to write to.")(
       "nkeys", po::value<std::size_t>(), "Number of keys to put.")(
-      "nvalues", po::value<std::size_t>(), "Number of values per key to put.");
+      "nvalues", po::value<std::size_t>(), "Number of values per key to put.")(
+      "bs", po::value<std::size_t>(), "Block size.");
 
   po::options_description cmdline_options;
   cmdline_options.add(commands_description).add(options_description);

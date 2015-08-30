@@ -59,10 +59,6 @@ TEST_F(TableTestFixture, DefaultConstructedHasProperState) {
       [&keys](const Bytes& key) { keys.push_back(key.ToString()); };
   Table().ForEachKey(procedure);
   ASSERT_TRUE(keys.empty());
-
-  for (const auto& entry : Table().GetProperties()) {
-    ASSERT_THAT(entry.second, Eq("0"));
-  }
 }
 
 TEST_F(TableTestFixture, IsNotCopyConstructibleOrAssignable) {

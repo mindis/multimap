@@ -57,71 +57,25 @@ struct System {
 
   static void Write(std::FILE* stream, const void* buf, std::size_t count);
 
-  // POSIX-style I/O wrapper.
-
-  static int Open(const boost::filesystem::path& filepath,
-                  bool create_if_missing = false);
-
-  static bool Create(const boost::filesystem::path& filepath);
-
-  static bool Remove(const boost::filesystem::path& filepath);
-
-  static void Close(int fd);
-
-  static std::uint64_t Offset(int fd);
-
-  static void Seek(int fd, std::uint64_t offset);
-
-  static void Read(int fd, void* buf, std::size_t count);
-
-  static void Read(int fd, void* buf, std::size_t count, std::uint64_t offset);
-
-  static void Write(int fd, const void* buf, std::size_t count);
-
-  static void Write(int fd, const void* buf, std::size_t count,
-                    std::uint64_t offset);
-
-  class Batch {
-   public:
-    static const std::size_t kMaxSize;
-
-    bool TryAdd(const void* data, std::size_t size);
-
-    void Add(const void* data, std::size_t size);
-
-    std::uint64_t Write(int fd) const;
-
-    std::size_t size() const;
-
-    bool empty() const;
-
-    bool full() const;
-
-    void clear();
-
-   private:
-    std::vector<iovec> items_;
-  };
-
   class DirectoryLockGuard {
    public:
     static const std::string kDefaultFilename;
 
     DirectoryLockGuard();
 
-    DirectoryLockGuard(const boost::filesystem::path& directory);
+    DirectoryLockGuard(const boost::filesystem::path& path);
 
-    DirectoryLockGuard(const boost::filesystem::path& directory,
+    DirectoryLockGuard(const boost::filesystem::path& path,
                        const std::string filename);
 
     ~DirectoryLockGuard();
 
-    void Lock(const boost::filesystem::path& directory);
+    void Lock(const boost::filesystem::path& path);
 
-    void Lock(const boost::filesystem::path& directory,
+    void Lock(const boost::filesystem::path& path,
               const std::string filename);
 
-    const boost::filesystem::path& directory() const;
+    const boost::filesystem::path& path() const;
 
     const std::string& filename() const;
 

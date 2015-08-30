@@ -208,38 +208,5 @@ TEST_P(BlockTestParam, AddValuesAndDeleteEvery2ndWhileIterating) {
 INSTANTIATE_TEST_CASE_P(Parameterized, BlockTestParam,
                         testing::Values(100, 10000));
 
-TEST(SuperBlockTest, IsDefaultConstructible) {
-  ASSERT_THAT(std::is_default_constructible<SuperBlock>::value, Eq(true));
-}
-
-TEST(SuperBlockTest, DefaultConstructedState) {
-  ASSERT_THAT(SuperBlock().block_size, Eq(0));
-}
-
-TEST(SuperBlockTest, IsCopyConstructibleAndAssignable) {
-  ASSERT_THAT(std::is_copy_constructible<SuperBlock>::value, Eq(true));
-  ASSERT_THAT(std::is_copy_assignable<SuperBlock>::value, Eq(true));
-}
-
-TEST(SuperBlockTest, IsMoveConstructibleAndAssignable) {
-  ASSERT_THAT(std::is_move_constructible<SuperBlock>::value, Eq(true));
-  ASSERT_THAT(std::is_move_assignable<SuperBlock>::value, Eq(true));
-}
-
-TEST(SuperBlockTest, WriteToAndReadFromFileDescriptor) {
-  SuperBlock block;
-  block.block_size = 12;
-  block.major_version = 34;
-  block.minor_version = 56;
-  const auto tempfile = System::Tempfile();
-  block.WriteToFd(tempfile.second);
-  ASSERT_THAT(System::Offset(tempfile.second), Eq(SuperBlock::kSerializedSize));
-  System::Seek(tempfile.second, 0);
-  ASSERT_THAT(System::Offset(tempfile.second), Eq(0));
-  ASSERT_THAT(SuperBlock::ReadFromFd(tempfile.second), Eq(block));
-  System::Close(tempfile.second);
-  boost::filesystem::remove(tempfile.first);
-}
-
 }  // namespace internal
 }  // namespace multimap

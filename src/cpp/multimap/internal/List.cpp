@@ -22,7 +22,7 @@
 namespace multimap {
 namespace internal {
 
-std::mutex List::dynamic_mutex_protector;
+std::mutex List::mutex_allocation_protector;
 
 List::Head List::Head::ReadFromFile(std::FILE* file) {
   Head head;
@@ -83,7 +83,7 @@ void List::Iter<false>::WriteBackMutatedBlocks() {
 List::List(const Head& head) : head_(head) {}
 
 void List::Add(const Bytes& value,
-               const Callbacks::AllocateBlock& allocate_block_callback,
+               const Callbacks::NewBlock& allocate_block_callback,
                const Callbacks::CommitBlock& commit_block_callback) {
   if (!block_.has_data()) {
     block_ = allocate_block_callback();
@@ -137,61 +137,9 @@ void List::ForEach(
   }
 }
 
-List::Head List::Copy(const Head& head, const DataFile& from_data_file,
-                      BlockPool* from_block_pool, DataFile* to_data_file,
-                      BlockPool* to_block_pool,
-                      const Callables::Compare& compare) {
-  //  Callbacks iter_callbacks;
-  //  iter_callbacks.allocate_block = [from_block_pool]() {
-  //    const auto block = from_block_pool->Pop();
-  //    assert(block.has_data());
-  //    return block;
-  //  };
-  //  iter_callbacks.deallocate_block = [from_block_pool](Block&& block) {
-  //    from_block_pool->Push(std::move(block));
-  //  };
-  //  iter_callbacks.request_block =
-  //      [&from_data_file](std::uint32_t block_id,
-  //                        Block* block) { from_data_file.Read(block_id,
-  //                        block); };
-
-  //  Callbacks list_callbacks;
-  //  list_callbacks.allocate_block = [to_block_pool]() {
-  //    const auto block = to_block_pool->Pop();
-  //    assert(block.has_data());
-  //    return block;
-  //  };
-  //  list_callbacks.commit_block = [to_data_file](Block&& block) {
-  //    return to_data_file->Append(std::move(block));
-  //  };
-
-  //  List new_list;
-  //  auto iter = List(head).NewConstIterator(iter_callbacks);
-  //  if (compare) {
-  //    // https://bitbucket.org/mtrenkmann/multimap/issues/5
-  //    std::vector<std::string> values;
-  //    values.reserve(iter.NumValues());
-  //    for (iter.SeekToFirst(); iter.HasValue(); iter.Next()) {
-  //      values.push_back(iter.GetValue().ToString());
-  //    }
-  //    std::sort(values.begin(), values.end(), compare);
-  //    for (const auto& value : values) {
-  //      new_list.Add(value, list_callbacks.allocate_block,
-  //                   list_callbacks.commit_block);
-  //    }
-  //  } else {
-  //    for (iter.SeekToFirst(); iter.HasValue(); iter.Next()) {
-  //      new_list.Add(iter.GetValue(), list_callbacks.allocate_block,
-  //                   list_callbacks.commit_block);
-  //    }
-  //  }
-  //  new_list.Flush(list_callbacks.commit_block);
-  //  return new_list.head();
-}
-
 void List::LockShared() const {
   {
-    const std::lock_guard<std::mutex> lock(dynamic_mutex_protector);
+    const std::lock_guard<std::mutex> lock(mutex_allocation_protector);
     CreateMutexUnlocked();
     ++mutex_use_count_;
   }
@@ -200,7 +148,7 @@ void List::LockShared() const {
 
 void List::LockUnique() const {
   {
-    const std::lock_guard<std::mutex> lock(dynamic_mutex_protector);
+    const std::lock_guard<std::mutex> lock(mutex_allocation_protector);
     CreateMutexUnlocked();
     ++mutex_use_count_;
   }
@@ -208,7 +156,7 @@ void List::LockUnique() const {
 }
 
 bool List::TryLockShared() const {
-  const std::lock_guard<std::mutex> lock(dynamic_mutex_protector);
+  const std::lock_guard<std::mutex> lock(mutex_allocation_protector);
   CreateMutexUnlocked();
   const auto locked = mutex_->try_lock_shared();
   if (locked) {
@@ -218,7 +166,7 @@ bool List::TryLockShared() const {
 }
 
 bool List::TryLockUnique() const {
-  const std::lock_guard<std::mutex> lock(dynamic_mutex_protector);
+  const std::lock_guard<std::mutex> lock(mutex_allocation_protector);
   CreateMutexUnlocked();
   const auto locked = mutex_->try_lock();
   if (locked) {
@@ -228,7 +176,7 @@ bool List::TryLockUnique() const {
 }
 
 void List::UnlockShared() const {
-  const std::lock_guard<std::mutex> lock(dynamic_mutex_protector);
+  const std::lock_guard<std::mutex> lock(mutex_allocation_protector);
   assert(mutex_use_count_ > 0);
   mutex_->unlock_shared();
   --mutex_use_count_;
@@ -238,7 +186,7 @@ void List::UnlockShared() const {
 }
 
 void List::UnlockUnique() const {
-  const std::lock_guard<std::mutex> lock(dynamic_mutex_protector);
+  const std::lock_guard<std::mutex> lock(mutex_allocation_protector);
   assert(mutex_use_count_ > 0);
   mutex_->unlock();
   --mutex_use_count_;
@@ -248,7 +196,7 @@ void List::UnlockUnique() const {
 }
 
 bool List::locked() const {
-  const std::lock_guard<std::mutex> lock(dynamic_mutex_protector);
+  const std::lock_guard<std::mutex> lock(mutex_allocation_protector);
   return mutex_use_count_ != 0;
 }
 

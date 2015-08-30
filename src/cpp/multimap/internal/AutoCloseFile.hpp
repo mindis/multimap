@@ -28,7 +28,9 @@ class AutoCloseFile {
  public:
   AutoCloseFile() : file_(nullptr) {}
 
-  AutoCloseFile(std::FILE* file) : file_(file) { assert(file != nullptr); }
+  explicit AutoCloseFile(std::FILE* file) : file_(file) {
+    assert(file != nullptr);
+  }
 
   ~AutoCloseFile() { reset(); }
 

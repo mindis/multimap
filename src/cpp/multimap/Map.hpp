@@ -33,12 +33,17 @@
 
 namespace multimap {
 
+static const std::size_t kMajorVersion = 0;
+static const std::size_t kMinorVersion = 2;
+
 class Map {
  public:
   typedef Iterator<false> Iter;
   typedef Iterator<true> ConstIter;
 
   Map();
+
+  ~Map();
 
   Map(const boost::filesystem::path& directory, const Options& options);
 
@@ -80,22 +85,14 @@ class Map {
 
   std::map<std::string, std::string> GetProperties() const;
 
-  void PrintProperties() const;
-
   std::size_t max_key_size() const;
 
   std::size_t max_value_size() const;
 
-  static const char* name_of_data_file();
-
-  static const char* name_of_table_file();
-
  private:
-  enum class Match { kAll, kOne };
+  std::size_t Delete(const Bytes& key, Callables::Predicate pred, bool all);
 
-  std::size_t Delete(const Bytes& key, Callables::Predicate pred, Match match);
-
-  std::size_t Replace(const Bytes& key, Callables::Function func, Match match);
+  std::size_t Replace(const Bytes& key, Callables::Function func, bool all);
 
   void InitCallbacks();
 
@@ -104,11 +101,8 @@ class Map {
   internal::System::DirectoryLockGuard directory_lock_guard_;
   internal::Callbacks callbacks_;
   internal::BlockPool block_pool_;
-  internal::DataFile data_file_;
-
-  internal::AutoCloseFile table_file_;
+  internal::DataFile store_;
   internal::Table table_;
-
   Options options_;
 };
 

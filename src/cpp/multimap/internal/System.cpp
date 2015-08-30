@@ -26,6 +26,7 @@
 #include <iomanip>
 #include <iostream>
 #include <boost/filesystem/operations.hpp>
+#include "multimap/internal/AutoCloseFile.hpp"
 #include "multimap/internal/Check.hpp"
 #include "multimap/Bytes.hpp"
 
@@ -100,107 +101,6 @@ void System::Write(std::FILE* stream, const void* buf, std::size_t count) {
   assert(nbytes == count);
 }
 
-int System::Open(const boost::filesystem::path& filepath,
-                 bool create_if_missing) {
-  if (create_if_missing) {
-    const auto mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
-    return ::open64(filepath.c_str(), O_RDWR | O_NOATIME | O_CREAT, mode);
-  }
-  return ::open64(filepath.c_str(), O_RDWR | O_NOATIME);
-}
-
-bool System::Create(const boost::filesystem::path& filepath) {
-  if (boost::filesystem::exists(filepath)) return false;
-  const auto fd = Open(filepath, true);
-  assert(fd != -1);
-  Close(fd);
-  return true;
-}
-
-bool System::Remove(const boost::filesystem::path& filepath) {
-  return boost::filesystem::remove(filepath);
-}
-
-void System::Close(int fd) {
-  const auto result = ::close(fd);
-  assert(result != -1);
-}
-
-std::uint64_t System::Offset(int fd) {
-  const auto result = ::lseek64(fd, 0, SEEK_CUR);
-  assert(result != -1);
-  return result;
-}
-
-void System::Seek(int fd, std::uint64_t offset) {
-  const auto result = ::lseek64(fd, offset, SEEK_SET);
-  assert(result != -1);
-}
-
-void System::Read(int fd, void* buf, std::size_t count) {
-  const auto result = ::read(fd, buf, count);
-  assert(result != -1);
-  const auto nbytes = static_cast<std::size_t>(result);
-  assert(nbytes == count);
-}
-
-void System::Read(int fd, void* buf, std::size_t count, std::uint64_t offset) {
-  const auto result = ::pread64(fd, buf, count, offset);
-  assert(result != -1);
-  const auto nbytes = static_cast<std::size_t>(result);
-  assert(nbytes == count);
-}
-
-void System::Write(int fd, const void* buf, std::size_t count) {
-  const auto result = ::write(fd, buf, count);
-  assert(result != -1);
-  const auto nbytes = static_cast<std::size_t>(result);
-  assert(nbytes == count);
-}
-
-void System::Write(int fd, const void* buf, std::size_t count,
-                   std::uint64_t offset) {
-  const auto result = ::pwrite64(fd, buf, count, offset);
-  assert(result != -1);
-  const auto nbytes = static_cast<std::size_t>(result);
-  assert(nbytes == count);
-}
-
-const std::size_t System::Batch::kMaxSize = sysconf(_SC_IOV_MAX);
-
-bool System::Batch::TryAdd(const void* data, std::size_t size) {
-  if (items_.size() < kMaxSize) {
-    items_.push_back(iovec{const_cast<void*>(data), size});
-    return true;
-  }
-  return false;
-}
-
-void System::Batch::Add(const void* data, std::size_t size) {
-  assert(items_.size() < kMaxSize);
-  items_.push_back(iovec{const_cast<void*>(data), size});
-}
-
-std::uint64_t System::Batch::Write(int fd) const {
-  std::int64_t num_bytes_total = 0;
-  for (const auto& item : items_) {
-    num_bytes_total += item.iov_len;
-  }
-
-  const auto result = ::writev(fd, items_.data(), items_.size());
-  assert(result != -1);
-  assert(result == num_bytes_total);
-  return num_bytes_total;
-}
-
-std::size_t System::Batch::size() const { return items_.size(); }
-
-bool System::Batch::empty() const { return items_.empty(); }
-
-bool System::Batch::full() const { return items_.size() == kMaxSize; }
-
-void System::Batch::clear() { items_.clear(); }
-
 const std::string System::DirectoryLockGuard::kDefaultFilename(".lock");
 
 System::DirectoryLockGuard::DirectoryLockGuard() {}
@@ -217,7 +117,7 @@ System::DirectoryLockGuard::DirectoryLockGuard(
 
 System::DirectoryLockGuard::~DirectoryLockGuard() {
   if (!directory_.empty()) {
-    Check(Remove(directory_ / filename_),
+    Check(std::remove((directory_ / filename_).c_str()) == 0,
           "DirectoryLockGuard: Could not unlock directory '%s' because it is "
           "not locked.",
           directory_.c_str());
@@ -232,7 +132,8 @@ void System::DirectoryLockGuard::Lock(
 void System::DirectoryLockGuard::Lock(const boost::filesystem::path& directory,
                                       const std::string filename) {
   Check(directory_.empty(), "DirectoryLockGuard: Already locked.");
-  Check(Create(directory / filename),
+  const AutoCloseFile file(std::fopen((directory / filename).c_str(), "w"));
+  Check(file.get(),
         "DirectoryLockGuard: Could not lock directory '%s' because it is "
         "already locked.",
         directory.c_str());
@@ -240,7 +141,7 @@ void System::DirectoryLockGuard::Lock(const boost::filesystem::path& directory,
   filename_ = filename;
 }
 
-const boost::filesystem::path& System::DirectoryLockGuard::directory() const {
+const boost::filesystem::path& System::DirectoryLockGuard::path() const {
   return directory_;
 }
 

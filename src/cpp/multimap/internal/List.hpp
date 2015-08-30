@@ -34,7 +34,7 @@ namespace multimap {
 namespace internal {
 
 class List {
-  static std::mutex dynamic_mutex_protector;
+  static std::mutex mutex_allocation_protector;
 
  public:
   struct Head {
@@ -106,7 +106,7 @@ class List {
     State state_;
     Block::Iter<IsConst> block_iter_;
     std::vector<std::uint32_t> block_ids_;
-    std::vector<Callbacks::Job> cached_blocks_;
+    std::vector<BlockWithId> cached_blocks_;
     Callbacks::RequestBlocks request_blocks_callback_;
     Callbacks::ReplaceBlocks replace_blocks_callback_;
   };
@@ -124,7 +124,7 @@ class List {
   List& operator=(const List&) = delete;
 
   void Add(const Bytes& value,
-           const Callbacks::AllocateBlock& allocate_block_callback,
+           const Callbacks::NewBlock& allocate_block_callback,
            const Callbacks::CommitBlock& commit_block_callback);
 
   // Precondition (not tested internally): !locked()
@@ -155,10 +155,6 @@ class List {
 
   void ForEach(const Callables::Predicate& predicate,
                const Callbacks::RequestBlocks& request_blocks_callback) const;
-
-  static Head Copy(const Head& head, const DataFile& from_data_file,
-                   BlockPool* from_block_pool, DataFile* to_data_file,
-                   BlockPool* to_block_pool, const Callables::Compare& compare);
 
   // Synchronization interface in tradition of std::mutex.
 
@@ -262,7 +258,7 @@ Block::Iter<IsConst> List::Iter<IsConst>::GetNextBlockIter() {
     return (abs_index == block_ids_.size()) ? last_block_->NewIterator()
                                             : Block::Iter<IsConst>();
   }
-  auto& block = cached_blocks_[state_.cached_blocks_index].block;
+  auto& block = cached_blocks_[state_.cached_blocks_index];
   return static_cast<
              typename std::conditional<IsConst, const Block, Block>::type*>(
              &block)->NewIterator();
@@ -283,7 +279,7 @@ void List::Iter<IsConst>::ReadNextBlocks() {
   cached_blocks_.resize(num_blocks_to_request);
   for (std::size_t i = 0; i != cached_blocks_.size(); ++i) {
     cached_blocks_[i].ignore = false;
-    cached_blocks_[i].block_id = block_ids_[state_.cached_blocks_offset + i];
+    cached_blocks_[i].id = block_ids_[state_.cached_blocks_offset + i];
   }
   request_blocks_callback_(&cached_blocks_, &arena_);
   for (auto& block : cached_blocks_) {

@@ -34,23 +34,39 @@
 namespace multimap {
 namespace internal {
 
-struct TableFile {
-  typedef std::pair<Bytes, List::Head> Entry;
-
-  static void CreateInitialFile(const boost::filesystem::path& path);
-
-  static Entry ReadEntryFromFile(std::FILE* file, Arena* arena);
-
-  static void WriteEntryToFile(const Entry& entry, std::FILE* file);
-};
-
 class Table {
  public:
-  Table();
+  struct Stats {
+    std::size_t num_keys = 0;
+    std::size_t num_lists_empty = 0;
+    std::size_t num_lists_locked = 0;
+    std::size_t num_values_total = 0;
+    std::size_t num_values_deleted = 0;
+    std::size_t key_size_min = -1;
+    std::size_t key_size_max = 0;
+    std::size_t key_size_avg = 0;
+    std::size_t list_size_min = -1;
+    std::size_t list_size_max = 0;
+    std::size_t list_size_avg = 0;
+
+    std::map<std::string, std::string> ToMap() const;
+
+    std::map<std::string, std::string> ToMap(const std::string& prefix) const;
+  };
+
+  Table() = default;
+
+  Table(const boost::filesystem::path& file);
+
+  Table(const boost::filesystem::path& file, bool create_if_missing);
 
   ~Table();
 
-  void InitFromFile(std::FILE* file);
+  void Open(const boost::filesystem::path& file);
+
+  void Open(const boost::filesystem::path& file, bool create_if_missing);
+
+  void Close();
 
   SharedListLock GetShared(const Bytes& key) const;
 
@@ -60,16 +76,15 @@ class Table {
 
   void ForEachKey(Callables::Procedure procedure) const;
 
-  // Thread-safe: yes.
   std::map<std::string, std::string> GetProperties() const;
 
+  // Flushes all lists with a load factor of at least @min_load_factor.
+  // Flushing a list means to trigger a commit of the lists write buffer.
   void FlushLists(double min_load_factor) const;
 
   void FlushAllLists() const;
 
-  const std::FILE* get_backing_file() const;
-
-  void set_backing_file(std::FILE* file);
+  Stats GetStats() const;
 
   const Callbacks::CommitBlock& get_commit_block_callback() const;
 
@@ -82,20 +97,17 @@ class Table {
  private:
   struct KeyHash {
     std::size_t operator()(const Bytes& key) const {
-      // TODO Add compiler flags depending on CPU extensions.
-      // Write the version of the hashing library into the super block.
-      return util::Hash(static_cast<const char*>(key.data()), key.size());
+      return util::Hash(key.data(), key.size());
     }
   };
 
-  // TODO Implement a managed version of Bytes to be used as key_type.
   typedef std::unordered_map<Bytes, std::unique_ptr<List>, KeyHash> Map;
 
   Map map_;
   Arena arena_;
+  boost::filesystem::path path_;
   mutable boost::shared_mutex mutex_;
   Callbacks::CommitBlock commit_block_;
-  std::FILE* backing_file_;
 };
 
 }  // namespace internal
