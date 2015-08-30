@@ -18,7 +18,6 @@
 #ifndef MULTIMAP_INTERNAL_TABLE_HPP
 #define MULTIMAP_INTERNAL_TABLE_HPP
 
-#include <cstdio>
 #include <map>
 #include <memory>
 #include <string>

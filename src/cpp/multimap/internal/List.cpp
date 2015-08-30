@@ -16,6 +16,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "multimap/internal/List.hpp"
+
 #include "multimap/internal/BlockPool.hpp"
 #include "multimap/internal/System.hpp"
 

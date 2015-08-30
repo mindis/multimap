@@ -25,9 +25,7 @@
 #include <boost/thread/shared_mutex.hpp>
 #include "multimap/Callables.hpp"
 #include "multimap/internal/Arena.hpp"
-#include "multimap/internal/BlockPool.hpp"
 #include "multimap/internal/Callbacks.hpp"
-#include "multimap/internal/Store.hpp"
 #include "multimap/internal/UintVector.hpp"
 
 namespace multimap {

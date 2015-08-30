@@ -16,6 +16,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "multimap/Map.hpp"
+
 #include <algorithm>
 #include <cctype>
 #include <cmath>

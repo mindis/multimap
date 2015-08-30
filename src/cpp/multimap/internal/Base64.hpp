@@ -18,7 +18,7 @@
 #ifndef MULTIMAP_INTERNAL_BASE64_HPP
 #define MULTIMAP_INTERNAL_BASE64_HPP
 
-#include <cstdint>
+#include <string>
 #include "multimap/Bytes.hpp"
 
 namespace multimap {

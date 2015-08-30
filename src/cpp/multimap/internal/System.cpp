@@ -16,9 +16,10 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "multimap/internal/System.hpp"
-#include <sys/types.h>
-#include <sys/stat.h>
+
 #include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 #include <cassert>
 #include <cstdio>
@@ -28,7 +29,6 @@
 #include <boost/filesystem/operations.hpp>
 #include "multimap/internal/AutoCloseFile.hpp"
 #include "multimap/internal/Check.hpp"
-#include "multimap/Bytes.hpp"
 
 namespace multimap {
 namespace internal {

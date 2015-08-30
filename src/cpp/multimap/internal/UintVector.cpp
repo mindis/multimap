@@ -16,6 +16,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "multimap/internal/UintVector.hpp"
+
 #include <cassert>
 #include <cstring>
 #include "multimap/internal/System.hpp"

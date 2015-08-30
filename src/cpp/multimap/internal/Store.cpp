@@ -16,10 +16,11 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "multimap/internal/Store.hpp"
+
 #include <aio.h>
-#include <errno.h>
 #include <unistd.h>
 #include <sys/mman.h>
+#include <cerrno>
 #include <cstring>
 #include "boost/filesystem/operations.hpp"
 #include "multimap/internal/Check.hpp"

@@ -18,13 +18,11 @@
 #ifndef MULTIMAP_INTERNAL_SYSTEM_HPP
 #define MULTIMAP_INTERNAL_SYSTEM_HPP
 
-#include <sys/uio.h>
 #include <cstdio>
 #include <cstdint>
 #include <ostream>
 #include <string>
 #include <utility>
-#include <vector>
 #include <boost/filesystem/path.hpp>
 
 namespace multimap {
