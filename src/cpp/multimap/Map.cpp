@@ -423,53 +423,36 @@ void Optimize(const boost::filesystem::path& from,
 void Optimize(const boost::filesystem::path& from,
               const boost::filesystem::path& to,
               const Callables::Compare& compare, std::size_t new_block_size) {
-  //  using namespace internal;
-  //  System::DirectoryLockGuard from_lock(from, kNameOfLockFile);
-  //  System::DirectoryLockGuard to_lock(to, kNameOfLockFile);
+  Map source(from, Options());
 
-  //  const auto from_table_filename = from / kNameOfTableFile;
-  //  const auto from_table_file = std::fopen(from_table_filename.c_str(),
-  //  "rb");
-  //  Check(from_table_file != nullptr, "Could not open '%s'.",
-  //        from_table_filename.c_str());
+  Options options;
+  options.verbose = true;
+  options.error_if_exists = true;
+  options.create_if_missing = true;
+  options.block_size = std::stoul(source.GetProperties()["store.block_size"]);
+  if (new_block_size != static_cast<std::size_t>(-1)) {
+    options.block_size = new_block_size;
+  }
+  Map target(to, options);
 
-  //  const auto from_data_filename = from / kNameOfDataFile;
-  //  internal::DataFile::Options from_data_opts;
-  ////  from_data_opts.block_size = from_meta.block_size;  // TODO
-  //  DataFile from_data_file(from_data_filename, from_data_opts);
-  ////  BlockPool from_block_pool(1, from_meta.block_size);
-
-  //  const auto to_table_filename = to / kNameOfTableFile;
-  //  const auto to_table_file = std::fopen(to_table_filename.c_str(), "wb");
-  //  Check(to_table_file != nullptr, "Could not create '%s'.",
-  //        to_table_filename.c_str());
-
-  //  const auto to_data_filename = to / kNameOfDataFile;
-  ////  const auto to_block_size = (new_block_size !=
-  /// static_cast<std::size_t>(-1))
-  ////                                 ? new_block_size
-  ////                                 : from_meta.block_size;
-  //  internal::DataFile::Options to_data_opts;
-  ////  to_data_opts.block_size = to_block_size;
-  //  to_data_opts.error_if_exists = true;
-  //  DataFile to_data_file(to_data_filename, to_data_opts);
-
-  //  Arena arena;
-  //  std::uint32_t num_keys;
-  //  System::Read(from_table_file, &num_keys, sizeof num_keys);
-  //  System::Write(to_table_file, &num_keys, sizeof num_keys);
-  //  for (std::size_t i = 0; i != num_keys; ++i) {
-  //    const auto entry = TableFile::ReadEntryFromFile(from_table_file,
-  //    &arena);
-  //    const auto new_head =
-  //        List::Copy(entry.second, from_data_file, &from_block_pool,
-  //                   &to_data_file, &to_block_pool, compare);
-  //    const TableFile::Entry new_entry(entry.first, new_head);
-  //    TableFile::WriteEntryToFile(new_entry, to_table_file);
-  //  }
-
-  //  std::fclose(to_table_file);
-  //  std::fclose(from_table_file);
+  if (compare) {
+    source.ForEachKey([&](const Bytes& key) {
+      std::vector<std::string> values;
+      Callables::Procedure procedure =
+          [&values](const Bytes& value) { values.push_back(value.ToString()); };
+      source.ForEachValue(key, procedure);
+      std::sort(values.begin(), values.end(), compare);
+      for (const auto& value : values) {
+        target.Put(key, value);
+      }
+    });
+  } else {
+    source.ForEachKey([&](const Bytes& key) {
+      Callables::Procedure procedure =
+          [&](const Bytes& value) { target.Put(key, value); };
+      source.ForEachValue(key, procedure);
+    });
+  }
 }
 
 void Import(const boost::filesystem::path& directory,
