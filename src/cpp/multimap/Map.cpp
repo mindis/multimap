@@ -402,26 +402,26 @@ void Map::InitCallbacks() {
              internal::Arena* arena) { store_.Read(blocks, arena); };
 }
 
-void Copy(const boost::filesystem::path& from,
-          const boost::filesystem::path& to) {
-  Copy(from, to, -1);
+void Optimize(const boost::filesystem::path& from,
+              const boost::filesystem::path& to) {
+  Optimize(from, to, -1);
 }
 
-void Copy(const boost::filesystem::path& from,
-          const boost::filesystem::path& to, std::size_t new_block_size) {
-  Copy(from, to, Callables::Compare(), new_block_size);
+void Optimize(const boost::filesystem::path& from,
+              const boost::filesystem::path& to, std::size_t new_block_size) {
+  Optimize(from, to, Callables::Compare(), new_block_size);
 }
 
-void Copy(const boost::filesystem::path& from,
-          const boost::filesystem::path& to,
-          const Callables::Compare& compare) {
-  Copy(from, to, compare, -1);
+void Optimize(const boost::filesystem::path& from,
+              const boost::filesystem::path& to,
+              const Callables::Compare& compare) {
+  Optimize(from, to, compare, -1);
 }
 
 // TODO https://bitbucket.org/mtrenkmann/multimap/issues/4
-void Copy(const boost::filesystem::path& from,
-          const boost::filesystem::path& to, const Callables::Compare& compare,
-          std::size_t new_block_size) {
+void Optimize(const boost::filesystem::path& from,
+              const boost::filesystem::path& to,
+              const Callables::Compare& compare, std::size_t new_block_size) {
   //  using namespace internal;
   //  System::DirectoryLockGuard from_lock(from, kNameOfLockFile);
   //  System::DirectoryLockGuard to_lock(to, kNameOfLockFile);

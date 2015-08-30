@@ -106,18 +106,19 @@ class Map {
   Options options_;
 };
 
-void Copy(const boost::filesystem::path& from,
-          const boost::filesystem::path& to);
+void Optimize(const boost::filesystem::path& from,
+              const boost::filesystem::path& to);
 
-void Copy(const boost::filesystem::path& from,
-          const boost::filesystem::path& to, std::size_t new_block_size);
+void Optimize(const boost::filesystem::path& from,
+              const boost::filesystem::path& to, std::size_t new_block_size);
 
-void Copy(const boost::filesystem::path& from,
-          const boost::filesystem::path& to, const Callables::Compare& compare);
+void Optimize(const boost::filesystem::path& from,
+              const boost::filesystem::path& to,
+              const Callables::Compare& compare);
 
-void Copy(const boost::filesystem::path& from,
-          const boost::filesystem::path& to, const Callables::Compare& compare,
-          std::size_t new_block_size);
+void Optimize(const boost::filesystem::path& from,
+              const boost::filesystem::path& to,
+              const Callables::Compare& compare, std::size_t new_block_size);
 
 void Import(const boost::filesystem::path& directory,
             const boost::filesystem::path& file);
