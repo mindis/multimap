@@ -21,16 +21,11 @@
 #include <memory>
 #include <mutex>
 #include <vector>
+#include "multimap/common.hpp"
 #include "multimap/internal/Block.hpp"
 
 namespace multimap {
 namespace internal {
-
-// Converts a number in mebibytes to bytes.
-inline std::size_t MiB(std::size_t mebibytes) { return mebibytes << 20; }
-
-// Converts a number in gibibytes to bytes.
-inline std::size_t GiB(std::size_t gibibytes) { return gibibytes << 30; }
 
 class BlockPool {
  public:
