@@ -22,72 +22,72 @@ package io.multimap;
 public class Options {
 
   private int blockSize = 512;
-  private long blockPoolMemory = GiB(1);
   private boolean createIfMissing = false;
   private boolean errorIfExists = false;
-  private boolean verbose = false;
-  
+  private boolean writeOnlyMode = false;
+  private long writeBufferSize = MiB(10);
+
   public int getBlockSize() {
     return blockSize;
   }
-  
+
   public void setBlockSize(int numBytes) {
     Check.isPositive(numBytes);
     this.blockSize = numBytes;
   }
-  
-  public long getBlockPoolMemory() {
-    return blockPoolMemory;
-  }
-  
-  public void setBlockPoolMemory(long numBytes) {
-    Check.isPositive(numBytes);
-    this.blockPoolMemory = numBytes;
-  }
-  
+
   public boolean getCreateIfMissing() {
     return createIfMissing;
   }
-  
+
   public void setCreateIfMissing(boolean createIfMissing) {
     this.createIfMissing = createIfMissing;
   }
-  
+
   public boolean getErrorIfExists() {
     return errorIfExists;
   }
-  
+
   public void setErrorIfExists(boolean errorIfExists) {
     this.errorIfExists = errorIfExists;
   }
-  
-  public boolean isVerbose() {
-    return verbose;
+
+  public boolean getWriteOnlyMode() {
+    return writeOnlyMode;
   }
-  
-  public void setVerbose(boolean verbose) {
-    this.verbose = verbose;
+
+  public void setWriteOnlyMode(boolean writeOnlyMode) {
+    this.writeOnlyMode = writeOnlyMode;
   }
-  
+
+  public long getWriteBufferSize() {
+    return writeBufferSize;
+  }
+
+  public void setWriteBufferSize(long numBytes) {
+    Check.isPositive(numBytes);
+    this.writeBufferSize = numBytes;
+  }
+
   @Override
   public String toString() {
     char delim = '=';
     char newline = '\n';
     StringBuilder sb = new StringBuilder();
     sb.append("block-size").append(delim).append(getBlockSize()).append(newline);
-    sb.append("block-pool-memory").append(delim).append(getBlockPoolMemory()).append(newline);
     sb.append("create-if-missing").append(delim).append(getCreateIfMissing()).append(newline);
     sb.append("error-if-exists").append(delim).append(getErrorIfExists()).append(newline);
-    sb.append("verbose").append(delim).append(isVerbose());
+    sb.append("write-only-mode").append(delim).append(getWriteBufferSize()).append(newline);
+    sb.append("write-buffer-size").append(delim).append(getWriteBufferSize()).append(newline);
     return sb.toString();
   }
-  
+
   public static final long MiB(int numMebibytes) {
     return (long) numMebibytes << 20;
   }
-  
+
   public static final long GiB(int numGibibytes) {
     return (long) numGibibytes << 30;
   }
-  
+
 }

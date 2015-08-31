@@ -137,6 +137,22 @@ JNIEXPORT void JNICALL Java_io_multimap_Map_00024Native_forEachKey
 
 /*
  * Class:     io_multimap_Map_Native
+ * Method:    forEachValue
+ * Signature: (Ljava/nio/ByteBuffer;[BLio/multimap/Callables/Procedure;)V
+ */
+JNIEXPORT void JNICALL Java_io_multimap_Map_00024Native_forEachValue__Ljava_nio_ByteBuffer_2_3BLio_multimap_Callables_Procedure_2
+  (JNIEnv *, jclass, jobject, jbyteArray, jobject);
+
+/*
+ * Class:     io_multimap_Map_Native
+ * Method:    forEachValue
+ * Signature: (Ljava/nio/ByteBuffer;[BLio/multimap/Callables/Predicate;)V
+ */
+JNIEXPORT void JNICALL Java_io_multimap_Map_00024Native_forEachValue__Ljava_nio_ByteBuffer_2_3BLio_multimap_Callables_Predicate_2
+  (JNIEnv *, jclass, jobject, jbyteArray, jobject);
+
+/*
+ * Class:     io_multimap_Map_Native
  * Method:    getProperties
  * Signature: (Ljava/nio/ByteBuffer;)Ljava/lang/String;
  */
@@ -145,43 +161,43 @@ JNIEXPORT jstring JNICALL Java_io_multimap_Map_00024Native_getProperties
 
 /*
  * Class:     io_multimap_Map_Native
- * Method:    printProperties
- * Signature: (Ljava/nio/ByteBuffer;)V
+ * Method:    maxKeySize
+ * Signature: (Ljava/nio/ByteBuffer;)I
  */
-JNIEXPORT void JNICALL Java_io_multimap_Map_00024Native_printProperties
+JNIEXPORT jint JNICALL Java_io_multimap_Map_00024Native_maxKeySize
   (JNIEnv *, jclass, jobject);
 
 /*
  * Class:     io_multimap_Map_Native
- * Method:    copy
+ * Method:    maxValueSize
+ * Signature: (Ljava/nio/ByteBuffer;)I
+ */
+JNIEXPORT jint JNICALL Java_io_multimap_Map_00024Native_maxValueSize
+  (JNIEnv *, jclass, jobject);
+
+/*
+ * Class:     io_multimap_Map_Native
+ * Method:    Optimize
+ * Signature: (Ljava/lang/String;Ljava/lang/String;Lio/multimap/Callables/LessThan;I)V
+ */
+JNIEXPORT void JNICALL Java_io_multimap_Map_00024Native_Optimize
+  (JNIEnv *, jclass, jstring, jstring, jobject, jint);
+
+/*
+ * Class:     io_multimap_Map_Native
+ * Method:    Import
+ * Signature: (Ljava/lang/String;Ljava/lang/String;ZI)V
+ */
+JNIEXPORT void JNICALL Java_io_multimap_Map_00024Native_Import
+  (JNIEnv *, jclass, jstring, jstring, jboolean, jint);
+
+/*
+ * Class:     io_multimap_Map_Native
+ * Method:    Export
  * Signature: (Ljava/lang/String;Ljava/lang/String;)V
  */
-JNIEXPORT void JNICALL Java_io_multimap_Map_00024Native_copy__Ljava_lang_String_2Ljava_lang_String_2
+JNIEXPORT void JNICALL Java_io_multimap_Map_00024Native_Export
   (JNIEnv *, jclass, jstring, jstring);
-
-/*
- * Class:     io_multimap_Map_Native
- * Method:    copy
- * Signature: (Ljava/lang/String;Ljava/lang/String;S)V
- */
-JNIEXPORT void JNICALL Java_io_multimap_Map_00024Native_copy__Ljava_lang_String_2Ljava_lang_String_2S
-  (JNIEnv *, jclass, jstring, jstring, jshort);
-
-/*
- * Class:     io_multimap_Map_Native
- * Method:    copy
- * Signature: (Ljava/lang/String;Ljava/lang/String;Lio/multimap/Callables/LessThan;)V
- */
-JNIEXPORT void JNICALL Java_io_multimap_Map_00024Native_copy__Ljava_lang_String_2Ljava_lang_String_2Lio_multimap_Callables_LessThan_2
-  (JNIEnv *, jclass, jstring, jstring, jobject);
-
-/*
- * Class:     io_multimap_Map_Native
- * Method:    copy
- * Signature: (Ljava/lang/String;Ljava/lang/String;Lio/multimap/Callables/LessThan;S)V
- */
-JNIEXPORT void JNICALL Java_io_multimap_Map_00024Native_copy__Ljava_lang_String_2Ljava_lang_String_2Lio_multimap_Callables_LessThan_2S
-  (JNIEnv *, jclass, jstring, jstring, jobject, jshort);
 
 #ifdef __cplusplus
 }

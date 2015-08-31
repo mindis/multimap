@@ -30,7 +30,7 @@ import java.util.TreeMap;
 
 // Consider to use ByteBuffer instead of byte[] where suitable and/or faster.
 public class Map implements AutoCloseable {
-  
+
   static {
     final String LIBNAME = "multimap-jni";
     try {
@@ -39,17 +39,17 @@ public class Map implements AutoCloseable {
       System.err.print(e);
     }
   }
-  
+
   static class ImmutableListIter extends Iterator {
 
     private ByteBuffer self;
-    
+
     private ImmutableListIter(ByteBuffer nativePtr) {
       Check.notNull(nativePtr);
       Check.notZero(nativePtr.capacity());
       self = nativePtr;
     }
-    
+
     @Override
     public long numValues() {
       return Native.numValues(self);
@@ -91,15 +91,15 @@ public class Map implements AutoCloseable {
     public void next() {
       Native.next(self);
     }
-    
+
     @Override
     public void close() {
       if (self != null) {
         Native.close(self);
-        self = null;        
+        self = null;
       }
     }
-    
+
     @Override
     protected void finalize() throws Throwable {
       if (self != null) {
@@ -110,29 +110,36 @@ public class Map implements AutoCloseable {
       }
       super.finalize();
     }
-    
+
     static class Native {
       static native long numValues(ByteBuffer self);
+
       static native void seekToFirst(ByteBuffer self);
+
       static native void seekTo(ByteBuffer self, byte[] target);
+
       static native void seekTo(ByteBuffer self, Predicate predicate);
+
       static native boolean hasValue(ByteBuffer self);
+
       static native ByteBuffer getValue(ByteBuffer self);
+
       static native void next(ByteBuffer self);
+
       static native void close(ByteBuffer self);
     }
   }
-  
+
   static class MutableListIter extends Iterator {
 
     private ByteBuffer self;
-    
+
     private MutableListIter(ByteBuffer nativePtr) {
       Check.notNull(nativePtr);
       Check.notZero(nativePtr.capacity());
       self = nativePtr;
     }
-    
+
     @Override
     public long numValues() {
       return Native.numValues(self);
@@ -174,15 +181,15 @@ public class Map implements AutoCloseable {
     public void next() {
       Native.next(self);
     }
-    
+
     @Override
     public void close() {
       if (self != null) {
         Native.close(self);
-        self = null;        
+        self = null;
       }
     }
-    
+
     @Override
     protected void finalize() throws Throwable {
       if (self != null) {
@@ -193,123 +200,141 @@ public class Map implements AutoCloseable {
       }
       super.finalize();
     }
-    
+
     static class Native {
       static native long numValues(ByteBuffer self);
+
       static native void seekToFirst(ByteBuffer self);
+
       static native void seekTo(ByteBuffer self, byte[] target);
+
       static native void seekTo(ByteBuffer self, Predicate predicate);
+
       static native boolean hasValue(ByteBuffer self);
+
       static native ByteBuffer getValue(ByteBuffer self);
+
       static native void deleteValue(ByteBuffer self);
+
       static native void next(ByteBuffer self);
+
       static native void close(ByteBuffer self);
     }
   }
-  
+
   private ByteBuffer self;
-  
+
   private Map(ByteBuffer nativePtr) {
     Check.notNull(nativePtr);
     Check.notZero(nativePtr.capacity());
     self = nativePtr;
   }
-  
+
   public Map(Path directory, Options options) throws Exception {
     this(Native.open(directory.toString(), options.toString()));
   }
-  
+
   public void close() {
     if (self != null) {
       Native.close(self);
-      self = null;        
+      self = null;
     }
   }
-  
+
   public void put(byte[] key, byte[] value) {
     Check.notNull(key);
     Check.notNull(value);
     Native.put(self, key, value);
   }
-  
+
   @SuppressWarnings("resource")
   public Iterator get(byte[] key) {
     Check.notNull(key);
     ByteBuffer nativePtr = Native.get(self, key);
     return (nativePtr != null) ? new ImmutableListIter(nativePtr) : Iterator.EMPTY;
   }
-  
+
   @SuppressWarnings("resource")
   public Iterator getMutable(byte[] key) {
     Check.notNull(key);
     ByteBuffer nativePtr = Native.getMutable(self, key);
     return (nativePtr != null) ? new MutableListIter(nativePtr) : Iterator.EMPTY;
   }
-  
+
   public boolean contains(byte[] key) {
     return Native.contains(self, key);
   }
-  
+
   public long delete(byte[] key) {
     Check.notNull(key);
     return Native.delete(self, key);
   }
-  
+
   public boolean deleteFirst(byte[] key, Predicate predicate) {
     Check.notNull(key);
     Check.notNull(predicate);
     return Native.deleteFirst(self, key, predicate);
   }
-  
+
   public boolean deleteFirstEqual(byte[] key, byte[] value) {
     Check.notNull(key);
     Check.notNull(value);
     return Native.deleteFirstEqual(self, key, value);
   }
-  
+
   public long deleteAll(byte[] key, Predicate predicate) {
     Check.notNull(key);
     Check.notNull(predicate);
     return Native.deleteAll(self, key, predicate);
   }
-  
+
   public long deleteAllEqual(byte[] key, byte[] value) {
     Check.notNull(key);
     Check.notNull(value);
     return Native.deleteAllEqual(self, key, value);
   }
-  
+
   public boolean replaceFirst(byte[] key, Function function) {
     Check.notNull(key);
     Check.notNull(function);
     return Native.replaceFirst(self, key, function);
   }
-  
+
   public boolean replaceFirstEqual(byte[] key, byte[] oldValue, byte[] newValue) {
     Check.notNull(key);
     Check.notNull(oldValue);
     Check.notNull(newValue);
     return Native.replaceFirstEqual(self, key, oldValue, newValue);
   }
-  
+
   public long replaceAll(byte[] key, Function function) {
     Check.notNull(key);
     Check.notNull(function);
     return Native.replaceAll(self, key, function);
   }
-  
+
   public long replaceAllEqual(byte[] key, byte[] oldValue, byte[] newValue) {
     Check.notNull(key);
     Check.notNull(oldValue);
     Check.notNull(newValue);
     return Native.replaceAllEqual(self, key, oldValue, newValue);
   }
-  
+
   public void forEachKey(Procedure procedure) {
     Check.notNull(procedure);
     Native.forEachKey(self, procedure);
   }
-  
+
+  public void forEachValue(byte[] key, Procedure procedure) {
+    Check.notNull(procedure);
+    Native.forEachValue(self, key, procedure);
+  }
+
+  public void forEachValue(byte[] key, Predicate predicate) {
+    Check.notNull(predicate);
+    Native.forEachValue(self, key, predicate);
+  }
+
   public java.util.Map<String, String> getProperties() {
     java.util.Map<String, String> properties = new TreeMap<>();
     String[] lines = Native.getProperties(self).split("\n");
@@ -319,56 +344,117 @@ public class Map implements AutoCloseable {
     }
     return properties;
   }
-  
-  public void printProperties() {
-    Native.printProperties(self);
+
+  public int maxKeySize() {
+    return Native.maxKeySize(self);
   }
-  
+
+  public int maxValueSize() {
+    return Native.maxValueSize(self);
+  }
+
   @Override
   protected void finalize() throws Throwable {
     if (self != null) {
       System.err.printf(
-          "WARNING %s.finalize() calls close(), but should be called by the client.\n",
-          getClass().getName());
+          "WARNING %s.finalize() calls close(), but should be called by the client.\n", getClass()
+              .getName());
       close();
     }
     super.finalize();
   }
-    
-  public static void copy(Path from, Path to) {}
-  
-  public static void copy(Path from, Path to, short newBlockSize) {}
-  
-  public static void copy(Path from, Path to, LessThan lessThan) {}
-  
-  public static void copy(Path from, Path to, LessThan lessThan, short newBlockSize) {}
-  
+
+  public static void Optimize(Path from, Path to) throws Exception {
+    Optimize(from, to, -1);
+  }
+
+  public static void Optimize(Path from, Path to, int newBlockSize) throws Exception {
+    Optimize(from, to, null, newBlockSize);
+  }
+
+  public static void Optimize(Path from, Path to, LessThan lessThan) throws Exception {
+    Optimize(from, to, lessThan, -1);
+  }
+
+  public static void Optimize(Path from, Path to, LessThan lessThan, int newBlockSize)
+      throws Exception {
+    Check.notNull(from);
+    Check.notNull(to);
+    Native.Optimize(from.toString(), to.toString(), lessThan, newBlockSize);
+  }
+
+  public static void Import(Path directory, Path file) throws Exception {
+    Import(directory, file, false);
+  }
+
+  public static void Import(Path directory, Path file, boolean createIfMissing) throws Exception {
+    Import(directory, file, createIfMissing, -1);
+  }
+
+  public static void Import(Path directory, Path file, boolean createIfMissing, int blockSize)
+      throws Exception {
+    Check.notNull(directory);
+    Check.notNull(file);
+    Native.Import(directory.toString(), file.toString(), createIfMissing, blockSize);
+  }
+
+  public static void Export(Path directory, Path file) throws Exception {
+    Check.notNull(directory);
+    Check.notNull(file);
+    Native.Export(directory.toString(), file.toString());
+  }
+
   static class Native {
     static native ByteBuffer open(String directory, String options) throws Exception;
+
     static native void close(ByteBuffer self);
+
     static native void put(ByteBuffer self, byte[] key, byte[] value);
+
     static native ByteBuffer get(ByteBuffer self, byte[] key);
+
     static native ByteBuffer getMutable(ByteBuffer self, byte[] key);
+
     static native boolean contains(ByteBuffer self, byte[] key);
+
     static native long delete(ByteBuffer self, byte[] key);
+
     static native boolean deleteFirst(ByteBuffer self, byte[] key, Predicate predicate);
+
     static native boolean deleteFirstEqual(ByteBuffer self, byte[] key, byte[] value);
+
     static native long deleteAll(ByteBuffer self, byte[] key, Predicate predicate);
+
     static native long deleteAllEqual(ByteBuffer self, byte[] key, byte[] value);
+
     static native boolean replaceFirst(ByteBuffer self, byte[] key, Function function);
-    static native boolean replaceFirstEqual(ByteBuffer self, byte[] key, byte[] oldValue, byte[] newValue);
+
+    static native boolean replaceFirstEqual(ByteBuffer self, byte[] key, byte[] oldValue,
+        byte[] newValue);
+
     static native long replaceAll(ByteBuffer self, byte[] key, Function function);
+
     static native long replaceAllEqual(ByteBuffer self, byte[] key, byte[] oldValue, byte[] newValue);
+
     static native void forEachKey(ByteBuffer self, Procedure procedure);
-    static native String getProperties(ByteBuffer self);  
-    static native void printProperties(ByteBuffer self);
-    
-    static native void copy(String from, String to);
-    static native void copy(String from, String to, short newBlockSize);
-    static native void copy(String from, String to, LessThan lessThan);
-    static native void copy(String from, String to, LessThan lessThan, short newBlockSize);
+
+    static native void forEachValue(ByteBuffer self, byte[] key, Procedure procedure);
+
+    static native void forEachValue(ByteBuffer self, byte[] key, Predicate predicate);
+
+    static native String getProperties(ByteBuffer self);
+
+    static native int maxKeySize(ByteBuffer self);
+
+    static native int maxValueSize(ByteBuffer self);
+
+    static native void Optimize(String from, String to, LessThan lessThan, int newBlockSize)
+        throws Exception;
+
+    static native void Import(String directory, String file, boolean createIfMissing, int blockSize)
+        throws Exception;
+
+    static native void Export(String directory, String file) throws Exception;
   }
-    
-  // http://journals.ecs.soton.ac.uk/java/tutorial/native1.1/implementing/index.html
-  // https://www.ibm.com/developerworks/library/j-jni/
+  
 }

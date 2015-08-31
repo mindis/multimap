@@ -64,7 +64,7 @@ struct Holder {
 };
 
 template <typename T>
-Holder<T>* MakeHolder(T&& element) {
+Holder<T>* NewHolder(T&& element) {
   return new Holder<T>(std::move(element));
 }
 

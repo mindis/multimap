@@ -23,40 +23,40 @@ import java.nio.ByteBuffer;
 
 public final class Callables {
 
-  public abstract class Function {
-    
-    public byte[] apply(ByteBuffer value) {
-      return applyOnReadOnly(value.asReadOnlyBuffer());
-    }
-
-    public abstract byte[] applyOnReadOnly(ByteBuffer value);
-  }
-  
-  public abstract class Predicate {
-    
-    public boolean apply(ByteBuffer value) {
-      return applyOnReadOnly(value.asReadOnlyBuffer());
-    }
-
-    public abstract boolean applyOnReadOnly(ByteBuffer value);
-  }
-  
   public abstract class Procedure {
-    
+
     public void apply(ByteBuffer key) {
       applyOnReadOnly(key.asReadOnlyBuffer());
     }
 
     public abstract void applyOnReadOnly(ByteBuffer key);
   }
-  
+
+  public abstract class Predicate {
+
+    public boolean apply(ByteBuffer value) {
+      return applyOnReadOnly(value.asReadOnlyBuffer());
+    }
+
+    public abstract boolean applyOnReadOnly(ByteBuffer value);
+  }
+
+  public abstract class Function {
+
+    public byte[] apply(ByteBuffer value) {
+      return applyOnReadOnly(value.asReadOnlyBuffer());
+    }
+
+    public abstract byte[] applyOnReadOnly(ByteBuffer value);
+  }
+
   public abstract class LessThan {
-    
+
     public boolean apply(ByteBuffer a, ByteBuffer b) {
       return applyOnReadOnly(a.asReadOnlyBuffer(), b.asReadOnlyBuffer());
     }
 
     public abstract boolean applyOnReadOnly(ByteBuffer a, ByteBuffer b);
   }
-  
+
 }

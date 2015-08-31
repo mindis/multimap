@@ -26,7 +26,7 @@ public final class Check {
       throw new AssertionError();
     }
   }
-  
+
   public static final void notZero(long value) {
     if (value == 0) {
       throw new AssertionError();
@@ -38,7 +38,7 @@ public final class Check {
       throw new AssertionError();
     }
   }
-  
+
   public static void isPositive(long value) {
     if (value < 0) {
       throw new AssertionError();
