@@ -402,7 +402,6 @@ void Optimize(const boost::filesystem::path& from,
   Map source(from, Options());
 
   Options options;
-  options.verbose = true;
   options.error_if_exists = true;
   options.create_if_missing = true;
   options.block_size = std::stoul(source.GetProperties()["store.block_size"]);
@@ -433,9 +432,7 @@ void Optimize(const boost::filesystem::path& from,
 
 void Import(const boost::filesystem::path& directory,
             const boost::filesystem::path& file) {
-  Options options;
-  options.verbose = true;
-  Map map(directory, options);
+  Map map(directory, Options());
   std::ifstream ifs(file.string());
   internal::Check(ifs, "Cannot open '%s'.", file.c_str());
 
