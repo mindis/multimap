@@ -362,14 +362,11 @@ std::size_t Map::Replace(const Bytes& key, Callables::Function function,
 
 void Map::InitCallbacks() {
   // Thread-safe: yes.
-  callbacks_.new_block = [this]() {
-    return block_pool_.Allocate();
-  };
+  callbacks_.new_block = [this]() { return block_pool_.Allocate(); };
 
   // Thread-safe: yes.
-  callbacks_.commit_block = [this](const internal::Block& block) {
-    return store_.Append(block);
-  };
+  callbacks_.commit_block =
+      [this](const internal::Block& block) { return store_.Append(block); };
 
   // Thread-safe: yes.
   callbacks_.replace_blocks =
@@ -437,8 +434,23 @@ void Optimize(const boost::filesystem::path& from,
 
 void Import(const boost::filesystem::path& directory,
             const boost::filesystem::path& file) {
+  Import(directory, file, false);
+}
+
+void Import(const boost::filesystem::path& directory,
+            const boost::filesystem::path& file, bool create_if_missing) {
+  Import(directory, file, create_if_missing, -1);
+}
+
+void Import(const boost::filesystem::path& directory,
+            const boost::filesystem::path& file, bool create_if_missing,
+            std::size_t block_size) {
   Options options;
   options.write_only_mode = true;
+  options.create_if_missing = create_if_missing;
+  if (block_size != static_cast<std::size_t>(-1)) {
+    options.block_size = block_size;
+  }
   Map map(directory, options);
   std::ifstream ifs(file.string());
   internal::Check(ifs, "Cannot open '%s'.", file.c_str());

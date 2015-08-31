@@ -123,6 +123,13 @@ void Optimize(const boost::filesystem::path& from,
 void Import(const boost::filesystem::path& directory,
             const boost::filesystem::path& file);
 
+void Import(const boost::filesystem::path& directory,
+            const boost::filesystem::path& file, bool create_if_missing);
+
+void Import(const boost::filesystem::path& directory,
+            const boost::filesystem::path& file, bool create_if_missing,
+            std::size_t block_size);
+
 void Export(const boost::filesystem::path& directory,
             const boost::filesystem::path& file);
 
