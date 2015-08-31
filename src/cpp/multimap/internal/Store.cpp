@@ -64,27 +64,38 @@ void Store::Open(const boost::filesystem::path& path, const Options& options) {
   assert(options.buffer_size % options.block_size == 0);
 
   if (boost::filesystem::is_regular_file(path)) {
-    fd_ = open(path.c_str(), O_RDWR, 0644);
-    Check(fd_ != -1, "Could not open '%s'.", path.c_str());
-
-    const auto fsize = boost::filesystem::file_size(path);
-    Check(fsize % options.block_size == 0,
+    const auto file_size = boost::filesystem::file_size(path);
+    Check(file_size % options.block_size == 0,
           "Size of '%s' (%u bytes) is not a multiple of block size (%u bytes).",
-          path.c_str(), fsize, options.block_size);
+          path.c_str(), file_size, options.block_size);
+    num_blocks_written_ = file_size / options.block_size;
 
-    if (fsize != 0) {
-      const auto prot = PROT_READ | PROT_WRITE;
-      mmap_addr_ = mmap64(nullptr, fsize, prot, MAP_SHARED, fd_, 0);
-      Check(mmap_addr_ != MAP_FAILED, "mmap64() failed for '%s' because: %s",
-            path.c_str(), std::strerror(errno));
+    if (options_.append_only_mode) {
+      fd_ = open(path.c_str(), O_WRONLY | O_APPEND);
+      Check(fd_ != -1, "Could not open '%s' in append mode.", path.c_str());
+
+    } else {
+      fd_ = open(path.c_str(), O_RDWR);
+      Check(fd_ != -1, "Could not open '%s' in read/write mode.", path.c_str());
+
+      if (file_size != 0) {
+        const auto prot = PROT_READ | PROT_WRITE;
+        mmap_addr_ = mmap64(nullptr, file_size, prot, MAP_SHARED, fd_, 0);
+        Check(mmap_addr_ != MAP_FAILED, "mmap64() failed for '%s' because: %s",
+              path.c_str(), std::strerror(errno));
+        num_blocks_mapped_ = num_blocks_written_;
+      }
     }
-
-    num_blocks_written_ = fsize / options.block_size;
-    num_blocks_mapped_ = num_blocks_written_;
-
   } else if (options.create_if_missing) {
-    fd_ = open(path.c_str(), O_RDWR | O_CREAT, 0644);
-    Check(fd_ != -1, "Could not create '%s'.", path.c_str());
+    const auto permissions = 0644;
+    if (options_.append_only_mode) {
+      fd_ = open(path.c_str(), O_CREAT | O_WRONLY | O_APPEND, permissions);
+      Check(fd_ != -1, "Could not create '%s' in append mode.", path.c_str());
+
+    } else {
+      fd_ = open(path.c_str(), O_CREAT | O_RDWR, permissions);
+      Check(fd_ != -1, "Could not create '%s'.", path.c_str());
+    }
   } else {
     Throw("Does not exist: '%s'.", path.c_str());
   }
@@ -116,6 +127,8 @@ void Store::Close() {
   buffer_offset_ = 0;
   mmap_addr_ = nullptr;
   fd_ = -1;
+  path_.clear();
+  options_ = Options();
 }
 
 std::uint32_t Store::Append(const Block& block) {
@@ -130,24 +143,26 @@ std::uint32_t Store::Append(const Block& block) {
     assert(static_cast<std::size_t>(nbytes) == options_.buffer_size);
     buffer_offset_ = 0;
 
-    // Remap file
-    const auto old_size = options_.block_size * num_blocks_mapped_;
-    const auto new_size = options_.block_size * num_blocks_written_;
-    if (mmap_addr_) {
-      // fsync(fd_);
-      // Since Linux provides a so-called unified virtual memory system,
-      // it is not necessary to write the content of the buffer cache to disk
-      // to ensure that the newly appended data is visible after the remapping.
-      // In a unified virtual memory system, memory mappings and blocks of the
-      // buffer cache share the same pages of physical memory. [kerrisk p1032]
-      mmap_addr_ = mremap(mmap_addr_, old_size, new_size, MREMAP_MAYMOVE);
-      assert(mmap_addr_ != MAP_FAILED);
-    } else {
-      const auto prot = PROT_READ | PROT_WRITE;
-      mmap_addr_ = mmap64(nullptr, new_size, prot, MAP_SHARED, fd_, 0);
-      assert(mmap_addr_ != MAP_FAILED);
+    if (!options_.append_only_mode) {
+      // Remap file
+      const auto old_size = options_.block_size * num_blocks_mapped_;
+      const auto new_size = options_.block_size * num_blocks_written_;
+      if (mmap_addr_) {
+        // fsync(fd_);
+        // Since Linux provides a so-called unified virtual memory system, it
+        // is not necessary to write the content of the buffer cache to disk to
+        // ensure that the newly appended data is visible after the remapping.
+        // In a unified virtual memory system, memory mappings and blocks of the
+        // buffer cache share the same pages of physical memory. [kerrisk p1032]
+        mmap_addr_ = mremap(mmap_addr_, old_size, new_size, MREMAP_MAYMOVE);
+        assert(mmap_addr_ != MAP_FAILED);
+      } else {
+        const auto prot = PROT_READ | PROT_WRITE;
+        mmap_addr_ = mmap64(nullptr, new_size, prot, MAP_SHARED, fd_, 0);
+        assert(mmap_addr_ != MAP_FAILED);
+      }
+      num_blocks_mapped_ = num_blocks_written_;
     }
-    num_blocks_mapped_ = num_blocks_written_;
   }
 
   std::memcpy(buffer_.get() + buffer_offset_, block.data(), block.size());
@@ -160,6 +175,7 @@ std::uint32_t Store::Append(const Block& block) {
 void Store::Read(std::uint32_t block_id, Block* block, Arena* arena) const {
   assert(fd_ != -1);
   assert(block != nullptr);
+  Check(!options_.append_only_mode, "Store::Read called in append-only mode");
 
   if (block->has_data()) {
     assert(block->size() == options_.block_size);
@@ -175,6 +191,7 @@ void Store::Read(std::uint32_t block_id, Block* block, Arena* arena) const {
 void Store::Read(std::vector<BlockWithId>* blocks, Arena* arena) const {
   assert(fd_ != -1);
   assert(blocks != nullptr);
+  Check(!options_.append_only_mode, "Store::Read called in append-only mode");
 
   const std::lock_guard<std::mutex> lock(mutex_);
   for (auto& block : *blocks) {
@@ -195,6 +212,7 @@ void Store::Read(std::vector<BlockWithId>* blocks, Arena* arena) const {
 void Store::Write(std::uint32_t block_id, const Block& block) {
   assert(fd_ != -1);
   assert(block.size() == options_.block_size);
+  Check(!options_.append_only_mode, "Store::Write called in append-only mode");
 
   const std::lock_guard<std::mutex> lock(mutex_);
   std::memcpy(AddressOf(block_id), block.data(), block.size());
@@ -202,6 +220,7 @@ void Store::Write(std::uint32_t block_id, const Block& block) {
 
 void Store::Write(const std::vector<BlockWithId>& blocks) {
   assert(fd_ != -1);
+  Check(!options_.append_only_mode, "Store::Write called in append-only mode");
 
   const std::lock_guard<std::mutex> lock(mutex_);
   for (const auto& block : blocks) {

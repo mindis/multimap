@@ -43,6 +43,7 @@ class Store {
   };
 
   struct Options {
+    bool append_only_mode = false;
     bool create_if_missing = false;
     std::size_t block_size = 1024;
     std::size_t buffer_size = MiB(10);
