@@ -27,10 +27,11 @@ HEADERS += \
     $$PWD/src/cpp/multimap/internal/Varint.hpp \
     $$PWD/src/cpp/multimap/internal/thirdparty/farmhash.h \
     $$PWD/src/cpp/multimap/Bytes.hpp \
+    $$PWD/src/cpp/multimap/Callables.hpp \
+    $$PWD/src/cpp/multimap/common.hpp \
     $$PWD/src/cpp/multimap/Iterator.hpp \
-    $$PWD/src/cpp/multimap/Options.hpp \
     $$PWD/src/cpp/multimap/Map.hpp \
-    $$PWD/src/cpp/multimap/Callables.hpp
+    $$PWD/src/cpp/multimap/Options.hpp
 
 SOURCES += \
     $$PWD/src/cpp/multimap/internal/Arena.cpp \
