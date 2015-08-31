@@ -17,7 +17,6 @@
 
 #include "multimap/internal/Store.hpp"
 
-#include <aio.h>
 #include <unistd.h>
 #include <sys/mman.h>
 #include <cerrno>
@@ -48,29 +47,18 @@ std::map<std::string, std::string> Store::Stats::ToMap(
   return map;
 }
 
-Store::Store()
-    : num_blocks_written_(0),
-      num_blocks_mapped_(0),
-      load_factor_total_(0),
-      data_(nullptr),
-      fd_(-1) {}
-
 Store::Store(const boost::filesystem::path& path, const Options& options)
     : Store() {
   Open(path, options);
 }
 
-Store::~Store() {
-  try {
-    Close();
-  } catch (std::exception& error) {
-    System::Log("Exception in ~Store") << error.what() << '\n';
-  }
-}
+Store::~Store() { Close(); }
 
 void Store::Open(const boost::filesystem::path& path, const Options& options) {
   assert(fd_ == -1);
   assert(options.block_size != 0);
+  assert(options.buffer_size > options.block_size);
+  assert(options.buffer_size % options.block_size == 0);
 
   if (boost::filesystem::is_regular_file(path)) {
     fd_ = open(path.c_str(), O_RDWR, 0644);
@@ -83,8 +71,8 @@ void Store::Open(const boost::filesystem::path& path, const Options& options) {
 
     if (fsize != 0) {
       const auto prot = PROT_READ | PROT_WRITE;
-      data_ = mmap64(nullptr, fsize, prot, MAP_SHARED, fd_, 0);
-      Check(data_ != MAP_FAILED, "mmap64() failed for '%s' because: %s",
+      mmap_addr_ = mmap64(nullptr, fsize, prot, MAP_SHARED, fd_, 0);
+      Check(mmap_addr_ != MAP_FAILED, "mmap64() failed for '%s' because: %s",
             path.c_str(), std::strerror(errno));
     }
 
@@ -97,16 +85,34 @@ void Store::Open(const boost::filesystem::path& path, const Options& options) {
   } else {
     Throw("Does not exist: '%s'.", path.c_str());
   }
-  path_ = path;
+  buffer_.reset(new char[options.buffer_size]);
   options_ = options;
+  path_ = path;
 }
 
 void Store::Close() {
+  const std::lock_guard<std::mutex> lock(mutex_);
+  if (mmap_addr_) {
+    const auto mmap_len = options_.block_size * num_blocks_mapped_;
+    const auto status = munmap(mmap_addr_, mmap_len);
+    assert(status == 0);
+  }
+  if (buffer_ && buffer_offset_ != 0) {
+    const auto nbytes = write(fd_, buffer_.get(), buffer_offset_);
+    assert(nbytes != -1);
+    assert(static_cast<std::size_t>(nbytes) == buffer_offset_);
+  }
   if (fd_ != -1) {
     const auto status = close(fd_);
-    Check(status != -1, "%s: close() failed.", __PRETTY_FUNCTION__);
-    fd_ = -1;
+    assert(status == 0);
   }
+  buffer_.reset();
+  num_blocks_written_ = 0;
+  num_blocks_mapped_ = 0;
+  load_factor_total_ = 0;
+  buffer_offset_ = 0;
+  mmap_addr_ = nullptr;
+  fd_ = -1;
 }
 
 std::uint32_t Store::Append(const Block& block) {
@@ -114,39 +120,43 @@ std::uint32_t Store::Append(const Block& block) {
   assert(block.size() == options_.block_size);
 
   const std::lock_guard<std::mutex> lock(mutex_);
-  const auto nbytes = write(fd_, block.data(), block.size());
-  assert(nbytes != -1);
-  assert(static_cast<std::size_t>(nbytes) == block.size());
-  load_factor_total_ += block.load_factor();
-  ++num_blocks_written_;
+  if (buffer_offset_ == options_.buffer_size) {
+    // Flush buffer
+    const auto nbytes = write(fd_, buffer_.get(), options_.buffer_size);
+    assert(nbytes != -1);
+    assert(static_cast<std::size_t>(nbytes) == options_.buffer_size);
+    buffer_offset_ = 0;
 
-  const auto num_blocks_not_mapped = num_blocks_written_ - num_blocks_mapped_;
-  if (num_blocks_not_mapped == options_.remap_every_nblocks) {
+    // Remap file
     const auto old_size = options_.block_size * num_blocks_mapped_;
     const auto new_size = options_.block_size * num_blocks_written_;
-    if (data_) {
+    if (mmap_addr_) {
       // fsync(fd_);
       // Since Linux provides a so-called unified virtual memory system,
       // it is not necessary to write the content of the buffer cache to disk
       // to ensure that the newly appended data is visible after the remapping.
       // In a unified virtual memory system, memory mappings and blocks of the
       // buffer cache share the same pages of physical memory. [kerrisk p1032]
-      data_ = mremap(data_, old_size, new_size, MREMAP_MAYMOVE);
-      assert(data_ != MAP_FAILED);
+      mmap_addr_ = mremap(mmap_addr_, old_size, new_size, MREMAP_MAYMOVE);
+      assert(mmap_addr_ != MAP_FAILED);
     } else {
       const auto prot = PROT_READ | PROT_WRITE;
-      data_ = mmap64(nullptr, new_size, prot, MAP_SHARED, fd_, 0);
-      assert(data_ != MAP_FAILED);
+      mmap_addr_ = mmap64(nullptr, new_size, prot, MAP_SHARED, fd_, 0);
+      assert(mmap_addr_ != MAP_FAILED);
     }
     num_blocks_mapped_ = num_blocks_written_;
   }
-  return num_blocks_written_ - 1;
+
+  std::memcpy(buffer_.get() + buffer_offset_, block.data(), block.size());
+  buffer_offset_ += block.size();
+
+  load_factor_total_ += block.load_factor();
+  return num_blocks_written_++;
 }
 
 void Store::Read(std::uint32_t block_id, Block* block, Arena* arena) const {
   assert(fd_ != -1);
   assert(block != nullptr);
-  assert(block_id < num_blocks_written_);
 
   if (block->has_data()) {
     assert(block->size() == options_.block_size);
@@ -156,111 +166,46 @@ void Store::Read(std::uint32_t block_id, Block* block, Arena* arena) const {
   }
 
   const std::lock_guard<std::mutex> lock(mutex_);
-  if (block_id < num_blocks_mapped_) {
-    std::memcpy(block->data(), address(block_id), block->size());
-  } else {
-    const auto nbytes =
-        pread64(fd_, block->data(), block->size(), offset(block_id));
-    assert(nbytes != -1);
-    assert(static_cast<std::size_t>(nbytes) == block->size());
-  }
+  std::memcpy(block->data(), AddressOf(block_id), block->size());
 }
 
 void Store::Read(std::vector<BlockWithId>* blocks, Arena* arena) const {
   assert(fd_ != -1);
   assert(blocks != nullptr);
 
-  std::vector<aiocb64> aio_list;
-  aio_list.reserve(blocks->size());
-  {
-    const std::lock_guard<std::mutex> lock(mutex_);
-    for (auto& block : *blocks) {
-      if (!block.ignore) {
-        assert(block.id < num_blocks_written_);
+  const std::lock_guard<std::mutex> lock(mutex_);
+  for (auto& block : *blocks) {
+    if (block.ignore) continue;
 
-        if (block.has_data()) {
-          assert(block.size() == options_.block_size);
-        } else {
-          assert(arena != nullptr);
-          const auto block_data = arena->Allocate(options_.block_size);
-          block.set_data(block_data, options_.block_size);
-        }
-
-        if (block.id < num_blocks_mapped_) {
-          std::memcpy(block.data(), address(block.id), block.size());
-        } else {
-          aio_list.emplace_back();
-          aio_list.back().aio_fildes = fd_;
-          aio_list.back().aio_lio_opcode = LIO_READ;
-          aio_list.back().aio_buf = block.data();
-          aio_list.back().aio_nbytes = block.size();
-          aio_list.back().aio_offset = offset(block.id);
-        }
-      }
+    if (block.has_data()) {
+      assert(block.size() == options_.block_size);
+    } else {
+      assert(arena != nullptr);
+      const auto block_data = arena->Allocate(options_.block_size);
+      block.set_data(block_data, options_.block_size);
     }
-  }  // End of locked scope.
 
-  if (!aio_list.empty()) {
-    std::vector<aiocb64*> aio_ptrs(aio_list.size());
-    for (std::size_t i = 0; i != aio_list.size(); ++i) {
-      aio_ptrs[i] = &aio_list[i];
-    }
-    const auto status =
-        lio_listio64(LIO_WAIT, aio_ptrs.data(), aio_ptrs.size(), nullptr);
-    assert(status != -1);
+    std::memcpy(block.data(), AddressOf(block.id), block.size());
   }
 }
 
 void Store::Write(std::uint32_t block_id, const Block& block) {
   assert(fd_ != -1);
-  assert(block_id < num_blocks_written_);
   assert(block.size() == options_.block_size);
 
   const std::lock_guard<std::mutex> lock(mutex_);
-  if (block_id < num_blocks_mapped_) {
-    std::memcpy(address(block_id), block.data(), block.size());
-  } else {
-    const auto nbytes =
-        pwrite64(fd_, block.data(), block.size(), offset(block_id));
-    assert(nbytes != -1);
-    assert(static_cast<std::size_t>(nbytes) == block.size());
-  }
+  std::memcpy(AddressOf(block_id), block.data(), block.size());
 }
 
 void Store::Write(const std::vector<BlockWithId>& blocks) {
   assert(fd_ != -1);
 
-  std::vector<aiocb64> aio_list;
-  aio_list.reserve(blocks.size());
-  {
-    const std::lock_guard<std::mutex> lock(mutex_);
-    for (const auto& block : blocks) {
-      if (!block.ignore) {
-        assert(block.id < num_blocks_written_);
-        assert(block.size() == options_.block_size);
+  const std::lock_guard<std::mutex> lock(mutex_);
+  for (const auto& block : blocks) {
+    if (block.ignore) continue;
+    assert(block.size() == options_.block_size);
 
-        if (block.id < num_blocks_mapped_) {
-          std::memcpy(address(block.id), block.data(), block.size());
-        } else {
-          aio_list.emplace_back();
-          aio_list.back().aio_fildes = fd_;
-          aio_list.back().aio_lio_opcode = LIO_WRITE;
-          aio_list.back().aio_buf = const_cast<char*>(block.data());
-          aio_list.back().aio_nbytes = block.size();
-          aio_list.back().aio_offset = offset(block.id);
-        }
-      }
-    }
-  }  // End of locked scope.
-
-  if (!aio_list.empty()) {
-    std::vector<aiocb64*> aio_ptrs(aio_list.size());
-    for (std::size_t i = 0; i != aio_list.size(); ++i) {
-      aio_ptrs[i] = &aio_list[i];
-    }
-    const auto status =
-        lio_listio64(LIO_WAIT, aio_ptrs.data(), aio_ptrs.size(), nullptr);
-    assert(status != -1);
+    std::memcpy(AddressOf(block.id), block.data(), block.size());
   }
 }
 
@@ -288,12 +233,15 @@ const Store::Options& Store::options() const {
   return options_;
 }
 
-std::uint64_t Store::offset(std::uint32_t block_id) const {
-  return options_.block_size * block_id;
-}
-
-char* Store::address(std::uint32_t block_id) const {
-  return static_cast<char*>(data_) + offset(block_id);
+char* Store::AddressOf(std::uint32_t block_id) const {
+  assert(block_id < num_blocks_written_);
+  if (block_id < num_blocks_mapped_) {
+    const auto offset = options_.block_size * block_id;
+    return static_cast<char*>(mmap_addr_) + offset;
+  } else {
+    const auto offset = options_.block_size * (block_id - num_blocks_mapped_);
+    return buffer_.get() + offset;
+  }
 }
 
 }  // namespace internal

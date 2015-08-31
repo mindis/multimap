@@ -18,7 +18,7 @@
 #ifndef MULTIMAP_OPTIONS_HPP
 #define MULTIMAP_OPTIONS_HPP
 
-#include <cstddef>
+#include "multimap/common.hpp"
 
 namespace multimap {
 
@@ -29,6 +29,8 @@ struct Options {
   bool create_if_missing = false;
 
   bool error_if_exists = false;
+
+  std::size_t write_buffer_size = MiB(10);
 };
 
 }  // namespace multimap

@@ -23,6 +23,7 @@
 #include <boost/filesystem/path.hpp>
 #include "multimap/internal/Arena.hpp"
 #include "multimap/internal/Block.hpp"
+#include "multimap/common.hpp"
 
 namespace multimap {
 namespace internal {
@@ -44,10 +45,10 @@ class Store {
   struct Options {
     bool create_if_missing = false;
     std::size_t block_size = 1024;
-    std::size_t remap_every_nblocks = 1024;
+    std::size_t buffer_size = MiB(10);
   };
 
-  Store();
+  Store() = default;
 
   Store(const boost::filesystem::path& path, const Options& options);
 
@@ -82,15 +83,17 @@ class Store {
   const Options& options() const;
 
  private:
-  std::uint64_t offset(std::uint32_t block_id) const;
-  char* address(std::uint32_t block_id) const;
+  // Thread-safe: no.
+  char* AddressOf(std::uint32_t block_id) const;
 
   mutable std::mutex mutex_;
-  std::size_t num_blocks_written_;
-  std::size_t num_blocks_mapped_;
-  double load_factor_total_;
-  void* data_;
-  int fd_;
+  std::unique_ptr<char[]> buffer_;
+  std::size_t num_blocks_written_ = 0;
+  std::size_t num_blocks_mapped_ = 0;
+  std::size_t buffer_offset_ = 0;
+  double load_factor_total_ = 0;
+  void* mmap_addr_ = nullptr;
+  int fd_ = -1;
 
   boost::filesystem::path path_;
   Options options_;
