@@ -45,11 +45,6 @@ void CheckOptions(const Options& options) {
   const auto bs = "options.block_size";
   Check(options.block_size != 0, "%s must be positive.", bs);
   Check(IsPowerOfTwo(options.block_size), "%s must be a power of two.", bs);
-
-  const auto wbs = "options.write_buffer_size";
-  Check(options.write_buffer_size != 0, "%s must be positive.", wbs);
-  Check(options.write_buffer_size >= options.block_size,
-        "%s must be greater than or equal to %s.", wbs, bs);
 }
 
 void CheckVersion(std::uint32_t client_major, std::uint32_t client_minor) {
@@ -168,8 +163,7 @@ void Map::Open(const boost::filesystem::path& directory,
     assert(pos != properties.end());
 
     options_.block_size = std::stoul(pos->second);
-    const auto num_blocks = options_.write_buffer_size / options_.block_size;
-    block_pool_.Init(num_blocks, options_.block_size);
+    block_pool_.Init(options_.block_size);
 
     internal::Store::Options store_options;
     store_options.block_size = options_.block_size;
@@ -180,8 +174,7 @@ void Map::Open(const boost::filesystem::path& directory,
     internal::Check(options_.create_if_missing, "No Multimap found in '%s'.",
                     absolute_directory.c_str());
 
-    const auto num_blocks = options_.write_buffer_size / options_.block_size;
-    block_pool_.Init(num_blocks, options_.block_size);
+    block_pool_.Init(options_.block_size);
 
     internal::Store::Options store_options;
     store_options.block_size = options_.block_size;
@@ -366,29 +359,12 @@ std::size_t Map::Replace(const Bytes& key, Callables::Function function,
 void Map::InitCallbacks() {
   // Thread-safe: yes.
   callbacks_.new_block = [this]() {
-    static std::mutex mutex;
-    const std::lock_guard<std::mutex> lock(mutex);
-    auto new_block = block_pool_.Pop();
-    if (!new_block.has_data()) {
-      if (options_.verbose) {
-        internal::System::Log("Map") << "write buffer out of blocks\n";
-      }
-      double load_factor = 0.75;
-      while (block_pool_.empty()) {
-        table_.FlushLists(load_factor);
-        load_factor = std::pow(load_factor, 2);
-      }
-      new_block = block_pool_.Pop();
-      assert(new_block.has_data());
-    }
-    return new_block;
+    return block_pool_.Allocate();
   };
 
   // Thread-safe: yes.
-  callbacks_.commit_block = [this](internal::Block&& block) {
-    const auto id = store_.Append(block);
-    block_pool_.Push(std::move(block));
-    return id;
+  callbacks_.commit_block = [this](const internal::Block& block) {
+    return store_.Append(block);
   };
 
   // Thread-safe: yes.

@@ -77,10 +77,6 @@ class Table {
 
   std::map<std::string, std::string> GetProperties() const;
 
-  // Flushes all lists with a load factor of at least @min_load_factor.
-  // Flushing a list means to trigger a commit of the lists write buffer.
-  void FlushLists(double min_load_factor) const;
-
   void FlushAllLists() const;
 
   Stats GetStats() const;

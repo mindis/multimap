@@ -127,11 +127,14 @@ class Block {
     std::memset(data_, 0, size_);
   }
 
-  void reset() {
-    data_ = nullptr;
-    size_ = 0;
-    used_ = 0;
+  void clear() {
+    if (has_data()) {
+      std::memset(data_, 0, size_);
+      used_ = 0;
+    }
   }
+
+  bool empty() const { return used_ == 0; }
 
   double load_factor() const;
 

@@ -217,21 +217,17 @@ void Table::ForEachKey(Callables::Procedure procedure) const {
   }
 }
 
-void Table::FlushLists(double min_load_factor) const {
+void Table::FlushAllLists() const {
   boost::shared_lock<boost::shared_mutex> lock(mutex_);
   for (const auto& entry : map_) {
     auto list = entry.second.get();
     // TODO Use UniqueListLock(List*, std::try_to_lock_t) when available.
     if (list->TryLockUnique()) {
-      if (list->cblock().load_factor() >= min_load_factor) {
-        list->Flush(commit_block_);
-      }
+      list->Flush(commit_block_);
       list->UnlockUnique();
     }
   }
 }
-
-void Table::FlushAllLists() const { FlushLists(0); }
 
 Table::Stats Table::GetStats() const {
   const boost::shared_lock<boost::shared_mutex> lock(mutex_);

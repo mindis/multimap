@@ -71,16 +71,14 @@ TEST(ListTest, IsNotMoveConstructibleOrAssignable) {
 struct ListTestWithParam : testing::TestWithParam<std::uint32_t> {};
 
 TEST_P(ListTestWithParam, AddValuesAndIterateAll) {
-  BlockPool block_pool(100000, 128);
-  const auto allocate_block_callback = [&block_pool]() {
-    assert(!block_pool.empty());
-    return block_pool.Pop();
-  };
+  BlockPool block_pool(128);
+  const auto allocate_block_callback =
+      [&block_pool]() { return block_pool.Allocate(); };
 
-  std::vector<Block> data_file;
-  const auto commit_block_callback = [&data_file](Block&& block) {
-    data_file.push_back(std::move(block));
-    return data_file.size() - 1;
+  std::vector<std::string> store;
+  const auto commit_block_callback = [&store](const Block& block) {
+    store.push_back(std::string(block.data(), block.size()));
+    return store.size() - 1;
   };
 
   List list;
@@ -93,16 +91,16 @@ TEST_P(ListTestWithParam, AddValuesAndIterateAll) {
   ASSERT_THAT(list.size(), Eq(GetParam()));
 
   const auto request_blocks_callback =
-      [&data_file](std::vector<BlockWithId>* blocks, Arena* arena) {
+      [&store](std::vector<BlockWithId>* blocks, Arena* arena) {
     assert(blocks);
     for (auto& block : *blocks) {
-      assert(block.id < data_file.size());
+      assert(block.id < store.size());
       if (!block.has_data()) {
         assert(arena);
-        const auto block_size = data_file[block.id].size();
+        const auto block_size = store[block.id].size();
         block.set_data(arena->Allocate(block_size), block_size);
       }
-      std::memcpy(block.data(), data_file[block.id].data(), block.size());
+      std::memcpy(block.data(), store[block.id].data(), block.size());
     }
   };
 

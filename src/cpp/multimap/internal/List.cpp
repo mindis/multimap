@@ -91,8 +91,7 @@ void List::Add(const Bytes& value,
   }
   auto ok = block_.Add(value);
   if (!ok) {
-    head_.block_ids.Add(commit_block_callback(std::move(block_)));
-    block_ = allocate_block_callback();
+    Flush(commit_block_callback);
     ok = block_.Add(value);
     assert(ok);
   }
@@ -100,10 +99,9 @@ void List::Add(const Bytes& value,
 }
 
 void List::Flush(const Callbacks::CommitBlock& commit_block_callback) {
-  if (block_.has_data()) {
-    head_.block_ids.Add(commit_block_callback(std::move(block_)));
-    block_.reset();
-  }
+  if (block_.empty()) return;
+  head_.block_ids.Add(commit_block_callback(block_));
+  block_.clear();
 }
 
 List::Iterator List::NewIterator(

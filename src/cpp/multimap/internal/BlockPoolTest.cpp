@@ -25,12 +25,7 @@ namespace multimap {
 namespace internal {
 
 using testing::Eq;
-using testing::Gt;
-using testing::IsNull;
 using testing::NotNull;
-
-char data[] = "data";
-Block non_empty_block(data, sizeof data);
 
 TEST(BlockPoolTest, IsDefaultConstructible) {
   ASSERT_THAT(std::is_default_constructible<BlockPool>::value, Eq(true));
@@ -47,58 +42,12 @@ TEST(BlockPoolTest, IsNotMoveConstructibleOrAssignable) {
 }
 
 TEST(BlockPoolTest, ConstructedWithValidParamsHasProperState) {
-  BlockPool block_pool(23, 42);
-  ASSERT_THAT(block_pool.num_blocks(), Eq(23));
-  ASSERT_THAT(block_pool.block_size(), Eq(42));
-  ASSERT_THAT(block_pool.num_blocks_free(), Eq(23));
-  ASSERT_THAT(block_pool.memory(), Eq(23 * 42));
-  ASSERT_THAT(block_pool.empty(), Eq(false));
-  ASSERT_THAT(block_pool.full(), Eq(true));
-  ASSERT_THAT(block_pool.Pop().data(), NotNull());
-  ASSERT_DEATH(block_pool.Push(Block()), "");
-  ASSERT_DEATH(block_pool.Push(std::move(non_empty_block)), "");
-}
-
-TEST(BlockPoolTest, PopUntilEmptyMeetsInvariants) {
-  const auto num_blocks = 23;
-  const auto block_size = 42;
-  std::vector<Block> popped;
-  BlockPool block_pool(num_blocks, block_size);
-  while (!block_pool.empty()) {
-    popped.push_back(block_pool.Pop());
-    ASSERT_THAT(block_pool.num_blocks(), Eq(num_blocks));
-    ASSERT_THAT(block_pool.block_size(), Eq(block_size));
-    ASSERT_THAT(block_pool.num_blocks_free(), Eq(num_blocks - popped.size()));
-    ASSERT_THAT(block_pool.memory(), Eq(num_blocks * block_size));
-    ASSERT_THAT(block_pool.full(), Eq(false));
-  }
-  ASSERT_THAT(popped.size(), Eq(num_blocks));
-  ASSERT_THAT(block_pool.Pop().data(), IsNull());
-}
-
-TEST(BlockPoolTest, PushUntilFullMeetsInvariants) {
-  const auto num_blocks = 23;
-  const auto block_size = 42;
-  std::vector<Block> popped;
-  BlockPool block_pool(num_blocks, block_size);
-  while (!block_pool.empty()) {
-    popped.push_back(block_pool.Pop());
-  }
-  ASSERT_THAT(popped.size(), Eq(num_blocks));
-
-  while (!block_pool.full()) {
-    ASSERT_NO_THROW(block_pool.Push(std::move(popped.back())));
-    popped.pop_back();
-    ASSERT_THAT(block_pool.num_blocks(), Eq(num_blocks));
-    ASSERT_THAT(block_pool.block_size(), Eq(block_size));
-    ASSERT_THAT(block_pool.num_blocks_free(), Eq(num_blocks - popped.size()));
-    ASSERT_THAT(block_pool.memory(), Eq(num_blocks * block_size));
-    ASSERT_THAT(block_pool.empty(), Eq(false));
-
-    ASSERT_DEATH(block_pool.Push(Block()), "");
-    ASSERT_DEATH(block_pool.Push(std::move(non_empty_block)), "");
-  }
-  ASSERT_THAT(block_pool.full(), Eq(true));
+  const auto block_size = 128;
+  const auto chunk_size = MiB(10);
+  BlockPool block_pool(block_size, chunk_size);
+  ASSERT_THAT(block_pool.block_size(), Eq(block_size));
+  ASSERT_THAT(block_pool.num_blocks(), Eq(81920));
+  ASSERT_THAT(block_pool.Allocate().data(), NotNull());
 }
 
 }  // namespace internal

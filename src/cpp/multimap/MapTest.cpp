@@ -118,15 +118,6 @@ TEST_F(MapTestFixture, OpenThrowsIfMapExistsAndErrorIfExistsIsTrue) {
   ASSERT_THROW(map.Open(directory, options), std::runtime_error);
 }
 
-TEST_F(MapTestFixture, OpenThrowsIfBlockPoolMemoryIsTooSmall) {
-  Map map;
-  Options options;
-  options.create_if_missing = true;
-  options.write_buffer_size = 100;
-  options.block_size = 128;
-  ASSERT_THROW(map.Open(directory, options), std::runtime_error);
-}
-
 TEST_F(MapTestFixture, OpenThrowsIfBlockSizeIsNotPowerOfTwo) {
   Map map;
   Options options;

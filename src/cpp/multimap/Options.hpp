@@ -22,18 +22,9 @@
 
 namespace multimap {
 
-// Converts a number in mebibytes to bytes.
-inline std::size_t MiB(std::size_t mebibytes) { return mebibytes << 20; }
-
-// Converts a number in gibibytes to bytes.
-inline std::size_t GiB(std::size_t gibibytes) { return gibibytes << 30; }
-
 struct Options {
   // The size of a data block in bytes.
   std::size_t block_size = 512;
-
-  // The size of the write buffer in bytes.
-  std::size_t write_buffer_size = GiB(2);
 
   bool create_if_missing = false;
 

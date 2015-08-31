@@ -26,54 +26,41 @@
 namespace multimap {
 namespace internal {
 
+// Converts a number in mebibytes to bytes.
+inline std::size_t MiB(std::size_t mebibytes) { return mebibytes << 20; }
+
+// Converts a number in gibibytes to bytes.
+inline std::size_t GiB(std::size_t gibibytes) { return gibibytes << 30; }
+
 class BlockPool {
  public:
-  BlockPool();
+  BlockPool() = default;
 
-  BlockPool(std::size_t num_blocks, std::size_t block_size);
+  BlockPool(std::size_t block_size, std::size_t chunk_size = MiB(100));
 
-  void Init(std::size_t num_blocks, std::size_t block_size);
-
-  // Thread-safe: yes.
-  Block Pop();
+  void Init(std::size_t block_size, std::size_t chunk_size = MiB(100));
 
   // Thread-safe: yes.
-  void Push(Block&& block);
-
-  // Thread-safe: yes.
-  void Push(std::vector<Block>* blocks);
-
-  // Thread-safe: yes.
-  std::size_t num_blocks() const;
+  Block Allocate();
 
   // Thread-safe: yes.
   std::size_t block_size() const;
 
   // Thread-safe: yes.
-  std::uint64_t memory() const;
+  std::size_t chunk_size() const;
 
   // Thread-safe: yes.
-  std::size_t num_blocks_free() const;
+  std::size_t num_blocks() const;
 
   // Thread-safe: yes.
-  bool empty() const;
-
-  // Thread-safe: yes.
-  bool full() const;
+  std::size_t num_chunks() const;
 
  private:
-  // Thread-safe: yes.
-  bool valid(char* ptr) const;
-
-  // THread-safe: no.
-  void PushUnlocked(Block&& block);
-
-  std::size_t num_blocks_;
-  std::size_t block_size_;
-  std::uint64_t end_of_data_;
-  std::unique_ptr<char[]> data_;
-  std::vector<std::uint32_t> ids_;
   mutable std::mutex mutex_;
+  std::size_t block_size_ = 0;
+  std::size_t chunk_size_ = 0;
+  std::size_t get_offset_ = 0;
+  std::vector<std::unique_ptr<char[]>> chunks_;
 };
 
 }  // namespace internal

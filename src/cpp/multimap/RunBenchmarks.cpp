@@ -241,6 +241,31 @@ void RunCopyCommand(const po::variables_map& variables) {
   multimap::Copy(variables["from"].as<std::string>(),
                  variables["to"].as<std::string>());
 }
+// time ./multimap-client /media/disk1/multimap/ /media/disk2/multimap/
+// Input was 2gms-small with 128 block size and 2 GiB memory.
+// Sinze of the multimap.store was 3.8 GiB
+// Optimize with new block size = 256
+// Abort after 4 hours with new multimap.store = 2.3 GiB
+// real 229m24.139s
+// user 2m25.945s
+// sys  2m36.058s
+// Reason: source and target map are mmapped into memory
+// ~/bin/linux-fincore /media/disk1/multimap/*
+// filename                                                                                       size        total_pages    min_cached page       cached_pages        cached_size        cached_perc
+// --------                                                                                       ----        -----------    ---------------       ------------        -----------        -----------
+// /media/disk1/multimap/multimap.properties                                                       399                  1                 -1                  0                  0               0.00
+// /media/disk1/multimap/multimap.store                                                     3760997888             918213              15530             391184         1602289664              42.60
+// /media/disk1/multimap/multimap.table                                                      276918477              67608                 -1                  0                  0               0.00
+// ---
+// total cached size: 1602289664
+//
+// ~/bin/linux-fincore /media/disk2/multimap/*
+// filename                                                                                       size        total_pages    min_cached page       cached_pages        cached_size        cached_perc
+// --------                                                                                       ----        -----------    ---------------       ------------        -----------        -----------
+// /media/disk2/multimap/multimap.store                                                     2202790144             537791                  0              49026          200810496               9.12
+// /media/disk2/multimap/multimap.table                                                              4                  1                  0                  1               4096             100.00
+// ---
+// total cached size: 200814592
 
 void RunImportCommand(const po::variables_map& variables) {
   CheckOption(variables, "from");

@@ -30,8 +30,7 @@ struct Callbacks {
   typedef std::function<Block()> NewBlock;
 
   // Commits a block getting back an id for later identification.
-  // Note that the block is moved and therefore not usable anymore.
-  typedef std::function<std::uint32_t(Block&&)> CommitBlock;
+  typedef std::function<std::uint32_t(const Block&)> CommitBlock;
 
   typedef std::function<void(const std::vector<BlockWithId>&)> ReplaceBlocks;
 

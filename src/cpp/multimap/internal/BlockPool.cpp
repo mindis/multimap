@@ -22,79 +22,82 @@
 namespace multimap {
 namespace internal {
 
-BlockPool::BlockPool() : num_blocks_(0), block_size_(0), end_of_data_(0) {}
+//namespace {
 
-BlockPool::BlockPool(std::size_t num_blocks, std::size_t block_size) {
-  Init(num_blocks, block_size);
+//typedef std::vector<std::unique_ptr<char[]>> Chunks;
+
+//char* BlockIdToPtr(std::size_t block_id, std::size_t block_size,
+//                   std::size_t chunk_size, const Chunks& chunks) {
+//  const auto absolute_offset = block_id * block_size;
+//  const auto relative_offset_in_chunk = absolute_offset % chunk_size;
+//  const auto chunk_id = absolute_offset / chunk_size;
+//  assert(chunk_id < chunks.size());
+//  return chunks[chunk_id].get() + relative_offset_in_chunk;
+//}
+
+//std::size_t PtrToBlockId(const char* ptr, std::size_t block_size,
+//                         std::size_t chunk_size, const Chunks& chunks) {
+//  assert(ptr);
+//  const auto blocks_per_chunk = chunk_size / block_size;
+//  for (std::size_t i = 0; i != chunks.size(); ++i) {
+//    const auto beg_of_chunk = chunks[i].get();
+//    const auto end_of_chunk = beg_of_chunk + chunk_size;
+//    if (ptr >= beg_of_chunk && ptr < end_of_chunk) {
+//      assert((ptr - beg_of_chunk) % block_size == 0);
+//      const auto relative_id_in_chunk = (ptr - beg_of_chunk) / block_size;
+//      const auto absolute_id = relative_id_in_chunk + (blocks_per_chunk * i);
+//      return absolute_id;
+//    }
+//  }
+//  return -1;
+//}
+
+//}  // namespace
+
+BlockPool::BlockPool(std::size_t block_size, std::size_t chunk_size) {
+  Init(block_size, chunk_size);
 }
 
-void BlockPool::Init(std::size_t num_blocks, std::size_t block_size) {
-  num_blocks_ = num_blocks;
+void BlockPool::Init(std::size_t block_size, std::size_t chunk_size) {
+  assert(chunk_size % block_size == 0);
+  assert(chunk_size > block_size);
+  assert(chunk_size != 0);
+  assert(block_size != 0);
+
+  const std::lock_guard<std::mutex> lock(mutex_);
+
   block_size_ = block_size;
-  end_of_data_ = num_blocks * block_size;
-  data_.reset(new char[end_of_data_]);
-  ids_.resize(num_blocks);
-  for (std::size_t i = 0; i != ids_.size(); ++i) {
-    ids_[i] = i;
-  }
+  chunk_size_ = chunk_size;
+  get_offset_ = chunk_size; // Tiggers chunk allocation in Allocate().
+  chunks_.clear();
 }
 
-Block BlockPool::Pop() {
-  Block block;
+Block BlockPool::Allocate() {
   const std::lock_guard<std::mutex> lock(mutex_);
-  if (!ids_.empty()) {
-    const auto block_data = data_.get() + ids_.back() * block_size_;
-    block.set_data(block_data, block_size_);
-    ids_.pop_back();
+  if (get_offset_ == chunk_size_) {
+    chunks_.emplace_back(new char[chunk_size_]);
+    get_offset_ = 0;
   }
-  return block;
+  const auto block_data = chunks_.back().get() + get_offset_;
+  get_offset_ += block_size_;
+  return Block(block_data, block_size_);
 }
-
-void BlockPool::Push(Block&& block) {
-  const std::lock_guard<std::mutex> lock(mutex_);
-  PushUnlocked(std::move(block));
-}
-
-void BlockPool::Push(std::vector<Block>* blocks) {
-  const std::lock_guard<std::mutex> lock(mutex_);
-  for (auto& block : *blocks) {
-    PushUnlocked(std::move(block));
-  }
-}
-
-std::size_t BlockPool::num_blocks() const { return num_blocks_; }
 
 std::size_t BlockPool::block_size() const { return block_size_; }
 
-std::uint64_t BlockPool::memory() const { return end_of_data_; }
+std::size_t BlockPool::chunk_size() const { return chunk_size_; }
 
-std::size_t BlockPool::num_blocks_free() const {
+std::size_t BlockPool::num_blocks() const {
   const std::lock_guard<std::mutex> lock(mutex_);
-  return ids_.size();
+  const auto full_chunks = chunks_.empty() ? 0 : (chunks_.size() - 1);
+  const auto blocks_per_chunk = chunk_size_ / block_size_;
+  const auto blocks_in_last_chunk = get_offset_ / block_size_;
+  return full_chunks * blocks_per_chunk + blocks_in_last_chunk;
 }
 
-bool BlockPool::empty() const {
+std::size_t BlockPool::num_chunks() const {
   const std::lock_guard<std::mutex> lock(mutex_);
-  return ids_.empty();
-}
-
-bool BlockPool::full() const {
-  const std::lock_guard<std::mutex> lock(mutex_);
-  return ids_.size() == num_blocks_;
-}
-
-bool BlockPool::valid(char* ptr) const {
-  const auto end_of_range = data_.get() + end_of_data_;
-  const auto ptr_in_range = ptr >= data_.get() && ptr < end_of_range;
-  const auto block_aligned = (ptr - data_.get()) % block_size_ == 0;
-  return ptr_in_range && block_aligned;
-}
-
-void BlockPool::PushUnlocked(Block&& block) {
-  assert(block.has_data());
-  assert(valid(block.data()));
-  assert(ids_.size() < num_blocks_);
-  ids_.push_back((block.data() - data_.get()) / block_size_);
+  return chunks_.size();
 }
 
 }  // namespace internal
