@@ -19,6 +19,7 @@
 #define MULTIMAP_JNI_COMMON_HPP
 
 #include <jni.h>
+#include <stdexcept>
 #include "multimap/Map.hpp"
 
 namespace multimap {
@@ -78,7 +79,12 @@ inline Callables::Procedure MakeProcedure(JNIEnv* env, jobject jprocedure) {
     env->CallVoidMethod(jprocedure, mid,
                         env->NewDirectByteBuffer(
                             const_cast<char*>(bytes.data()), bytes.size()));
-    // TODO Check for excpetions.
+    if (env->ExceptionOccurred()) {
+      throw std::runtime_error("Exception in procedure passed via JNI");
+      // This exception is to escape from the for-each loop.
+      // Since env->ExceptionClear() is not called the actual exception
+      // is passed to the Java exception-handling process of the Java client.
+    }
   };
 }
 
@@ -89,10 +95,16 @@ inline Callables::Predicate MakePredicate(JNIEnv* env, jobject jpredicate) {
   return [=](const multimap::Bytes& bytes) {
     // Note: java.nio.ByteBuffer cannot wrap a pointer to const void.
     // However, on Java side we will call ByteBuffer.asReadOnlyBuffer().
-    return env->CallBooleanMethod(
+    const auto result = env->CallBooleanMethod(
         jpredicate, mid, env->NewDirectByteBuffer(
                              const_cast<char*>(bytes.data()), bytes.size()));
-    // TODO Check for excpetions.
+    if (env->ExceptionOccurred()) {
+      throw std::runtime_error("Exception in predicate passed via JNI");
+      // This exception is to escape from the for-each loop.
+      // Since env->ExceptionClear() is not called the actual exception
+      // is passed to the Java exception-handling process of the Java client.
+    }
+    return result;
   };
 }
 
@@ -106,10 +118,15 @@ inline Callables::Function MakeFunction(JNIEnv* env, jobject jfunction) {
     const auto result = env->CallObjectMethod(
         jfunction, mid, env->NewDirectByteBuffer(
                             const_cast<char*>(bytes.data()), bytes.size()));
+    if (env->ExceptionOccurred()) {
+      throw std::runtime_error("Exception in function passed via JNI");
+      // This exception is to escape from the for-each loop.
+      // Since env->ExceptionClear() is not called the actual exception
+      // is passed to the Java exception-handling process of the Java client.
+    }
     // result is a jbyteArray that is copied into a std::string.
     return (result != nullptr) ? BytesRaiiHelper(env, result).get().ToString()
                                : std::string();
-    // TODO Check for excpetions.
   };
 }
 
@@ -121,11 +138,17 @@ inline Callables::Compare MakeCompare(JNIEnv* env, jobject jless_than) {
   return [=](const multimap::Bytes& lhs, const multimap::Bytes& rhs) {
     // Note: java.nio.ByteBuffer cannot wrap a pointer to const void.
     // However, on Java side we will call ByteBuffer.asReadOnlyBuffer().
-    return env->CallBooleanMethod(
+    const auto result = env->CallBooleanMethod(
         jless_than, mid,
         env->NewDirectByteBuffer(const_cast<char*>(lhs.data()), lhs.size()),
         env->NewDirectByteBuffer(const_cast<char*>(rhs.data()), rhs.size()));
-    // TODO Check for excpetions.
+    if (env->ExceptionOccurred()) {
+      throw std::runtime_error("Exception in comparator passed via JNI");
+      // This exception is to escape from the for-each loop.
+      // Since env->ExceptionClear() is not called the actual exception
+      // is passed to the Java exception-handling process of the Java client.
+    }
+    return result;
   };
 }
 

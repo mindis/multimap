@@ -140,7 +140,7 @@ JNIEXPORT void JNICALL Java_io_multimap_Map_00024Native_forEachKey
  * Method:    forEachValue
  * Signature: (Ljava/nio/ByteBuffer;[BLio/multimap/Callables/Procedure;)V
  */
-JNIEXPORT void JNICALL Java_io_multimap_Map_00024Native_forEachValue__Ljava_nio_ByteBuffer_2_3BLio_multimap_Callables_Procedure_2
+JNIEXPORT void JNICALL Java_io_multimap_Map_00024Native_forEachValue__Ljava_nio_ByteBuffer_2_3BLio_multimap_Callables_00024Procedure_2
   (JNIEnv *, jclass, jobject, jbyteArray, jobject);
 
 /*
@@ -148,7 +148,7 @@ JNIEXPORT void JNICALL Java_io_multimap_Map_00024Native_forEachValue__Ljava_nio_
  * Method:    forEachValue
  * Signature: (Ljava/nio/ByteBuffer;[BLio/multimap/Callables/Predicate;)V
  */
-JNIEXPORT void JNICALL Java_io_multimap_Map_00024Native_forEachValue__Ljava_nio_ByteBuffer_2_3BLio_multimap_Callables_Predicate_2
+JNIEXPORT void JNICALL Java_io_multimap_Map_00024Native_forEachValue__Ljava_nio_ByteBuffer_2_3BLio_multimap_Callables_00024Predicate_2
   (JNIEnv *, jclass, jobject, jbyteArray, jobject);
 
 /*

@@ -20,6 +20,22 @@
 #include <sstream>
 #include "multimap/jni/common.hpp"
 
+// Bug in javah -jni (OpenJDK 1.7.0_79, Debian 7.8)
+//
+// For io.multimap.Map.Native.forEachValue(ByteBuffer, Callables.Procedure)
+// the following signature is generated:
+//
+// (Ljava/nio/ByteBuffer;[BLio/multimap/Callables/Procedure;)V
+// Java_io_multimap_Map_00024Native_forEachValue__Ljava_nio_ByteBuffer_2_3BLio_multimap_Callables_Procedure_2
+//
+// However, Callables.Procedure is an inner class similar to Map.Native, and
+// should therefore generate the following signature:
+//
+// (Ljava/nio/ByteBuffer;[BLio/multimap/Callables$Procedure;)V
+// Java_io_multimap_Map_00024Native_forEachValue__Ljava_nio_ByteBuffer_2_3BLio_multimap_Callables_00024Procedure_2
+//
+// The fix has to be applied manually at the moment for every such case.
+
 namespace {
 
 inline multimap::Map* Cast(JNIEnv* env, jobject self) {
@@ -191,7 +207,18 @@ JNIEXPORT jboolean JNICALL
                                                  jobject jpredicate) {
   multimap::jni::BytesRaiiHelper key(env, jkey);
   const auto predicate = multimap::jni::MakePredicate(env, jpredicate);
-  return Cast(env, self)->DeleteFirst(key.get(), predicate);
+  try {
+    return Cast(env, self)->DeleteFirst(key.get(), predicate);
+  } catch (std::exception& error) {
+    if (env->ExceptionOccurred()) {
+      // The Java predicate has thrown an exception.
+      // Not calling env->ExceptionClear() will forward it to the JVM.
+    } else {
+      multimap::jni::ThrowException(env, error.what());
+      // The C++ code has thrown an exception that is rethrown to the JVM.
+    }
+    return false;
+  }
 }
 
 /*
@@ -217,7 +244,18 @@ JNIEXPORT jlong JNICALL
                                                jobject jpredicate) {
   multimap::jni::BytesRaiiHelper key(env, jkey);
   const auto predicate = multimap::jni::MakePredicate(env, jpredicate);
-  return Cast(env, self)->DeleteAll(key.get(), predicate);
+  try {
+    return Cast(env, self)->DeleteAll(key.get(), predicate);
+  } catch (std::exception& error) {
+    if (env->ExceptionOccurred()) {
+      // The Java predicate has thrown an exception.
+      // Not calling env->ExceptionClear() will forward it to the JVM.
+    } else {
+      multimap::jni::ThrowException(env, error.what());
+      // The C++ code has thrown an exception that is rethrown to the JVM.
+    }
+    return 0;
+  }
 }
 
 /*
@@ -243,7 +281,18 @@ JNIEXPORT jboolean JNICALL
                                                   jobject jfunction) {
   multimap::jni::BytesRaiiHelper key(env, jkey);
   const auto function = multimap::jni::MakeFunction(env, jfunction);
-  return Cast(env, self)->ReplaceFirst(key.get(), function);
+  try {
+    return Cast(env, self)->ReplaceFirst(key.get(), function);
+  } catch (std::exception& error) {
+    if (env->ExceptionOccurred()) {
+      // The Java function has thrown an exception.
+      // Not calling env->ExceptionClear() will forward it to the JVM.
+    } else {
+      multimap::jni::ThrowException(env, error.what());
+      // The C++ code has thrown an exception that is rethrown to the JVM.
+    }
+    return false;
+  }
 }
 
 /*
@@ -272,7 +321,18 @@ JNIEXPORT jlong JNICALL
                                                 jobject jfunction) {
   multimap::jni::BytesRaiiHelper key(env, jkey);
   const auto function = multimap::jni::MakeFunction(env, jfunction);
-  return Cast(env, self)->ReplaceAll(key.get(), function);
+  try {
+    return Cast(env, self)->ReplaceAll(key.get(), function);
+  } catch (std::exception& error) {
+    if (env->ExceptionOccurred()) {
+      // The Java function has thrown an exception.
+      // Not calling env->ExceptionClear() will forward it to the JVM.
+    } else {
+      multimap::jni::ThrowException(env, error.what());
+      // The C++ code has thrown an exception that is rethrown to the JVM.
+    }
+    return 0;
+  }
 }
 
 /*
@@ -300,35 +360,65 @@ JNIEXPORT void JNICALL
                                                 jobject self,
                                                 jobject jprocedure) {
   const auto procedure = multimap::jni::MakeProcedure(env, jprocedure);
-  Cast(env, self)->ForEachKey(procedure);
+  try {
+    Cast(env, self)->ForEachKey(procedure);
+  } catch (std::exception& error) {
+    if (env->ExceptionOccurred()) {
+      // The Java procedure has thrown an exception.
+      // Not calling env->ExceptionClear() will forward it to the JVM.
+    } else {
+      multimap::jni::ThrowException(env, error.what());
+      // The C++ code has thrown an exception that is rethrown to the JVM.
+    }
+  }
 }
 
 /*
  * Class:     io_multimap_Map_Native
  * Method:    forEachValue
- * Signature: (Ljava/nio/ByteBuffer;[BLio/multimap/Callables/Procedure;)V
+ * Signature: (Ljava/nio/ByteBuffer;[BLio/multimap/Callables$Procedure;)V
  */
 JNIEXPORT void JNICALL
-    Java_io_multimap_Map_00024Native_forEachValue__Ljava_nio_ByteBuffer_2_3BLio_multimap_Callables_Procedure_2(
+    Java_io_multimap_Map_00024Native_forEachValue__Ljava_nio_ByteBuffer_2_3BLio_multimap_Callables_00024Procedure_2(
         JNIEnv* env, jclass, jobject self, jbyteArray jkey,
         jobject jprocedure) {
   const auto procedure = multimap::jni::MakeProcedure(env, jprocedure);
   multimap::jni::BytesRaiiHelper key(env, jkey);
-  Cast(env, self)->ForEachValue(key.get(), procedure);
+  try {
+    Cast(env, self)->ForEachValue(key.get(), procedure);
+  } catch (std::exception& error) {
+    if (env->ExceptionOccurred()) {
+      // The Java procedure has thrown an exception.
+      // Not calling env->ExceptionClear() will forward it to the JVM.
+    } else {
+      multimap::jni::ThrowException(env, error.what());
+      // The C++ code has thrown an exception that is rethrown to the JVM.
+    }
+  }
 }
 
 /*
  * Class:     io_multimap_Map_Native
  * Method:    forEachValue
- * Signature: (Ljava/nio/ByteBuffer;[BLio/multimap/Callables/Predicate;)V
+ * Signature: (Ljava/nio/ByteBuffer;[BLio/multimap/Callables$Predicate;)V
  */
 JNIEXPORT void JNICALL
-    Java_io_multimap_Map_00024Native_forEachValue__Ljava_nio_ByteBuffer_2_3BLio_multimap_Callables_Predicate_2(
+    Java_io_multimap_Map_00024Native_forEachValue__Ljava_nio_ByteBuffer_2_3BLio_multimap_Callables_00024Predicate_2(
         JNIEnv* env, jclass, jobject self, jbyteArray jkey,
         jobject jpredicate) {
   const auto predicate = multimap::jni::MakePredicate(env, jpredicate);
   multimap::jni::BytesRaiiHelper key(env, jkey);
-  Cast(env, self)->ForEachValue(key.get(), predicate);
+  try {
+    Cast(env, self)->ForEachValue(key.get(), predicate);
+  } catch (std::exception& error) {
+    if (env->ExceptionOccurred()) {
+      // The Java predicate has thrown an exception.
+      // Not calling env->ExceptionClear() will forward it to the JVM.
+    } else {
+      multimap::jni::ThrowException(env, error.what());
+      // The C++ code has thrown an exception that is rethrown to the JVM.
+    }
+  }
 }
 
 /*
