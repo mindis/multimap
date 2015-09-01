@@ -22,8 +22,10 @@ package io.multimap;
 import java.nio.ByteBuffer;
 
 public final class Callables {
+  
+  private Callables() {}
 
-  public abstract class Procedure {
+  public static abstract class Procedure {
 
     public void call(ByteBuffer key) {
       callOnReadOnly(key.asReadOnlyBuffer());
@@ -32,7 +34,7 @@ public final class Callables {
     public abstract void callOnReadOnly(ByteBuffer key);
   }
 
-  public abstract class Predicate {
+  public static abstract class Predicate {
 
     public boolean call(ByteBuffer value) {
       return callOnReadOnly(value.asReadOnlyBuffer());
@@ -41,7 +43,7 @@ public final class Callables {
     public abstract boolean callOnReadOnly(ByteBuffer value);
   }
 
-  public abstract class Function {
+  public static abstract class Function {
 
     public byte[] call(ByteBuffer value) {
       return callOnReadOnly(value.asReadOnlyBuffer());
@@ -50,7 +52,7 @@ public final class Callables {
     public abstract byte[] callOnReadOnly(ByteBuffer value);
   }
 
-  public abstract class LessThan {
+  public static abstract class LessThan {
 
     public boolean call(ByteBuffer a, ByteBuffer b) {
       return callOnReadOnly(a.asReadOnlyBuffer(), b.asReadOnlyBuffer());
