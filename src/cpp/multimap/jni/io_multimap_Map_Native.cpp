@@ -135,7 +135,11 @@ JNIEXPORT void JNICALL
                                          jbyteArray jkey, jbyteArray jvalue) {
   multimap::jni::BytesRaiiHelper key(env, jkey);
   multimap::jni::BytesRaiiHelper value(env, jvalue);
-  Cast(env, self)->Put(key.get(), value.get());
+  try {
+    Cast(env, self)->Put(key.get(), value.get());
+  } catch (std::exception& error) {
+    multimap::jni::ThrowException(env, error.what());
+  }
 }
 
 /*
