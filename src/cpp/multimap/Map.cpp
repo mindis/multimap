@@ -167,7 +167,6 @@ void Map::Open(const boost::filesystem::path& directory,
 
     internal::Store::Options store_options;
     store_options.block_size = options_.block_size;
-    store_options.buffer_size = options_.write_buffer_size;
     store_options.append_only_mode = options_.write_only_mode;
     store_.Open(path_to_store, store_options);
     table_.Open(path_to_table);
@@ -181,7 +180,6 @@ void Map::Open(const boost::filesystem::path& directory,
     internal::Store::Options store_options;
     store_options.create_if_missing = true;
     store_options.block_size = options_.block_size;
-    store_options.buffer_size = options_.write_buffer_size;
     store_options.append_only_mode = options_.write_only_mode;
     store_.Open(path_to_store, store_options);
     table_.Open(path_to_table, true);

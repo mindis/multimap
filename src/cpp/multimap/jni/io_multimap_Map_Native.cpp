@@ -50,7 +50,7 @@ Properties ParseProperties(const std::string& input) {
 std::string SerializeProperties(const Properties& properties) {
   std::string result;
   for (const auto& entry : properties) {
-    result.yend(entry.first);
+    result.append(entry.first);
     result.push_back('=');
     result.append(entry.second);
     result.push_back('\n');
@@ -70,8 +70,6 @@ multimap::Options MakeOptions(JNIEnv* env, jstring joptions) {
       options.error_if_exists = (entry.second == "true");
     } else if (entry.first == "write-only-mode") {
       options.write_only_mode = (entry.second == "true");
-    } else if (entry.first == "write-buffer-size") {
-      options.write_buffer_size = std::stoul(entry.second);
     } else {
       std::cerr << "WARNING Unknown option: " << entry.first << '\n';
     }

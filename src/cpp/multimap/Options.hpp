@@ -31,8 +31,6 @@ struct Options {
   bool error_if_exists = false;
 
   bool write_only_mode = false;
-
-  std::size_t write_buffer_size = MiB(10);
 };
 
 }  // namespace multimap

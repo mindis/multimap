@@ -25,8 +25,7 @@ public class Options {
   private boolean createIfMissing = false;
   private boolean errorIfExists = false;
   private boolean writeOnlyMode = false;
-  private long writeBufferSize = MiB(10);
-
+  
   public int getBlockSize() {
     return blockSize;
   }
@@ -60,15 +59,6 @@ public class Options {
     this.writeOnlyMode = writeOnlyMode;
   }
 
-  public long getWriteBufferSize() {
-    return writeBufferSize;
-  }
-
-  public void setWriteBufferSize(long numBytes) {
-    Check.isPositive(numBytes);
-    this.writeBufferSize = numBytes;
-  }
-
   @Override
   public String toString() {
     char delim = '=';
@@ -77,17 +67,8 @@ public class Options {
     sb.append("block-size").append(delim).append(getBlockSize()).append(newline);
     sb.append("create-if-missing").append(delim).append(getCreateIfMissing()).append(newline);
     sb.append("error-if-exists").append(delim).append(getErrorIfExists()).append(newline);
-    sb.append("write-only-mode").append(delim).append(getWriteBufferSize()).append(newline);
-    sb.append("write-buffer-size").append(delim).append(getWriteBufferSize()).append(newline);
+    sb.append("write-only-mode").append(delim).append(getWriteOnlyMode()).append(newline);
     return sb.toString();
   }
-
-  public static final long MiB(int numMebibytes) {
-    return (long) numMebibytes << 20;
-  }
-
-  public static final long GiB(int numGibibytes) {
-    return (long) numGibibytes << 30;
-  }
-
+  
 }
