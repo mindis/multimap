@@ -25,38 +25,38 @@ public final class Callables {
 
   public abstract class Procedure {
 
-    public void apply(ByteBuffer key) {
-      applyOnReadOnly(key.asReadOnlyBuffer());
+    public void call(ByteBuffer key) {
+      callOnReadOnly(key.asReadOnlyBuffer());
     }
 
-    public abstract void applyOnReadOnly(ByteBuffer key);
+    public abstract void callOnReadOnly(ByteBuffer key);
   }
 
   public abstract class Predicate {
 
-    public boolean apply(ByteBuffer value) {
-      return applyOnReadOnly(value.asReadOnlyBuffer());
+    public boolean call(ByteBuffer value) {
+      return callOnReadOnly(value.asReadOnlyBuffer());
     }
 
-    public abstract boolean applyOnReadOnly(ByteBuffer value);
+    public abstract boolean callOnReadOnly(ByteBuffer value);
   }
 
   public abstract class Function {
 
-    public byte[] apply(ByteBuffer value) {
-      return applyOnReadOnly(value.asReadOnlyBuffer());
+    public byte[] call(ByteBuffer value) {
+      return callOnReadOnly(value.asReadOnlyBuffer());
     }
 
-    public abstract byte[] applyOnReadOnly(ByteBuffer value);
+    public abstract byte[] callOnReadOnly(ByteBuffer value);
   }
 
   public abstract class LessThan {
 
-    public boolean apply(ByteBuffer a, ByteBuffer b) {
-      return applyOnReadOnly(a.asReadOnlyBuffer(), b.asReadOnlyBuffer());
+    public boolean call(ByteBuffer a, ByteBuffer b) {
+      return callOnReadOnly(a.asReadOnlyBuffer(), b.asReadOnlyBuffer());
     }
 
-    public abstract boolean applyOnReadOnly(ByteBuffer a, ByteBuffer b);
+    public abstract boolean callOnReadOnly(ByteBuffer a, ByteBuffer b);
   }
 
 }

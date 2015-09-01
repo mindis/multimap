@@ -50,7 +50,7 @@ Properties ParseProperties(const std::string& input) {
 std::string SerializeProperties(const Properties& properties) {
   std::string result;
   for (const auto& entry : properties) {
-    result.append(entry.first);
+    result.yend(entry.first);
     result.push_back('=');
     result.append(entry.second);
     result.push_back('\n');

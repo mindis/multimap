@@ -70,7 +70,7 @@ Holder<T>* NewHolder(T&& element) {
 
 inline Callables::Procedure MakeProcedure(JNIEnv* env, jobject jprocedure) {
   const auto cls = env->GetObjectClass(jprocedure);
-  const auto mid = env->GetMethodID(cls, "apply", "(Ljava/nio/ByteBuffer;)V");
+  const auto mid = env->GetMethodID(cls, "call", "(Ljava/nio/ByteBuffer;)V");
   assert(mid != nullptr);
   return [=](const multimap::Bytes& bytes) {
     // Note: java.nio.ByteBuffer cannot wrap a pointer to const void.
@@ -84,7 +84,7 @@ inline Callables::Procedure MakeProcedure(JNIEnv* env, jobject jprocedure) {
 
 inline Callables::Predicate MakePredicate(JNIEnv* env, jobject jpredicate) {
   const auto cls = env->GetObjectClass(jpredicate);
-  const auto mid = env->GetMethodID(cls, "apply", "(Ljava/nio/ByteBuffer;)Z");
+  const auto mid = env->GetMethodID(cls, "call", "(Ljava/nio/ByteBuffer;)Z");
   assert(mid != nullptr);
   return [=](const multimap::Bytes& bytes) {
     // Note: java.nio.ByteBuffer cannot wrap a pointer to const void.
@@ -98,7 +98,7 @@ inline Callables::Predicate MakePredicate(JNIEnv* env, jobject jpredicate) {
 
 inline Callables::Function MakeFunction(JNIEnv* env, jobject jfunction) {
   const auto cls = env->GetObjectClass(jfunction);
-  const auto mid = env->GetMethodID(cls, "apply", "(Ljava/nio/ByteBuffer;)[B");
+  const auto mid = env->GetMethodID(cls, "call", "(Ljava/nio/ByteBuffer;)[B");
   assert(mid != nullptr);
   return [=](const multimap::Bytes& bytes) {
     // Note: java.nio.ByteBuffer cannot wrap a pointer to const void.
@@ -116,7 +116,7 @@ inline Callables::Function MakeFunction(JNIEnv* env, jobject jfunction) {
 inline Callables::Compare MakeCompare(JNIEnv* env, jobject jless_than) {
   const auto cls = env->GetObjectClass(jless_than);
   const auto mid = env->GetMethodID(
-      cls, "apply", "(Ljava/nio/ByteBuffer;Ljava/nio/ByteBuffer;)Z");
+      cls, "call", "(Ljava/nio/ByteBuffer;Ljava/nio/ByteBuffer;)Z");
   assert(mid != nullptr);
   return [=](const multimap::Bytes& lhs, const multimap::Bytes& rhs) {
     // Note: java.nio.ByteBuffer cannot wrap a pointer to const void.
