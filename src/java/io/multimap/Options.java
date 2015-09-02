@@ -32,17 +32,17 @@ public class Options {
   private boolean writeOnlyMode = false;
 
   /**
-   * Returns the block size.
+   * Tells the block size.
    */
   public int getBlockSize() {
     return blockSize;
   }
 
   /**
-   * Sets the block size which must be a power of two. Typical values are 128, 256, 512, 1024, and
-   * so on. The block size has direct impact on memory usage and compactness of the {@link Map},
-   * which in turn might affects the overall performance. The default value is {@code 512}. Visit
-   * the project's website for more information.
+   * Defines the block size for a newly created map. The value must be a power of two and is
+   * typically 128, 256, 512, 1024, or even larger. The block size has direct impact on the memory
+   * usage and compactness of the {@link Map}, which in turn might affects the overall performance.
+   * The default value is {@code 512}. Visit the project's website for more information.
    */
   public void setBlockSize(int numBytes) {
     Check.isPositive(numBytes);

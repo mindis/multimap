@@ -30,7 +30,7 @@ import java.util.TreeMap;
 
 /**
  * This class represents a 1:n key-value store. In such a store each key is associated with a list
- * of values rather than only a single one. Values can be appended to or removed from the list, and
+ * of values rather than only a single one. Values can be appended to or removed from a list, and
  * iterated quickly.
  * 
  * @author Martin Trenkmann
@@ -42,7 +42,7 @@ public class Map implements AutoCloseable {
     try {
       System.loadLibrary(LIBNAME);
     } catch (Exception e) {
-      System.err.print(e);
+      System.err.println(e);
     }
   }
 
@@ -50,7 +50,7 @@ public class Map implements AutoCloseable {
    * An {@link Iterator} that iterates a list of values in read-only mode. The optional
    * {@link #deleteValue()} operation will throw an {@link UnsupportedOperationException} if
    * invoked. Objects of this class hold a reader lock on the associated list so that multiple
-   * threads can iterate this list at the same time in read-only mode. Remember to call
+   * threads can iterate the list at the same time in read-only mode. Remember to call
    * {@link #close()} if the iterator is not needed anymore.
    */
   static class ImmutableListIter extends Iterator {
@@ -117,7 +117,7 @@ public class Map implements AutoCloseable {
     protected void finalize() throws Throwable {
       if (self != null) {
         System.err.printf(
-            "WARNING %s.finalize() calls release(), but should be called by the client.\n",
+            "WARNING %s.finalize() calls %s.close(), but should be called by the client.\n",
             getClass().getName());
         close();
       }
@@ -213,7 +213,7 @@ public class Map implements AutoCloseable {
     protected void finalize() throws Throwable {
       if (self != null) {
         System.err.printf(
-            "WARNING %s.finalize() calls release(), but should be called by the client.\n",
+            "WARNING %s.finalize() calls %s.close(), but should be called by the client.\n",
             getClass().getName());
         close();
       }

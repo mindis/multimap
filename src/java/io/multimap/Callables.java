@@ -27,14 +27,13 @@ import java.nio.ByteBuffer;
  * @author Martin Trenkmann
  */
 public final class Callables {
-  
+
   private Callables() {}
 
   /**
-   * Processes a value not returning a result.
-   * However, since derived classes may have state, a procedure can be used to collect information
-   * about the processed data. Thus, returning a result indirectly. Consider iterating a list of
-   * values completely to count certain occurrences.
+   * Processes a value not returning a result. However, since derived classes may have state, a
+   * procedure can be used to collect information about the processed data. Thus, returning a result
+   * indirectly. Consider iterating a list of values completely to count certain occurrences.
    * 
    * @see Map#forEachKey(Procedure)
    * @see Map#forEachValue(byte[], Procedure)
@@ -53,17 +52,15 @@ public final class Callables {
     }
 
     /**
-     * Applies the procedure to {@code bytes}.
-     * The input is guaranteed to be read-only.
+     * Applies the procedure to {@code bytes}. The input is guaranteed to be read-only.
      */
     protected abstract void callOnReadOnly(ByteBuffer bytes);
   }
 
   /**
-   * Processes a value and returns a boolean.
-   * Predicates are used to check a property of a value and, depending on the outcome, control the
-   * path of execution. Consider iterating a list of values to take action on only those values for
-   * which the predicate yields {@code true}.
+   * Processes a value and returns a boolean. Predicates are used to check a property of a value
+   * and, depending on the outcome, control the path of execution. Consider iterating a list of
+   * values to take action on only those values for which the predicate yields {@code true}.
    * 
    * @see Map#deleteAll(byte[], Predicate)
    * @see Map#deleteFirst(byte[], Predicate)
@@ -83,19 +80,18 @@ public final class Callables {
     }
 
     /**
-     * Applies the predicate to {@code bytes}.
-     * The input is guaranteed to be read-only.
+     * Applies the predicate to {@code bytes}. The input is guaranteed to be read-only.
      */
     protected abstract boolean callOnReadOnly(ByteBuffer bytes);
   }
 
   /**
-   * Processes a value and returns a new one.
-   * Functions are used to map an input value to an output value or, if permitted {@code null}.
-   * Consider iterating a list of values where all or some of them should be replaced.
+   * Processes a value and returns a new one. Functions are used to map an input value to an output
+   * value or, if permitted {@code null}. Consider iterating a list of values where all or some of
+   * them should be replaced.
    * 
    * @see Map#replaceAll(byte[], Function)
-   * @see Map#replaceFirst(byte[], Function) 
+   * @see Map#replaceFirst(byte[], Function)
    */
   public static abstract class Function {
 
@@ -110,8 +106,7 @@ public final class Callables {
     }
 
     /**
-     * Applies the function to {@code bytes}.
-     * The input is guaranteed to be read-only.
+     * Applies the function to {@code bytes}. The input is guaranteed to be read-only.
      * 
      * @return a new value or {@code null} if permitted.
      */
@@ -119,9 +114,8 @@ public final class Callables {
   }
 
   /**
-   * Processes two values and determines their order.
-   * The {@code LessThan} comparator is a predicate used for sorting purposes. Consider sorting
-   * a list of values in ascending or descending order.
+   * Processes two values and determines their order. The {@code LessThan} comparator is a predicate
+   * used for sorting purposes. Consider sorting a list of values in ascending or descending order.
    * 
    * @see Map#Optimize(java.nio.file.Path, java.nio.file.Path, LessThan)
    * @see Map#Optimize(java.nio.file.Path, java.nio.file.Path, LessThan, int)
@@ -130,8 +124,7 @@ public final class Callables {
 
     /**
      * Determines whether {@code a} is less than {@code b}. This is a wrapper around
-     * {@link #callOnReadOnly(ByteBuffer, ByteBuffer)} which marks the
-     * input as read-only.
+     * {@link #callOnReadOnly(ByteBuffer, ByteBuffer)} which marks the input as read-only.
      * 
      * @see #callOnReadOnly(ByteBuffer, ByteBuffer)
      */
@@ -140,8 +133,7 @@ public final class Callables {
     }
 
     /**
-     * Determines whether {@code a} is less than {@code b}.
-     * The input is guaranteed to be read-only.
+     * Determines whether {@code a} is less than {@code b}. The input is guaranteed to be read-only.
      * 
      * @return {@code true} if {@code a} is less than {@code b}, {@code false} otherwise.
      */

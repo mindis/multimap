@@ -31,14 +31,13 @@ import java.nio.ByteBuffer;
  * <li>Support for lazy initialization. An iterator does not perform any IO operation until
  * {@link Iterator#seekToFirst()}, {@link Iterator#seekTo(byte[])}, or
  * {@link Iterator#seekTo(Predicate)} has been called.</li>
- * <li>The iterator can state the total number of underlying values, even if
- * {@link Iterator#seekToFirst()} or one of its friends have not been called. This information is of
- * benefit when building intersection sets.</li>
+ * <li>The iterator can state the total number of the underlying values, even if
+ * {@link Iterator#seekToFirst()} or one of its friends have not been called.</li>
  * <li>The iterator does not advance automatically. The current value can be retrieved multiple
  * times.</li>
  * <li>The iterator must be closed if no longer needed to release native resources such as locks.
  * Not closing an iterator leaves the associated list in locked state preventing any subsequent
- * iteration</li>
+ * access depending on the kind of lock.</li>
  * </ul>
  * 
  * @author Martin Trenkmann
