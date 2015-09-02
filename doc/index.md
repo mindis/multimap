@@ -1,20 +1,21 @@
 <br />
 <br />
 <br />
-**Multimap** is a 1:n key-value store optimized for large numbers of n. Originally developed as a light-weight implementation of the [inverted index data structure](https://en.wikipedia.org/wiki/Inverted_index) commonly used in information retrieval systems, it matured into a general-purpose persistent map where a key is associated with n values.
+**Multimap** is a 1:n key-value store optimized for large numbers of n. In this kind of store each key is associated with a list of values rather than a single one. Values can be appended to or removed from these lists, or just iterated quickly. Think of it as the [multimap data structure](https://en.wikipedia.org/wiki/Multimap) available in most programming languages, but with external persistent storage.
 
-Multimap is [free software](https://www.fsf.org/about/what-is-free-software) implemented in Standard C++11 licensed under the [GNU AGPL](http://www.gnu.org/licenses/agpl-3.0.en.html). Although it comes with a Java language binding onboard, its only supported target platform at the moment is GNU/Linux.
+Multimap is [free software](https://www.fsf.org/about/what-is-free-software) implemented in Standard C++11 and POSIX, licensed under the [GNU AGPL](http://www.gnu.org/licenses/agpl-3.0.en.html). The only supported platform at the moment is GNU/Linux. This is also true for the included Java binding.
 
-Features
+## Features
 
-* Keys and values are arbitrary byte arrays.
+* Embeddable as a shared library with a clean C++ interface. Multimap has no server included.
+* Keys and values are arbitrary byte arrays, so that you can use your favoured serialization method.
 * Keys are hold in memory. Values are stored on disk.
 * Supported operations: Put, Get, Delete, Replace.
 * Java support included.
 * Full thread-safe.
 
-Limitations
+## How to Start
 
-Since all keys are hold in memory their number is limited by the amount of available memory. The maximum size of a single key is 65536 bytes. As an example, a key set of one million English dictionary words, each word five characters long on average, will consume approximately 13 MiB (5 MiB data plus 8 MiB management overhead) of memory.
-
-The maximum size of a single value is limited by the configured block size. Since values are physically organized in blocks, a value must fit completely into one block. Typical block sizes are 128, 256, 512, 1024, and so on. As a rule of thumb, there should be room for at least 10 values in a block.
+1. Read the [Guide](guide.md).
+2. [Download](download.md) and build the library.
+3. Start programming using the [C++](cpp-api.md) or [Java](java-api.md) reference.
