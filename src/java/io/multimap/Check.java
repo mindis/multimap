@@ -19,6 +19,11 @@
 
 package io.multimap;
 
+/**
+ * This class provides static helper functions.
+ * 
+ * @author Martin Trenkmann
+ */
 public final class Check {
 
   public static final void notNull(Object object) {
