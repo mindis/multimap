@@ -7,7 +7,7 @@ Multimap is [free software](https://www.fsf.org/about/what-is-free-software) imp
 
 ## Features
 
-* Embeddable as a shared library with a clean C++ interface. Multimap has no server included.
+* Embeddable library with a clean C++ interface. Multimap has no server included.
 * Keys and values are arbitrary byte arrays, so that you can use your favoured serialization method.
 * Keys are hold in memory. Values are stored on disk.
 * Supported operations: Put, Get, Delete, Replace.
@@ -16,6 +16,6 @@ Multimap is [free software](https://www.fsf.org/about/what-is-free-software) imp
 
 ## How to Start
 
-1. Read the [Guide](guide.md).
-2. [Download](download.md) and build the library.
-3. Start programming using the [C++](cpp-api.md) or [Java](java-api.md) reference.
+1. Read the [Overview](overview.md).
+2. Get familiar with the [C++](tutorial-cpp.md) or [Java](tutorial-java.md) tutorial.
+3. [Download](download.md) and install the library.

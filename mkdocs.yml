@@ -12,10 +12,13 @@ remote_name: null
 # Documentation layout
 pages:
   - Home: index.md
-  - Guide: guide.md
+  - Overview: overview.md
+  - Tutorial:
+    - 'For C++ Developers': 'tutorial-cpp.md'
+    - 'For Java Developers': 'tutorial-java.md'
   - Reference:
-    - 'C++ API': 'cpp-api.md'
-    - 'Java API': 'java-api.md'
+    - 'C++ API': 'reference-cpp.md'
+    - 'Java API': 'reference-java.md'
   - Download: download.md
 #  - Donate: donate.md
 

@@ -40,8 +40,8 @@ code {
   background-color: white;
   color: #0086B3;
   font-family: 'Inconsolata', monospace;
-  font-size: 1.15em;
-  padding: 0px;
+  font-size: 1.1em;
+  padding: 0px 2px;
 }
 
 pre {
@@ -57,30 +57,36 @@ pre {
 .navbar {
   background-color: #663366;
   box-shadow: 0px 0px 20px #666;
+  padding-top: 5px;
+  min-height: 60px;
 }
 
 .navbar .navbar-brand {
   color: white;
   font-family: 'Faster One', cursive;
-  font-size: 40px;
-  line-height: 1.0;
-  margin-right: 40px;
+  font-size: 33px;
   outline: 0px none;
-  padding-left: 20px;
 }
 
-.navbar .navbar-nav > li {
-  margin: 10px 20px;
+@media (min-width: 992px) {
+  .navbar .navbar-brand {
+    margin-right: 40px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .navbar .navbar-brand {
+    margin-right: 90px;
+  }
 }
 
 .navbar .navbar-nav > li > a {
   color: white;
-  display: inline;
-  font-size: 24px;
-	line-height: 2.1;
+  font-size: 18px;
+  line-height: 28px;
 	opacity: 0.6;
 	outline: 0px none;
-	padding: 0px;
+	padding: 10px 14px;
 	transition: opacity 0.2s;
 }
 
@@ -104,30 +110,25 @@ pre {
   display: none;
 }
 
-/* Give rightmost icon in navigation bar more margin-right. */
-.navbar ul.nav:nth-child(2) > li:last-child {
-  margin-right: 30px;
-}
-
 .navbar-default .navbar-nav > .open > a,
 .navbar-default .navbar-nav > .open > a:focus {
   background-color: #663366;
 }
 
 .navbar-default .dropdown-menu {
-  box-shadow: 0px 0px 20px 0px #666;
-  margin-left: -12px;
-  top: 60px;
-  z-index: -1;
+  top: 55px;
 }
 
 .navbar-default .dropdown-menu > li > a {
   padding: 5px 15px;
 }
 
+.navbar-default .dropdown-menu > .active > a {
+  background-color: white;
+}
+
 .navbar-default .dropdown-menu > li > a:hover,
 .navbar-default .dropdown-menu > li > a:focus,
-.navbar-default .dropdown-menu > .active > a,
 .navbar-default .dropdown-menu > .active > a:hover,
 .navbar-default .dropdown-menu > .active > a:focus {
   background-color: #663366;
@@ -145,6 +146,11 @@ pre {
   color: white;
   font-size: 16px;
   font-weight: normal;
+}
+
+/* Give menu button more top space */
+.navbar .navbar-toggle {
+  padding-top: 12px;
 }
 
 .bs-sidebar ul.nav li.main {
@@ -200,7 +206,8 @@ pre {
 }
 
 .container.footer {
-  margin-top: -100px;
+  margin-top: -90px;
+  padding-bottom: 20px;
 }
 
 .homepage .col-md-9 {
