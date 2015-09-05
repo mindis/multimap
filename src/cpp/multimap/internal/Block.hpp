@@ -166,7 +166,7 @@ class Block {
   std::uint32_t used_;
 };
 
-static_assert(HasExpectedSize<Block, 16, 16>::value,
+static_assert(HasExpectedSize<Block, 12, 16>::value,
               "class Block does not have expected size");
 
 bool operator==(const Block& lhs, const Block& rhs);
