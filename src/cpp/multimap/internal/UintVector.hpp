@@ -64,7 +64,7 @@ class UintVector {
   std::uint32_t put_offset_;
 };
 
-static_assert(HasExpectedSize<UintVector, 16, 16>::value,
+static_assert(HasExpectedSize<UintVector, 12, 16>::value,
               "class UintVector does not have expected size");
 
 }  // internal

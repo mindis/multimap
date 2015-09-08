@@ -50,7 +50,7 @@ class List {
     UintVector block_ids;
   };
 
-  static_assert(HasExpectedSize<Head, 24, 24>::value,
+  static_assert(HasExpectedSize<Head, 20, 24>::value,
                 "class Head does not have expected size");
 
   template <bool IsConst>
@@ -183,7 +183,7 @@ class List {
   mutable std::uint32_t mutex_use_count_ = 0;
 };
 
-static_assert(HasExpectedSize<List, 56, 56>::value,
+static_assert(HasExpectedSize<List, 40, 56>::value,
               "class List does not have expected size");
 
 template <>

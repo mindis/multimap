@@ -30,6 +30,10 @@ h2 {
   font-size: 30px;
 }
 
+h3 {
+  margin-top: 35px;
+}
+
 h1[id]:before,
 h2[id]:before {
   margin-top: -123px;
