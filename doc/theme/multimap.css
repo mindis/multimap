@@ -6,6 +6,7 @@ html, body {
   font-size: 16px;
   height: 100%;
   line-height: 1.5;
+  margin-top: -5px;
 }
 
 a {
@@ -19,25 +20,19 @@ a:focus {
   outline: 0px none;
 }
 
-h1 {
+h1, h2, h3 {
   line-height: 40px;
-  margin-top: 55px;
+  margin-top: 50px;
 }
 
-h2 {
-  line-height: 40px;
-  margin-top: 55px;
-  font-size: 30px;
-}
-
-h3 {
-  margin-top: 35px;
-}
-
-h1[id]:before,
-h2[id]:before {
-  margin-top: -123px;
-  height: 123px;
+h1[id]::before,
+h2[id]::before,
+h3[id]::before,
+h4[id]::before,
+h5[id]::before,
+h6[id]::before {
+  margin-top: -110px;
+  height: 110px;
 }
 
 code {
@@ -48,6 +43,10 @@ code {
   padding: 0px 2px;
 }
 
+a code {
+  color: #B370B3;
+}
+
 pre {
   background-color: white;
   border: 0px;
@@ -56,6 +55,11 @@ pre {
   margin-bottom: 20px;
   margin-top: 20px;
   padding: 0px 0px 0px 5px;
+}
+
+pre .text {
+  display: block;
+  padding: 0.5em;
 }
 
 .navbar {
@@ -215,7 +219,7 @@ pre {
   
   .bs-sidebar.affix {
     height: 100%;
-    padding-top: 130px;
+    padding-top: 115px;
     top: 0px;
   }
 

@@ -1,5 +1,3 @@
-# C++ Reference
-
 <br>
 ```cpp
 #include "multimap/Map.hpp"

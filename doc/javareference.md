@@ -1,5 +1,3 @@
-# Java Reference
-
 <br>
 ```java
 import io.multimap.Map;
