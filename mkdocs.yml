@@ -14,11 +14,11 @@ pages:
   - Home: index.md
   - Overview: overview.md
   - Tutorial:
-    - 'For C++ Developers': 'tutorial-cpp.md'
-    - 'For Java Developers': 'tutorial-java.md'
+    - 'for C++ Developers': 'cpptutorial.md'
+    - 'for Java Developers': 'javatutorial.md'
   - Reference:
-    - 'C++ API': 'reference-cpp.md'
-    - 'Java API': 'reference-java.md'
+    - 'for C++ Developers': 'cppreference.md'
+    - 'for Java Developers': 'javareference.md'
   - Download: download.md
 #  - Donate: donate.md
 
