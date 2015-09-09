@@ -225,6 +225,16 @@ std::size_t Map::Delete(const Bytes& key) {
   return num_deleted;
 }
 
+std::size_t Map::DeleteAll(const Bytes& key, Callables::Predicate predicate) {
+  return Delete(key, predicate, true);
+}
+
+std::size_t Map::DeleteAllEqual(const Bytes& key, const Bytes& value) {
+  return DeleteAll(key, [&value](const Bytes& current_value) {
+    return current_value == value;
+  });
+}
+
 bool Map::DeleteFirst(const Bytes& key, Callables::Predicate predicate) {
   return Delete(key, predicate, false);
 }
@@ -235,13 +245,14 @@ bool Map::DeleteFirstEqual(const Bytes& key, const Bytes& value) {
   });
 }
 
-std::size_t Map::DeleteAll(const Bytes& key, Callables::Predicate predicate) {
-  return Delete(key, predicate, true);
+std::size_t Map::ReplaceAll(const Bytes& key, Callables::Function function) {
+  return Replace(key, function, true);
 }
 
-std::size_t Map::DeleteAllEqual(const Bytes& key, const Bytes& value) {
-  return DeleteAll(key, [&value](const Bytes& current_value) {
-    return current_value == value;
+std::size_t Map::ReplaceAllEqual(const Bytes& key, const Bytes& old_value,
+                                 const Bytes& new_value) {
+  return ReplaceAll(key, [&old_value, &new_value](const Bytes& current_value) {
+    return (current_value == old_value) ? new_value.ToString() : std::string();
   });
 }
 
@@ -253,17 +264,6 @@ bool Map::ReplaceFirstEqual(const Bytes& key, const Bytes& old_value,
                             const Bytes& new_value) {
   return ReplaceFirst(key,
                       [&old_value, &new_value](const Bytes& current_value) {
-    return (current_value == old_value) ? new_value.ToString() : std::string();
-  });
-}
-
-std::size_t Map::ReplaceAll(const Bytes& key, Callables::Function function) {
-  return Replace(key, function, true);
-}
-
-std::size_t Map::ReplaceAllEqual(const Bytes& key, const Bytes& old_value,
-                                 const Bytes& new_value) {
-  return ReplaceAll(key, [&old_value, &new_value](const Bytes& current_value) {
     return (current_value == old_value) ? new_value.ToString() : std::string();
   });
 }

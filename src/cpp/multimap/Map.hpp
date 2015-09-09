@@ -59,23 +59,23 @@ class Map {
 
   std::size_t Delete(const Bytes& key);
 
-  bool DeleteFirst(const Bytes& key, Callables::Predicate predicate);
-
-  bool DeleteFirstEqual(const Bytes& key, const Bytes& value);
-
   std::size_t DeleteAll(const Bytes& key, Callables::Predicate predicate);
 
   std::size_t DeleteAllEqual(const Bytes& key, const Bytes& value);
 
-  bool ReplaceFirst(const Bytes& key, Callables::Function function);
+  bool DeleteFirst(const Bytes& key, Callables::Predicate predicate);
 
-  bool ReplaceFirstEqual(const Bytes& key, const Bytes& old_value,
-                         const Bytes& new_value);
+  bool DeleteFirstEqual(const Bytes& key, const Bytes& value);
 
   std::size_t ReplaceAll(const Bytes& key, Callables::Function function);
 
   std::size_t ReplaceAllEqual(const Bytes& key, const Bytes& old_value,
                               const Bytes& new_value);
+
+  bool ReplaceFirst(const Bytes& key, Callables::Function function);
+
+  bool ReplaceFirstEqual(const Bytes& key, const Bytes& old_value,
+                         const Bytes& new_value);
 
   void ForEachKey(Callables::Procedure procedure) const;
 

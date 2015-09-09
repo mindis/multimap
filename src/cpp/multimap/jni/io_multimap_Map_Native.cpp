@@ -202,43 +202,6 @@ JNIEXPORT jlong JNICALL
 
 /*
  * Class:     io_multimap_Map_Native
- * Method:    deleteFirst
- * Signature: (Ljava/nio/ByteBuffer;[BLio/multimap/Callables/Predicate;)Z
- */
-JNIEXPORT jboolean JNICALL
-    Java_io_multimap_Map_00024Native_deleteFirst(JNIEnv* env, jclass,
-                                                 jobject self, jbyteArray jkey,
-                                                 jobject jpredicate) {
-  multimap::jni::BytesRaiiHelper key(env, jkey);
-  const auto predicate = multimap::jni::MakePredicate(env, jpredicate);
-  try {
-    return Cast(env, self)->DeleteFirst(key.get(), predicate);
-  } catch (std::exception& error) {
-    if (env->ExceptionOccurred()) {
-      // The Java predicate has thrown an exception.
-      // Not calling env->ExceptionClear() will forward it to the JVM.
-    } else {
-      multimap::jni::ThrowException(env, error.what());
-      // The C++ code has thrown an exception that is rethrown to the JVM.
-    }
-    return false;
-  }
-}
-
-/*
- * Class:     io_multimap_Map_Native
- * Method:    deleteFirstEqual
- * Signature: (Ljava/nio/ByteBuffer;[B[B)Z
- */
-JNIEXPORT jboolean JNICALL Java_io_multimap_Map_00024Native_deleteFirstEqual(
-    JNIEnv* env, jclass, jobject self, jbyteArray jkey, jbyteArray jvalue) {
-  multimap::jni::BytesRaiiHelper key(env, jkey);
-  multimap::jni::BytesRaiiHelper value(env, jvalue);
-  return Cast(env, self)->DeleteFirstEqual(key.get(), value.get());
-}
-
-/*
- * Class:     io_multimap_Map_Native
  * Method:    deleteAll
  * Signature: (Ljava/nio/ByteBuffer;[BLio/multimap/Callables/Predicate;)J
  */
@@ -276,20 +239,20 @@ JNIEXPORT jlong JNICALL Java_io_multimap_Map_00024Native_deleteAllEqual(
 
 /*
  * Class:     io_multimap_Map_Native
- * Method:    replaceFirst
- * Signature: (Ljava/nio/ByteBuffer;[BLio/multimap/Callables/Function;)Z
+ * Method:    deleteFirst
+ * Signature: (Ljava/nio/ByteBuffer;[BLio/multimap/Callables/Predicate;)Z
  */
 JNIEXPORT jboolean JNICALL
-    Java_io_multimap_Map_00024Native_replaceFirst(JNIEnv* env, jclass,
-                                                  jobject self, jbyteArray jkey,
-                                                  jobject jfunction) {
+    Java_io_multimap_Map_00024Native_deleteFirst(JNIEnv* env, jclass,
+                                                 jobject self, jbyteArray jkey,
+                                                 jobject jpredicate) {
   multimap::jni::BytesRaiiHelper key(env, jkey);
-  const auto function = multimap::jni::MakeFunction(env, jfunction);
+  const auto predicate = multimap::jni::MakePredicate(env, jpredicate);
   try {
-    return Cast(env, self)->ReplaceFirst(key.get(), function);
+    return Cast(env, self)->DeleteFirst(key.get(), predicate);
   } catch (std::exception& error) {
     if (env->ExceptionOccurred()) {
-      // The Java function has thrown an exception.
+      // The Java predicate has thrown an exception.
       // Not calling env->ExceptionClear() will forward it to the JVM.
     } else {
       multimap::jni::ThrowException(env, error.what());
@@ -301,17 +264,14 @@ JNIEXPORT jboolean JNICALL
 
 /*
  * Class:     io_multimap_Map_Native
- * Method:    replaceFirstEqual
- * Signature: (Ljava/nio/ByteBuffer;[B[B[B)Z
+ * Method:    deleteFirstEqual
+ * Signature: (Ljava/nio/ByteBuffer;[B[B)Z
  */
-JNIEXPORT jboolean JNICALL Java_io_multimap_Map_00024Native_replaceFirstEqual(
-    JNIEnv* env, jclass, jobject self, jbyteArray jkey, jbyteArray jold_value,
-    jbyteArray jnew_value) {
+JNIEXPORT jboolean JNICALL Java_io_multimap_Map_00024Native_deleteFirstEqual(
+    JNIEnv* env, jclass, jobject self, jbyteArray jkey, jbyteArray jvalue) {
   multimap::jni::BytesRaiiHelper key(env, jkey);
-  multimap::jni::BytesRaiiHelper old_value(env, jold_value);
-  multimap::jni::BytesRaiiHelper new_value(env, jnew_value);
-  return Cast(env, self)
-      ->ReplaceFirstEqual(key.get(), old_value.get(), new_value.get());
+  multimap::jni::BytesRaiiHelper value(env, jvalue);
+  return Cast(env, self)->DeleteFirstEqual(key.get(), value.get());
 }
 
 /*
@@ -352,6 +312,46 @@ JNIEXPORT jlong JNICALL Java_io_multimap_Map_00024Native_replaceAllEqual(
   multimap::jni::BytesRaiiHelper new_value(env, jnew_value);
   return Cast(env, self)
       ->ReplaceAllEqual(key.get(), old_value.get(), new_value.get());
+}
+
+/*
+ * Class:     io_multimap_Map_Native
+ * Method:    replaceFirst
+ * Signature: (Ljava/nio/ByteBuffer;[BLio/multimap/Callables/Function;)Z
+ */
+JNIEXPORT jboolean JNICALL
+    Java_io_multimap_Map_00024Native_replaceFirst(JNIEnv* env, jclass,
+                                                  jobject self, jbyteArray jkey,
+                                                  jobject jfunction) {
+  multimap::jni::BytesRaiiHelper key(env, jkey);
+  const auto function = multimap::jni::MakeFunction(env, jfunction);
+  try {
+    return Cast(env, self)->ReplaceFirst(key.get(), function);
+  } catch (std::exception& error) {
+    if (env->ExceptionOccurred()) {
+      // The Java function has thrown an exception.
+      // Not calling env->ExceptionClear() will forward it to the JVM.
+    } else {
+      multimap::jni::ThrowException(env, error.what());
+      // The C++ code has thrown an exception that is rethrown to the JVM.
+    }
+    return false;
+  }
+}
+
+/*
+ * Class:     io_multimap_Map_Native
+ * Method:    replaceFirstEqual
+ * Signature: (Ljava/nio/ByteBuffer;[B[B[B)Z
+ */
+JNIEXPORT jboolean JNICALL Java_io_multimap_Map_00024Native_replaceFirstEqual(
+    JNIEnv* env, jclass, jobject self, jbyteArray jkey, jbyteArray jold_value,
+    jbyteArray jnew_value) {
+  multimap::jni::BytesRaiiHelper key(env, jkey);
+  multimap::jni::BytesRaiiHelper old_value(env, jold_value);
+  multimap::jni::BytesRaiiHelper new_value(env, jnew_value);
+  return Cast(env, self)
+      ->ReplaceFirstEqual(key.get(), old_value.get(), new_value.get());
 }
 
 /*

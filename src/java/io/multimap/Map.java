@@ -327,30 +327,6 @@ public class Map implements AutoCloseable {
   }
 
   /**
-   * Deletes the first value in the list associated with {@code key} for which {@code predicate}
-   * returns {@code true}.
-   * 
-   * @return {@code true} if a value was deleted, {@code false} otherwise.
-   */
-  public boolean deleteFirst(byte[] key, Predicate predicate) {
-    Check.notNull(key);
-    Check.notNull(predicate);
-    return Native.deleteFirst(self, key, predicate);
-  }
-
-  /**
-   * Deletes all values in the list associated with {@code key} which are equal to {@code value}.
-   * Two values compare equal if their byte arrays match.
-   * 
-   * @return {@code true} if a value was deleted, {@code false} otherwise.
-   */
-  public boolean deleteFirstEqual(byte[] key, byte[] value) {
-    Check.notNull(key);
-    Check.notNull(value);
-    return Native.deleteFirstEqual(self, key, value);
-  }
-
-  /**
    * Deletes all values in the list associated with {@code key} for which {@code predicate} returns
    * {@code true}.
    * 
@@ -373,34 +349,29 @@ public class Map implements AutoCloseable {
     Check.notNull(value);
     return Native.deleteAllEqual(self, key, value);
   }
-
+  
   /**
-   * Replaces the first value in the list associated with {@code key} by the result of invoking
-   * {@code function}. The result of {@code function} is ignored as long as it is {@code null}. The
-   * replacement does not happen in-place. Instead, the old value is marked as deleted and the new
-   * value is appended to the end of the list. Future releases will support in-place replacements.
+   * Deletes the first value in the list associated with {@code key} for which {@code predicate}
+   * returns {@code true}.
    * 
-   * @return {@code true} if a value was replaced, {@code false} otherwise.
+   * @return {@code true} if a value was deleted, {@code false} otherwise.
    */
-  public boolean replaceFirst(byte[] key, Function function) {
+  public boolean deleteFirst(byte[] key, Predicate predicate) {
     Check.notNull(key);
-    Check.notNull(function);
-    return Native.replaceFirst(self, key, function);
+    Check.notNull(predicate);
+    return Native.deleteFirst(self, key, predicate);
   }
 
   /**
-   * Replaces the first occurrence of {@code oldValue} in the list associated with {@code key} by
-   * {@code newValue}. The replacement does not happen in-place. Instead, the old value is marked as
-   * deleted and the new value is appended to the end of the list. Future releases will support
-   * in-place replacements.
+   * Deletes all values in the list associated with {@code key} which are equal to {@code value}.
+   * Two values compare equal if their byte arrays match.
    * 
-   * @return {@code true} if a value was replaced, {@code false} otherwise.
+   * @return {@code true} if a value was deleted, {@code false} otherwise.
    */
-  public boolean replaceFirstEqual(byte[] key, byte[] oldValue, byte[] newValue) {
+  public boolean deleteFirstEqual(byte[] key, byte[] value) {
     Check.notNull(key);
-    Check.notNull(oldValue);
-    Check.notNull(newValue);
-    return Native.replaceFirstEqual(self, key, oldValue, newValue);
+    Check.notNull(value);
+    return Native.deleteFirstEqual(self, key, value);
   }
 
   /**
@@ -430,6 +401,35 @@ public class Map implements AutoCloseable {
     Check.notNull(oldValue);
     Check.notNull(newValue);
     return Native.replaceAllEqual(self, key, oldValue, newValue);
+  }
+  
+  /**
+   * Replaces the first value in the list associated with {@code key} by the result of invoking
+   * {@code function}. The result of {@code function} is ignored as long as it is {@code null}. The
+   * replacement does not happen in-place. Instead, the old value is marked as deleted and the new
+   * value is appended to the end of the list. Future releases will support in-place replacements.
+   * 
+   * @return {@code true} if a value was replaced, {@code false} otherwise.
+   */
+  public boolean replaceFirst(byte[] key, Function function) {
+    Check.notNull(key);
+    Check.notNull(function);
+    return Native.replaceFirst(self, key, function);
+  }
+
+  /**
+   * Replaces the first occurrence of {@code oldValue} in the list associated with {@code key} by
+   * {@code newValue}. The replacement does not happen in-place. Instead, the old value is marked as
+   * deleted and the new value is appended to the end of the list. Future releases will support
+   * in-place replacements.
+   * 
+   * @return {@code true} if a value was replaced, {@code false} otherwise.
+   */
+  public boolean replaceFirstEqual(byte[] key, byte[] oldValue, byte[] newValue) {
+    Check.notNull(key);
+    Check.notNull(oldValue);
+    Check.notNull(newValue);
+    return Native.replaceFirstEqual(self, key, oldValue, newValue);
   }
 
   /**
@@ -602,23 +602,23 @@ public class Map implements AutoCloseable {
 
     static native long delete(ByteBuffer self, byte[] key);
 
-    static native boolean deleteFirst(ByteBuffer self, byte[] key, Predicate predicate);
-
-    static native boolean deleteFirstEqual(ByteBuffer self, byte[] key, byte[] value);
-
     static native long deleteAll(ByteBuffer self, byte[] key, Predicate predicate);
 
     static native long deleteAllEqual(ByteBuffer self, byte[] key, byte[] value);
 
-    static native boolean replaceFirst(ByteBuffer self, byte[] key, Function function);
+    static native boolean deleteFirst(ByteBuffer self, byte[] key, Predicate predicate);
 
-    static native boolean replaceFirstEqual(ByteBuffer self, byte[] key, byte[] oldValue,
-        byte[] newValue);
+    static native boolean deleteFirstEqual(ByteBuffer self, byte[] key, byte[] value);
 
     static native long replaceAll(ByteBuffer self, byte[] key, Function function);
 
     static native long replaceAllEqual(ByteBuffer self, byte[] key, byte[] oldValue, byte[] newValue);
 
+    static native boolean replaceFirst(ByteBuffer self, byte[] key, Function function);
+
+    static native boolean replaceFirstEqual(ByteBuffer self, byte[] key, byte[] oldValue,
+        byte[] newValue);
+    
     static native void forEachKey(ByteBuffer self, Procedure procedure);
 
     static native void forEachValue(ByteBuffer self, byte[] key, Procedure procedure);
