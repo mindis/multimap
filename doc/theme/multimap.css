@@ -212,6 +212,15 @@ pre .text {
   width: 100%;
 }
 
+span.declaration {
+  color: #0086B3;
+  display: block;
+  font-family: 'Inconsolata', monospace;
+  font-size: 1.3em;
+  padding-top: 115px;
+  margin-top: -70px;
+}
+
 @media (min-width: 992px) {
   .navbar .navbar-brand {
     margin-right: 40px;
