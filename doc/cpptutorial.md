@@ -65,7 +65,7 @@ An iterator that points to a non-empty list also holds a lock on this list to sy
 } // iter gets destroyed and the internal lock is released.
 ```
 
-Iterators allow for lazy initialization which means that no IO operation is performed until you call `SeekToFirst()` or one of its friends `SeekTo(target)` and `SeekTo(predicate)`. This might be useful in cases where you need to request multiple iterators first to determine in which order they have to be processed depending on the lengths of the underlying lists. The latter can be obtained via `NumValues()` which may be called even the iterator has not been initialized.
+Iterators allow for lazy initialization which means that no IO operation is performed until you call `SeekToFirst()` or one of its friends `SeekTo(target)` and `SeekTo(predicate)`. This might be useful in cases where you need to request multiple iterators first to determine in which order they have to be processed. The length of the underlying list can be obtained via `NumValues()` even if the iterator has not been initialized.
 
 A call to `GetValue()` returns the value the iterator currently points to. The value itself is a shallow copy that points into memory managed by the iterator. Hence, the value is only valid as long as the iterator is not moved forward. To get a deep copy of the value you can call its `ToString()` method, use `std::memcpy` together with its `data()` and `size()` methods, or parse the content into some rich object using your preferred [serialization library](https://en.wikipedia.org/wiki/Comparison_of_data_serialization_formats).
 
