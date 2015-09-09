@@ -9,6 +9,7 @@ A new map can be created setting `options.create_if_missing` to `true`.
 
 ```cpp
 #include <exception>
+#include <boost/filesystem/path.hpp>
 #include "multimap/Map.hpp"
 
 multimap::Map map;
@@ -34,16 +35,18 @@ A map is closed automatically when its lifetime ends and its destructor is calle
 Putting a value means to append a value to the end of the list that is associated with a key. Both objects, the key and the value, must be of type `multimap::Bytes` or be implicitly convertible to it.
 
 ```cpp
-// Put a value constructed from a null-terminated C-string.
-map.Put("key", "value");
+const multimap::Bytes key = "key";
 
-// Put a value constructed from a std::string sometimes used as a managed byte buffer.
-const std::string value = somelib::Serialize(some_object);
-map.Put("key", value);
+// Put a value constructed from a null-terminated C-string.
+map.Put(key, "value");
 
 // Put a value constructed from a pointer to data plus its size.
 // Note that PODs might cover more bytes than expected due to alignment.
-map.Put("key", multimap::Bytes(&some_pod, sizeof some_pod));
+map.Put(key, multimap::Bytes(&some_pod, sizeof some_pod));
+
+// Put a value constructed from std::string sometimes used as a byte buffer.
+const std::string value = somelib::Serialize(some_object);
+map.Put(key, value);
 ```
 
 ## Getting Values
@@ -54,7 +57,7 @@ An iterator that points to a non-empty list also holds a lock on this list to sy
 
 ```cpp
 {
-  multimap::Map::ConstIter iter = map.Get("key");
+  multimap::Map::ConstIter iter = map.Get(key);
   // You could also use 'auto' here.
 
   for (iter.SeekToFirst(); iter.HasValue(); iter.Next()) {
@@ -76,7 +79,7 @@ When a value is deleted it will initially be marked as deleted so that it will b
 Values can be deleted using a mutable iterator:
 
 ```cpp
-multimap::Map::Iter iter = map.GetMutable("key");
+multimap::Map::Iter iter = map.GetMutable(key);
 // You could also use 'auto' here.
 
 for (iter.SeekToFirst(); iter.HasValue(); iter.Next()) {
@@ -106,9 +109,9 @@ const auto is_even = [](const multimap::Bytes& value) {
   return number % 2 == 0;
 };
 
-// Before: "key" -> (0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
-const std::size_t num_deleted = map.DeleteAll("key", is_even);
-// After: "key" -> (1, 3, 5, 7, 9)
+// Before: key -> (0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
+const std::size_t num_deleted = map.DeleteAll(key, is_even);
+// After: key -> (1, 3, 5, 7, 9)
 // num_deleted == 5
 ```
 
@@ -118,9 +121,9 @@ Example 2: Delete every value (of type `std::uint32_t`) that is equal to `23`.
 const std::uint32_t number = 23;
 const multimap::Bytes value(&number, sizeof number);
 
-// Before: "key" -> (0, 1, 23, 45, 67, 89, 23)
-const std::size_t num_deleted = map.DeleteAllEqual("key", value);
-// After: "key" -> (0, 1, 45, 67, 89)
+// Before: key -> (0, 1, 23, 45, 67, 89, 23)
+const std::size_t num_deleted = map.DeleteAllEqual(key, value);
+// After: key -> (0, 1, 45, 67, 89)
 // num_deleted == 2
 ```
 
@@ -152,9 +155,9 @@ const auto increment_if_even = [](const multimap::Bytes& value) {
   return result;
 };
 
-// Before: "key" -> (0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
-const std::size_t num_replaced = map.ReplaceAll("key", increment_if_even);
-// After: "key" -> (1, 3, 5, 7, 9, 1, 3, 5, 7, 9)
+// Before: key -> (0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
+const std::size_t num_replaced = map.ReplaceAll(key, increment_if_even);
+// After: key -> (1, 3, 5, 7, 9, 1, 3, 5, 7, 9)
 // num_replaced == 5
 ```
 
@@ -166,9 +169,9 @@ const std::uint32_t new_number = 42;
 const multimap::Bytes old_value(&old_number, sizeof old_number);
 const multimap::Bytes new_value(&new_number, sizeof new_number);
 
-// Before: "key" -> (0, 1, 23, 45, 67, 89, 23)
-const std::size_t num_replaced = map.ReplaceAllEqual("key", old_value, new_value);
-// After: "key" -> (0, 1, 45, 67, 89, 42, 42)
+// Before: key -> (0, 1, 23, 45, 67, 89, 23)
+const std::size_t num_replaced = map.ReplaceAllEqual(key, old_value, new_value);
+// After: key -> (0, 1, 45, 67, 89, 42, 42)
 // num_replaced == 2
 ```
 
