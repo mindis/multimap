@@ -10,7 +10,7 @@ A new map can be created setting `options.create_if_missing` to `true`.
 ```cpp
 #include <exception>
 #include <boost/filesystem/path.hpp>
-#include "multimap/Map.hpp"
+#include <multimap/Map.hpp>
 
 multimap::Map map;
 multimap::Options options;
