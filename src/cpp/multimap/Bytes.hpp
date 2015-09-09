@@ -54,28 +54,20 @@ class Bytes {
   std::size_t size_;
 };
 
-inline bool Equal(const Bytes& lhs, const Bytes& rhs) {
+inline bool operator==(const Bytes& lhs, const Bytes& rhs) {
   return (lhs.size() == rhs.size())
              ? std::memcmp(lhs.data(), rhs.data(), lhs.size()) == 0
              : false;
-}
-
-inline bool operator==(const Bytes& lhs, const Bytes& rhs) {
-  return Equal(lhs, rhs);
 }
 
 inline bool operator!=(const Bytes& lhs, const Bytes& rhs) {
   return !(lhs == rhs);
 }
 
-inline bool Less(const Bytes& lhs, const Bytes& rhs) {
+inline bool operator<(const Bytes& lhs, const Bytes& rhs) {
   const auto min_size = std::min(lhs.size(), rhs.size());
   const auto result = std::memcmp(lhs.data(), rhs.data(), min_size);
   return (result == 0) ? (lhs.size() < rhs.size()) : (result < 0);
-}
-
-inline bool operator<(const Bytes& lhs, const Bytes& rhs) {
-  return Less(lhs, rhs);
 }
 
 }  // namespace multimap
