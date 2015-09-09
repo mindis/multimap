@@ -1,5 +1,122 @@
-<br />
-<br />
+## `class Bytes`
+
+This class is a wrapper for raw byte data without ownership semantics.
+
+```cpp
+#include <multimap/Bytes.hpp>
+namespace multimap
+```
+
+<br>Members
+
+* [`Bytes::Bytes()`](#bytes-bytes)
+* [`Bytes::Bytes(const char* cstr)`](#bytes-bytes-cstr)
+* [`Bytes::Bytes(const std::string& str)`](#bytes-bytes-str)
+* [`Bytes::Bytes(const void* data, std::size_t size)`](#bytes-bytes-data-size)
+* [`const char* data() const`](#bytes-data)
+* [`std::size_t size() const`](#bytes-size)
+* [`bool empty() const`](#bytes-empty)
+* [`void clear()`](#bytes-clear)
+* [`std::string ToString() const`](#bytes-tostring)
+
+<br>Functions
+
+* [`inline bool operator==(const Bytes& lhs, const Bytes& rhs)`](#operator-eq)
+* [`inline bool operator!=(const Bytes& lhs, const Bytes& rhs)`](#operator-ne)
+* [`inline bool operator<(const Bytes& lhs, const Bytes& rhs)`](#operator-lt)
+
+<span class='declaration' id='bytes-bytes'>Bytes::Bytes()</span>
+
+Creates an instance that refers to an empty array.
+
+Postconditions:
+
+* `data() != nullptr`
+* `size() == 0`
+
+<span class='declaration' id='bytes-bytes-cstr'>Bytes::Bytes(const char* cstr)</span>
+
+Creates an instance that wraps a null-terminated C-string.
+
+Preconditions:
+
+* `cstr != nullptr`
+
+Postconditions:
+
+* `data() == cstr`
+* `size() == std::strlen(cstr)`
+
+<span class='declaration' id='bytes-bytes-str'>Bytes::Bytes(const std::string& str)</span>
+
+Creates an instance that wraps a standard string.
+
+Postconditions:
+
+* `data() == str.data()`
+* `size() == str.size()`
+
+<span class='declaration' id='bytes-bytes-data-size'>Bytes::Bytes(const void* data, std::size_t size)</span>
+
+Creates an instance that wraps a pointer to data of `size` bytes.
+
+Preconditions:
+
+* `data != nullptr`
+
+Postconditions:
+
+* `data() == data`
+* `size() == size`
+
+<span class='declaration' id='bytes-data'>const char* data() const</span>
+
+Returns a read-only pointer to the wrapped data.
+
+<span class='declaration' id='bytes-size'>std::size_t size() const</span>
+
+Returns the number of bytes wrapped.
+
+<span class='declaration' id='bytes-empty'>bool empty() const</span>
+
+Returns `true` if the number of bytes wrapped is zero, and `false` otherwise.
+
+<span class='declaration' id='bytes-clear'>void clear()</span>
+
+Let this instance refer to an empty array.
+
+Postconditions:
+
+* `data() != nullptr`
+* `size() == 0`
+
+<span class='declaration' id='bytes-tostring'>std::string ToString() const</span>
+
+Returns a deep copy of the wrapped data. `std::string` is used here as a convenient byte buffer which may contain characters that are not printable.
+
+Postconditions:
+
+* `data() != result.data()`
+* `size() == result.size()`
+
+<span class='declaration' id='operator-eq'>inline bool operator==(const Bytes& lhs, const Bytes& rhs)</span>
+
+Returns `true` if `lhs` and `rhs` contain the same number of bytes and which are equal after byte-wise comparison. Returns `false` otherwise.
+
+<span class='declaration' id='operator-ne'>inline bool operator!=(const Bytes& lhs, const Bytes& rhs)</span>
+
+Returns `true` if the bytes wrapped by `lhs` and `rhs` are not equal after byte-wise comparison. Returns `false` otherwise.
+
+<span class='declaration' id='operator-lt'>inline bool operator<(const Bytes& lhs, const Bytes& rhs)</span>
+
+Returns `true` if `lhs` is less than `rhs` according to `std::memcmp`, and `false` otherwise. If `lhs` and `rhs` do not wrap the same number of bytes, only the first `std::min(lhs.size(), rhs.size())` bytes will be compared.
+
+## `class Callables`
+
+
+
+## `Map.hpp`
+
 ```cpp
 #include "multimap/Map.hpp"
 namespace multimap
@@ -41,6 +158,8 @@ const auto pair = std::make_pair(34, 5.67);
 map.Put("key", multimap::Bytes(&pair, sizeof pair));
 // sizeof pair might be 16 due to alignment.
 ```
+
+<span class='member' id='bytes-bytes'>Bytes::Bytes()</span>
 
 ## Map::Get
 
