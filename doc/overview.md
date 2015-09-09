@@ -30,20 +30,20 @@ Although, it is possible that a single value covers an entire block, this setup 
 
 Certainly, this design favours small values sizes, but this is intended. Multimap originated from an [inverted index](https://en.wikipedia.org/wiki/Inverted_index) implementation where the main focus is on storing integers that represent things like document ids and word counts. Multimap is not suitable and was not designed to store large binary objects.
 
-To figure out whether the chosen block size was appropriate you can check the average load factor of all written blocks. This property can either be obtained via [`multimap::Map::GetProperties`](cppreference.md#mapgetproperties) or read from the `multimap.properties` file that is generated in the directory of the map. If it turns out that the block size was not optimal you can
+To figure out whether the chosen block size was appropriate you can check the average load factor of all written blocks. This property can either be obtained via `multimap::Map::GetProperties()` or read from the `multimap.properties` file that is generated in the directory of the map. If it turns out that the block size was not optimal you can
 
-* create a new map trying another block size.
-* run [`multimap::Optimize`](cppreference.md#optimize).
+* create a new map from scratch trying another block size,
+* or run `multimap::Optimize` to generate a new map.
 
 ## Serialization
 
-Keys and values are arbitrary byte arrays. This has the advantage that Multimap does not need to deal with serialization and leaves the door open for compression (currently not applied). For you, the user, this has the advantage that you can stick with your favoured serialization method. For very basic data types like primitives or [PODs](http://en.cppreference.com/w/cpp/concept/PODType) a simple [`std::memcpy`](http://en.cppreference.com/w/cpp/string/byte/memcpy) will be sufficient. For more complex objects there are plenty of libraries available:
+Keys and values are arbitrary byte arrays. This has the advantage that Multimap does not need to deal with serialization and leaves the door open for compression (currently not applied). For you, the user, this has the advantage that you can stick with your favoured serialization method. For very basic data types like primitives or [PODs](http://en.cppreference.com/w/cpp/concept/PODType) a simple `std::memcpy` will be sufficient. For more complex objects there are plenty of libraries available:
 
 Wikipedia: [Comparison of data serialization formats](https://en.wikipedia.org/wiki/Comparison_of_data_serialization_formats)
 
 ## Import / Export
 
-Key-value pairs can be imported from or exported to Base64-encoded text files using the [`multimap::Import`](cppreference.md#import) or [`multimap::Export`](cppreference.md#export) functions. This feature is useful for data exchange to/from other libraries/frameworks or for backup purposes. The file format is defined as follows:
+Key-value pairs can be imported from or exported to Base64-encoded text files using `multimap::Import` or `multimap::Export`, respectively. This feature is useful for data exchange to/from other libraries and frameworks, or for backup purposes. The file format is defined as follows:
 
 * The file is in [CSV format](https://en.wikipedia.org/wiki/Comma-separated_values).
 * The delimiter is whitespace or tab.
@@ -85,14 +85,14 @@ key3 value8
 
 ## Optimization
 
-An existing Multimap can be optimized using one of the [`multimap::Optimize`](cppreference.md#optimize) functions. The optimize operation performs a rewrite of the entire map and therefore, depending on the size of the map, might be a long running task. Optimization has the following effects:
+An existing Multimap can be optimized using one of the `multimap::Optimize` functions. The optimize operation performs a rewrite of the entire map and therefore, depending on the size of the map, might be a long running task. Optimization has the following effects:
 
 * **Defragmentation**. All blocks of a list are written sequentially to disk which improves locality and therefore better read performance.
 * **Garbage collection**. Values that are marked as deleted won't be copied which reduces the size of the map and also improves locality.
 
 Optional:
 
-* **Sorting**. All lists can be sorted applying a user-defined [`multimap::Callables::Compare`](cppreference.md#callables-compare) function.
+* **Sorting**. All lists can be sorted applying a user-defined `multimap::Callables::Compare` function.
 * **Block size**. The new optimized map can be given a different and maybe more suitable block size.
 
 ## Using as 1:1 key-value store
