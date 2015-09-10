@@ -20,11 +20,11 @@
 
 namespace {
 
-typedef multimap::jni::Holder<multimap::Map::ImmutableListIter> ConstIterHolder;
+typedef multimap::jni::Holder<multimap::Map::ConstListIter> ConstListIterHolder;
 
-inline ConstIterHolder* Cast(JNIEnv* env, jobject self) {
+inline ConstListIterHolder* Cast(JNIEnv* env, jobject self) {
   assert(self != nullptr);
-  return static_cast<ConstIterHolder*>(env->GetDirectBufferAddress(self));
+  return static_cast<ConstListIterHolder*>(env->GetDirectBufferAddress(self));
 }
 
 }  // namespace

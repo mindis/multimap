@@ -20,11 +20,11 @@
 
 namespace {
 
-typedef multimap::jni::Holder<multimap::Map::ListIter> IterHolder;
+typedef multimap::jni::Holder<multimap::Map::ListIter> ListIterHolder;
 
-inline IterHolder* Cast(JNIEnv* env, jobject self) {
+inline ListIterHolder* Cast(JNIEnv* env, jobject self) {
   assert(self != nullptr);
-  return static_cast<IterHolder*>(env->GetDirectBufferAddress(self));
+  return static_cast<ListIterHolder*>(env->GetDirectBufferAddress(self));
 }
 
 }  // namespace
