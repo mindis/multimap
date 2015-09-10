@@ -20,7 +20,7 @@
 
 namespace {
 
-typedef multimap::jni::Holder<multimap::Map::Iter> IterHolder;
+typedef multimap::jni::Holder<multimap::Map::ListIter> IterHolder;
 
 inline IterHolder* Cast(JNIEnv* env, jobject self) {
   assert(self != nullptr);

@@ -20,7 +20,7 @@
 
 namespace {
 
-typedef multimap::jni::Holder<multimap::Map::ConstIter> ConstIterHolder;
+typedef multimap::jni::Holder<multimap::Map::ImmutableListIter> ConstIterHolder;
 
 inline ConstIterHolder* Cast(JNIEnv* env, jobject self) {
   assert(self != nullptr);

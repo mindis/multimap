@@ -23,7 +23,7 @@
 #include <boost/filesystem/path.hpp>
 #include "multimap/Callables.hpp"
 #include "multimap/Options.hpp"
-#include "multimap/Iterator.hpp"
+#include "multimap/internal/Iterator.hpp"
 #include "multimap/internal/AutoCloseFile.hpp"
 #include "multimap/internal/BlockPool.hpp"
 #include "multimap/internal/Callbacks.hpp"
@@ -38,8 +38,8 @@ static const std::size_t kMinorVersion = 2;
 
 class Map {
  public:
-  typedef Iterator<false> Iter;
-  typedef Iterator<true> ConstIter;
+  typedef internal::Iterator<false> ListIter;
+  typedef internal::Iterator<true> ConstListIter;
 
   Map();
 
@@ -51,9 +51,9 @@ class Map {
 
   void Put(const Bytes& key, const Bytes& value);
 
-  ConstIter Get(const Bytes& key) const;
+  ConstListIter Get(const Bytes& key) const;
 
-  Iter GetMutable(const Bytes& key);
+  ListIter GetMutable(const Bytes& key);
 
   bool Contains(const Bytes& key) const;
 

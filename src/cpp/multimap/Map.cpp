@@ -201,12 +201,12 @@ void Map::Put(const Bytes& key, const Bytes& value) {
                                             callbacks_.commit_block);
 }
 
-Map::ConstIter Map::Get(const Bytes& key) const {
-  return ConstIter(table_.GetShared(key), callbacks_.request_blocks);
+Map::ConstListIter Map::Get(const Bytes& key) const {
+  return ConstListIter(table_.GetShared(key), callbacks_.request_blocks);
 }
 
-Map::Iter Map::GetMutable(const Bytes& key) {
-  return Iter(table_.GetUnique(key), callbacks_.request_blocks,
+Map::ListIter Map::GetMutable(const Bytes& key) {
+  return ListIter(table_.GetUnique(key), callbacks_.request_blocks,
               callbacks_.replace_blocks);
 }
 
