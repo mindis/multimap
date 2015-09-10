@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTIMAP_ITERATOR_HPP
-#define MULTIMAP_ITERATOR_HPP
+#ifndef MULTIMAP_INTERNAL_ITERATOR_HPP
+#define MULTIMAP_INTERNAL_ITERATOR_HPP
 
 #include <cstdint>
 #include "multimap/Callables.hpp"
@@ -24,6 +24,7 @@
 #include "multimap/internal/ListLock.hpp"
 
 namespace multimap {
+namespace internal {
 
 template <bool IsConst>
 class Iterator {
@@ -145,6 +146,7 @@ internal::ListLock<IsConst> Iterator<IsConst>::ReleaseListLock() {
   return std::move(list_lock_);
 }
 
+}  // namespace internal
 }  // namespace multimap
 
-#endif  // MULTIMAP_ITERATOR_HPP
+#endif  // MULTIMAP_INTERNAL_ITERATOR_HPP

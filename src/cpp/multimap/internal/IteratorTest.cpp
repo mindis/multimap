@@ -22,6 +22,7 @@
 #include "multimap/Map.hpp"
 
 namespace multimap {
+namespace internal {
 
 using testing::Eq;
 using testing::Ne;
@@ -290,4 +291,5 @@ INSTANTIATE_TEST_CASE_P(Parameterized, ConstIterTest,
 // INSTANTIATE_TEST_CASE_P(ParameterizedLongRunning, ConstIterTest,
 //                        testing::Values(100000, 1000000));
 
+}  // namespace internal
 }  // namespace multimap
