@@ -21,15 +21,15 @@
 #include <map>
 #include <string>
 #include <boost/filesystem/path.hpp>
-#include "multimap/Callables.hpp"
-#include "multimap/Options.hpp"
-#include "multimap/internal/Iterator.hpp"
 #include "multimap/internal/AutoCloseFile.hpp"
 #include "multimap/internal/BlockPool.hpp"
 #include "multimap/internal/Callbacks.hpp"
 #include "multimap/internal/Store.hpp"
 #include "multimap/internal/Table.hpp"
 #include "multimap/internal/System.hpp"
+#include "multimap/Callables.hpp"
+#include "multimap/Iterator.hpp"
+#include "multimap/Options.hpp"
 
 namespace multimap {
 
@@ -38,8 +38,8 @@ static const std::size_t kMinorVersion = 2;
 
 class Map {
  public:
-  typedef internal::Iterator<false> ListIter;
-  typedef internal::Iterator<true> ConstListIter;
+  typedef Iterator<false> ListIter;
+  typedef Iterator<true> ConstListIter;
 
   Map();
 
