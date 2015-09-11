@@ -39,12 +39,18 @@ code {
   background-color: white;
   color: #0086B3;
   font-family: 'Inconsolata', monospace;
-  font-size: 1.1em;
+  font-size: 110%;
   padding: 0px 2px;
+  white-space: normal;
 }
 
 a code {
   color: #B370B3;
+}
+
+h2 code {
+  color: #222;
+  padding-left: 0px;
 }
 
 pre {
@@ -60,6 +66,29 @@ pre {
 pre .text {
   display: block;
   padding: 0.5em;
+}
+
+table.table {
+  font-size: 1em;
+  margin-top: 15px;
+}
+
+table.table td:first-child {
+  width: 23%;
+  padding-right: 20px;
+}
+
+table.table td:last-child {
+  padding-left: 20px;
+  text-indent: -20px;
+}
+
+table.table > thead > tr > th {
+  background-color: #663366;
+  border-bottom: 0px;
+  color: white;
+  font-weight: normal;
+  padding-left: 10px;
 }
 
 .navbar {
@@ -82,7 +111,7 @@ pre .text {
   line-height: 28px;
 	opacity: 0.6;
 	outline: 0px none;
-	padding: 10px 14px;
+	padding: 10px 13px;
 	transition: opacity 0.2s;
 }
 
@@ -213,12 +242,16 @@ pre .text {
 }
 
 span.declaration {
-  color: #0086B3;
+  border-bottom: 1px solid #ddd;
   display: block;
-  font-family: 'Inconsolata', monospace;
-  font-size: 1.3em;
-  padding-top: 115px;
-  margin-top: -70px;
+  padding-bottom: 5px;
+  padding-top: 114px;
+  margin-top: -60px;
+}
+
+span.declaration code {
+  font-size: 1.2em;
+  padding-left: 0px;
 }
 
 @media (min-width: 992px) {
