@@ -30,10 +30,10 @@ Although, it is possible that a single value covers an entire block, this setup 
 
 Certainly, this design favours small values sizes, but this is intended. Multimap originated from an [inverted index](https://en.wikipedia.org/wiki/Inverted_index) implementation where the main focus is on storing integers that represent things like document ids and word counts. Multimap is not suitable and was not designed to store large binary objects.
 
-To figure out whether the chosen block size was appropriate you can check the average load factor of all written blocks. This property can either be obtained via `multimap::Map::GetProperties()` or read from the `multimap.properties` file that is generated in the directory of the map. If it turns out that the block size was not optimal you can
+To figure out whether the chosen block size was appropriate you can check the average load factor of all written blocks. This property can either be obtained via [`multimap::Map::GetProperties()`](cppreference.md#map-getproperties) or read from the `multimap.properties` file that is generated in the directory of the map. If it turns out that the block size was not optimal you can
 
 * create a new map from scratch trying another block size,
-* or run `multimap::Optimize` to generate a new map.
+* or run [`multimap::Optimize`](cppreference.md#map-optimize) to generate a new map.
 
 ## Serialization
 
@@ -87,8 +87,8 @@ key3 value8
 
 An existing Multimap can be optimized using one of the `multimap::Optimize` functions. The optimize operation performs a rewrite of the entire map and therefore, depending on the size of the map, might be a long running task. Optimization has the following effects:
 
-* **Defragmentation**. All blocks of a list are written sequentially to disk which improves locality and therefore better read performance.
-* **Garbage collection**. Values that are marked as deleted won't be copied which reduces the size of the map and also improves locality.
+* **Defragmentation**. All blocks which belong to the same list are written sequentially to disk which improves locality and leads to better read performance.
+* **Garbage collection**. Values that are marked as deleted won't be copied which reduces the size of the new map and also improves locality.
 
 Optional:
 
