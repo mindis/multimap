@@ -71,6 +71,13 @@
   <script src="{{ path }}"></script>
   {%- endfor %}
 
+  <script>
+  $(document).ready(function() {
+    $("table").removeClass("table-hover table-striped");
+    $("table").addClass("table-condensed");
+  });
+  </script>
+  
  </body>
 </html>
 
