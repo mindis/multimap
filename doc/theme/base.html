@@ -75,6 +75,11 @@
   $(document).ready(function() {
     $("table").removeClass("table-hover table-striped");
     $("table").addClass("table-condensed");
+    var javadoc = $("iframe#javadoc");
+    if (javadoc.length) {
+      $("div.content").replaceWith(javadoc);
+      $("div.footer").remove();
+    }
   });
   </script>
   

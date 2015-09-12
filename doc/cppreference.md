@@ -168,7 +168,7 @@ This class template implements a forward iterator on a list of values. The templ
 
 The iterator supports lazy initialization, which means that no IO operation is performed until one of the methods `SeekToFirst()`, `SeekTo(target)`, or `SeekTo(predicate)` is called. This might be useful in cases where multiple iterators have to be requested first to determine in which order they have to be processed.
 
-The iterator also owns a lock for the underlying list to synchronize concurrent access. There are two types of locks: a reader lock (also called shared lock) and a writer lock (also called unique or exclusive lock). The former can be owned by a read-only iterator aka `Iterator<true>`, the latter can be owned by a read-write iterator aka `Iterator<false>`. The lock is automatically released when the lifetime of an iterator object ends and its destructor is called.
+The iterator also owns a lock for the underlying list to synchronize concurrent access. There are two types of locks: a reader lock (also called shared lock) and a writer lock (also called unique or exclusive lock). The former will be owned by a read-only iterator aka `Iterator<true>`, the latter will be owned by a read-write iterator aka `Iterator<false>`. The lock is automatically released when the lifetime of an iterator object ends and its destructor is called.
 
 Users normally don't need to include or instantiate this class directly, but use the typedefs [`Map::ListIter`](#map-listiter) and [`Map::ConstListIter`](#map-constlistiter) instead.
 

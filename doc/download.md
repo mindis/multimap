@@ -109,5 +109,5 @@ project.
 
 ### Download Java Library
 
-Download [multimap-0.2-beta.jar](https://bitbucket.org/mtrenkmann/multimap/downloads/multimap-0.2-beta.jar) and make it available to your project's classpath.
+Download [multimap-0.2-beta.jar](https://bitbucket.org/mtrenkmann/multimap/downloads/multimap-0.2-beta.jar) and make it available to your project's classpath. The archive also contains the source code so your IDE should display the Javadoc as you type.
 
