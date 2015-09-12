@@ -124,7 +124,13 @@ void WritePropertiesToFile(const std::map<std::string, std::string>& properties,
 Map::Map() {}
 
 Map::~Map() {
-  table_.FlushAllLists();
+  try {
+    table_.FlushAllListsOrThrowIfLocked();
+  } catch (...) {
+    std::terminate();
+    // The destructor has the precondition that no list is still locked.
+  }
+
   const auto filename = directory_lock_guard_.path() / kNameOfPropsFile;
   WritePropertiesToFile(GetProperties(), filename);
 }
@@ -390,14 +396,14 @@ void Optimize(const boost::filesystem::path& from,
 
 void Optimize(const boost::filesystem::path& from,
               const boost::filesystem::path& to,
-              const Callables::Compare& compare) {
+              Callables::Compare compare) {
   Optimize(from, to, compare, -1);
 }
 
 // TODO https://bitbucket.org/mtrenkmann/multimap/issues/4
 void Optimize(const boost::filesystem::path& from,
               const boost::filesystem::path& to,
-              const Callables::Compare& compare, std::size_t new_block_size) {
+              Callables::Compare compare, std::size_t new_block_size) {
   Map source(from, Options());
 
   Options options;
