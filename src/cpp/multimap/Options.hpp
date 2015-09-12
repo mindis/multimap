@@ -22,14 +22,23 @@
 
 namespace multimap {
 
+// A pure data holder used to configure an instantiation of class Map.
 struct Options {
-  // The size of a data block in bytes.
+  // Determines the block size of a newly created map. The value is ignored if
+  // the map already exists when opened. The value must be a power of two. Have
+  // a look at Choosing the block size for more information.
   std::size_t block_size = 512;
 
+  // Determines whether a map has to be created if it does not exist.
   bool create_if_missing = false;
 
+  // Determines whether an already existing map should be treated as an error.
   bool error_if_exists = false;
 
+  // Determines if the map should be opened in write-only mode. This will
+  // enable some optimizations for putting a large number of values, but will
+  // disable the ability to retrieve values. Users normally should leave this
+  // parameter alone.
   bool write_only_mode = false;
 };
 

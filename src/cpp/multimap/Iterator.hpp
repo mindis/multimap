@@ -25,9 +25,34 @@
 
 namespace multimap {
 
+// This class template implements a forward iterator on a list of values. The
+// template parameter decides whether an instantiation can delete values from
+// the underlying list while iterating or not. If the actual parameter is true
+// a const iterator will be created where the DeleteValue() method is disabled,
+// and vice versa.
+//
+// The iterator supports lazy initialization, which means that no IO operation
+// is performed until one of the methods SeekToFirst(), SeekTo(target), or
+// SeekTo(predicate) is called. This might be useful in cases where multiple
+// iterators have to be requested first to determine in which order they have
+// to be processed.
+//
+// The iterator also owns a lock for the underlying list to synchronize
+// concurrent access. There are two types of locks: a reader lock (also called
+// shared lock) and a writer lock (also called unique or exclusive lock). The
+// former will be owned by a read-only iterator aka Iterator<true>, the latter
+// will be owned by a read-write iterator aka Iterator<false>. The lock is
+// automatically released when the lifetime of an iterator object ends and its
+// destructor is called.
+//
+// Users normally don't need to include or instantiate this class directly, but
+// use the typedefs Map::ListIter and Map::ConstListIter instead.
 template <bool IsConst>
 class Iterator {
  public:
+  // Creates a default instance that has no values to iterate.
+  // Postconditions:
+  //   * NumValues() == 0
   Iterator() = default;
 
   Iterator(internal::ListLock<IsConst>&& list_lock,
@@ -40,30 +65,46 @@ class Iterator {
   Iterator(Iterator&&) = default;
   Iterator& operator=(Iterator&&) = default;
 
-  // Returns the total number of the underlying values, even if not HasValue().
+  // Returns the total number of values to iterate. This number does not change
+  // when the iterator moves forward. The method may be called at any time,
+  // even if SeekToFirst() or one of its friends have not been called.
   std::size_t NumValues() const;
 
-  // Support for lazy iterator initialization.
+  // Initializes the iterator to point to the first value, if any. This process
+  // will trigger disk IO if necessary. The method can also be used to seek
+  // back to the beginning of the list at the end of an iteration.
   void SeekToFirst();
 
+  // Initializes the iterator to point to the first value in the list that is
+  // equal to target, if any. This process will trigger disk IO if necessary.
   void SeekTo(const Bytes& target);
 
+  // Initializes the iterator to point to the first value for which predicate
+  // yields true, if any. This process will trigger disk IO if necessary.
   void SeekTo(Callables::Predicate predicate);
 
-  // Checks whether the iterator actually points to a value.
+  // Tells whether the iterator points to a value. If the result is true, the
+  // iterator may be dereferenced via GetValue().
   bool HasValue() const;
 
-  // Returns a read-only pointer to the data of the current value.
-  // Precondition: HasValue()
+  // Returns the current value. The returned Bytes object wraps a pointer to
+  // data that is managed by the iterator. Hence, this pointer is only valid as
+  // long as the iterator does not move forward. Therefore, the value should
+  // only be used to immediately parse information or some user-defined object
+  // out of it. If an independent deep copy is needed you can call
+  // Bytes::ToString().
+  // Preconditions:
+  //   * HasValue() == true
   Bytes GetValue() const;
 
-  // Marks the current value as deleted.
-  // Only enabled for Lock = UniqueLock.
-  // Precondition :  HasValue()
-  // Postcondition: !HasValue(), NumValues() == NumValues()'Old - 1
+  // Marks the value the iterator currently points to as deleted.
+  // Preconditions:
+  //   * HasValue() == true
+  // Postconditions:
+  //   * HasValue() == false
   void DeleteValue();
 
-  // Moves the iterator to the next value.
+  // Moves the iterator to the next value, if any.
   void Next();
 
   internal::ListLock<IsConst> ReleaseListLock();
