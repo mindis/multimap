@@ -102,7 +102,7 @@ public abstract class Iterator implements AutoCloseable {
   }
 
   /**
-   * Deletes the value the iterator currently points to (optional operation).
+   * Marks the value the iterator currently points to as deleted (optional operation).
    */
   public abstract void deleteValue();
 
