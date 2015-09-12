@@ -99,15 +99,21 @@ Postconditions:
 * `data() != result.data()`
 * `size() == result.size()`
 
-<span class='declaration' id='operator-eq'>`inline bool operator==(const Bytes& lhs, const Bytes& rhs)`</span>
+<span class='declaration' id='operator-eq'>
+ `inline bool operator==(const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& lhs, const` [`Bytes`](#class-bytes)`& rhs)`
+</span>
 
 Returns `true` if `lhs` and `rhs` contain the same number of bytes and which are equal after byte-wise comparison. Returns `false` otherwise.
 
-<span class='declaration' id='operator-ne'>`inline bool operator!=(const Bytes& lhs, const Bytes& rhs)`</span>
+<span class='declaration' id='operator-ne'>
+ `inline bool operator!=(const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& lhs, const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& rhs)`
+</span>
 
 Returns `true` if the bytes wrapped by `lhs` and `rhs` are not equal after byte-wise comparison. Returns `false` otherwise.
 
-<span class='declaration' id='operator-lt'>`inline bool operator<(const Bytes& lhs, const Bytes& rhs)`</span>
+<span class='declaration' id='operator-lt'>
+ `inline bool operator<(const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& lhs, const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& rhs)`
+</span>
 
 Returns `true` if `lhs` is less than `rhs` according to `std::memcmp`, and `false` otherwise. If `lhs` and `rhs` do not wrap the same number of bytes, only the first `std::min(lhs.size(), rhs.size())` bytes will be compared.
 
@@ -118,7 +124,7 @@ Returns `true` if `lhs` is less than `rhs` according to `std::memcmp`, and `fals
 namespace multimap
 ```
 
-This class contains typedefs which define signatures of various callable types.
+This class contains typedefs which define signatures of various callable types. See [std::function](http://en.cppreference.com/w/cpp/utility/functional/function) for more details on how to create such objects from lambda expressions, class methods, or free functions.
 
 Members   |
 ---------:|---------------------------------------------------------------------
@@ -127,21 +133,29 @@ Members   |
 `typedef` | [`std::function<std::string(const Bytes&)> Function`](#callables-function)
 `typedef` | [`std::function<bool(const Bytes&, const Bytes&)> Compare`](#callables-compare)
 
-<span class='declaration' id='callables-procedure'>`typedef std::function<void(const Bytes&)> Procedure`</span>
+<span class='declaration' id='callables-procedure'>
+ `typedef std::function<void(const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`&)> Procedure`
+</span>
 
-Types implementing this interface can process a value, but do not return a result. However, since objects of this type may have state, a procedure can be used to collect information about the processed data, and thus returning a result indirectly. See [std::function](http://en.cppreference.com/w/cpp/utility/functional/function) for more details on how to create such an object from a lambda expression, class method, or free function.
+Types implementing this interface can process a value, but do not return a result. However, since objects of this type may have state, a procedure can be used to collect information about the processed data, and thus returning a result indirectly.
 
-<span class='declaration' id='callables-predicate'>`typedef std::function<bool(const Bytes&)> Predicate`</span>
+<span class='declaration' id='callables-predicate'>
+ `typedef std::function<bool(const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`&)> Predicate`
+</span>
 
-Types implementing this interface can process a value and return a boolean. Predicates check a value for certain property and thus, depending on the outcome, can be used to control the path of execution. See [std::function](http://en.cppreference.com/w/cpp/utility/functional/function) for more details on how to create such an object from a lambda expression, class method, or free function.
+Types implementing this interface can process a value and return a boolean. Predicates check a value for certain property and thus, depending on the outcome, can be used to control the path of execution.
 
-<span class='declaration' id='callables-function'>`typedef std::function<std::string(const Bytes&)> Function`</span>
+<span class='declaration' id='callables-function'>
+ `typedef std::function<std::string(const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`&)> Function`
+</span>
 
-Types implementing this interface can process a value and return a new one. Functions map an input value to an output value. An empty or no result can be signaled returning an empty string. `std::string` is used here as a convenient byte buffer that may contain arbitrary bytes. See [std::function](http://en.cppreference.com/w/cpp/utility/functional/function) for more details on how to create such an object from a lambda expression, class method, or free function.
+Types implementing this interface can process a value and return a new one. Functions map an input value to an output value. An empty or no result can be signaled returning an empty string. `std::string` is used here as a convenient byte buffer that may contain arbitrary bytes.
 
-<span class='declaration' id='callables-compare'>`typedef std::function<bool(const Bytes&, const Bytes&)> Compare`</span>
+<span class='declaration' id='callables-compare'>
+ `typedef std::function<bool(const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`&, const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`&)> Compare`
+</span>
 
-Types implementing this interface can process two values and return a boolean. Such functions determine the less than order of the given values according to the [Compare](http://en.cppreference.com/w/cpp/concept/Compare) concept. See [std::function](http://en.cppreference.com/w/cpp/utility/functional/function) for more details on how to create such an object from a lambda expression, class method, or free function.
+Types implementing this interface can process two values and return a boolean. Such functions determine the less than order of the given values according to the [Compare](http://en.cppreference.com/w/cpp/concept/Compare) concept.
 
 ## `class Iterator<bool>`
 
@@ -156,7 +170,7 @@ The iterator supports lazy initialization, which means that no IO operation is p
 
 The iterator also owns a lock for the underlying list to synchronize concurrent access. There are two types of locks: a reader lock (also called shared lock) and a writer lock (also called unique or exclusive lock). The former can be owned by a read-only iterator aka `Iterator<true>`, the latter can be owned by a read-write iterator aka `Iterator<false>`. The lock is automatically released when the lifetime of an iterator object ends and its destructor is called.
 
-Users normally don't need to include or instantiate this class directly, but use the typedefs [`multimap::Map::ListIter`](#map-listiter) and [`multimap::Map::ConstListIter`](#map-constlistiter) instead.
+Users normally don't need to include or instantiate this class directly, but use the typedefs [`Map::ListIter`](#map-listiter) and [`Map::ConstListIter`](#map-constlistiter) instead.
 
 Members       |
 -------------:|-----------------------------------------------------------------
@@ -178,29 +192,41 @@ Postconditions:
 
 * `NumValues() == 0`
 
-<span class='declaration' id='iterator-numvalues'>`std::size_t NumValues() const`</span>
+<span class='declaration' id='iterator-numvalues'>
+ `std::size_t NumValues() const`
+</span>
 
 Returns the total number of values to iterate. This number does not change when the iterator moves forward. The method may be called at any time, even if `SeekToFirst()` or one of its friends have not been called.
 
-<span class='declaration' id='iterator-seektofirst'>`void SeekToFirst()`</span>
+<span class='declaration' id='iterator-seektofirst'>
+ `void SeekToFirst()`
+</span>
 
 Initializes the iterator to point to the first value, if any. This process will trigger disk IO if necessary. The method can also be used to seek back to the beginning of the list at the end of an iteration.
 
-<span class='declaration' id='iterator-seektotarget'>`void SeekTo(const Bytes& target)`</span>
+<span class='declaration' id='iterator-seektotarget'>
+ `void SeekTo(const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& target)`
+</span>
 
 Initializes the iterator to point to the first value in the list that is equal to `target`, if any. This process will trigger disk IO if necessary.
    
-<span class='declaration' id='iterator-seektopredicate'>`void SeekTo(Callables::Predicate predicate)`</span>
+<span class='declaration' id='iterator-seektopredicate'>
+ `void SeekTo(`[`Callables::Predicate`](#callables-predicate)&nbsp;&nbsp;`predicate)`
+</span>
 
 Initializes the iterator to point to the first value for which `predicate` yields `true`, if any. This process will trigger disk IO if necessary.
    
-<span class='declaration' id='iterator-hasvalue'>`bool HasValue() const`</span>
+<span class='declaration' id='iterator-hasvalue'>
+ `bool HasValue() const`
+</span>
 
 Tells whether the iterator points to a value. If the result is `true`, the iterator may be dereferenced via `GetValue()`.
    
-<span class='declaration' id='iterator-getvalue'>`Bytes GetValue() const`</span>
+<span class='declaration' id='iterator-getvalue'>
+ [`Bytes`](#class-bytes)&nbsp;&nbsp;`GetValue() const`
+</span>
 
-Returns the current value. The returned `Bytes` object wraps a pointer to data that is managed by the iterator. Hence, this pointer is only valid as long as the iterator does not move forward. Therefore, the value should only be used to immediately parse information or some user-defined object out of it. If an independent deep copy is needed you can call `Bytes::ToString()`.
+Returns the current value. The returned [`Bytes`](#class-bytes) object wraps a pointer to data that is managed by the iterator. Hence, this pointer is only valid as long as the iterator does not move forward. Therefore, the value should only be used to immediately parse information or some user-defined object out of it. If an independent deep copy is needed you can call `Bytes::ToString()`.
 
 Preconditions:
 
@@ -270,13 +296,17 @@ Functions      |
 `void`         | [`Import(const boost::filesystem::path& directory, const boost::filesystem::path& file, bool create_if_missing, std::size_t block_size)`](#map-import3)
 `void`         | [`Export(const boost::filesystem::path& directory, const boost::filesystem::path& file)`](#map-export)
 
-<span class='declaration' id='map-listiter'>`typedef Iterator<false> ListIter`</span>
+<span class='declaration' id='map-listiter'>
+ `typedef`&nbsp;&nbsp;[`Iterator<false>`](#class-iterator)&nbsp;&nbsp;`ListIter`
+</span>
 
-An iterator type to iterate a mutable list. All operations declared in the class template `Iterator<bool>` that can mutate the underlying list are enabled.
+An iterator type to iterate a mutable list. All operations declared in the class template [`Iterator<bool>`](#class-iterator) that can mutate the underlying list are enabled.
 
-<span class='declaration' id='map-constlistiter'>`typedef Iterator<true> ConstListIter`</span>
+<span class='declaration' id='map-constlistiter'>
+ `typedef`&nbsp;&nbsp;[`Iterator<true>`](#class-iterator)&nbsp;&nbsp;`ConstListIter`
+</span>
 
-An iterator type to iterate a immutable list. All operations declared in the class template `Iterator<bool>` that can mutate the underlying list are disabled.
+An iterator type to iterate a immutable list. All operations declared in the class template [`Iterator<bool>`](#class-iterator) that can mutate the underlying list are disabled.
 
 <span class='declaration' id='map-map'>`Map()`</span>
 
@@ -292,7 +322,7 @@ Preconditions:
 
 <span class='declaration' id='map-map2'>
  `Map(const boost::filesystem::path& directory,`
- <script>space(9)</script> `const Options& options)`
+ <script>space(10)</script>`const`&nbsp;&nbsp;[`Options`](#class-options)`& options)`
 </span>
 
 Creates a new instance and opens the map located in `directory`. If the map does not exist and `options.create_if_missing` is set to `true` a new map will be created.
@@ -307,7 +337,7 @@ Throws `std::exception` if:
 <span class='declaration' id='map-open'>
  `void Open(`
  <script>space(20)</script>`const boost::filesystem::path& directory,`
- <script>space(20)</script>`const Options& options)`
+ <script>space(20)</script>`const`&nbsp;&nbsp;[`Options`](#class-options)`& options)`
 </span>
 
 Opens the map located in `directory`. If the map does not exist and `options.create_if_missing` is set to `true` a new map will be created.
@@ -319,7 +349,9 @@ Throws `std::exception` if:
 * `directory` contains a map and `options.error_if_exists` is `true`.
 * `options.block_size` is not a power of two.
 
-<span class='declaration' id='map-put'>`void Put(const Bytes& key, const Bytes& value)`</span>
+<span class='declaration' id='map-put'>
+ `void Put(const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& key, const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& value)`
+</span>
 
 Appends `value` to the end of the list associated with `key`.
 
@@ -328,19 +360,27 @@ Throws `std::exception` if:
 * `key.size() > max_key_size()`
 * `value.size() > max_value_size()`
 
-<span class='declaration' id='map-get'>`ConstListIter Get(const Bytes& key) const`</span>
+<span class='declaration' id='map-get'>
+ [`ConstListIter`](#map-constlistiter)&nbsp;&nbsp;`Get(const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& key) const`
+</span>
 
 Returns a read-only iterator to the list associated with `key`. If no such mapping exists the list is considered to be empty. If the list is not empty a reader lock will be acquired to synchronize concurrent access to it. Thus, multiple threads can read the list at the same time. Once acquired, the lock is automatically released when the lifetime of the iterator ends and its destructor is called. If the list is currently locked exclusively by a writer lock, see `GetMutable()`, the method will block until the lock is released.
 
-<span class='declaration' id='map-getmutable'>`ListIter GetMutable(const Bytes& key)`</span>
+<span class='declaration' id='map-getmutable'>
+ [`ListIter`](#map-listiter)&nbsp;&nbsp;`GetMutable(const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& key)`
+</span>
 
 Returns a read-write iterator to the list associated with `key`. If no such mapping exists the list is considered to be empty. If the list is not empty a writer lock will be acquired to synchronize concurrent access to it. Only one thread can acquire a writer lock at a time, since it requires exclusive access. Once acquired, the lock is automatically released when the lifetime of the iterator ends and its destructor is called. If the list is currently locked, either by a reader or writer lock, the method will block until the lock is released.
 
-<span class='declaration' id='map-contains'>`bool Contains(const Bytes& key)`</span>
+<span class='declaration' id='map-contains'>
+ `bool Contains(const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& key)`
+</span>
 
 Returns `true` if the list associated with `key` contains at least one value, returns `false` otherwise. If the key does not exist the list is considered to be empty. If a non-empty list is currently locked, the method will block until the lock is released.
 
-<span class='declaration' id='map-delete'>`std::size_t Delete(const Bytes& key)`</span>
+<span class='declaration' id='map-delete'>
+ `std::size_t Delete(const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& key)`
+</span>
 
 Deletes all values for `key` by clearing the associated list. This method will block until a writer lock can be acquired.
 
@@ -348,8 +388,8 @@ Returns: the number of deleted values.
 
 <span class='declaration' id='map-deleteall'>
  `std::size_t DeleteAll(`
- <script>space(20)</script>`const Bytes& key,`
- <script>space(20)</script>`Callables::Predicate predicate)`
+ <script>space(20)</script>`const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& key,`
+ <script>space(20)</script>[`Callables::Predicate`](#callables-predicate)&nbsp;&nbsp;`predicate)`
 </span>
 
 Deletes all values in the list associated with `key` for which `predicate` yields `true`. This method will block until a writer lock can be acquired.
@@ -358,8 +398,8 @@ Returns: the number of deleted values.
 
 <span class='declaration' id='map-deleteallequal'>
  `std::size_t DeleteAllEqual(`
- <script>space(20)</script>`const Bytes& key,`
- <script>space(20)</script>`const Bytes& value)`
+ <script>space(20)</script>`const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& key,`
+ <script>space(20)</script>`const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& value)`
 </span>
 
 Deletes all values in the list associated with `key` which are equal to `value` according to `operator==(const Bytes&, const Bytes&)`. This method will block until a writer lock can be acquired.
@@ -368,8 +408,8 @@ Returns: the number of deleted values.
 
 <span class='declaration' id='map-deletefirst'>
  `bool DeleteFirst(`
- <script>space(20)</script>`const Bytes& key,`
- <script>space(20)</script>`Callables::Predicate predicate)`
+ <script>space(20)</script>`const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& key,`
+ <script>space(20)</script>[`Callables::Predicate`](#callables-predicate)&nbsp;&nbsp;`predicate)`
 </span>
 
 Deletes the first value in the list associated with `key` for which `predicate` yields `true`. This method will block until a writer lock can be acquired.
@@ -378,8 +418,8 @@ Returns: `true` if a value was deleted, `false` otherwise.
 
 <span class='declaration' id='map-deletefirstequal'>
  `bool DeleteFirstEqual(`
- <script>space(20)</script>`const Bytes& key,`
- <script>space(20)</script>`const Bytes& value)`
+ <script>space(20)</script>`const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& key,`
+ <script>space(20)</script>`const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& value)`
 </span>
 
 Deletes the first value in the list associated with `key` which is equal to `value` according to `operator==(const Bytes&, const Bytes&)`. This method will block until a writer lock can be acquired.
@@ -388,8 +428,8 @@ Returns: `true` if a value was deleted, `false` otherwise.
 
 <span class='declaration' id='map-replaceall'>
  `std::size_t ReplaceAll(`
- <script>space(20)</script>`const Bytes& key,`
- <script>space(20)</script>`Callables::Function function)`
+ <script>space(20)</script>`const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& key,`
+ <script>space(20)</script>[`Callables::Function`](#callables-function)&nbsp;&nbsp;`function)`
 </span>
 
 Replaces all values in the list associated with `key` by the result of invoking `function`. If the result of `function` is an empty string no replacement is performed. A replacement does not happen in-place. Instead, the old value is marked as deleted and the new value is appended to the end of the list. Future releases will support in-place replacements. This method will block until a writer lock can be acquired.
@@ -398,9 +438,9 @@ Returns: the number of replaced values.
 
 <span class='declaration' id='map-replaceallequal'>
  `std::size_t ReplaceAllEqual(`
- <script>space(20)</script>`const Bytes& key,`
- <script>space(20)</script>`const Bytes& old_value,`
- <script>space(20)</script>`const Bytes& new_value)`
+ <script>space(20)</script>`const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& key,`
+ <script>space(20)</script>`const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& old_value,`
+ <script>space(20)</script>`const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& new_value)`
 </span>
 
 Replaces all values in the list associated with `key` which are equal to `old_value` according to `operator==(const Bytes&, const Bytes&)` by `new_value`. A replacement does not happen in-place. Instead, the old value is marked as deleted and the new value is appended to the end of the list. Future releases will support in-place replacements. This method will block until a writer lock can be acquired.
@@ -409,8 +449,8 @@ Returns: the number of replaced values.
 
 <span class='declaration' id='map-replacefirst'>
  `bool ReplaceFirst(`
- <script>space(20)</script>`const Bytes& key,`
- <script>space(20)</script>`Callables::Function function)`
+ <script>space(20)</script>`const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& key,`
+ <script>space(20)</script>[`Callables::Function`](#callables-function)&nbsp;&nbsp;`function)`
 </span>
 
 Replaces the first value in the list associated with `key` by the result of invoking `function`. If the result of `function` is an empty string no replacement is performed. The replacement does not happen in-place. Instead, the old value is marked as deleted and the new value is appended to the end of the list. Future releases will support in-place replacements. This method will block until a writer lock can be acquired.
@@ -419,9 +459,9 @@ Returns: `true` if a value was replaced, `false` otherwise.
 
 <span class='declaration' id='map-replacefirstequal'>
  `bool ReplaceFirstEqual(`
- <script>space(20)</script>`const Bytes& key,`
- <script>space(20)</script>`const Bytes& old_value,`
- <script>space(20)</script>`const` [`Bytes`](#class-bytes)`& new_value)`
+ <script>space(20)</script>`const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& key,`
+ <script>space(20)</script>`const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& old_value,`
+ <script>space(20)</script>`const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& new_value)`
 </span>
 
 Replaces the first value in the list associated with `key` which is equal to `old_value` according to `operator==(const Bytes&, const Bytes&)` by `new_value`. The replacement does not happen in-place. Instead, the old value is marked as deleted and the new value is appended to the end of the list. Future releases will support in-place replacements. This method will block until a writer lock can be acquired.
@@ -430,23 +470,23 @@ Returns: `true` if a value was replaced, `false` otherwise.
 
 <span class='declaration' id='map-foreachkey'>
  `void ForEachKey(`
- <script>space(20)</script>`Callables::Procedure procedure) const`
+ <script>space(20)</script>[`Callables::Procedure`](#callables-procedure)&nbsp;&nbsp;`procedure) const`
 </span>
 
 Applies `procedure` to each key of the map whose associated list is not empty. For the time of execution the entire map is locked for read-only operations. It is possible to keep a reference to the map within `procedure` and to call other read-only operations such as `Get()`. However, trying to call mutable operations such as `GetMutable()` will cause a deadlock.
 
 <span class='declaration' id='map-foreachvalue-procedure'>
  `void ForEachValue(`
- <script>space(20)</script>`const Bytes& key,`
- <script>space(20)</script>`Callables::Procedure procedure) const`
+ <script>space(20)</script>`const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& key,`
+ <script>space(20)</script>[`Callables::Procedure`](#callables-procedure)&nbsp;&nbsp;`procedure) const`
 </span>
 
 Applies `procedure` to each value in the list associated with `key`. This is a shorthand for requesting a read-only iterator via `Get(key)` followed by an application of `procedure` to each value obtained via `ConstListIter::GetValue()`. This method will block until a reader lock for the list in question can be acquired.
 
 <span class='declaration' id='map-foreachvalue-predicate'>
  `void ForEachValue(`
- <script>space(20)</script>`const Bytes& key,`
- <script>space(20)</script>`Callables::Predicate predicate) const`
+ <script>space(20)</script>`const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& key,`
+ <script>space(20)</script>[`Callables::Predicate`](#callables-predicate)&nbsp;&nbsp;`predicate) const`
 </span>
 
 Applies `predicate` to each value in the list associated with `key` until `predicate` yields `false`. This is a shorthand for requesting a read-only iterator via `Get(key)` followed by an application of `predicate` to each value obtained via `ConstListIter::GetValue()` until `predicate` yields `false`. This method will block until a reader lock for the list in question can be acquired.
@@ -502,7 +542,7 @@ Throws `std::exception` if:
  `void Optimize(`
  <script>space(20)</script>`const boost::filesystem::path& from,`
  <script>space(20)</script>`const boost::filesystem::path& to,`
- <script>space(20)</script>`Callables::Compare compare)`
+ <script>space(20)</script>[`Callables::Compare`](#callables-compare)&nbsp;&nbsp;`compare)`
 </span>
 
 Same as [`Optimize(from, to)`](#map-optimize) but sorts each list before writing using `compare` as the sorting criterion.
@@ -515,7 +555,7 @@ Throws `std::exception` if:
  `void Optimize(`
  <script>space(20)</script>`const boost::filesystem::path& from,`
  <script>space(20)</script>`const boost::filesystem::path& to,`
- <script>space(20)</script>`Callables::Compare compare,`
+ <script>space(20)</script>[`Callables::Compare`](#callables-compare)&nbsp;&nbsp;`compare,`
  <script>space(20)</script>`std::size_t new_block_size)`
 </span>
 
@@ -607,7 +647,7 @@ Throws `std::exception` if:
 namespace multimap
 ```
 
-This class is a pure data holder used to configure an instantiation of class `Map`.
+This class is a pure data holder used to configure an instantiation of class [`Map`](#class-map).
 
 Members       |
 -------------:|-----------------------------------------------------------------
