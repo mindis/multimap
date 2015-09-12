@@ -1,6 +1,5 @@
 # Project information
 site_name: Multimap
-site_url: http://multimap.io/latest
 repo_url: https://bitbucket.org/mtrenkmann/multimap
 site_description: 1:n key-value store for C++ and Java
 site_author: Martin Trenkmann
