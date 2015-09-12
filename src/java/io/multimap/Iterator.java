@@ -24,20 +24,21 @@ import io.multimap.Callables.Predicate;
 import java.nio.ByteBuffer;
 
 /**
- * A class for forward-iterating a list of values. In contrast to the standard {@link Iterator}
- * interface this class has the following properties:
+ * This abstract class represents a forward iterator on a list of values. In contrast to the
+ * standard {@link Iterator} interface this class has the following properties:
  * 
  * <ul>
  * <li>Support for lazy initialization. An iterator does not perform any IO operation until
  * {@link Iterator#seekToFirst()}, {@link Iterator#seekTo(byte[])}, or
- * {@link Iterator#seekTo(Predicate)} has been called.</li>
+ * {@link Iterator#seekTo(Predicate)} has been called. This might be useful in cases where multiple
+ * iterators have to be requested first to determine in which order they have to be processed.</li>
  * <li>The iterator can state the total number of the underlying values, even if
  * {@link Iterator#seekToFirst()} or one of its friends have not been called.</li>
  * <li>The iterator does not advance automatically. The current value can be retrieved multiple
  * times.</li>
  * <li>The iterator must be closed if no longer needed to release native resources such as locks.
- * Not closing an iterator leaves the associated list in locked state preventing any subsequent
- * access depending on the kind of lock.</li>
+ * Not closing an iterator that implements a locking mechanism leaves the underlying list in locked
+ * state which leads to deadlocks sooner or later.</li>
  * </ul>
  * 
  * @author Martin Trenkmann
@@ -52,21 +53,21 @@ public abstract class Iterator implements AutoCloseable {
   public abstract long numValues();
 
   /**
-   * Initializes the iterator to point to the first value, if any. This initialization process will
-   * trigger disk IO if necessary. The method can also be used to seek back to the beginning at the
+   * Initializes the iterator to point to the first value, if any. This process will trigger disk
+   * IO if necessary. The method can also be used to seek back to the beginning of the list at the
    * end of an iteration.
    */
   public abstract void seekToFirst();
 
   /**
-   * Initializes the iterator to point to the first occurrence of {@code target}, if any. This
-   * initialization process will trigger disk IO if necessary.
+   * Initializes the iterator to point to the first value in the list that is equal to
+   * {@code target}, if any. This process will trigger disk IO if necessary.
    */
   public abstract void seekTo(byte[] target);
 
   /**
    * Initializes the iterator to point to the first value for which {@code predicate} yields
-   * {@code true}, if any. This initialization process will trigger disk IO if necessary.
+   * {@code true}, if any. This process will trigger disk IO if necessary.
    */
   public abstract void seekTo(Predicate predicate);
 
@@ -101,7 +102,7 @@ public abstract class Iterator implements AutoCloseable {
   }
 
   /**
-   * Deletes the current value from the associated list (optional operation).
+   * Deletes the value the iterator currently points to (optional operation).
    */
   public abstract void deleteValue();
 

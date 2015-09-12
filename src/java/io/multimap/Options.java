@@ -20,7 +20,7 @@
 package io.multimap;
 
 /**
- * This class represents various options used to parameterize a {@link Map} if opened or created.
+ * This class is a pure data holder used to configure an instantiation of class {@link Map}.
  * 
  * @author Martin Trenkmann
  */

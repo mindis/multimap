@@ -52,7 +52,8 @@ public final class Callables {
     }
 
     /**
-     * Applies the procedure to {@code bytes}. The input is guaranteed to be read-only.
+     * Applies the procedure to {@code bytes}. The input is guaranteed to be read-only. Must be
+     * implemented in derived classes.
      */
     protected abstract void callOnReadOnly(ByteBuffer bytes);
   }
@@ -73,6 +74,8 @@ public final class Callables {
      * Applies the predicate to {@code bytes}. This is a wrapper around
      * {@link #callOnReadOnly(ByteBuffer)} which marks the input as read-only.
      * 
+     * @return {@code true} if the predicate matches, {@code false} otherwise.
+     * 
      * @see #callOnReadOnly(ByteBuffer)
      */
     public boolean call(ByteBuffer bytes) {
@@ -80,7 +83,10 @@ public final class Callables {
     }
 
     /**
-     * Applies the predicate to {@code bytes}. The input is guaranteed to be read-only.
+     * Applies the predicate to {@code bytes}. The input is guaranteed to be read-only. Must be
+     * implemented in derived classes.
+     * 
+     * @return {@code true} if the predicate matches, {@code false} otherwise.
      */
     protected abstract boolean callOnReadOnly(ByteBuffer bytes);
   }
@@ -99,6 +105,8 @@ public final class Callables {
      * Applies the function to {@code bytes}. This is a wrapper around
      * {@link #callOnReadOnly(ByteBuffer)} which marks the input as read-only.
      * 
+     * @return a new {@code byte[]} or {@code null} if explicitly allowed by an implementation.
+     * 
      * @see #callOnReadOnly(ByteBuffer)
      */
     public byte[] call(ByteBuffer bytes) {
@@ -106,9 +114,10 @@ public final class Callables {
     }
 
     /**
-     * Applies the function to {@code bytes}. The input is guaranteed to be read-only.
+     * Applies the function to {@code bytes}. The input is guaranteed to be read-only. Must be
+     * implemented in derived classes.
      * 
-     * @return a new value or {@code null} if permitted.
+     * @return a new {@code byte[]} or {@code null} if explicitly allowed by an implementation.
      */
     protected abstract byte[] callOnReadOnly(ByteBuffer bytes);
   }
@@ -126,6 +135,8 @@ public final class Callables {
      * Determines whether {@code a} is less than {@code b}. This is a wrapper around
      * {@link #callOnReadOnly(ByteBuffer, ByteBuffer)} which marks the input as read-only.
      * 
+     * @return {@code true} if {@code a} is less than {@code b}, {@code false} otherwise.
+     * 
      * @see #callOnReadOnly(ByteBuffer, ByteBuffer)
      */
     public boolean call(ByteBuffer a, ByteBuffer b) {
@@ -134,6 +145,7 @@ public final class Callables {
 
     /**
      * Determines whether {@code a} is less than {@code b}. The input is guaranteed to be read-only.
+     * Must be implemented in derived classes.
      * 
      * @return {@code true} if {@code a} is less than {@code b}, {@code false} otherwise.
      */

@@ -29,9 +29,7 @@ import java.nio.file.Path;
 import java.util.TreeMap;
 
 /**
- * This class represents a 1:n key-value store. In such a store each key is associated with a list
- * of values rather than only a single one. Values can be appended to or removed from a list, and
- * iterated quickly.
+ * This class implements a 1:n key-value store where each key is associated with a list of values.
  * 
  * @author Martin Trenkmann
  */
@@ -327,7 +325,7 @@ public class Map implements AutoCloseable {
   }
 
   /**
-   * Deletes all values in the list associated with {@code key} for which {@code predicate} returns
+   * Deletes all values in the list associated with {@code key} for which {@code predicate} yields
    * {@code true}.
    * 
    * @return The number of deleted values.
@@ -352,7 +350,7 @@ public class Map implements AutoCloseable {
   
   /**
    * Deletes the first value in the list associated with {@code key} for which {@code predicate}
-   * returns {@code true}.
+   * yields {@code true}.
    * 
    * @return {@code true} if a value was deleted, {@code false} otherwise.
    */
@@ -363,8 +361,8 @@ public class Map implements AutoCloseable {
   }
 
   /**
-   * Deletes all values in the list associated with {@code key} which are equal to {@code value}.
-   * Two values compare equal if their byte arrays match.
+   * Deletes the first value in the list associated with {@code key} which is equal to
+   * {@code value}. Two values compare equal if their byte arrays match.
    * 
    * @return {@code true} if a value was deleted, {@code false} otherwise.
    */
@@ -376,9 +374,10 @@ public class Map implements AutoCloseable {
 
   /**
    * Replaces all values in the list associated with {@code key} by the result of invoking
-   * {@code function}. The result of {@code function} is ignored as long as it is {@code null}. The
-   * replacement does not happen in-place. Instead, the old value is marked as deleted and the new
-   * value is appended to the end of the list. Future releases will support in-place replacements.
+   * {@code function}. If the result of {@code function} is {@code null} no replacement is
+   * performed. A replacement does not happen in-place. Instead, the old value is marked as deleted
+   * and the new value is appended to the end of the list. Future releases will support in-place
+   * replacements.
    * 
    * @return The number of replaced values.
    */
@@ -389,9 +388,9 @@ public class Map implements AutoCloseable {
   }
 
   /**
-   * Replaces all occurrences of {@code oldValue} in the list associated with {@code key} by
-   * {@code newValue}. The replacements do not happen in-place. Instead, the old value is marked as
-   * deleted and the new value is appended to the end of the list. Future releases will support
+   * Replaces all values in the list associated with {@code key} which are equal to {@code oldValue}
+   * by {@code newValue}. A replacement does not happen in-place. Instead, the old value is marked
+   * as deleted and the new value is appended to the end of the list. Future releases will support
    * in-place replacements.
    * 
    * @return The number of replaced values.
@@ -405,9 +404,10 @@ public class Map implements AutoCloseable {
   
   /**
    * Replaces the first value in the list associated with {@code key} by the result of invoking
-   * {@code function}. The result of {@code function} is ignored as long as it is {@code null}. The
-   * replacement does not happen in-place. Instead, the old value is marked as deleted and the new
-   * value is appended to the end of the list. Future releases will support in-place replacements.
+   * {@code function}. If the result of {@code function} is {@code null} no replacement is
+   * performed. The replacement does not happen in-place. Instead, the old value is marked as
+   * deleted and the new value is appended to the end of the list. Future releases will support
+   * in-place replacements.
    * 
    * @return {@code true} if a value was replaced, {@code false} otherwise.
    */
@@ -418,10 +418,10 @@ public class Map implements AutoCloseable {
   }
 
   /**
-   * Replaces the first occurrence of {@code oldValue} in the list associated with {@code key} by
-   * {@code newValue}. The replacement does not happen in-place. Instead, the old value is marked as
-   * deleted and the new value is appended to the end of the list. Future releases will support
-   * in-place replacements.
+   * Replaces the first value in the list associated with {@code key} which is equal to
+   * {@code oldValue} by {@code newValue}. The replacement does not happen in-place. Instead, the
+   * old value is marked as deleted and the new value is appended to the end of the list. Future
+   * releases will support in-place replacements.
    * 
    * @return {@code true} if a value was replaced, {@code false} otherwise.
    */
@@ -445,9 +445,9 @@ public class Map implements AutoCloseable {
   }
 
   /**
-   * Applies {@code procedure} to each value associated with {@code key}. This is a shorthand for
-   * {@link #get(byte[])} followed by an application of {@code procedure} to each value obtained via
-   * {@link Iterator#getValue()}.
+   * Applies {@code procedure} to each value in the list associated with {@code key}. This is a
+   * shorthand for requesting a read-only iterator via {@link #get(byte[])} followed by an
+   * application of {@code procedure} to each value obtained via {@link Iterator#getValue()}.
    */
   public void forEachValue(byte[] key, Procedure procedure) {
     Check.notNull(procedure);
@@ -455,10 +455,10 @@ public class Map implements AutoCloseable {
   }
 
   /**
-   * Applies {@code predicate} to each value associated with {@code key} until {@code predicate}
-   * returns {@code false}. This is a shorthand for {@link #get(byte[])} followed by an application
-   * of {@code predicate} to each value obtained via {@link Iterator#getValue()} until
-   * {@code predicate} returns {@code false}.
+   * Applies {@code predicate} to each value in the list associated with {@code key} until
+   * {@code predicate} yields {@code false}. This is a shorthand for requesting a read-only iterator
+   * via {@link #get(byte[])} followed by an application of {@code predicate} to each value obtained
+   * via {@link Iterator#getValue()} until {@code predicate} yields {@code false}.
    */
   public void forEachValue(byte[] key, Predicate predicate) {
     Check.notNull(predicate);
@@ -466,8 +466,10 @@ public class Map implements AutoCloseable {
   }
 
   /**
-   * Collects and returns current properties of the map. For the time of execution the map is locked
-   * so that all other operations will block.
+   * Returns a list of properties which describe the state of the map similar to those written to
+   * the {@code multimap.properties} file. This method will only look at lists which are currently
+   * not locked to be non-blocking. Therefore, the returned values will be an approximation. For the
+   * time of execution the map is locked for read-only operations.
    */
   public java.util.Map<String, String> getProperties() {
     java.util.Map<String, String> properties = new TreeMap<>();
@@ -480,16 +482,14 @@ public class Map implements AutoCloseable {
   }
 
   /**
-   * Returns the maximum size, in number of bytes, of a key to put. Currently this value is
-   * {@code 65536}.
+   * Returns the maximum size, in number of bytes, of a key to put.
    */
   public int maxKeySize() {
     return Native.maxKeySize(self);
   }
 
   /**
-   * Returns the maximum size, in number of bytes, of a value to put. Currently this value is
-   * {@code options.getBlockSize()-2}.
+   * Returns the maximum size, in number of bytes, of a value to put.
    */
   public int maxValueSize() {
     return Native.maxValueSize(self);
