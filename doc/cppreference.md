@@ -234,7 +234,7 @@ Preconditions:
 
 <span class='declaration' id='iterator-deletevalue'>`void DeleteValue()`</span>
 
-Deletes the value the iterator currently points to.
+Marks the value the iterator currently points to as deleted.
 
 Preconditions:
 
@@ -664,13 +664,13 @@ Default: `512`
 
 <span class='declaration' id='options-create_if_missing'>`bool create_if_missing`</span>
 
-Determines whether a map has to be created if it does not exist when opened.
+Determines whether a map has to be created if it does not exist.
 
 Default: `false`
 
 <span class='declaration' id='options-error_if_exists'>`bool error_if_exists`</span>
 
-Determines whether an already existing map should be treated as an error when opened.
+Determines whether an already existing map should be treated as an error.
 
 Default: `false`
 
