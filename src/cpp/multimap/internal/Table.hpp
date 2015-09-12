@@ -77,7 +77,11 @@ class Table {
 
   std::map<std::string, std::string> GetProperties() const;
 
-  void FlushAllLists() const;
+  void FlushAllListsAndWaitIfLocked() const;
+
+  void FlushAllListsOrThrowIfLocked() const;
+
+  void FlushAllUnlockedLists() const;
 
   Stats GetStats() const;
 

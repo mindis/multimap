@@ -217,11 +217,33 @@ void Table::ForEachKey(Callables::Procedure procedure) const {
   }
 }
 
-void Table::FlushAllLists() const {
+void Table::FlushAllListsAndWaitIfLocked() const {
   boost::shared_lock<boost::shared_mutex> lock(mutex_);
   for (const auto& entry : map_) {
     auto list = entry.second.get();
-    // TODO Use UniqueListLock(List*, std::try_to_lock_t) when available.
+    list->LockUnique();
+    list->Flush(commit_block_);
+    list->UnlockUnique();
+  }
+}
+
+void Table::FlushAllListsOrThrowIfLocked() const {
+  boost::shared_lock<boost::shared_mutex> lock(mutex_);
+  for (const auto& entry : map_) {
+    auto list = entry.second.get();
+    if (list->TryLockUnique()) {
+      list->Flush(commit_block_);
+      list->UnlockUnique();
+    } else {
+      Throw("Some list is locked");
+    }
+  }
+}
+
+void Table::FlushAllUnlockedLists() const {
+  boost::shared_lock<boost::shared_mutex> lock(mutex_);
+  for (const auto& entry : map_) {
+    auto list = entry.second.get();
     if (list->TryLockUnique()) {
       list->Flush(commit_block_);
       list->UnlockUnique();
