@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTIMAP_CALLABLES_HPP
-#define MULTIMAP_CALLABLES_HPP
+#ifndef MULTIMAP_INCLUDE_CALLABLES_HPP
+#define MULTIMAP_INCLUDE_CALLABLES_HPP
 
 #include <functional>
 #include "multimap/Bytes.hpp"
@@ -53,4 +53,4 @@ struct Callables {
 
 }  // namespace multimap
 
-#endif  // MULTIMAP_CALLABLES_HPP
+#endif  // MULTIMAP_INCLUDE_CALLABLES_HPP

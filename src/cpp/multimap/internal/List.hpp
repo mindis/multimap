@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTIMAP_INTERNAL_LIST_HPP
-#define MULTIMAP_INTERNAL_LIST_HPP
+#ifndef MULTIMAP_INCLUDE_INTERNAL_LIST_HPP
+#define MULTIMAP_INCLUDE_INTERNAL_LIST_HPP
 
 #include <unistd.h>  // For sysconf
 #include <cstdio>
@@ -294,4 +294,4 @@ void List::Iter<false>::WriteBackMutatedBlocks();
 }  // namespace internal
 }  // namespace multimap
 
-#endif  // MULTIMAP_INTERNAL_LIST_HPP
+#endif  // MULTIMAP_INCLUDE_INTERNAL_LIST_HPP

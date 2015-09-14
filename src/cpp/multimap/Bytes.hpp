@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTIMAP_BYTES_HPP
-#define MULTIMAP_BYTES_HPP
+#ifndef MULTIMAP_INCLUDE_BYTES_HPP
+#define MULTIMAP_INCLUDE_BYTES_HPP
 
 #include <algorithm>
 #include <cstring>
@@ -111,4 +111,4 @@ inline bool operator<(const Bytes& lhs, const Bytes& rhs) {
 
 }  // namespace multimap
 
-#endif  // MULTIMAP_BYTES_HPP
+#endif  // MULTIMAP_INCLUDE_BYTES_HPP

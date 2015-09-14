@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTIMAP_COMMON_HPP
-#define MULTIMAP_COMMON_HPP
+#ifndef MULTIMAP_INCLUDE_COMMON_HPP
+#define MULTIMAP_INCLUDE_COMMON_HPP
 
 #include <cstddef>
 
@@ -30,4 +30,4 @@ inline std::size_t GiB(std::size_t gibibytes) { return gibibytes << 30; }
 
 }  // namespace multimap
 
-#endif  // MULTIMAP_COMMON_HPP
+#endif  // MULTIMAP_INCLUDE_COMMON_HPP

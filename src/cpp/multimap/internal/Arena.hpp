@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTIMAP_INTERNAL_ARENA_HPP
-#define MULTIMAP_INTERNAL_ARENA_HPP
+#ifndef MULTIMAP_INCLUDE_INTERNAL_ARENA_HPP
+#define MULTIMAP_INCLUDE_INTERNAL_ARENA_HPP
 
 #include <memory>
 #include <vector>
@@ -59,4 +59,4 @@ class Arena {
 }  // namespace internal
 }  // namespace multimap
 
-#endif  // MULTIMAP_INTERNAL_ARENA_HPP
+#endif  // MULTIMAP_INCLUDE_INTERNAL_ARENA_HPP

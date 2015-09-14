@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTIMAP_JNI_COMMON_HPP
-#define MULTIMAP_JNI_COMMON_HPP
+#ifndef MULTIMAP_INCLUDE_JNI_COMMON_HPP
+#define MULTIMAP_INCLUDE_JNI_COMMON_HPP
 
 #include <jni.h>
 #include <stdexcept>
@@ -168,4 +168,4 @@ inline void ThrowException(JNIEnv* env, const char* message) {
 }  // namespace jni
 }  // namespace multimap
 
-#endif  // MULTIMAP_JNI_COMMON_HPP
+#endif  // MULTIMAP_INCLUDE_JNI_COMMON_HPP
