@@ -1,6 +1,6 @@
 TEMPLATE = lib
 TARGET = multimap
-VERSION = 0.2
+VERSION = 0.3
 
 COMMON = multimap.pri
 !include(../$$COMMON) {
