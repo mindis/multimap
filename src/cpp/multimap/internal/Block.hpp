@@ -61,35 +61,35 @@ class Block {
 
     bool hasValue() const { return hasData() && (size() != 0); }
 
-    // @pre hasValue()
     Bytes getValue() const { return Bytes(data(), size()); }
-
     // @pre hasValue()
+
     bool isDeleted() const { return *tellGetAddress() & 0x80; }
-
     // @pre hasValue()
+
     void markAsDeleted() { *tellGetAddress() |= 0x80; }
-
     // @pre hasValue()
+
     void next() { offset_ += SIZE_OF_VALUE_SIZE_FIELD + size(); }
-
     // @pre hasValue()
+
     void nextNotDeleted() {
       do {
         next();
       } while (hasValue() && isDeleted());
     }
-
     // @pre hasValue()
+
     Char* data() const { return tellGetAddress() + SIZE_OF_VALUE_SIZE_FIELD; }
-
     // @pre hasValue()
+
     std::size_t size() const {
       std::int16_t size = 0;
       size += tellGetAddress()[0] << 8;
       size += tellGetAddress()[1];
       return size & 0x7fff;
     }
+    // @pre hasValue()
 
    private:
     bool hasData() const {
@@ -140,8 +140,8 @@ class Block {
 
   double load_factor() const;
 
-  // Returns the maximum size of a value to be put when the block is empty.
   std::uint32_t max_value_size() const;
+  // Returns the maximum size of a value to be put when the block is empty.
 
   Iterator iterator() {
     // We do not use this->position_ to indicate the end of data, because
@@ -155,10 +155,10 @@ class Block {
     return hasData() ? ConstIterator(data_, size_) : ConstIterator();
   }
 
+  bool add(const Bytes& value);
   // Writes a copy of value's data into the block.
   // Returns true if the value could be written successfully.
   // Returns false if the block has not enough room to store the data.
-  bool add(const Bytes& value);
 
  private:
   std::size_t num_bytes_free() const { return size_ - position_; }

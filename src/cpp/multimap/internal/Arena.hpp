@@ -28,27 +28,27 @@ class Arena {
  public:
   Arena(std::size_t block_size = 4096);
 
-  // Thread-safe: no.
   char* allocate(std::size_t num_bytes);
-
   // Thread-safe: no.
+
   void reset();
-
   // Thread-safe: no.
+
   std::size_t block_size() const { return block_size_; }
-
   // Thread-safe: no.
+
   std::size_t num_blocks() const { return blocks_.size(); }
-
   // Thread-safe: no.
+
   std::size_t capacity() const { return capacity_; }
-
   // Thread-safe: no.
+
   std::size_t size() const { return size_; }
+  // Thread-safe: no.
 
  private:
-  // Thread-safe: no.
   void allocateNewBlock(std::size_t block_size);
+  // Thread-safe: no.
 
   std::vector<std::unique_ptr<char[]>> blocks_;
   std::size_t block_size_;

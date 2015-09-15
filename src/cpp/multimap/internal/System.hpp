@@ -31,9 +31,9 @@ namespace internal {
 struct System {
   static std::pair<boost::filesystem::path, int> getTempfile();
 
-  // TODO Implement printf-like overloads.
-  // Usage: System::Log() << "Your message here\n";
   static std::ostream& log();
+  // TODO Implement printf-like overloads.
+  // Usage: System::log() << "Your message here\n";
 
   static std::ostream& log(std::ostream& stream);
 

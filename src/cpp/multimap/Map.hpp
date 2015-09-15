@@ -40,26 +40,27 @@ static const std::size_t MINOR_VERSION = 3;
 // with a list of values.
 class Map {
  public:
+  typedef Iterator<false> ListIter;
   // An iterator type to iterate a mutable list. All operations declared in the
   // class template Iterator<bool> that can mutate the underlying list are
   // enabled.
-  typedef Iterator<false> ListIter;
 
+  typedef Iterator<true> ConstListIter;
   // An iterator type to iterate a immutable list. All operations declared in
   // the class template Iterator<bool> that can mutate the underlying list are
   // disabled.
-  typedef Iterator<true> ConstListIter;
 
-  // Creates a default instance which is not associated with a physical map.
   Map();
+  // Creates a default instance which is not associated with a physical map.
 
+  ~Map();
   // If associated with a physical map the destructor flushes all data to disk
   // and ensures that the map is stored in consistent state.
   // Preconditions:
   //   * No list is in locked state, i.e. there is no iterator object pointing
   //     to an existing list.
-  ~Map();
 
+  Map(const boost::filesystem::path& directory, const Options& options);
   // Creates a new instance and opens the map located in directory. If the map
   // does not exist and options.create_if_missing is set to true a new map will
   // be created.
@@ -69,8 +70,8 @@ class Map {
   //     false.
   //   * directory contains a map and options.error_if_exists is true.
   //   * options.block_size is not a power of two.
-  Map(const boost::filesystem::path& directory, const Options& options);
 
+  void open(const boost::filesystem::path& directory, const Options& options);
   // Opens the map located in directory. If the map does not exist and
   // options.create_if_missing is set to true a new map will be created.
   // Throws std::exception if:
@@ -79,14 +80,14 @@ class Map {
   //     false.
   //   * directory contains a map and options.error_if_exists is true.
   //   * options.block_size is not a power of two.
-  void open(const boost::filesystem::path& directory, const Options& options);
 
+  void put(const Bytes& key, const Bytes& value);
   // Appends value to the end of the list associated with key.
   // Throws std::exception if:
   //   * key.size() > max_key_size()
   //   * value.size() > max_value_size()
-  void put(const Bytes& key, const Bytes& value);
 
+  ConstListIter get(const Bytes& key) const;
   // Returns a read-only iterator to the list associated with key. If no such
   // mapping exists the list is considered to be empty. If the list is not
   // empty a reader lock will be acquired to synchronize concurrent access to
@@ -95,8 +96,8 @@ class Map {
   // iterator ends and its destructor is called. If the list is currently
   // locked exclusively by a writer lock, see getMutable(), the method will
   // block until the lock is released.
-  ConstListIter get(const Bytes& key) const;
 
+  ListIter getMutable(const Bytes& key);
   // Returns a read-write iterator to the list associated with key. If no such
   // mapping exists the list is considered to be empty. If the list is not
   // empty a writer lock will be acquired to synchronize concurrent access to
@@ -105,42 +106,42 @@ class Map {
   // the lifetime of the iterator ends and its destructor is called. If the
   // list is currently locked, either by a reader or writer lock, the method
   // will block until the lock is released.
-  ListIter getMutable(const Bytes& key);
 
+  bool contains(const Bytes& key) const;
   // Returns true if the list associated with key contains at least one value,
   // returns false otherwise. If the key does not exist the list is considered
   // to be empty. If a non-empty list is currently locked, the method will
   // block until the lock is released.
-  bool contains(const Bytes& key) const;
 
+  std::size_t remove(const Bytes& key);
   // Deletes all values for key by clearing the associated list. This method
   // will block until a writer lock can be acquired.
   // Returns: the number of deleted values.
-  std::size_t remove(const Bytes& key);
 
+  std::size_t removeAll(const Bytes& key, Callables::Predicate predicate);
   // Deletes all values in the list associated with key for which predicate
   // yields true. This method will block until a writer lock can be acquired.
   // Returns: the number of deleted values.
-  std::size_t removeAll(const Bytes& key, Callables::Predicate predicate);
 
+  std::size_t removeAllEqual(const Bytes& key, const Bytes& value);
   // Deletes all values in the list associated with key which are equal to
   // value according to operator==(const Bytes&, const Bytes&). This method
   // will block until a writer lock can be acquired.
   // Returns: the number of deleted values.
-  std::size_t removeAllEqual(const Bytes& key, const Bytes& value);
 
+  bool removeFirst(const Bytes& key, Callables::Predicate predicate);
   // Deletes the first value in the list associated with key for which
   // predicate yields true. This method will block until a writer lock can be
   // acquired.
   // Returns: true if a value was deleted, false otherwise.
-  bool removeFirst(const Bytes& key, Callables::Predicate predicate);
 
+  bool removeFirstEqual(const Bytes& key, const Bytes& value);
   // Deletes the first value in the list associated with key which is equal to
   // value according to operator==(const Bytes&, const Bytes&). This method
   // will block until a writer lock can be acquired.
   // Returns: true if a value was deleted, false otherwise.
-  bool removeFirstEqual(const Bytes& key, const Bytes& value);
 
+  std::size_t replaceAll(const Bytes& key, Callables::Function function);
   // Replaces all values in the list associated with key by the result of
   // invoking function. If the result of function is an empty string no
   // replacement is performed. A replacement does not happen in-place. Instead,
@@ -148,8 +149,9 @@ class Map {
   // end of the list. Future releases will support in-place replacements. This
   // method will block until a writer lock can be acquired.
   // Returns: the number of replaced values.
-  std::size_t replaceAll(const Bytes& key, Callables::Function function);
 
+  std::size_t replaceAllEqual(const Bytes& key, const Bytes& old_value,
+                              const Bytes& new_value);
   // Replaces all values in the list associated with key which are equal to
   // old_value according to operator==(const Bytes&, const Bytes&) by
   // new_value. A replacement does not happen in-place. Instead, the old value
@@ -157,9 +159,8 @@ class Map {
   // Future releases will support in-place replacements. This method will block
   // until a writer lock can be acquired.
   // Returns: the number of replaced values.
-  std::size_t replaceAllEqual(const Bytes& key, const Bytes& old_value,
-                              const Bytes& new_value);
 
+  bool replaceFirst(const Bytes& key, Callables::Function function);
   // Replaces the first value in the list associated with key by the result of
   // invoking function. If the result of function is an empty string no
   // replacement is performed. The replacement does not happen in-place.
@@ -167,8 +168,9 @@ class Map {
   // to the end of the list. Future releases will support in-place
   // replacements. This method will block until a writer lock can be acquired.
   // Returns: true if a value was replaced, false otherwise.
-  bool replaceFirst(const Bytes& key, Callables::Function function);
 
+  bool replaceFirstEqual(const Bytes& key, const Bytes& old_value,
+                         const Bytes& new_value);
   // Replaces the first value in the list associated with key which is equal to
   // old_value according to operator==(const Bytes&, const Bytes&) by
   // new_value. The replacement does not happen in-place. Instead, the old
@@ -176,45 +178,43 @@ class Map {
   // list. Future releases will support in-place replacements. This method will
   // block until a writer lock can be acquired.
   // Returns: true if a value was replaced, false otherwise.
-  bool replaceFirstEqual(const Bytes& key, const Bytes& old_value,
-                         const Bytes& new_value);
 
+  void forEachKey(Callables::Procedure procedure) const;
   // Applies procedure to each key of the map whose associated list is not
   // empty. For the time of execution the entire map is locked for read-only
   // operations. It is possible to keep a reference to the map within procedure
   // and to call other read-only operations such as Get(). However, trying to
   // call mutable operations such as GetMutable() will cause a deadlock.
-  void forEachKey(Callables::Procedure procedure) const;
 
+  void forEachValue(const Bytes& key, Callables::Procedure procedure) const;
   // Applies procedure to each value in the list associated with key. This is a
   // shorthand for requesting a read-only iterator via Get(key) followed by an
   // application of procedure to each value obtained via
   // ConstListIter::GetValue(). This method will block until a reader lock for
   // the list in question can be acquired.
-  void forEachValue(const Bytes& key, Callables::Procedure procedure) const;
 
+  void forEachValue(const Bytes& key, Callables::Predicate predicate) const;
   // Applies predicate to each value in the list associated with key until
   // predicate yields false. This is a shorthand for requesting a read-only
   // iterator via Get(key) followed by an application of predicate to each
   // value obtained via ConstListIter::GetValue() until predicate yields false.
   // This method will block until a reader lock for the list in question can be
   // acquired.
-  void forEachValue(const Bytes& key, Callables::Predicate predicate) const;
 
+  std::map<std::string, std::string> getProperties() const;
   // Returns a list of properties which describe the state of the map similar
   // to those written to the multimap.properties file. This method will only
   // look at lists which are currently not locked to be non-blocking.
   // Therefore, the returned values will be an approximation. For the time of
   // execution the map is locked for read-only operations.
-  std::map<std::string, std::string> getProperties() const;
 
+  std::size_t max_key_size() const;
   // Returns the maximum size of a key in bytes which may be put. Currently
   // this is 65536 bytes.
-  std::size_t max_key_size() const;
 
+  std::size_t max_value_size() const;
   // Returns the maximum size of a value in bytes which may be put. Currently
   // this is options.block_size - 2 bytes.
-  std::size_t max_value_size() const;
 
  private:
   std::size_t remove(const Bytes& key, Callables::Predicate pred, bool all);
@@ -231,6 +231,8 @@ class Map {
   Options options_;
 };
 
+void optimize(const boost::filesystem::path& from,
+              const boost::filesystem::path& to);
 // Copies the map located in the directory denoted by from to the directory
 // denoted by to performing the following optimizations:
 //   * Defragmentation. All blocks which belong to the same list are written
@@ -244,33 +246,33 @@ class Map {
 //   * the map in from is locked.
 //   * to already contains a map.
 //   * to is not writable.
-void optimize(const boost::filesystem::path& from,
-              const boost::filesystem::path& to);
 
+void optimize(const boost::filesystem::path& from,
+              const boost::filesystem::path& to, std::size_t new_block_size);
 // Same as Optimize(from, to) but sets the block size of the new map to
 // new_block_size.
 // Throws std::exception if:
 //   * see Optimize(from, to)
 //   * new_block_size is not a power of two.
-void optimize(const boost::filesystem::path& from,
-              const boost::filesystem::path& to, std::size_t new_block_size);
 
+void optimize(const boost::filesystem::path& from,
+              const boost::filesystem::path& to, Callables::Compare compare);
 // Same as Optimize(from, to) but sorts each list before writing using compare
 // as the sorting criterion.
 // Throws std::exception if:
 //   * see Optimize(from, to)
-void optimize(const boost::filesystem::path& from,
-              const boost::filesystem::path& to, Callables::Compare compare);
 
+void optimize(const boost::filesystem::path& from,
+              const boost::filesystem::path& to, Callables::Compare compare,
+              std::size_t new_block_size);
 // Same as Optimize(from, to, compare) but sets the block size of the new map
 // to new_block_size.
 // Throws std::exception if:
 //   * see Optimize(from, to, compare)
 //   * new_block_size is not a power of two.
-void optimize(const boost::filesystem::path& from,
-              const boost::filesystem::path& to, Callables::Compare compare,
-              std::size_t new_block_size);
 
+void importFromBase64(const boost::filesystem::path& directory,
+                      const boost::filesystem::path& file);
 // Imports key-value pairs from a Base64-encoded text file denoted by file into
 // the map located in the directory denoted by directory.
 // Preconditions:
@@ -280,9 +282,10 @@ void optimize(const boost::filesystem::path& from,
 //   * directory does not contain a map.
 //   * the map in directory is locked.
 //   * file is not a regular file.
-void importFromBase64(const boost::filesystem::path& directory,
-                      const boost::filesystem::path& file);
 
+void importFromBase64(const boost::filesystem::path& directory,
+                      const boost::filesystem::path& file,
+                      bool create_if_missing);
 // Same as Import(directory, file) but creates a new map with default block
 // size if the directory denoted by directory does not contain a map and
 // create_if_missing is true.
@@ -290,10 +293,10 @@ void importFromBase64(const boost::filesystem::path& directory,
 //   * see Import(directory, file)
 // Throws std::exception if:
 //   * see Import(directory, file)
+
 void importFromBase64(const boost::filesystem::path& directory,
                       const boost::filesystem::path& file,
-                      bool create_if_missing);
-
+                      bool create_if_missing, std::size_t block_size);
 // Same as Import(directory, file, create_if_missing) but sets the block size
 // of a newly created map to block_size.
 // Preconditions:
@@ -301,10 +304,9 @@ void importFromBase64(const boost::filesystem::path& directory,
 // Throws std::exception if:
 //   * see Import(directory, file, create_if_missing)
 //   * block_size is not a power of two.
-void importFromBase64(const boost::filesystem::path& directory,
-                      const boost::filesystem::path& file,
-                      bool create_if_missing, std::size_t block_size);
 
+void exportToBase64(const boost::filesystem::path& directory,
+                    const boost::filesystem::path& file);
 // Exports all key-value pairs from the map located in the directory denoted by
 // directory to a Base64-encoded text file denoted by file. If the file already
 // exists, its content will be overridden.
@@ -315,8 +317,6 @@ void importFromBase64(const boost::filesystem::path& directory,
 //   * directory does not contain a map.
 //   * the map in directory is locked.
 //   * file cannot be created.
-void exportToBase64(const boost::filesystem::path& directory,
-                    const boost::filesystem::path& file);
 
 }  // namespace multimap
 

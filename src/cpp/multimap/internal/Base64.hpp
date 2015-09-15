@@ -25,12 +25,12 @@ namespace multimap {
 namespace internal {
 
 struct Base64 {
-  // Encodes binary data to a base64 string.
   static void encode(const Bytes& binary, std::string* base64);
+  // Encodes binary data to a base64 string.
 
+  static void decode(const std::string& base64, std::string* binary);
   // Decodes a base64 string to binary data. std::string as the target type
   // is used as a self-managing byte buffer, it will contain binary data.
-  static void decode(const std::string& base64, std::string* binary);
 
   Base64() = delete;
 };

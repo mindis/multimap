@@ -59,33 +59,33 @@ class Store {
 
   void close();
 
-  // Thread-safe: yes.
   std::uint32_t append(const Block& block);
-
   // Thread-safe: yes.
+
   void read(std::uint32_t block_id, Block* block, Arena* arena) const;
-
   // Thread-safe: yes.
+
   void read(std::vector<BlockWithId>* blocks, Arena* arena) const;
-
   // Thread-safe: yes.
+
   void write(std::uint32_t block_id, const Block& block);
-
   // Thread-safe: yes.
+
   void write(const std::vector<BlockWithId>& blocks);
-
   // Thread-safe: yes.
+
   Stats getStats() const;
-
   // Thread-safe: yes.
+
   const boost::filesystem::path& path() const;
-
   // Thread-safe: yes.
+
   const Options& options() const;
+  // Thread-safe: yes.
 
  private:
-  // Thread-safe: no.
   char* getAddressOf(std::uint32_t block_id) const;
+  // Thread-safe: no.
 
   mutable std::mutex mutex_;
   std::unique_ptr<char[]> buffer_;

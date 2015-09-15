@@ -22,11 +22,11 @@
 
 namespace multimap {
 
-// Converts a number in mebibytes to the equivalent number in bytes.
 inline std::size_t MiB(std::size_t mebibytes) { return mebibytes << 20; }
+// Converts a number in mebibytes to the equivalent number in bytes.
 
-// Converts a number in gibibytes to the equivalent number in bytes.
 inline std::size_t GiB(std::size_t gibibytes) { return gibibytes << 30; }
+// Converts a number in gibibytes to the equivalent number in bytes.
 
 }  // namespace multimap
 

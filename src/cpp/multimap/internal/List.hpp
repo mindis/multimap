@@ -78,9 +78,9 @@ class List {
 
     void next();
 
+    void markAsDeleted();
     // Marks the current value as deleted.
     // Requires: hasValue()
-    void markAsDeleted();
 
     std::size_t num_values() const;
 
@@ -125,8 +125,8 @@ class List {
            const Callbacks::NewBlock& allocate_block_callback,
            const Callbacks::CommitBlock& commit_block_callback);
 
-  // Precondition (not tested internally): !locked()
   void flush(const Callbacks::CommitBlock& commit_block_callback);
+  // Requires: not isLocked()
 
   void clear() { head_ = Head(); }
 

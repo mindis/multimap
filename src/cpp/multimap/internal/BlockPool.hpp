@@ -35,20 +35,20 @@ class BlockPool {
 
   void init(std::size_t block_size, std::size_t chunk_size = MiB(100));
 
-  // Thread-safe: yes.
   Block allocate();
-
   // Thread-safe: yes.
+
   std::size_t block_size() const;
-
   // Thread-safe: yes.
+
   std::size_t chunk_size() const;
-
   // Thread-safe: yes.
+
   std::size_t num_blocks() const;
-
   // Thread-safe: yes.
+
   std::size_t num_chunks() const;
+  // Thread-safe: yes.
 
  private:
   mutable std::mutex mutex_;

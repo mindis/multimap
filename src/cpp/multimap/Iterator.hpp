@@ -50,10 +50,10 @@ namespace multimap {
 template <bool IsConst>
 class Iterator {
  public:
+  Iterator() = default;
   // Creates a default instance that has no values to iterate.
   // Postconditions:
   //   * NumValues() == 0
-  Iterator() = default;
 
   Iterator(internal::ListLock<IsConst>&& list_lock,
            const internal::Callbacks::RequestBlocks& request_blocks_callback);
@@ -65,23 +65,24 @@ class Iterator {
   Iterator(Iterator&&) = default;
   Iterator& operator=(Iterator&&) = default;
 
+  void seekToFirst();
   // Initializes the iterator to point to the first value, if any. This process
   // will trigger disk IO if necessary. The method can also be used to seek
   // back to the beginning of the list at the end of an iteration.
-  void seekToFirst();
 
+  void seekTo(const Bytes& target);
   // Initializes the iterator to point to the first value in the list that is
   // equal to target, if any. This process will trigger disk IO if necessary.
-  void seekTo(const Bytes& target);
 
+  void seekTo(Callables::Predicate predicate);
   // Initializes the iterator to point to the first value for which predicate
   // yields true, if any. This process will trigger disk IO if necessary.
-  void seekTo(Callables::Predicate predicate);
 
+  bool hasValue() const;
   // Tells whether the iterator points to a value. If the result is true, the
   // iterator may be dereferenced via getValue().
-  bool hasValue() const;
 
+  Bytes getValue() const;
   // Returns the current value. The returned Bytes object wraps a pointer to
   // data that is managed by the iterator. Hence, this pointer is only valid as
   // long as the iterator does not move forward. Therefore, the value should
@@ -90,24 +91,23 @@ class Iterator {
   // Bytes::toString().
   // Preconditions:
   //   * hasValue() == true
-  Bytes getValue() const;
 
+  void markAsDeleted();
   // Marks the value the iterator currently points to as deleted.
   // Preconditions:
   //   * hasValue() == true
   // Postconditions:
   //   * hasValue() == false
-  void markAsDeleted();
 
-  // Moves the iterator to the next value, if any.
   void next();
+  // Moves the iterator to the next value, if any.
 
   internal::ListLock<IsConst> releaseListLock();
 
+  std::size_t num_values() const;
   // Returns the total number of values to iterate. This number does not change
   // when the iterator moves forward. The method may be called at any time,
   // even if seekToFirst() or one of its friends have not been called.
-  std::size_t num_values() const;
 
  private:
   internal::ListLock<IsConst> list_lock_;
