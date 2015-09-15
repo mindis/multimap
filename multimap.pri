@@ -12,6 +12,7 @@ INCLUDEPATH += \
 
 HEADERS += \
     $$PWD/src/cpp/multimap/internal/thirdparty/farmhash.h \
+    $$PWD/src/cpp/multimap/internal/thirdparty/mt.hpp \
     $$PWD/src/cpp/multimap/internal/Arena.hpp \
     $$PWD/src/cpp/multimap/internal/AutoCloseFile.hpp \
     $$PWD/src/cpp/multimap/internal/Base64.hpp \
@@ -35,6 +36,7 @@ HEADERS += \
 
 SOURCES += \
     $$PWD/src/cpp/multimap/internal/thirdparty/farmhash.cc \
+    $$PWD/src/cpp/multimap/internal/thirdparty/mt.cpp \
     $$PWD/src/cpp/multimap/internal/Arena.cpp \
     $$PWD/src/cpp/multimap/internal/Base64.cpp \
     $$PWD/src/cpp/multimap/internal/Check.cpp \
