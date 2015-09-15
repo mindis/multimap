@@ -28,8 +28,8 @@ struct Varint {
 
   static std::size_t readUint32(const uchar* source, std::uint32_t* target);
 
-  // Precondition: target has room for at least 4 bytes.
   static std::size_t writeUint32(std::uint32_t source, uchar* target);
+  // Requires: target has room for at least 4 bytes.
 
   static constexpr std::uint32_t min_value_1_byte() { return 0; }
   static constexpr std::uint32_t max_value_1_byte() { return (1 << 6) - 1; }

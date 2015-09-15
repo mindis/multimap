@@ -28,7 +28,7 @@
 #include "multimap/internal/Arena.hpp"
 #include "multimap/internal/Callbacks.hpp"
 #include "multimap/internal/ListLock.hpp"
-#include "multimap/internal/thirdparty/farmhash.h"
+#include "multimap/internal/thirdparty/mt.hpp"
 
 namespace multimap {
 namespace internal {
@@ -96,7 +96,7 @@ class Table {
  private:
   struct KeyHash {
     std::size_t operator()(const Bytes& key) const {
-      return util::Hash(key.data(), key.size());
+      return mt::fnv1aHash64(key.data(), key.size());
     }
   };
 

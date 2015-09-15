@@ -29,8 +29,8 @@ namespace internal {
 struct Callbacks {
   typedef std::function<Block()> NewBlock;
 
-  // Commits a block getting back an id for later identification.
   typedef std::function<std::uint32_t(const Block&)> CommitBlock;
+  // Commits a block getting back an id for later identification.
 
   typedef std::function<void(const std::vector<BlockWithId>&)> ReplaceBlocks;
 
