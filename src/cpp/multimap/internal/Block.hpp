@@ -46,7 +46,7 @@ namespace internal {
 // to the actual block data.
 class Block {
  public:
-  static const std::size_t kSizeOfValueSizeField = sizeof(std::int16_t);
+  static const std::size_t SIZE_OF_VALUE_SIZE_FIELD = sizeof(std::int16_t);
 
   template <bool IsConst>
   class Iter {
@@ -59,42 +59,44 @@ class Block {
       assert(data);
     }
 
-    bool has_value() const { return has_data() && (value_size() != 0); }
+    bool hasValue() const { return hasData() && (size() != 0); }
 
-    // @pre has_value()
-    Char* value_data() const { return tellg() + kSizeOfValueSizeField; }
+    // @pre hasValue()
+    Bytes getValue() const { return Bytes(data(), size()); }
 
-    // @pre has_value()
-    std::size_t value_size() const {
+    // @pre hasValue()
+    bool isDeleted() const { return *tellGetAddress() & 0x80; }
+
+    // @pre hasValue()
+    void markAsDeleted() { *tellGetAddress() |= 0x80; }
+
+    // @pre hasValue()
+    void next() { offset_ += SIZE_OF_VALUE_SIZE_FIELD + size(); }
+
+    // @pre hasValue()
+    void nextNotDeleted() {
+      do {
+        next();
+      } while (hasValue() && isDeleted());
+    }
+
+    // @pre hasValue()
+    Char* data() const { return tellGetAddress() + SIZE_OF_VALUE_SIZE_FIELD; }
+
+    // @pre hasValue()
+    std::size_t size() const {
       std::int16_t size = 0;
-      size += tellg()[0] << 8;
-      size += tellg()[1];
+      size += tellGetAddress()[0] << 8;
+      size += tellGetAddress()[1];
       return size & 0x7fff;
     }
 
-    // @pre has_value()
-    Bytes value() const { return Bytes(value_data(), value_size()); }
-
-    // @pre has_value()
-    bool deleted() const { return *tellg() & 0x80; }
-
-    // @pre has_value()
-    void set_deleted() { *tellg() |= 0x80; }
-
-    // @pre has_value()
-    void next() { offset_ += kSizeOfValueSizeField + value_size(); }
-
-    // @pre has_value()
-    void next_not_deleted() {
-      do {
-        next();
-      } while (has_value() && deleted());
+   private:
+    bool hasData() const {
+      return (offset_ + SIZE_OF_VALUE_SIZE_FIELD) < size_;
     }
 
-   private:
-    bool has_data() const { return (offset_ + kSizeOfValueSizeField) < size_; }
-
-    Char* tellg() const { return data_ + offset_; }
+    Char* tellGetAddress() const { return data_ + offset_; }
 
     Char* data_;
     std::uint32_t size_;
@@ -114,56 +116,56 @@ class Block {
 
   std::uint32_t size() const { return size_; }
 
-  std::uint32_t used() const { return used_; }
+  std::uint32_t position() const { return position_; }
 
-  bool has_data() const { return data_ != nullptr; }
+  bool hasData() const { return data_ != nullptr; }
 
-  void set_data(void* data, std::uint32_t size) {
+  void setData(void* data, std::uint32_t size) {
     assert(data != nullptr);
     assert(size != 0);
     data_ = static_cast<char*>(data);
     size_ = size;
-    used_ = 0;
+    position_ = 0;
     std::memset(data_, 0, size_);
   }
 
   void clear() {
-    if (has_data()) {
+    if (hasData()) {
       std::memset(data_, 0, size_);
-      used_ = 0;
+      position_ = 0;
     }
   }
 
-  bool empty() const { return used_ == 0; }
+  bool empty() const { return position_ == 0; }
 
   double load_factor() const;
 
   // Returns the maximum size of a value to be put when the block is empty.
   std::uint32_t max_value_size() const;
 
-  Iterator NewIterator() {
-    // We do not use this->used_ to indicate the end of data, because
+  Iterator iterator() {
+    // We do not use this->position_ to indicate the end of data, because
     // this member is always zero when the block is read from disk.
-    return has_data() ? Iterator(data_, size_) : Iterator();
+    return hasData() ? Iterator(data_, size_) : Iterator();
   }
 
-  ConstIterator NewIterator() const {
-    // We do not use this->used_ to indicate the end of data, because
+  ConstIterator iterator() const {
+    // We do not use this->position_ to indicate the end of data, because
     // this member is always zero when the block is read from disk.
-    return has_data() ? ConstIterator(data_, size_) : ConstIterator();
+    return hasData() ? ConstIterator(data_, size_) : ConstIterator();
   }
 
   // Writes a copy of value's data into the block.
   // Returns true if the value could be written successfully.
   // Returns false if the block has not enough room to store the data.
-  bool Add(const Bytes& value);
+  bool add(const Bytes& value);
 
  private:
-  std::size_t num_bytes_free() const { return size_ - used_; }
+  std::size_t num_bytes_free() const { return size_ - position_; }
 
   char* data_;
   std::uint32_t size_;
-  std::uint32_t used_;
+  std::uint32_t position_;
 };
 
 static_assert(HasExpectedSize<Block, 12, 16>::value,

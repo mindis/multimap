@@ -38,7 +38,7 @@ class ListLock {
 
   ~ListLock() {
     if (list_) {
-      Unlock();
+      unlock();
     }
   }
 
@@ -50,7 +50,7 @@ class ListLock {
     return *this;
   }
 
-  bool has_list() const { return list_ != nullptr; }
+  bool hasList() const { return list_ != nullptr; }
 
   const List* clist() const { return list_; }
 
@@ -59,9 +59,9 @@ class ListLock {
   List* list();
 
  private:
-  void Lock() { list_->LockShared(); }
+  void lock() { list_->lockShared(); }
 
-  void Unlock() { list_->UnlockShared(); }
+  void unlock() { list_->unlockShared(); }
 
   typename std::conditional<IsShared, const List, List>::type* list_;
 };
@@ -72,26 +72,26 @@ inline List* ListLock<false>::list() {
 }
 
 template <>
-inline void ListLock<false>::Lock() {
-  list_->LockUnique();
+inline void ListLock<false>::lock() {
+  list_->lockUnique();
 }
 
 template <>
-inline void ListLock<false>::Unlock() {
-  list_->UnlockUnique();
+inline void ListLock<false>::unlock() {
+  list_->unlockUnique();
 }
 
 template <>
 inline ListLock<false>::ListLock(List* list)
     : list_(list) {
   assert(list_);
-  Lock();
+  lock();
 }
 
 template <>
 inline ListLock<true>::ListLock(const List& list)
     : list_(&list) {
-  Lock();
+  lock();
 }
 
 typedef ListLock<true> SharedListLock;

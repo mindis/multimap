@@ -50,14 +50,14 @@ TEST_F(TableTestFixture, IsDefaultConstructible) {
 }
 
 TEST_F(TableTestFixture, DefaultConstructedHasProperState) {
-  ASSERT_THAT(Table().GetShared(key1).clist(), IsNull());
-  ASSERT_THAT(Table().GetUnique(key1).clist(), IsNull());
-  ASSERT_THAT(Table().GetUniqueOrCreate(key1).clist(), NotNull());
+  ASSERT_THAT(Table().getShared(key1).clist(), IsNull());
+  ASSERT_THAT(Table().getUnique(key1).clist(), IsNull());
+  ASSERT_THAT(Table().getUniqueOrCreate(key1).clist(), NotNull());
 
   std::vector<std::string> keys;
   Callables::Procedure procedure =
-      [&keys](const Bytes& key) { keys.push_back(key.ToString()); };
-  Table().ForEachKey(procedure);
+      [&keys](const Bytes& key) { keys.push_back(key.toString()); };
+  Table().forEachKey(procedure);
   ASSERT_TRUE(keys.empty());
 }
 
@@ -73,35 +73,35 @@ TEST_F(TableTestFixture, IsNotMoveConstructibleOrAssignable) {
 
 TEST_F(TableTestFixture, GetUniqueOrCreateInsertsNewKey) {
   Table table;
-  table.GetUniqueOrCreate(key1);
-  ASSERT_THAT(table.GetShared(key1).clist(), NotNull());
-  ASSERT_THAT(table.GetUnique(key1).clist(), NotNull());
+  table.getUniqueOrCreate(key1);
+  ASSERT_THAT(table.getShared(key1).clist(), NotNull());
+  ASSERT_THAT(table.getUnique(key1).clist(), NotNull());
 
-  table.GetUniqueOrCreate(key2);
-  ASSERT_THAT(table.GetShared(key2).clist(), NotNull());
-  ASSERT_THAT(table.GetUnique(key2).clist(), NotNull());
+  table.getUniqueOrCreate(key2);
+  ASSERT_THAT(table.getShared(key2).clist(), NotNull());
+  ASSERT_THAT(table.getUnique(key2).clist(), NotNull());
 }
 
 TEST_F(TableTestFixture, InsertKeyThenGetSharedTwice) {
   Table table;
-  table.GetUniqueOrCreate(key1);
-  const auto lock1 = table.GetShared(key1);
+  table.getUniqueOrCreate(key1);
+  const auto lock1 = table.getShared(key1);
   ASSERT_THAT(lock1.clist(), NotNull());
-  const auto lock2 = table.GetShared(key1);
+  const auto lock2 = table.getShared(key1);
   ASSERT_THAT(lock2.clist(), NotNull());
 }
 
 TEST_F(TableTestFixture, InsertKeyThenGetUniqueTwice) {
   Table table;
-  table.GetUniqueOrCreate(key1);
+  table.getUniqueOrCreate(key1);
   bool other_thread_got_unique_lock = false;
   {
-    const auto lock = table.GetUnique(key1);
+    const auto lock = table.getUnique(key1);
     ASSERT_THAT(lock.clist(), NotNull());
     // We don't have GetUnique(key, wait_for_some_time)
     // so we start a new thread that tries to acquire the lock.
     std::thread thread([&] {
-      table.GetUnique(key1);
+      table.getUnique(key1);
       other_thread_got_unique_lock = true;
     });
     thread.detach();
@@ -114,15 +114,15 @@ TEST_F(TableTestFixture, InsertKeyThenGetUniqueTwice) {
 
 TEST_F(TableTestFixture, InsertKeyThenGetSharedAndGetUnique) {
   Table table;
-  table.GetUniqueOrCreate(key1);
+  table.getUniqueOrCreate(key1);
   bool other_thread_gots_unique_lock = false;
   {
-    const auto list_lock = table.GetShared(key1);
+    const auto list_lock = table.getShared(key1);
     ASSERT_THAT(list_lock.clist(), NotNull());
     // We don't have GetUnique(key, wait_for_some_time)
     // so we start a new thread that tries to acquire the lock.
     std::thread thread([&] {
-      table.GetUnique(key1);
+      table.getUnique(key1);
       other_thread_gots_unique_lock = true;
     });
     thread.detach();
@@ -135,15 +135,15 @@ TEST_F(TableTestFixture, InsertKeyThenGetSharedAndGetUnique) {
 
 TEST_F(TableTestFixture, InsertKeyThenGetUniqueAndGetShared) {
   Table table;
-  table.GetUniqueOrCreate(key1);
+  table.getUniqueOrCreate(key1);
   bool other_thread_gots_shared_lock = false;
   {
-    const auto list_lock = table.GetUnique(key1);
+    const auto list_lock = table.getUnique(key1);
     ASSERT_THAT(list_lock.clist(), NotNull());
     // We don't have GetShared(key, wait_for_some_time)
     // so we start a new thread that tries to acquire the lock.
     std::thread thread([&] {
-      table.GetShared(key1);
+      table.getShared(key1);
       other_thread_gots_shared_lock = true;
     });
     thread.detach();
@@ -156,16 +156,16 @@ TEST_F(TableTestFixture, InsertKeyThenGetUniqueAndGetShared) {
 
 TEST_F(TableTestFixture, InsertKeysThenGetAllShared) {
   Table table;
-  table.GetUniqueOrCreate(key1);
-  table.GetUniqueOrCreate(key2);
+  table.getUniqueOrCreate(key1);
+  table.getUniqueOrCreate(key2);
   bool other_thread_gots_shared_lock = false;
 
-  const auto list_lock = table.GetShared(key1);
+  const auto list_lock = table.getShared(key1);
   ASSERT_THAT(list_lock.clist(), NotNull());
   // We don't have GetShared(key, wait_for_some_time)
   // so we start a new thread that tries to acquire the lock.
   std::thread thread([&] {
-    table.GetShared(key2);
+    table.getShared(key2);
     other_thread_gots_shared_lock = true;
   });
   thread.detach();
@@ -175,16 +175,16 @@ TEST_F(TableTestFixture, InsertKeysThenGetAllShared) {
 
 TEST_F(TableTestFixture, InsertKeysThenGetAllUnique) {
   Table table;
-  table.GetUniqueOrCreate(key1);
-  table.GetUniqueOrCreate(key2);
+  table.getUniqueOrCreate(key1);
+  table.getUniqueOrCreate(key2);
   bool other_thread_gots_unique_lock = false;
 
-  const auto list_lock = table.GetUnique(key1);
+  const auto list_lock = table.getUnique(key1);
   ASSERT_THAT(list_lock.clist(), NotNull());
   // We don't have GetUnique(key, wait_for_some_time)
   // so we start a new thread that tries to acquire the lock.
   std::thread thread([&] {
-    table.GetUnique(key2);
+    table.getUnique(key2);
     other_thread_gots_unique_lock = true;
   });
   thread.detach();
@@ -194,29 +194,29 @@ TEST_F(TableTestFixture, InsertKeysThenGetAllUnique) {
 
 TEST_F(TableTestFixture, InsertAndDeleteKeys) {
   Table table;
-  table.GetUniqueOrCreate(key1);
-  table.GetUniqueOrCreate(key2);
+  table.getUniqueOrCreate(key1);
+  table.getUniqueOrCreate(key2);
 
-  ASSERT_THAT(table.GetShared(key1).clist(), NotNull());
-  ASSERT_THAT(table.GetUnique(key1).clist(), NotNull());
+  ASSERT_THAT(table.getShared(key1).clist(), NotNull());
+  ASSERT_THAT(table.getUnique(key1).clist(), NotNull());
 
-  ASSERT_THAT(table.GetShared(key2).clist(), NotNull());
-  ASSERT_THAT(table.GetUnique(key2).clist(), NotNull());
+  ASSERT_THAT(table.getShared(key2).clist(), NotNull());
+  ASSERT_THAT(table.getUnique(key2).clist(), NotNull());
 
-  ASSERT_THAT(table.GetShared(key3).clist(), IsNull());
-  ASSERT_THAT(table.GetUnique(key3).clist(), IsNull());
+  ASSERT_THAT(table.getShared(key3).clist(), IsNull());
+  ASSERT_THAT(table.getUnique(key3).clist(), IsNull());
 }
 
 TEST_F(TableTestFixture, ForEachKeyIgnoresEmptyLists) {
   Table table;
-  const auto list_lock1 = table.GetUniqueOrCreate(key1);
-  const auto list_lock2 = table.GetUniqueOrCreate(key2);
-  const auto list_lock3 = table.GetUniqueOrCreate(key3);
+  const auto list_lock1 = table.getUniqueOrCreate(key1);
+  const auto list_lock2 = table.getUniqueOrCreate(key2);
+  const auto list_lock3 = table.getUniqueOrCreate(key3);
 
   std::vector<std::string> keys;
   Callables::Procedure procedure =
-      [&keys](const Bytes& key) { keys.push_back(key.ToString()); };
-  Table().ForEachKey(procedure);
+      [&keys](const Bytes& key) { keys.push_back(key.toString()); };
+  Table().forEachKey(procedure);
   ASSERT_TRUE(keys.empty());
 }
 

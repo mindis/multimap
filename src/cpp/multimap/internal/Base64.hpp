@@ -26,11 +26,11 @@ namespace internal {
 
 struct Base64 {
   // Encodes binary data to a base64 string.
-  static void Encode(const Bytes& binary, std::string* base64);
+  static void encode(const Bytes& binary, std::string* base64);
 
   // Decodes a base64 string to binary data. std::string as the target type
   // is used as a self-managing byte buffer, it will contain binary data.
-  static void Decode(const std::string& base64, std::string* binary);
+  static void decode(const std::string& base64, std::string* binary);
 
   Base64() = delete;
 };

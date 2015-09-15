@@ -27,24 +27,23 @@
 
 namespace po = boost::program_options;
 
-void CheckOption(const po::variables_map& variables, const char* option) {
+void checkOption(const po::variables_map& variables, const char* option) {
   if (variables.count(option) == 0) {
-    multimap::internal::Throw("Option '--%s' is missing.", option);
+    multimap::internal::throwRuntimeError("Option '--%s' is missing.", option);
   }
 }
 
-void RunHelpCommand(const po::options_description& options) {
+void runHelpCommand(const po::options_description& options) {
   std::cout << options << "\n";
 }
 
-void RunWriteCommand(const po::variables_map& variables) {
-  CheckOption(variables, "to");
-  CheckOption(variables, "nkeys");
-  CheckOption(variables, "nvalues");
-  CheckOption(variables, "bs");
+void runWriteCommand(const po::variables_map& variables) {
+  checkOption(variables, "to");
+  checkOption(variables, "nkeys");
+  checkOption(variables, "nvalues");
+  checkOption(variables, "bs");
 
   multimap::Options options;
-  options.verbose = true;
   options.error_if_exists = true;
   options.create_if_missing = true;
   options.block_size = variables["bs"].as<std::size_t>();
@@ -56,12 +55,12 @@ void RunWriteCommand(const po::variables_map& variables) {
 
   const auto one_million = 1000000;
   const auto ten_million = 10 * one_million;
-  auto gen = multimap::internal::SequenceGenerator::New();
+  auto gen = multimap::internal::SequenceGenerator::create();
   for (std::size_t i = 0; i != nvalues_total;) {
-    map.Put(std::to_string(i % nkeys), gen->Generate(100));
+    map.put(std::to_string(i % nkeys), gen->generate(100));
     if (++i % ten_million == 0) {
       const auto num_written = i / one_million;
-      multimap::internal::System::Log() << num_written << "M values written\n";
+      multimap::internal::System::log() << num_written << "M values written\n";
     }
   }
 }
@@ -129,25 +128,25 @@ void RunWriteCommand(const po::variables_map& variables) {
 // user 0m1.992s
 // sys  0m1.140s
 
-void RunReadCommand(const po::variables_map& variables) {
-  CheckOption(variables, "from");
-  CheckOption(variables, "bs");
+void runReadCommand(const po::variables_map& variables) {
+  checkOption(variables, "from");
+  checkOption(variables, "bs");
 
   multimap::Options options;
   options.block_size = variables["bs"].as<std::size_t>();
   multimap::Map map(variables["from"].as<std::string>(), options);
 
-  map.ForEachKey([&map](const multimap::Bytes& key) {
-    auto iter = map.Get(key);
-    for (iter.SeekToFirst(); iter.HasValue(); iter.Next()) {
-      assert(!iter.GetValue().empty());
+  map.forEachKey([&map](const multimap::Bytes& key) {
+    auto iter = map.get(key);
+    for (iter.seekToFirst(); iter.hasValue(); iter.next()) {
+      assert(!iter.getValue().empty());
 
       static std::size_t i = 0;
       static const auto one_million = 1000000;
       static const auto ten_million = 10 * one_million;
       if (++i % ten_million == 0) {
         const auto num_read = i / one_million;
-        multimap::internal::System::Log() << num_read << "M values read\n";
+        multimap::internal::System::log() << num_read << "M values read\n";
       }
     }
   });
@@ -234,12 +233,12 @@ void RunReadCommand(const po::variables_map& variables) {
 // user 0m2.272s
 // sys  0m0.240s
 
-void RunCopyCommand(const po::variables_map& variables) {
-  CheckOption(variables, "from");
-  CheckOption(variables, "to");
+void runCopyCommand(const po::variables_map& variables) {
+  checkOption(variables, "from");
+  checkOption(variables, "to");
 
-  multimap::Copy(variables["from"].as<std::string>(),
-                 variables["to"].as<std::string>());
+  multimap::optimize(variables["from"].as<std::string>(),
+                     variables["to"].as<std::string>());
 }
 // time ./multimap-client /media/disk1/multimap/ /media/disk2/multimap/
 // Input was 2gms-small with 128 block size and 2 GiB memory.
@@ -251,36 +250,54 @@ void RunCopyCommand(const po::variables_map& variables) {
 // sys  2m36.058s
 // Reason: source and target map are mmapped into memory
 // ~/bin/linux-fincore /media/disk1/multimap/*
-// filename                                                                                       size        total_pages    min_cached page       cached_pages        cached_size        cached_perc
-// --------                                                                                       ----        -----------    ---------------       ------------        -----------        -----------
-// /media/disk1/multimap/multimap.properties                                                       399                  1                 -1                  0                  0               0.00
-// /media/disk1/multimap/multimap.store                                                     3760997888             918213              15530             391184         1602289664              42.60
-// /media/disk1/multimap/multimap.table                                                      276918477              67608                 -1                  0                  0               0.00
+// filename
+// size        total_pages    min_cached page       cached_pages
+// cached_size        cached_perc
+// --------
+// ----        -----------    ---------------       ------------
+// -----------        -----------
+// /media/disk1/multimap/multimap.properties
+// 399                  1                 -1                  0
+// 0               0.00
+// /media/disk1/multimap/multimap.store
+// 3760997888             918213              15530             391184
+// 1602289664              42.60
+// /media/disk1/multimap/multimap.table
+// 276918477              67608                 -1                  0
+// 0               0.00
 // ---
 // total cached size: 1602289664
 //
 // ~/bin/linux-fincore /media/disk2/multimap/*
-// filename                                                                                       size        total_pages    min_cached page       cached_pages        cached_size        cached_perc
-// --------                                                                                       ----        -----------    ---------------       ------------        -----------        -----------
-// /media/disk2/multimap/multimap.store                                                     2202790144             537791                  0              49026          200810496               9.12
-// /media/disk2/multimap/multimap.table                                                              4                  1                  0                  1               4096             100.00
+// filename
+// size        total_pages    min_cached page       cached_pages
+// cached_size        cached_perc
+// --------
+// ----        -----------    ---------------       ------------
+// -----------        -----------
+// /media/disk2/multimap/multimap.store
+// 2202790144             537791                  0              49026
+// 200810496               9.12
+// /media/disk2/multimap/multimap.table
+// 4                  1                  0                  1               4096
+// 100.00
 // ---
 // total cached size: 200814592
 
-void RunImportCommand(const po::variables_map& variables) {
-  CheckOption(variables, "from");
-  CheckOption(variables, "to");
+void runImportCommand(const po::variables_map& variables) {
+  checkOption(variables, "from");
+  checkOption(variables, "to");
 
-  multimap::Import(variables["to"].as<std::string>(),
-                   variables["from"].as<std::string>());
+  multimap::importFromBase64(variables["to"].as<std::string>(),
+                             variables["from"].as<std::string>());
 }
 
-void RunExportCommand(const po::variables_map& variables) {
-  CheckOption(variables, "from");
-  CheckOption(variables, "to");
+void runExportCommand(const po::variables_map& variables) {
+  checkOption(variables, "from");
+  checkOption(variables, "to");
 
-  multimap::Export(variables["from"].as<std::string>(),
-                   variables["to"].as<std::string>());
+  multimap::exportToBase64(variables["from"].as<std::string>(),
+                           variables["to"].as<std::string>());
 }
 // time ./benchmarks --export --from /media/disk2/multimap --to
 // /tmp/multimap-export.csv (--nkeys 100000 --nvalues 2000))
@@ -330,17 +347,17 @@ int main(int argc, char* argv[]) {
 
   try {
     if (variables.count("help")) {
-      RunHelpCommand(cmdline_options);
+      runHelpCommand(cmdline_options);
     } else if (variables.count("write")) {
-      RunWriteCommand(variables);
+      runWriteCommand(variables);
     } else if (variables.count("read")) {
-      RunReadCommand(variables);
+      runReadCommand(variables);
     } else if (variables.count("copy")) {
-      RunCopyCommand(variables);
+      runCopyCommand(variables);
     } else if (variables.count("import")) {
-      RunImportCommand(variables);
+      runImportCommand(variables);
     } else if (variables.count("export")) {
-      RunExportCommand(variables);
+      runExportCommand(variables);
     } else {
       std::cout << "Try with --help\n";
     }

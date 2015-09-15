@@ -36,13 +36,13 @@ class UintVector {
 
   UintVector& operator=(const UintVector& other);
 
-  static UintVector ReadFromStream(std::FILE* stream);
+  static UintVector readFromStream(std::FILE* stream);
 
-  void WriteToStream(std::FILE* stream) const;
+  void writeToStream(std::FILE* stream) const;
 
-  std::vector<std::uint32_t> Unpack() const;
+  std::vector<std::uint32_t> unpack() const;
 
-  void Add(std::uint32_t value);
+  void add(std::uint32_t value);
 
   bool empty() const { return put_offset_ == 0; }
 
@@ -57,7 +57,7 @@ class UintVector {
   }
 
  private:
-  void AllocateMoreIfFull();
+  void allocateMoreIfFull();
 
   std::unique_ptr<Varint::uchar[]> data_;
   std::uint32_t end_offset_;

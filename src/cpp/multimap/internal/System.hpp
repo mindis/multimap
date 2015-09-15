@@ -29,31 +29,31 @@ namespace multimap {
 namespace internal {
 
 struct System {
-  static std::pair<boost::filesystem::path, int> Tempfile();
+  static std::pair<boost::filesystem::path, int> getTempfile();
 
   // TODO Implement printf-like overloads.
   // Usage: System::Log() << "Your message here\n";
-  static std::ostream& Log();
+  static std::ostream& log();
 
-  static std::ostream& Log(std::ostream& stream);
+  static std::ostream& log(std::ostream& stream);
 
-  static std::ostream& Log(const std::string& prefix);
+  static std::ostream& log(const std::string& prefix);
 
-  static std::ostream& Log(const std::string& prefix, std::ostream& stream);
+  static std::ostream& log(const std::string& prefix, std::ostream& stream);
 
-  static std::ostream& PrintTimestamp(std::ostream& stream);
+  static std::ostream& printTimestamp(std::ostream& stream);
 
   // C-style I/O wrapper.
 
-  static void Close(std::FILE* stream);
+  static void close(std::FILE* stream);
 
-  static std::uint64_t Offset(std::FILE* stream);
+  static std::uint64_t offset(std::FILE* stream);
 
-  static void Seek(std::FILE* stream, std::uint64_t offset);
+  static void seek(std::FILE* stream, std::uint64_t offset);
 
-  static void Read(std::FILE* stream, void* buf, std::size_t count);
+  static void read(std::FILE* stream, void* buf, std::size_t count);
 
-  static void Write(std::FILE* stream, const void* buf, std::size_t count);
+  static void write(std::FILE* stream, const void* buf, std::size_t count);
 
   class DirectoryLockGuard {
    public:
@@ -68,9 +68,9 @@ struct System {
 
     ~DirectoryLockGuard();
 
-    void Lock(const boost::filesystem::path& path);
+    void lock(const boost::filesystem::path& path);
 
-    void Lock(const boost::filesystem::path& path, const std::string filename);
+    void lock(const boost::filesystem::path& path, const std::string filename);
 
     const boost::filesystem::path& path() const;
 

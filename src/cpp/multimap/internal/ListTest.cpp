@@ -33,7 +33,7 @@ TEST(ListIterTest, IsDefaultConstructible) {
 }
 
 TEST(ListIterTest, DefaultConstructedHasProperState) {
-  ASSERT_FALSE(ListIter().HasValue());
+  ASSERT_FALSE(ListIter().hasValue());
 }
 
 TEST(ListConstIterTest, IsDefaultConstructible) {
@@ -41,7 +41,7 @@ TEST(ListConstIterTest, IsDefaultConstructible) {
 }
 
 TEST(ListConstIterTest, DefaultConstructedHasProperState) {
-  ASSERT_FALSE(ListConstIter().HasValue());
+  ASSERT_FALSE(ListConstIter().hasValue());
 }
 
 TEST(ListTest, IsDefaultConstructible) {
@@ -52,10 +52,10 @@ TEST(ListTest, DefaultConstructedHasProperState) {
   ASSERT_THAT(List().head().block_ids.empty(), Eq(true));
   ASSERT_THAT(List().head().num_values_deleted, Eq(0));
   ASSERT_THAT(List().head().num_values_total, Eq(0));
-  ASSERT_THAT(List().block().has_data(), Eq(false));
+  ASSERT_THAT(List().block().hasData(), Eq(false));
   ASSERT_THAT(List().size(), Eq(0));
   ASSERT_THAT(List().empty(), Eq(true));
-  ASSERT_THAT(List().locked(), Eq(false));
+  ASSERT_THAT(List().isLocked(), Eq(false));
 }
 
 TEST(ListTest, IsNotCopyConstructibleOrAssignable) {
@@ -73,7 +73,7 @@ struct ListTestWithParam : testing::TestWithParam<std::uint32_t> {};
 TEST_P(ListTestWithParam, AddValuesAndIterateAll) {
   BlockPool block_pool(128);
   const auto allocate_block_callback =
-      [&block_pool]() { return block_pool.Allocate(); };
+      [&block_pool]() { return block_pool.allocate(); };
 
   std::vector<std::string> store;
   const auto commit_block_callback = [&store](const Block& block) {
@@ -84,7 +84,7 @@ TEST_P(ListTestWithParam, AddValuesAndIterateAll) {
   List list;
   for (std::size_t i = 0; i != GetParam(); ++i) {
     const auto value = std::to_string(i);
-    list.Add(value, allocate_block_callback, commit_block_callback);
+    list.add(value, allocate_block_callback, commit_block_callback);
     ASSERT_THAT(list.head().num_values_deleted, Eq(0));
     ASSERT_THAT(list.head().num_values_total, Eq(i + 1));
   }
@@ -95,27 +95,27 @@ TEST_P(ListTestWithParam, AddValuesAndIterateAll) {
     assert(blocks);
     for (auto& block : *blocks) {
       assert(block.id < store.size());
-      if (!block.has_data()) {
+      if (!block.hasData()) {
         assert(arena);
         const auto block_size = store[block.id].size();
-        block.set_data(arena->Allocate(block_size), block_size);
+        block.setData(arena->allocate(block_size), block_size);
       }
       std::memcpy(block.data(), store[block.id].data(), block.size());
     }
   };
 
-  auto iter = list.NewConstIterator(request_blocks_callback);
-  iter.SeekToFirst();
+  auto iter = list.const_iterator(request_blocks_callback);
+  iter.seekToFirst();
   for (std::size_t i = 0; i != GetParam(); ++i) {
-    ASSERT_THAT(iter.HasValue(), Eq(true));
-    ASSERT_THAT(iter.GetValue().ToString(), Eq(std::to_string(i)));
-    iter.Next();
+    ASSERT_THAT(iter.hasValue(), Eq(true));
+    ASSERT_THAT(iter.getValue().toString(), Eq(std::to_string(i)));
+    iter.next();
   }
-  ASSERT_THAT(iter.HasValue(), Eq(false));
+  ASSERT_THAT(iter.hasValue(), Eq(false));
 
   std::size_t i = 0;
-  for (iter.SeekToFirst(); iter.HasValue(); iter.Next(), ++i) {
-    ASSERT_THAT(iter.GetValue().ToString(), Eq(std::to_string(i)));
+  for (iter.seekToFirst(); iter.hasValue(); iter.next(), ++i) {
+    ASSERT_THAT(iter.getValue().toString(), Eq(std::to_string(i)));
   }
   ASSERT_THAT(i, Eq(GetParam()));
 }
@@ -125,12 +125,12 @@ INSTANTIATE_TEST_CASE_P(Parameterized, ListTestWithParam,
 
 TEST(ListTest, LockUniqueFailsIfAlreadyLockedUnique) {
   List list;
-  list.LockUnique();
-  ASSERT_THAT(list.locked(), Eq(true));
+  list.lockUnique();
+  ASSERT_THAT(list.isLocked(), Eq(true));
 
   bool other_thread_gots_unique_lock = false;
   std::thread thread([&] {
-    list.LockUnique();
+    list.lockUnique();
     other_thread_gots_unique_lock = true;
   });
   thread.detach();
@@ -138,25 +138,25 @@ TEST(ListTest, LockUniqueFailsIfAlreadyLockedUnique) {
   ASSERT_THAT(other_thread_gots_unique_lock, Eq(false));
 
   // Release lock from 1st thread.
-  ASSERT_THAT(list.locked(), Eq(true));
-  list.UnlockUnique();
+  ASSERT_THAT(list.isLocked(), Eq(true));
+  list.unlockUnique();
   std::this_thread::sleep_for(std::chrono::milliseconds(10));
   ASSERT_THAT(other_thread_gots_unique_lock, Eq(true));
 
   // Release lock from 2nd thread.
-  ASSERT_THAT(list.locked(), Eq(true));
-  list.UnlockUnique();
-  ASSERT_THAT(list.locked(), Eq(false));
+  ASSERT_THAT(list.isLocked(), Eq(true));
+  list.unlockUnique();
+  ASSERT_THAT(list.isLocked(), Eq(false));
 }
 
 TEST(ListTest, UniqueLockFailsIfAlreadyLockedShared) {
   List list;
-  list.LockShared();
-  ASSERT_THAT(list.locked(), Eq(true));
+  list.lockShared();
+  ASSERT_THAT(list.isLocked(), Eq(true));
 
   bool other_thread_gots_unique_lock = false;
   std::thread thread([&] {
-    list.LockUnique();
+    list.lockUnique();
     other_thread_gots_unique_lock = true;
   });
   thread.detach();
@@ -164,25 +164,25 @@ TEST(ListTest, UniqueLockFailsIfAlreadyLockedShared) {
   ASSERT_THAT(other_thread_gots_unique_lock, Eq(false));
 
   // Release lock from 1st thread.
-  ASSERT_THAT(list.locked(), Eq(true));
-  list.UnlockShared();
+  ASSERT_THAT(list.isLocked(), Eq(true));
+  list.unlockShared();
   std::this_thread::sleep_for(std::chrono::milliseconds(10));
   ASSERT_THAT(other_thread_gots_unique_lock, Eq(true));
 
   // Release lock from 2nd thread.
-  ASSERT_THAT(list.locked(), Eq(true));
-  list.UnlockUnique();
-  ASSERT_THAT(list.locked(), Eq(false));
+  ASSERT_THAT(list.isLocked(), Eq(true));
+  list.unlockUnique();
+  ASSERT_THAT(list.isLocked(), Eq(false));
 }
 
 TEST(ListTest, SharedLockFailsIfAlreadyLockedUnique) {
   List list;
-  list.LockUnique();
-  ASSERT_THAT(list.locked(), Eq(true));
+  list.lockUnique();
+  ASSERT_THAT(list.isLocked(), Eq(true));
 
   bool other_thread_gots_shared_lock = false;
   std::thread thread([&] {
-    list.LockShared();
+    list.lockShared();
     other_thread_gots_shared_lock = true;
   });
   thread.detach();
@@ -190,25 +190,25 @@ TEST(ListTest, SharedLockFailsIfAlreadyLockedUnique) {
   ASSERT_THAT(other_thread_gots_shared_lock, Eq(false));
 
   // Release lock from 1st thread.
-  ASSERT_THAT(list.locked(), Eq(true));
-  list.UnlockUnique();
+  ASSERT_THAT(list.isLocked(), Eq(true));
+  list.unlockUnique();
   std::this_thread::sleep_for(std::chrono::milliseconds(10));
   ASSERT_THAT(other_thread_gots_shared_lock, Eq(true));
 
   // Release lock from 2nd thread.
-  ASSERT_THAT(list.locked(), Eq(true));
-  list.UnlockShared();
-  ASSERT_THAT(list.locked(), Eq(false));
+  ASSERT_THAT(list.isLocked(), Eq(true));
+  list.unlockShared();
+  ASSERT_THAT(list.isLocked(), Eq(false));
 }
 
 TEST(ListTest, LockSharedDoesNotFailIfAlreadyLockedShared) {
   List list;
-  list.LockShared();
-  ASSERT_THAT(list.locked(), Eq(true));
+  list.lockShared();
+  ASSERT_THAT(list.isLocked(), Eq(true));
 
   bool other_thread_gots_shared_lock = false;
   std::thread thread([&] {
-    list.LockShared();
+    list.lockShared();
     other_thread_gots_shared_lock = true;
   });
   thread.detach();
@@ -216,40 +216,40 @@ TEST(ListTest, LockSharedDoesNotFailIfAlreadyLockedShared) {
   ASSERT_THAT(other_thread_gots_shared_lock, Eq(true));
 
   // Release lock from 1st thread.
-  ASSERT_THAT(list.locked(), Eq(true));
-  list.UnlockShared();
-  ASSERT_THAT(list.locked(), Eq(true));
+  ASSERT_THAT(list.isLocked(), Eq(true));
+  list.unlockShared();
+  ASSERT_THAT(list.isLocked(), Eq(true));
 
   // Release lock from 2nd thread.
-  ASSERT_THAT(list.locked(), Eq(true));
-  list.UnlockShared();
-  ASSERT_THAT(list.locked(), Eq(false));
+  ASSERT_THAT(list.isLocked(), Eq(true));
+  list.unlockShared();
+  ASSERT_THAT(list.isLocked(), Eq(false));
 }
 
 TEST(ListTest, TryLockUniqueFailsIfAlreadyLockedShared) {
   List list;
-  list.LockShared();
-  ASSERT_THAT(list.locked(), Eq(true));
+  list.lockShared();
+  ASSERT_THAT(list.isLocked(), Eq(true));
 
-  std::thread thread([&] { ASSERT_THAT(list.TryLockUnique(), Eq(false)); });
+  std::thread thread([&] { ASSERT_THAT(list.tryLockUnique(), Eq(false)); });
   thread.join();
 }
 
 TEST(ListTest, TryLockSharedFailsIfAlreadyLockedUnique) {
   List list;
-  list.LockUnique();
-  ASSERT_THAT(list.locked(), Eq(true));
+  list.lockUnique();
+  ASSERT_THAT(list.isLocked(), Eq(true));
 
-  std::thread thread([&] { ASSERT_THAT(list.TryLockShared(), Eq(false)); });
+  std::thread thread([&] { ASSERT_THAT(list.tryLockShared(), Eq(false)); });
   thread.join();
 }
 
 TEST(ListTest, TryLockSharedDoesNotFailIfAlreadyLockedShared) {
   List list;
-  list.LockShared();
-  ASSERT_THAT(list.locked(), Eq(true));
+  list.lockShared();
+  ASSERT_THAT(list.isLocked(), Eq(true));
 
-  std::thread thread([&] { ASSERT_THAT(list.TryLockShared(), Eq(true)); });
+  std::thread thread([&] { ASSERT_THAT(list.tryLockShared(), Eq(true)); });
   thread.join();
 }
 

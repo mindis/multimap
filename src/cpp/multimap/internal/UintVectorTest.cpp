@@ -34,7 +34,7 @@ TEST(UintVectorTest, IsDefaultConstructible) {
 }
 
 TEST(UintVectorTest, DefaultConstructedHasProperState) {
-  ASSERT_THAT(UintVector().Unpack().empty(), Eq(true));
+  ASSERT_THAT(UintVector().unpack().empty(), Eq(true));
   ASSERT_THAT(UintVector().empty(), Eq(true));
 }
 
@@ -52,9 +52,9 @@ TEST(UintVectorTest, AddSingleValueInValidRangeAndUnpack) {
   std::uint32_t values[] = {0, 1, 10, 1000, 10000000, UintVector::max_value()};
   for (auto value : values) {
     UintVector vector;
-    vector.Add(value);
-    ASSERT_THAT(vector.Unpack().size(), Eq(1));
-    ASSERT_THAT(vector.Unpack().front(), Eq(value));
+    vector.add(value);
+    ASSERT_THAT(vector.unpack().size(), Eq(1));
+    ASSERT_THAT(vector.unpack().front(), Eq(value));
   }
 }
 
@@ -63,7 +63,7 @@ TEST(UintVectorTest, AddSingleValueInInvalidRangeAndDie) {
                             UintVector::max_value() + 10};
   for (auto value : values) {
     UintVector vector;
-    ASSERT_DEATH(vector.Add(value), "");
+    ASSERT_DEATH(vector.add(value), "");
   }
 }
 
@@ -71,16 +71,16 @@ TEST(UintVectorTest, AddIncreasingValuesInValidRangeAndUnpack) {
   UintVector vector;
   std::uint32_t values[] = {0, 1, 10, 1000, 10000000, UintVector::max_value()};
   for (auto value : values) {
-    vector.Add(value);
+    vector.add(value);
   }
-  ASSERT_THAT(vector.Unpack(), ElementsAreArray(values));
+  ASSERT_THAT(vector.unpack(), ElementsAreArray(values));
 }
 
 TEST(UintVectorTest, AddDecreasingValuesAndDie) {
   UintVector vector;
   std::uint32_t values[] = {UintVector::max_value(), 10000000, 1000, 10, 1, 0};
-  vector.Add(values[0]);
-  ASSERT_DEATH(vector.Add(values[1]), "");
+  vector.add(values[0]);
+  ASSERT_DEATH(vector.add(values[1]), "");
 }
 
 }  // namespace internal

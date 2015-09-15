@@ -37,9 +37,9 @@ class Store {
     double load_factor_max = 0;
     double load_factor_avg = 0;
 
-    std::map<std::string, std::string> ToMap() const;
+    std::map<std::string, std::string> toMap() const;
 
-    std::map<std::string, std::string> ToMap(const std::string& prefix) const;
+    std::map<std::string, std::string> toMap(const std::string& prefix) const;
   };
 
   struct Options {
@@ -55,27 +55,27 @@ class Store {
 
   ~Store();
 
-  void Open(const boost::filesystem::path& path, const Options& options);
+  void open(const boost::filesystem::path& path, const Options& options);
 
-  void Close();
-
-  // Thread-safe: yes.
-  std::uint32_t Append(const Block& block);
+  void close();
 
   // Thread-safe: yes.
-  void Read(std::uint32_t block_id, Block* block, Arena* arena) const;
+  std::uint32_t append(const Block& block);
 
   // Thread-safe: yes.
-  void Read(std::vector<BlockWithId>* blocks, Arena* arena) const;
+  void read(std::uint32_t block_id, Block* block, Arena* arena) const;
 
   // Thread-safe: yes.
-  void Write(std::uint32_t block_id, const Block& block);
+  void read(std::vector<BlockWithId>* blocks, Arena* arena) const;
 
   // Thread-safe: yes.
-  void Write(const std::vector<BlockWithId>& blocks);
+  void write(std::uint32_t block_id, const Block& block);
 
   // Thread-safe: yes.
-  Stats GetStats() const;
+  void write(const std::vector<BlockWithId>& blocks);
+
+  // Thread-safe: yes.
+  Stats getStats() const;
 
   // Thread-safe: yes.
   const boost::filesystem::path& path() const;
@@ -85,7 +85,7 @@ class Store {
 
  private:
   // Thread-safe: no.
-  char* AddressOf(std::uint32_t block_id) const;
+  char* getAddressOf(std::uint32_t block_id) const;
 
   mutable std::mutex mutex_;
   std::unique_ptr<char[]> buffer_;

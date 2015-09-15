@@ -31,11 +31,11 @@
 namespace multimap {
 namespace internal {
 
-std::map<std::string, std::string> Store::Stats::ToMap() const {
-  return ToMap("");
+std::map<std::string, std::string> Store::Stats::toMap() const {
+  return toMap("");
 }
 
-std::map<std::string, std::string> Store::Stats::ToMap(
+std::map<std::string, std::string> Store::Stats::toMap(
     const std::string& prefix) const {
   auto prefix_copy = prefix;
   if (!prefix_copy.empty()) {
@@ -52,12 +52,12 @@ std::map<std::string, std::string> Store::Stats::ToMap(
 
 Store::Store(const boost::filesystem::path& path, const Options& options)
     : Store() {
-  Open(path, options);
+  open(path, options);
 }
 
-Store::~Store() { Close(); }
+Store::~Store() { close(); }
 
-void Store::Open(const boost::filesystem::path& path, const Options& options) {
+void Store::open(const boost::filesystem::path& path, const Options& options) {
   assert(fd_ == -1);
   assert(options.block_size != 0);
   assert(options.buffer_size > options.block_size);
@@ -65,23 +65,23 @@ void Store::Open(const boost::filesystem::path& path, const Options& options) {
 
   if (boost::filesystem::is_regular_file(path)) {
     const auto file_size = boost::filesystem::file_size(path);
-    Check(file_size % options.block_size == 0,
+    check(file_size % options.block_size == 0,
           "Size of '%s' (%u bytes) is not a multiple of block size (%u bytes).",
           path.c_str(), file_size, options.block_size);
     num_blocks_written_ = file_size / options.block_size;
 
     if (options_.append_only_mode) {
-      fd_ = open(path.c_str(), O_WRONLY | O_APPEND);
-      Check(fd_ != -1, "Could not open '%s' in append mode.", path.c_str());
+      fd_ = ::open(path.c_str(), O_WRONLY | O_APPEND);
+      check(fd_ != -1, "Could not open '%s' in append mode.", path.c_str());
 
     } else {
-      fd_ = open(path.c_str(), O_RDWR);
-      Check(fd_ != -1, "Could not open '%s' in read/write mode.", path.c_str());
+      fd_ = ::open(path.c_str(), O_RDWR);
+      check(fd_ != -1, "Could not open '%s' in read/write mode.", path.c_str());
 
       if (file_size != 0) {
         const auto prot = PROT_READ | PROT_WRITE;
-        mmap_addr_ = mmap64(nullptr, file_size, prot, MAP_SHARED, fd_, 0);
-        Check(mmap_addr_ != MAP_FAILED, "mmap64() failed for '%s' because: %s",
+        mmap_addr_ = ::mmap64(nullptr, file_size, prot, MAP_SHARED, fd_, 0);
+        check(mmap_addr_ != MAP_FAILED, "mmap64() failed for '%s' because: %s",
               path.c_str(), std::strerror(errno));
         num_blocks_mapped_ = num_blocks_written_;
       }
@@ -89,22 +89,22 @@ void Store::Open(const boost::filesystem::path& path, const Options& options) {
   } else if (options.create_if_missing) {
     const auto permissions = 0644;
     if (options_.append_only_mode) {
-      fd_ = open(path.c_str(), O_CREAT | O_WRONLY | O_APPEND, permissions);
-      Check(fd_ != -1, "Could not create '%s' in append mode.", path.c_str());
+      fd_ = ::open(path.c_str(), O_CREAT | O_WRONLY | O_APPEND, permissions);
+      check(fd_ != -1, "Could not create '%s' in append mode.", path.c_str());
 
     } else {
-      fd_ = open(path.c_str(), O_CREAT | O_RDWR, permissions);
-      Check(fd_ != -1, "Could not create '%s'.", path.c_str());
+      fd_ = ::open(path.c_str(), O_CREAT | O_RDWR, permissions);
+      check(fd_ != -1, "Could not create '%s'.", path.c_str());
     }
   } else {
-    Throw("Does not exist: '%s'.", path.c_str());
+    throwRuntimeError("Does not exist: '%s'.", path.c_str());
   }
   buffer_.reset(new char[options.buffer_size]);
   options_ = options;
   path_ = path;
 }
 
-void Store::Close() {
+void Store::close() {
   const std::lock_guard<std::mutex> lock(mutex_);
   if (mmap_addr_) {
     const auto mmap_len = options_.block_size * num_blocks_mapped_;
@@ -112,12 +112,12 @@ void Store::Close() {
     assert(status == 0);
   }
   if (buffer_ && buffer_offset_ != 0) {
-    const auto nbytes = write(fd_, buffer_.get(), buffer_offset_);
+    const auto nbytes = ::write(fd_, buffer_.get(), buffer_offset_);
     assert(nbytes != -1);
     assert(static_cast<std::size_t>(nbytes) == buffer_offset_);
   }
   if (fd_ != -1) {
-    const auto status = close(fd_);
+    const auto status = ::close(fd_);
     assert(status == 0);
   }
   buffer_.reset();
@@ -131,14 +131,14 @@ void Store::Close() {
   options_ = Options();
 }
 
-std::uint32_t Store::Append(const Block& block) {
+std::uint32_t Store::append(const Block& block) {
   assert(fd_ != -1);
   assert(block.size() == options_.block_size);
 
   const std::lock_guard<std::mutex> lock(mutex_);
   if (buffer_offset_ == options_.buffer_size) {
     // Flush buffer
-    const auto nbytes = write(fd_, buffer_.get(), options_.buffer_size);
+    const auto nbytes = ::write(fd_, buffer_.get(), options_.buffer_size);
     assert(nbytes != -1);
     assert(static_cast<std::size_t>(nbytes) == options_.buffer_size);
     buffer_offset_ = 0;
@@ -154,11 +154,11 @@ std::uint32_t Store::Append(const Block& block) {
         // ensure that the newly appended data is visible after the remapping.
         // In a unified virtual memory system, memory mappings and blocks of the
         // buffer cache share the same pages of physical memory. [kerrisk p1032]
-        mmap_addr_ = mremap(mmap_addr_, old_size, new_size, MREMAP_MAYMOVE);
+        mmap_addr_ = ::mremap(mmap_addr_, old_size, new_size, MREMAP_MAYMOVE);
         assert(mmap_addr_ != MAP_FAILED);
       } else {
         const auto prot = PROT_READ | PROT_WRITE;
-        mmap_addr_ = mmap64(nullptr, new_size, prot, MAP_SHARED, fd_, 0);
+        mmap_addr_ = ::mmap64(nullptr, new_size, prot, MAP_SHARED, fd_, 0);
         assert(mmap_addr_ != MAP_FAILED);
       }
       num_blocks_mapped_ = num_blocks_written_;
@@ -172,67 +172,67 @@ std::uint32_t Store::Append(const Block& block) {
   return num_blocks_written_++;
 }
 
-void Store::Read(std::uint32_t block_id, Block* block, Arena* arena) const {
+void Store::read(std::uint32_t block_id, Block* block, Arena* arena) const {
   assert(fd_ != -1);
   assert(block != nullptr);
-  Check(!options_.append_only_mode, "Store::Read called in append-only mode");
+  check(!options_.append_only_mode, "Store::Read called in append-only mode");
 
-  if (block->has_data()) {
+  if (block->hasData()) {
     assert(block->size() == options_.block_size);
   } else {
     assert(arena != nullptr);
-    block->set_data(arena->Allocate(options_.block_size), options_.block_size);
+    block->setData(arena->allocate(options_.block_size), options_.block_size);
   }
 
   const std::lock_guard<std::mutex> lock(mutex_);
-  std::memcpy(block->data(), AddressOf(block_id), block->size());
+  std::memcpy(block->data(), getAddressOf(block_id), block->size());
 }
 
-void Store::Read(std::vector<BlockWithId>* blocks, Arena* arena) const {
+void Store::read(std::vector<BlockWithId>* blocks, Arena* arena) const {
   assert(fd_ != -1);
   assert(blocks != nullptr);
-  Check(!options_.append_only_mode, "Store::Read called in append-only mode");
+  check(!options_.append_only_mode, "Store::Read called in append-only mode");
 
   const std::lock_guard<std::mutex> lock(mutex_);
   for (auto& block : *blocks) {
     if (block.ignore) continue;
 
-    if (block.has_data()) {
+    if (block.hasData()) {
       assert(block.size() == options_.block_size);
     } else {
       assert(arena != nullptr);
-      const auto block_data = arena->Allocate(options_.block_size);
-      block.set_data(block_data, options_.block_size);
+      const auto block_data = arena->allocate(options_.block_size);
+      block.setData(block_data, options_.block_size);
     }
 
-    std::memcpy(block.data(), AddressOf(block.id), block.size());
+    std::memcpy(block.data(), getAddressOf(block.id), block.size());
   }
 }
 
-void Store::Write(std::uint32_t block_id, const Block& block) {
+void Store::write(std::uint32_t block_id, const Block& block) {
   assert(fd_ != -1);
   assert(block.size() == options_.block_size);
-  Check(!options_.append_only_mode, "Store::Write called in append-only mode");
+  check(!options_.append_only_mode, "Store::Write called in append-only mode");
 
   const std::lock_guard<std::mutex> lock(mutex_);
-  std::memcpy(AddressOf(block_id), block.data(), block.size());
+  std::memcpy(getAddressOf(block_id), block.data(), block.size());
 }
 
-void Store::Write(const std::vector<BlockWithId>& blocks) {
+void Store::write(const std::vector<BlockWithId>& blocks) {
   assert(fd_ != -1);
-  Check(!options_.append_only_mode, "Store::Write called in append-only mode");
+  check(!options_.append_only_mode, "Store::Write called in append-only mode");
 
   const std::lock_guard<std::mutex> lock(mutex_);
   for (const auto& block : blocks) {
     if (block.ignore) continue;
     assert(block.size() == options_.block_size);
 
-    std::memcpy(AddressOf(block.id), block.data(), block.size());
+    std::memcpy(getAddressOf(block.id), block.data(), block.size());
   }
 }
 
 // https://bitbucket.org/mtrenkmann/multimap/issues/11
-Store::Stats Store::GetStats() const {
+Store::Stats Store::getStats() const {
   const std::lock_guard<std::mutex> lock(mutex_);
   Stats stats;
   stats.block_size = options_.block_size;
@@ -255,7 +255,7 @@ const Store::Options& Store::options() const {
   return options_;
 }
 
-char* Store::AddressOf(std::uint32_t block_id) const {
+char* Store::getAddressOf(std::uint32_t block_id) const {
   assert(block_id < num_blocks_written_);
   if (block_id < num_blocks_mapped_) {
     const auto offset = options_.block_size * block_id;

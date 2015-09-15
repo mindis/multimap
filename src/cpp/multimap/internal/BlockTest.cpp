@@ -56,7 +56,7 @@ TEST(BlockIterTest, IsMoveConstructibleAndAssignable) {
 }
 
 TEST(BlockIterTest, DefaultConstructedHasProperState) {
-  ASSERT_THAT(ListIter().has_value(), Eq(false));
+  ASSERT_THAT(ListIter().hasValue(), Eq(false));
 }
 
 TEST(BlockConstIterTest, IsDefaultConstructible) {
@@ -74,7 +74,7 @@ TEST(BlockConstIterTest, IsMoveConstructibleAndAssignable) {
 }
 
 TEST(BlockConstIterTest, DefaultConstructedHasProperState) {
-  ASSERT_THAT(ListConstIter().has_value(), Eq(false));
+  ASSERT_THAT(ListConstIter().hasValue(), Eq(false));
 }
 
 TEST(BlockTest, IsDefaultConstructible) {
@@ -94,8 +94,8 @@ TEST(BlockTest, IsMoveConstructibleAndAssignable) {
 TEST(BlockTest, DefaultConstructedHasProperState) {
   ASSERT_THAT(Block().data(), IsNull());
   ASSERT_THAT(Block().size(), Eq(0));
-  ASSERT_THAT(Block().used(), Eq(0));
-  ASSERT_THAT(Block().has_data(), Eq(false));
+  ASSERT_THAT(Block().position(), Eq(0));
+  ASSERT_THAT(Block().hasData(), Eq(false));
   ASSERT_THAT(Block().load_factor(), Eq(0));
   ASSERT_THAT(Block().max_value_size(), Eq(0));
 }
@@ -111,34 +111,34 @@ TEST(BlockTest, ConstructedWithNullSizeDies) {
 
 TEST(BlockTest, AddToDefaultConstructedDies) {
   Block block;
-  ASSERT_DEATH(block.Add(Bytes()), "");
+  ASSERT_DEATH(block.add(Bytes()), "");
 }
 
 TEST(BlockTest, AddMaxValueToEmptyBlockWorks) {
   char buf[512];
   Block block(buf, sizeof buf);
   std::string value(block.max_value_size(), '\0');
-  ASSERT_TRUE(block.Add(value));
+  ASSERT_TRUE(block.add(value));
 }
 
 TEST(BlockTest, AddTooLargeValueToEmptyBlockThrows) {
   char buf[512];
   Block block(buf, sizeof buf);
   std::string value(block.max_value_size() + 1, '\0');
-  ASSERT_THROW(block.Add(value), std::runtime_error);
+  ASSERT_THROW(block.add(value), std::runtime_error);
 }
 
 TEST_P(BlockTestParam, AddingValuesIncreasesLoadFactor) {
   const auto num_values = 100;
   const auto value_size = GetParam();
   const auto block_size =
-      (Block::kSizeOfValueSizeField + value_size) * num_values;
+      (Block::SIZE_OF_VALUE_SIZE_FIELD + value_size) * num_values;
   char block_data[block_size];
   Block block(block_data, block_size);
-  auto generator = SequenceGenerator::New();
+  auto generator = SequenceGenerator::create();
   double prev_load_factor = 0;
   for (auto i = 0; i != num_values; ++i) {
-    ASSERT_TRUE(block.Add(generator->Generate(value_size)));
+    ASSERT_TRUE(block.add(generator->generate(value_size)));
     ASSERT_THAT(block.load_factor(), Gt(prev_load_factor));
     prev_load_factor = block.load_factor();
   }
@@ -148,61 +148,61 @@ TEST_P(BlockTestParam, AddValuesAndIterateAll) {
   const auto num_values = 100;
   const auto value_size = GetParam();
   const auto block_size =
-      (Block::kSizeOfValueSizeField + value_size) * num_values;
+      (Block::SIZE_OF_VALUE_SIZE_FIELD + value_size) * num_values;
   char block_data[block_size];
   Block block(block_data, block_size);
-  auto generator = SequenceGenerator::New();
+  auto generator = SequenceGenerator::create();
   for (auto i = 0; i != num_values; ++i) {
-    ASSERT_TRUE(block.Add(generator->Generate(value_size)));
+    ASSERT_TRUE(block.add(generator->generate(value_size)));
   }
-  ASSERT_FALSE(block.Add(generator->Generate(value_size)));
+  ASSERT_FALSE(block.add(generator->generate(value_size)));
 
-  generator->Reset();
-  auto iter = block.NewIterator();
+  generator->reset();
+  auto iter = block.iterator();
   for (auto i = 0; i != num_values; ++i) {
-    ASSERT_TRUE(iter.has_value());
-    ASSERT_THAT(iter.value(), Eq(generator->Generate(value_size)));
+    ASSERT_TRUE(iter.hasValue());
+    ASSERT_THAT(iter.getValue(), Eq(generator->generate(value_size)));
     iter.next();
   }
-  ASSERT_FALSE(iter.has_value());
+  ASSERT_FALSE(iter.hasValue());
 }
 
 TEST_P(BlockTestParam, AddValuesAndDeleteEvery2ndWhileIterating) {
   const auto num_values = 100;
   const auto value_size = GetParam();
   const auto block_size =
-      (Block::kSizeOfValueSizeField + value_size) * num_values;
+      (Block::SIZE_OF_VALUE_SIZE_FIELD + value_size) * num_values;
   char block_data[block_size];
   Block block(block_data, block_size);
-  auto generator = SequenceGenerator::New();
+  auto generator = SequenceGenerator::create();
   for (auto i = 0; i != num_values; ++i) {
-    ASSERT_TRUE(block.Add(generator->Generate(value_size)));
+    ASSERT_TRUE(block.add(generator->generate(value_size)));
   }
 
-  auto iter = block.NewIterator();
+  auto iter = block.iterator();
   for (auto i = 0; i != num_values; ++i) {
-    ASSERT_TRUE(iter.has_value());
+    ASSERT_TRUE(iter.hasValue());
     if (i % 2 == 0) {
-      iter.set_deleted();
+      iter.markAsDeleted();
     }
     iter.next();
   }
-  ASSERT_FALSE(iter.has_value());
+  ASSERT_FALSE(iter.hasValue());
 
-  generator->Reset();
-  iter = block.NewIterator();
+  generator->reset();
+  iter = block.iterator();
   for (auto i = 0; i != num_values; ++i) {
-    const auto expected_value = generator->Generate(value_size);
-    ASSERT_TRUE(iter.has_value());
+    const auto expected_value = generator->generate(value_size);
+    ASSERT_TRUE(iter.hasValue());
     if (i % 2 == 0) {
-      ASSERT_TRUE(iter.deleted());
+      ASSERT_TRUE(iter.isDeleted());
     } else {
-      ASSERT_FALSE(iter.deleted());
-      ASSERT_THAT(iter.value(), Eq(expected_value));
+      ASSERT_FALSE(iter.isDeleted());
+      ASSERT_THAT(iter.getValue(), Eq(expected_value));
     }
     iter.next();
   }
-  ASSERT_FALSE(iter.has_value());
+  ASSERT_FALSE(iter.hasValue());
 }
 
 INSTANTIATE_TEST_CASE_P(Parameterized, BlockTestParam,

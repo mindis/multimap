@@ -23,7 +23,7 @@
 namespace multimap {
 namespace internal {
 
-std::size_t Varint::ReadUint32(const uchar* source, std::uint32_t* target) {
+std::size_t Varint::readUint32(const uchar* source, std::uint32_t* target) {
   assert(source != nullptr);
   assert(target != nullptr);
   const auto length = *source & 0xC0;  // 11000000
@@ -51,7 +51,7 @@ std::size_t Varint::ReadUint32(const uchar* source, std::uint32_t* target) {
   }
 }
 
-std::size_t Varint::WriteUint32(std::uint32_t source, uchar* target) {
+std::size_t Varint::writeUint32(std::uint32_t source, uchar* target) {
   assert(target != nullptr);
   if (source < 0x00000040) {  // 00000000 00000000 00000000 01000000
     target[0] = static_cast<uchar>(source);
@@ -78,7 +78,7 @@ std::size_t Varint::WriteUint32(std::uint32_t source, uchar* target) {
     target[3] = static_cast<uchar>(source);
     return 4;
   }
-  Throw("Varint::WriteUint32 source is out of range");
+  throw("Varint::WriteUint32 source is out of range");
   return 0;  // To suppress "no return value" warning.
 }
 

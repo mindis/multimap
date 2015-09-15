@@ -47,7 +47,7 @@ TEST(BlockPoolTest, ConstructedWithValidParamsHasProperState) {
   BlockPool block_pool(block_size, chunk_size);
   ASSERT_THAT(block_pool.block_size(), Eq(block_size));
   ASSERT_THAT(block_pool.num_blocks(), Eq(81920));
-  ASSERT_THAT(block_pool.Allocate().data(), NotNull());
+  ASSERT_THAT(block_pool.allocate().data(), NotNull());
 }
 
 }  // namespace internal

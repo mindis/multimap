@@ -33,10 +33,10 @@ class BlockPool {
 
   BlockPool(std::size_t block_size, std::size_t chunk_size = MiB(100));
 
-  void Init(std::size_t block_size, std::size_t chunk_size = MiB(100));
+  void init(std::size_t block_size, std::size_t chunk_size = MiB(100));
 
   // Thread-safe: yes.
-  Block Allocate();
+  Block allocate();
 
   // Thread-safe: yes.
   std::size_t block_size() const;

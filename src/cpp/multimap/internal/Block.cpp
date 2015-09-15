@@ -25,21 +25,22 @@
 namespace multimap {
 namespace internal {
 
-Block::Block() : data_(nullptr), size_(0), used_(0) {}
+Block::Block() : data_(nullptr), size_(0), position_(0) {}
 
-Block::Block(void* data, std::uint32_t size) { set_data(data, size); }
+Block::Block(void* data, std::uint32_t size) { setData(data, size); }
 
 double Block::load_factor() const {
-  return (size_ != 0) ? (static_cast<double>(used_) / size_) : 0;
+  return (size_ != 0) ? (static_cast<double>(position_) / size_) : 0;
 }
 
 std::uint32_t Block::max_value_size() const {
-  return (size_ > kSizeOfValueSizeField) ? (size_ - kSizeOfValueSizeField) : 0;
+  return (size_ > SIZE_OF_VALUE_SIZE_FIELD) ? (size_ - SIZE_OF_VALUE_SIZE_FIELD)
+                                            : 0;
 }
 
-bool Block::Add(const Bytes& value) {
+bool Block::add(const Bytes& value) {
   assert(data_);
-  Check(value.size() <= max_value_size(),
+  check(value.size() <= max_value_size(),
         "Block: Reject value because its size of %u bytes exceeds the allowed "
         "maximum of %u bytes.",
         value.size(), max_value_size());
@@ -49,12 +50,12 @@ bool Block::Add(const Bytes& value) {
     return false;
   }
   // For little-endian only.
-  unsigned char* ptr = reinterpret_cast<unsigned char*>(data_) + used_;
+  unsigned char* ptr = reinterpret_cast<unsigned char*>(data_) + position_;
   *(ptr++) = value_size >> 8;
   *(ptr++) = value_size;
   std::memcpy(ptr, value.data(), value_size);
-  used_ += sizeof value_size;
-  used_ += value_size;
+  position_ += sizeof value_size;
+  position_ += value_size;
   return true;
 }
 

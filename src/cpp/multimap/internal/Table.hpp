@@ -48,9 +48,9 @@ class Table {
     std::size_t list_size_max = 0;
     std::size_t list_size_avg = 0;
 
-    std::map<std::string, std::string> ToMap() const;
+    std::map<std::string, std::string> toMap() const;
 
-    std::map<std::string, std::string> ToMap(const std::string& prefix) const;
+    std::map<std::string, std::string> toMap(const std::string& prefix) const;
   };
 
   Table() = default;
@@ -61,31 +61,31 @@ class Table {
 
   ~Table();
 
-  void Open(const boost::filesystem::path& file);
+  void open(const boost::filesystem::path& file);
 
-  void Open(const boost::filesystem::path& file, bool create_if_missing);
+  void open(const boost::filesystem::path& file, bool create_if_missing);
 
-  void Close();
+  void close();
 
-  SharedListLock GetShared(const Bytes& key) const;
+  SharedListLock getShared(const Bytes& key) const;
 
-  UniqueListLock GetUnique(const Bytes& key) const;
+  UniqueListLock getUnique(const Bytes& key) const;
 
-  UniqueListLock GetUniqueOrCreate(const Bytes& key);
+  UniqueListLock getUniqueOrCreate(const Bytes& key);
 
-  void ForEachKey(Callables::Procedure procedure) const;
+  void forEachKey(Callables::Procedure procedure) const;
 
-  std::map<std::string, std::string> GetProperties() const;
+  std::map<std::string, std::string> getProperties() const;
 
-  void FlushAllListsAndWaitIfLocked() const;
+  void flushAllListsAndWaitIfLocked() const;
 
-  void FlushAllListsOrThrowIfLocked() const;
+  void flushAllListsOrThrowIfLocked() const;
 
-  void FlushAllUnlockedLists() const;
+  void flushAllUnlockedLists() const;
 
-  Stats GetStats() const;
+  Stats getStats() const;
 
-  const Callbacks::CommitBlock& get_commit_block_callback() const;
+  const Callbacks::CommitBlock& commit_block_callback() const;
 
   void set_commit_block_callback(const Callbacks::CommitBlock& callback);
 

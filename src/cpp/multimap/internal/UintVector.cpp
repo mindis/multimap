@@ -58,22 +58,22 @@ UintVector& UintVector::operator=(const UintVector& other) {
   return *this;
 }
 
-UintVector UintVector::ReadFromStream(std::FILE* stream) {
+UintVector UintVector::readFromStream(std::FILE* stream) {
   UintVector vector;
-  System::Read(stream, &vector.put_offset_, sizeof vector.put_offset_);
+  System::read(stream, &vector.put_offset_, sizeof vector.put_offset_);
   vector.data_.reset(new Varint::uchar[vector.put_offset_]);
-  System::Read(stream, vector.data_.get(), vector.put_offset_);
+  System::read(stream, vector.data_.get(), vector.put_offset_);
   vector.end_offset_ = vector.put_offset_;
   return vector;
 }
 
-void UintVector::WriteToStream(std::FILE* stream) const {
+void UintVector::writeToStream(std::FILE* stream) const {
   assert(!empty());
-  System::Write(stream, &put_offset_, sizeof put_offset_);
-  System::Write(stream, data_.get(), put_offset_);
+  System::write(stream, &put_offset_, sizeof put_offset_);
+  System::write(stream, data_.get(), put_offset_);
 }
 
-std::vector<std::uint32_t> UintVector::Unpack() const {
+std::vector<std::uint32_t> UintVector::unpack() const {
   std::vector<std::uint32_t> values;
   if (!empty()) {
     std::uint32_t delta = 0;
@@ -81,7 +81,7 @@ std::vector<std::uint32_t> UintVector::Unpack() const {
     std::uint32_t get_offset = 0;
     const auto last_value_offset = put_offset_ - sizeof value;
     while (get_offset != last_value_offset) {
-      get_offset += Varint::ReadUint32(data_.get() + get_offset, &delta);
+      get_offset += Varint::readUint32(data_.get() + get_offset, &delta);
       values.push_back(value + delta);
       value = values.back();
     }
@@ -89,11 +89,11 @@ std::vector<std::uint32_t> UintVector::Unpack() const {
   return values;
 }
 
-void UintVector::Add(std::uint32_t value) {
+void UintVector::add(std::uint32_t value) {
   assert(value <= max_value());
-  AllocateMoreIfFull();
+  allocateMoreIfFull();
   if (empty()) {
-    put_offset_ += Varint::WriteUint32(value, data_.get());
+    put_offset_ += Varint::writeUint32(value, data_.get());
     put_offset_ += WriteUint32(value, data_.get() + put_offset_);
   } else {
     std::uint32_t prev_value;
@@ -101,12 +101,12 @@ void UintVector::Add(std::uint32_t value) {
     ReadUint32(data_.get() + put_offset_, &prev_value);
     assert(prev_value < value);
     const std::uint32_t delta = value - prev_value;
-    put_offset_ += Varint::WriteUint32(delta, data_.get() + put_offset_);
+    put_offset_ += Varint::writeUint32(delta, data_.get() + put_offset_);
     put_offset_ += WriteUint32(value, data_.get() + put_offset_);
   }
 }
 
-void UintVector::AllocateMoreIfFull() {
+void UintVector::allocateMoreIfFull() {
   const auto required_size = sizeof(std::uint32_t) * 2;
   if (end_offset_ - put_offset_ < required_size) {
     const std::size_t new_end_offset = end_offset_ * 1.5;

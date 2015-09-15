@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTIMAP_INTERNAL_GENERATOR_HPP
-#define MULTIMAP_INTERNAL_GENERATOR_HPP
+#ifndef MULTIMAP_INCLUDE_INTERNAL_GENERATOR_HPP
+#define MULTIMAP_INCLUDE_INTERNAL_GENERATOR_HPP
 
 #include <limits>
 #include <memory>
@@ -28,10 +28,10 @@ namespace internal {
 
 class Generator {
  public:
-  virtual std::string Generate() = 0;
+  virtual std::string generate() = 0;
 
-  std::string Generate(std::size_t len) {
-    auto value = this->Generate();
+  std::string generate(std::size_t len) {
+    auto value = this->generate();
     if (value.size() < len) {
       value.append(len - value.size(), 'x');
     } else if (value.size() > len) {
@@ -40,7 +40,7 @@ class Generator {
     return value;
   }
 
-  virtual void Reset() = 0;
+  virtual void reset() = 0;
 };
 
 class RandomGenerator : public Generator {
@@ -49,19 +49,19 @@ class RandomGenerator : public Generator {
 
   RandomGenerator(std::size_t num_unique) : num_unique_(num_unique) {}
 
-  static std::unique_ptr<Generator> New() {
+  static std::unique_ptr<Generator> create() {
     return std::unique_ptr<Generator>(new RandomGenerator());
   }
 
-  static std::unique_ptr<Generator> New(std::size_t num_unique) {
+  static std::unique_ptr<Generator> create(std::size_t num_unique) {
     return std::unique_ptr<Generator>(new RandomGenerator(num_unique));
   }
 
-  std::string Generate() override {
+  std::string generate() override {
     return std::to_string(distribution_(random_engine_) % num_unique_);
   }
 
-  void Reset() override { random_engine_ = std::default_random_engine(); }
+  void reset() override { random_engine_ = std::default_random_engine(); }
 
   std::size_t num_unique() const { return num_unique_; }
 
@@ -77,17 +77,17 @@ class SequenceGenerator : public Generator {
 
   SequenceGenerator(std::size_t start) : start_(start), state_(start) {}
 
-  static std::unique_ptr<Generator> New() {
+  static std::unique_ptr<Generator> create() {
     return std::unique_ptr<Generator>(new SequenceGenerator());
   }
 
-  static std::unique_ptr<Generator> New(std::size_t start) {
+  static std::unique_ptr<Generator> create(std::size_t start) {
     return std::unique_ptr<Generator>(new SequenceGenerator(start));
   }
 
-  std::string Generate() override { return std::to_string(state_++); }
+  std::string generate() override { return std::to_string(state_++); }
 
-  void Reset() override { state_ = start_; }
+  void reset() override { state_ = start_; }
 
   std::size_t start() const { return start_; }
 
@@ -99,4 +99,4 @@ class SequenceGenerator : public Generator {
 }  // namespace internal
 }  // namespace multimap
 
-#endif  // MULTIMAP_GENERATOR_HPP
+#endif  // MULTIMAP_INCLUDE_GENERATOR_HPP

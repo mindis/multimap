@@ -27,16 +27,16 @@ std::mutex List::mutex_allocation_protector;
 
 List::Head List::Head::ReadFromFile(std::FILE* file) {
   Head head;
-  System::Read(file, &head.num_values_total, sizeof head.num_values_total);
-  System::Read(file, &head.num_values_deleted, sizeof head.num_values_deleted);
-  head.block_ids = UintVector::ReadFromStream(file);
+  System::read(file, &head.num_values_total, sizeof head.num_values_total);
+  System::read(file, &head.num_values_deleted, sizeof head.num_values_deleted);
+  head.block_ids = UintVector::readFromStream(file);
   return head;
 }
 
 void List::Head::WriteToFile(std::FILE* file) const {
-  System::Write(file, &num_values_total, sizeof num_values_total);
-  System::Write(file, &num_values_deleted, sizeof num_values_deleted);
-  block_ids.WriteToStream(file);
+  System::write(file, &num_values_total, sizeof num_values_total);
+  System::write(file, &num_values_deleted, sizeof num_values_deleted);
+  block_ids.writeToStream(file);
 }
 
 template <>
@@ -44,7 +44,7 @@ List::Iter<true>::Iter(const Head& head, const Block& last_block,
                        const Callbacks::RequestBlocks& request_blocks_callback)
     : head_(&head),
       last_block_(&last_block),
-      block_ids_(head.block_ids.Unpack()),
+      block_ids_(head.block_ids.unpack()),
       request_blocks_callback_(request_blocks_callback) {
   assert(request_blocks_callback_);
 }
@@ -55,7 +55,7 @@ List::Iter<false>::Iter(Head* head, Block* last_block,
                         const Callbacks::ReplaceBlocks& replace_blocks_callback)
     : head_(head),
       last_block_(last_block),
-      block_ids_(head->block_ids.Unpack()),
+      block_ids_(head->block_ids.unpack()),
       request_blocks_callback_(request_blocks_callback),
       replace_blocks_callback_(replace_blocks_callback) {
   assert(last_block);
@@ -64,8 +64,8 @@ List::Iter<false>::Iter(Head* head, Block* last_block,
 }
 
 template <>
-void List::Iter<false>::Delete() {
-  block_iter_.set_deleted();
+void List::Iter<false>::markAsDeleted() {
+  block_iter_.markAsDeleted();
   ++head_->num_values_deleted;
   if (state_.cached_blocks_index < cached_blocks_.size()) {
     cached_blocks_[state_.cached_blocks_index].ignore = false;
@@ -74,7 +74,7 @@ void List::Iter<false>::Delete() {
 }
 
 template <>
-void List::Iter<false>::WriteBackMutatedBlocks() {
+void List::Iter<false>::writeBackMutatedBlocks() {
   if (replace_blocks_callback_) {
     replace_blocks_callback_(cached_blocks_);
     // last_block_ is in-memory and therefore updated in-place.
@@ -83,80 +83,80 @@ void List::Iter<false>::WriteBackMutatedBlocks() {
 
 List::List(const Head& head) : head_(head) {}
 
-void List::Add(const Bytes& value,
+void List::add(const Bytes& value,
                const Callbacks::NewBlock& allocate_block_callback,
                const Callbacks::CommitBlock& commit_block_callback) {
-  if (!block_.has_data()) {
+  if (!block_.hasData()) {
     block_ = allocate_block_callback();
   }
-  auto ok = block_.Add(value);
+  auto ok = block_.add(value);
   if (!ok) {
-    Flush(commit_block_callback);
-    ok = block_.Add(value);
+    flush(commit_block_callback);
+    ok = block_.add(value);
     assert(ok);
   }
   ++head_.num_values_total;
 }
 
-void List::Flush(const Callbacks::CommitBlock& commit_block_callback) {
+void List::flush(const Callbacks::CommitBlock& commit_block_callback) {
   if (block_.empty()) return;
-  head_.block_ids.Add(commit_block_callback(block_));
+  head_.block_ids.add(commit_block_callback(block_));
   block_.clear();
 }
 
-List::Iterator List::NewIterator(
+List::Iterator List::iterator(
     const Callbacks::RequestBlocks& request_blocks_callback,
     const Callbacks::ReplaceBlocks& replace_blocks_callback) {
   return Iterator(&head_, &block_, request_blocks_callback,
                   replace_blocks_callback);
 }
 
-List::ConstIterator List::NewConstIterator(
+List::ConstIterator List::const_iterator(
     const Callbacks::RequestBlocks& request_blocks_callback) const {
   return ConstIterator(head_, block_, request_blocks_callback);
 }
 
-void List::ForEach(
+void List::forEach(
     const Callables::Procedure& procedure,
     const Callbacks::RequestBlocks& request_blocks_callback) const {
-  auto iter = NewConstIterator(request_blocks_callback);
-  for (iter.SeekToFirst(); iter.HasValue(); iter.Next()) {
-    procedure(iter.GetValue());
+  auto iter = const_iterator(request_blocks_callback);
+  for (iter.seekToFirst(); iter.hasValue(); iter.next()) {
+    procedure(iter.getValue());
   }
 }
 
-void List::ForEach(
+void List::forEach(
     const Callables::Predicate& predicate,
     const Callbacks::RequestBlocks& request_blocks_callback) const {
-  auto iter = NewConstIterator(request_blocks_callback);
-  for (iter.SeekToFirst(); iter.HasValue(); iter.Next()) {
-    if (!predicate(iter.GetValue())) {
+  auto iter = const_iterator(request_blocks_callback);
+  for (iter.seekToFirst(); iter.hasValue(); iter.next()) {
+    if (!predicate(iter.getValue())) {
       break;
     }
   }
 }
 
-void List::LockShared() const {
+void List::lockShared() const {
   {
     const std::lock_guard<std::mutex> lock(mutex_allocation_protector);
-    CreateMutexUnlocked();
+    createMutexUnlocked();
     ++mutex_use_count_;
   }
   mutex_->lock_shared();
 }
 
-void List::LockUnique() const {
+void List::lockUnique() const {
   {
     const std::lock_guard<std::mutex> lock(mutex_allocation_protector);
-    CreateMutexUnlocked();
+    createMutexUnlocked();
     ++mutex_use_count_;
   }
   mutex_->lock();
 }
 
-bool List::TryLockShared() const {
+bool List::tryLockShared() const {
   const std::lock_guard<std::mutex> lock(mutex_allocation_protector);
-  CreateMutexUnlocked();
+  createMutexUnlocked();
   const auto locked = mutex_->try_lock_shared();
   if (locked) {
     ++mutex_use_count_;
@@ -164,9 +164,9 @@ bool List::TryLockShared() const {
   return locked;
 }
 
-bool List::TryLockUnique() const {
+bool List::tryLockUnique() const {
   const std::lock_guard<std::mutex> lock(mutex_allocation_protector);
-  CreateMutexUnlocked();
+  createMutexUnlocked();
   const auto locked = mutex_->try_lock();
   if (locked) {
     ++mutex_use_count_;
@@ -174,38 +174,38 @@ bool List::TryLockUnique() const {
   return locked;
 }
 
-void List::UnlockShared() const {
+void List::unlockShared() const {
   const std::lock_guard<std::mutex> lock(mutex_allocation_protector);
   assert(mutex_use_count_ > 0);
   mutex_->unlock_shared();
   --mutex_use_count_;
   if (mutex_use_count_ == 0) {
-    DeleteMutexUnlocked();
+    deleteMutexUnlocked();
   }
 }
 
-void List::UnlockUnique() const {
+void List::unlockUnique() const {
   const std::lock_guard<std::mutex> lock(mutex_allocation_protector);
   assert(mutex_use_count_ > 0);
   mutex_->unlock();
   --mutex_use_count_;
   if (mutex_use_count_ == 0) {
-    DeleteMutexUnlocked();
+    deleteMutexUnlocked();
   }
 }
 
-bool List::locked() const {
+bool List::isLocked() const {
   const std::lock_guard<std::mutex> lock(mutex_allocation_protector);
   return mutex_use_count_ != 0;
 }
 
-void List::CreateMutexUnlocked() const {
+void List::createMutexUnlocked() const {
   if (!mutex_) {
     mutex_.reset(new Mutex());
   }
 }
 
-void List::DeleteMutexUnlocked() const {
+void List::deleteMutexUnlocked() const {
   assert(mutex_use_count_ == 0);
   mutex_.reset();
 }

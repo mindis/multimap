@@ -28,7 +28,7 @@ using namespace boost::archive::iterators;
 typedef base64_from_binary<transform_width<const char*, 6, 8>> ToBase64Iter;
 typedef transform_width<binary_from_base64<const char*>, 8, 6> ToBinaryIter;
 
-void Base64::Encode(const Bytes& binary, std::string* base64) {
+void Base64::encode(const Bytes& binary, std::string* base64) {
   assert(binary.data());
   assert(base64);
 
@@ -40,7 +40,7 @@ void Base64::Encode(const Bytes& binary, std::string* base64) {
   base64->append(num_padding_chars, '=');
 }
 
-void Base64::Decode(const std::string& base64, std::string* binary) {
+void Base64::decode(const std::string& base64, std::string* binary) {
   assert(binary);
 
   // Boost does not handle Base64 padding.

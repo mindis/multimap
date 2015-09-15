@@ -125,7 +125,7 @@ inline Callables::Function MakeFunction(JNIEnv* env, jobject jfunction) {
       // is passed to the Java exception-handling process of the Java client.
     }
     // result is a jbyteArray that is copied into a std::string.
-    return (result != nullptr) ? BytesRaiiHelper(env, result).get().ToString()
+    return (result != nullptr) ? BytesRaiiHelper(env, result).get().toString()
                                : std::string();
   };
 }

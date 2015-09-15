@@ -79,7 +79,7 @@ class Bytes {
   // Postconditions:
   //   * data() != result.data()
   //   * size() == result.size()
-  std::string ToString() const { return std::string(data_, size_); }
+  std::string toString() const { return std::string(data_, size_); }
 
  private:
   const char* data_;

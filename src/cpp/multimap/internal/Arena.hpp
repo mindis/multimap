@@ -29,10 +29,10 @@ class Arena {
   Arena(std::size_t block_size = 4096);
 
   // Thread-safe: no.
-  char* Allocate(std::size_t num_bytes);
+  char* allocate(std::size_t num_bytes);
 
   // Thread-safe: no.
-  void Reset();
+  void reset();
 
   // Thread-safe: no.
   std::size_t block_size() const { return block_size_; }
@@ -48,7 +48,7 @@ class Arena {
 
  private:
   // Thread-safe: no.
-  void AllocateNewBlock(std::size_t block_size);
+  void allocateNewBlock(std::size_t block_size);
 
   std::vector<std::unique_ptr<char[]>> blocks_;
   std::size_t block_size_;

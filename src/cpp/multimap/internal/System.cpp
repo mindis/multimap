@@ -33,30 +33,30 @@
 namespace multimap {
 namespace internal {
 
-std::pair<boost::filesystem::path, int> System::Tempfile() {
+std::pair<boost::filesystem::path, int> System::getTempfile() {
   char pattern[] = "/tmp/system-tempfile-XXXXXX";
   const auto result = ::mkstemp(pattern);
   assert(result != -1);
   return std::make_pair(pattern, result);
 }
 
-std::ostream& System::Log() { return Log(std::cout); }
+std::ostream& System::log() { return log(std::cout); }
 
-std::ostream& System::Log(std::ostream& stream) { return Log("", stream); }
+std::ostream& System::log(std::ostream& stream) { return log("", stream); }
 
-std::ostream& System::Log(const std::string& prefix) {
-  return Log(prefix, std::cout);
+std::ostream& System::log(const std::string& prefix) {
+  return log(prefix, std::cout);
 }
 
-std::ostream& System::Log(const std::string& prefix, std::ostream& stream) {
-  PrintTimestamp(stream) << ' ';
+std::ostream& System::log(const std::string& prefix, std::ostream& stream) {
+  printTimestamp(stream) << ' ';
   if (!prefix.empty()) {
     stream << prefix << ": ";
   }
   return stream;
 }
 
-std::ostream& System::PrintTimestamp(std::ostream& stream) {
+std::ostream& System::printTimestamp(std::ostream& stream) {
   const auto time_since_epoch = std::time(nullptr);
   assert(time_since_epoch != -1);
   struct tm broken_down_time;
@@ -75,28 +75,28 @@ std::ostream& System::PrintTimestamp(std::ostream& stream) {
   return stream;
 }
 
-void System::Close(std::FILE* stream) {
+void System::close(std::FILE* stream) {
   const auto result = std::fclose(stream);
   assert(result == 0);
 }
 
-std::uint64_t System::Offset(std::FILE* stream) {
+std::uint64_t System::offset(std::FILE* stream) {
   const auto result = std::ftell(stream);
   assert(result != -1);
   return result;
 }
 
-void System::Seek(std::FILE* stream, std::uint64_t offset) {
+void System::seek(std::FILE* stream, std::uint64_t offset) {
   const auto result = std::fseek(stream, offset, SEEK_SET);
   assert(result == 0);
 }
 
-void System::Read(std::FILE* stream, void* buf, std::size_t count) {
+void System::read(std::FILE* stream, void* buf, std::size_t count) {
   const auto nbytes = std::fread(buf, sizeof(char), count, stream);
   assert(nbytes == count);
 }
 
-void System::Write(std::FILE* stream, const void* buf, std::size_t count) {
+void System::write(std::FILE* stream, const void* buf, std::size_t count) {
   const auto nbytes = std::fwrite(buf, sizeof(char), count, stream);
   assert(nbytes == count);
 }
@@ -107,33 +107,33 @@ System::DirectoryLockGuard::DirectoryLockGuard() {}
 
 System::DirectoryLockGuard::DirectoryLockGuard(
     const boost::filesystem::path& directory) {
-  Lock(directory);
+  lock(directory);
 }
 
 System::DirectoryLockGuard::DirectoryLockGuard(
     const boost::filesystem::path& directory, const std::string filename) {
-  Lock(directory, filename);
+  lock(directory, filename);
 }
 
 System::DirectoryLockGuard::~DirectoryLockGuard() {
   if (!directory_.empty()) {
-    Check(std::remove((directory_ / filename_).c_str()) == 0,
+    check(std::remove((directory_ / filename_).c_str()) == 0,
           "DirectoryLockGuard: Could not unlock directory '%s' because it is "
           "not locked.",
           directory_.c_str());
   }
 }
 
-void System::DirectoryLockGuard::Lock(
+void System::DirectoryLockGuard::lock(
     const boost::filesystem::path& directory) {
-  Lock(directory, kDefaultFilename);
+  lock(directory, kDefaultFilename);
 }
 
-void System::DirectoryLockGuard::Lock(const boost::filesystem::path& directory,
+void System::DirectoryLockGuard::lock(const boost::filesystem::path& directory,
                                       const std::string filename) {
-  Check(directory_.empty(), "DirectoryLockGuard: Already locked.");
+  check(directory_.empty(), "DirectoryLockGuard: Already locked.");
   const AutoCloseFile file(std::fopen((directory / filename).c_str(), "w"));
-  Check(file.get(),
+  check(file.get(),
         "DirectoryLockGuard: Could not lock directory '%s' because it is "
         "already locked.",
         directory.c_str());

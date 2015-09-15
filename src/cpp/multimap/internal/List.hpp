@@ -65,24 +65,24 @@ class List {
          const Callbacks::RequestBlocks& request_blocks_callback,
          const Callbacks::ReplaceBlocks& replace_blocks_callback);
 
-    ~Iter() { WriteBackMutatedBlocks(); }
+    ~Iter() { writeBackMutatedBlocks(); }
 
     Iter(Iter&&) = default;
     Iter& operator=(Iter&&) = default;
 
-    std::size_t NumValues() const;
+    void seekToFirst();
 
-    void SeekToFirst();
+    bool hasValue() const;
 
-    bool HasValue() const;
+    Bytes getValue() const;
 
-    Bytes GetValue() const;
-
-    void Next();
+    void next();
 
     // Marks the current value as deleted.
-    // Requires: HasValue()
-    void Delete();
+    // Requires: hasValue()
+    void markAsDeleted();
+
+    std::size_t num_values() const;
 
    private:
     struct State {
@@ -91,11 +91,11 @@ class List {
       std::uint32_t cached_blocks_offset = 0;
     };
 
-    Block::Iter<IsConst> GetNextBlockIter();
+    Block::Iter<IsConst> getNextBlockIter();
 
-    void WriteBackMutatedBlocks();
+    void writeBackMutatedBlocks();
 
-    void ReadNextBlocks();
+    void readNextBlocks();
 
     typename std::conditional<IsConst, const Head, Head>::type* head_;
     typename std::conditional<IsConst, const Block, Block>::type* last_block_;
@@ -121,14 +121,14 @@ class List {
   List(const List&) = delete;
   List& operator=(const List&) = delete;
 
-  void Add(const Bytes& value,
+  void add(const Bytes& value,
            const Callbacks::NewBlock& allocate_block_callback,
            const Callbacks::CommitBlock& commit_block_callback);
 
   // Precondition (not tested internally): !locked()
-  void Flush(const Callbacks::CommitBlock& commit_block_callback);
+  void flush(const Callbacks::CommitBlock& commit_block_callback);
 
-  void Clear() { head_ = Head(); }
+  void clear() { head_ = Head(); }
 
   const Head& head() const { return head_; }
 
@@ -142,37 +142,37 @@ class List {
 
   bool empty() const { return size() == 0; }
 
-  Iterator NewIterator(const Callbacks::RequestBlocks& request_blocks_callback,
-                       const Callbacks::ReplaceBlocks& replace_blocks_callback);
+  Iterator iterator(const Callbacks::RequestBlocks& request_blocks_callback,
+                    const Callbacks::ReplaceBlocks& replace_blocks_callback);
 
-  ConstIterator NewConstIterator(
+  ConstIterator const_iterator(
       const Callbacks::RequestBlocks& request_blocks_callback) const;
 
-  void ForEach(const Callables::Procedure& procedure,
+  void forEach(const Callables::Procedure& procedure,
                const Callbacks::RequestBlocks& request_blocks_callback) const;
 
-  void ForEach(const Callables::Predicate& predicate,
+  void forEach(const Callables::Predicate& predicate,
                const Callbacks::RequestBlocks& request_blocks_callback) const;
 
   // Synchronization interface in tradition of std::mutex.
 
-  void LockShared() const;
+  void lockShared() const;
 
-  void LockUnique() const;
+  void lockUnique() const;
 
-  bool TryLockShared() const;
+  bool tryLockShared() const;
 
-  bool TryLockUnique() const;
+  bool tryLockUnique() const;
 
-  void UnlockShared() const;
+  void unlockShared() const;
 
-  void UnlockUnique() const;
+  void unlockUnique() const;
 
-  bool locked() const;
+  bool isLocked() const;
 
  private:
-  void CreateMutexUnlocked() const;
-  void DeleteMutexUnlocked() const;
+  void createMutexUnlocked() const;
+  void deleteMutexUnlocked() const;
 
   Head head_;
   Block block_;
@@ -197,44 +197,39 @@ List::Iter<false>::Iter(
     const Callbacks::ReplaceBlocks& replace_blocks_callback);
 
 template <bool IsConst>
-std::size_t List::Iter<IsConst>::NumValues() const {
-  return state_.head ? state_.heads->num_values_not_deleted() : 0;
-}
-
-template <bool IsConst>
-void List::Iter<IsConst>::SeekToFirst() {
+void List::Iter<IsConst>::seekToFirst() {
   if (head_) {
-    arena_.Reset();
+    arena_.reset();
     state_ = State();
     cached_blocks_.clear();
-    block_iter_ = GetNextBlockIter();
-    if (block_iter_.has_value() && block_iter_.deleted()) {
-      Next();
+    block_iter_ = getNextBlockIter();
+    if (block_iter_.hasValue() && block_iter_.isDeleted()) {
+      next();
     }
   }
 }
 
 template <bool IsConst>
-bool List::Iter<IsConst>::HasValue() const {
-  return block_iter_.has_value() && !block_iter_.deleted();
+bool List::Iter<IsConst>::hasValue() const {
+  return block_iter_.hasValue() && !block_iter_.isDeleted();
 }
 
 template <bool IsConst>
-Bytes List::Iter<IsConst>::GetValue() const {
-  return Bytes(block_iter_.value_data(), block_iter_.value_size());
+Bytes List::Iter<IsConst>::getValue() const {
+  return Bytes(block_iter_.data(), block_iter_.size());
 }
 
 template <bool IsConst>
-void List::Iter<IsConst>::Next() {
-  assert(block_iter_.has_value());
-  if (!block_iter_.deleted()) {
+void List::Iter<IsConst>::next() {
+  assert(block_iter_.hasValue());
+  if (!block_iter_.isDeleted()) {
     ++state_.num_values_read;
   }
   while (true) {
-    block_iter_.next_not_deleted();
-    if (!block_iter_.has_value()) {
-      block_iter_ = GetNextBlockIter();
-      if (block_iter_.has_value() && block_iter_.deleted()) {
+    block_iter_.nextNotDeleted();
+    if (!block_iter_.hasValue()) {
+      block_iter_ = getNextBlockIter();
+      if (block_iter_.hasValue() && block_iter_.isDeleted()) {
         continue;
       }
     }
@@ -243,32 +238,37 @@ void List::Iter<IsConst>::Next() {
 }
 
 template <bool IsConst>
-Block::Iter<IsConst> List::Iter<IsConst>::GetNextBlockIter() {
+std::size_t List::Iter<IsConst>::num_values() const {
+  return state_.head ? state_.heads->num_values_not_deleted() : 0;
+}
+
+template <bool IsConst>
+Block::Iter<IsConst> List::Iter<IsConst>::getNextBlockIter() {
   ++state_.cached_blocks_index;
   if (state_.cached_blocks_index == cached_blocks_.size()) {
-    WriteBackMutatedBlocks();
-    ReadNextBlocks();
+    writeBackMutatedBlocks();
+    readNextBlocks();
     state_.cached_blocks_index = 0;
   }
 
   if (cached_blocks_.empty()) {
     auto abs_index = state_.cached_blocks_offset + state_.cached_blocks_index;
-    return (abs_index == block_ids_.size()) ? last_block_->NewIterator()
+    return (abs_index == block_ids_.size()) ? last_block_->iterator()
                                             : Block::Iter<IsConst>();
   }
   auto& block = cached_blocks_[state_.cached_blocks_index];
   return static_cast<
              typename std::conditional<IsConst, const Block, Block>::type*>(
-             &block)->NewIterator();
+             &block)->iterator();
 }
 
 template <bool IsConst>
-void List::Iter<IsConst>::WriteBackMutatedBlocks() {
+void List::Iter<IsConst>::writeBackMutatedBlocks() {
   // The default template does nothing.
 }
 
 template <bool IsConst>
-void List::Iter<IsConst>::ReadNextBlocks() {
+void List::Iter<IsConst>::readNextBlocks() {
   static const std::size_t max_num_blocks_to_request = sysconf(_SC_IOV_MAX);
   state_.cached_blocks_offset += cached_blocks_.size();
   const auto num_blocks_to_request =
@@ -286,10 +286,10 @@ void List::Iter<IsConst>::ReadNextBlocks() {
 }
 
 template <>
-void List::Iter<false>::Delete();
+void List::Iter<false>::markAsDeleted();
 
 template <>
-void List::Iter<false>::WriteBackMutatedBlocks();
+void List::Iter<false>::writeBackMutatedBlocks();
 
 }  // namespace internal
 }  // namespace multimap

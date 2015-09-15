@@ -32,36 +32,36 @@ namespace multimap {
 
 namespace {
 
-const char* kNameOfLockFile = "multimap.lock";
-const char* kNameOfPropsFile = "multimap.properties";
-const char* kNameOfStoreFile = "multimap.store";
-const char* kNameOfTableFile = "multimap.table";
+const char* NAME_OF_LOCK_FILE = "multimap.lock";
+const char* NAME_OF_PROPS_FILE = "multimap.properties";
+const char* NAME_OF_STORE_FILE = "multimap.store";
+const char* NAME_OF_TABLE_FILE = "multimap.table";
 
-bool IsPowerOfTwo(std::size_t value) { return (value & (value - 1)) == 0; }
+bool isPowerOfTwo(std::size_t value) { return (value & (value - 1)) == 0; }
 
-void CheckOptions(const Options& options) {
-  using internal::Check;
+void checkOptions(const Options& options) {
+  using internal::check;
 
   const auto bs = "options.block_size";
-  Check(options.block_size != 0, "%s must be positive.", bs);
-  Check(IsPowerOfTwo(options.block_size), "%s must be a power of two.", bs);
+  check(options.block_size != 0, "%s must be positive.", bs);
+  check(isPowerOfTwo(options.block_size), "%s must be a power of two.", bs);
 }
 
-void CheckVersion(std::uint32_t client_major, std::uint32_t client_minor) {
-  internal::Check(client_major == kMajorVersion,
+void checkVersion(std::uint32_t client_major, std::uint32_t client_minor) {
+  internal::check(client_major == MAJOR_VERSION,
                   "Version check failed. The Multimap you are trying to open "
                   "was created with version %u.%u of the library. Your "
                   "installed version is %u.%u which is not compatible.",
-                  client_major, client_minor, kMajorVersion, kMinorVersion);
+                  client_major, client_minor, MAJOR_VERSION, MINOR_VERSION);
 }
 
-std::size_t Checksum(const std::string& str) {
+std::size_t checksum(const std::string& str) {
   boost::crc_32_type crc;
   crc.process_bytes(str.data(), str.size());
   return crc.checksum();
 }
 
-std::string Join(const std::map<std::string, std::string>& properties) {
+std::string join(const std::map<std::string, std::string>& properties) {
   std::string joined;
   const auto is_space = [](char c) { return std::isspace(c); };
   for (const auto& entry : properties) {
@@ -78,10 +78,10 @@ std::string Join(const std::map<std::string, std::string>& properties) {
   return joined;
 }
 
-std::map<std::string, std::string> ReadPropertiesFromFile(
+std::map<std::string, std::string> readPropertiesFromFile(
     const boost::filesystem::path& file) {
   std::ifstream ifs(file.string());
-  internal::Check(ifs, "Could not open '%s'.", file.c_str());
+  internal::check(ifs, "Could not open '%s'.", file.c_str());
 
   std::string line;
   std::map<std::string, std::string> properties;
@@ -97,26 +97,26 @@ std::map<std::string, std::string> ReadPropertiesFromFile(
   }
 
   const auto actual_checksum_str = properties["checksum"];
-  internal::Check(!actual_checksum_str.empty(),
+  internal::check(!actual_checksum_str.empty(),
                   "Properties file '%s' is missing checksum.", file.c_str());
   const auto actual_checksum = std::stoul(actual_checksum_str);
 
   properties.erase("checksum");
-  const auto expected_checksum = Checksum(Join(properties));
-  internal::Check(actual_checksum == expected_checksum,
+  const auto expected_checksum = checksum(join(properties));
+  internal::check(actual_checksum == expected_checksum,
                   "Metadata in '%s' has wrong checksum.", file.c_str());
   return properties;
 }
 
-void WritePropertiesToFile(const std::map<std::string, std::string>& properties,
+void writePropertiesToFile(const std::map<std::string, std::string>& properties,
                            const boost::filesystem::path& file) {
   assert(properties.count("checksum") == 0);
 
   std::ofstream ofs(file.string());
-  internal::Check(ofs, "Could not create '%s'.", file.c_str());
+  internal::check(ofs, "Could not create '%s'.", file.c_str());
 
-  const auto content = Join(properties);
-  ofs << content << "checksum=" << Checksum(content) << '\n';
+  const auto content = join(properties);
+  ofs << content << "checksum=" << checksum(content) << '\n';
 }
 
 }  // namespace
@@ -125,32 +125,32 @@ Map::Map() {}
 
 Map::~Map() {
   try {
-    table_.FlushAllListsOrThrowIfLocked();
+    table_.flushAllListsOrThrowIfLocked();
   } catch (...) {
     std::terminate();
     // The destructor has the precondition that no list is still locked.
   }
 
-  const auto filename = directory_lock_guard_.path() / kNameOfPropsFile;
-  WritePropertiesToFile(GetProperties(), filename);
+  const auto filename = directory_lock_guard_.path() / NAME_OF_PROPS_FILE;
+  writePropertiesToFile(getProperties(), filename);
 }
 
 Map::Map(const boost::filesystem::path& directory, const Options& options) {
-  Open(directory, options);
+  open(directory, options);
 }
 
-void Map::Open(const boost::filesystem::path& directory,
+void Map::open(const boost::filesystem::path& directory,
                const Options& options) {
-  CheckOptions(options);
+  checkOptions(options);
   const auto absolute_directory = boost::filesystem::absolute(directory);
-  internal::Check(boost::filesystem::is_directory(absolute_directory),
+  internal::check(boost::filesystem::is_directory(absolute_directory),
                   "The path '%s' does not refer to a directory.",
                   absolute_directory.c_str());
 
-  directory_lock_guard_.Lock(absolute_directory, kNameOfLockFile);
-  const auto path_to_props = absolute_directory / kNameOfPropsFile;
-  const auto path_to_store = absolute_directory / kNameOfStoreFile;
-  const auto path_to_table = absolute_directory / kNameOfTableFile;
+  directory_lock_guard_.lock(absolute_directory, NAME_OF_LOCK_FILE);
+  const auto path_to_props = absolute_directory / NAME_OF_PROPS_FILE;
+  const auto path_to_store = absolute_directory / NAME_OF_STORE_FILE;
+  const auto path_to_table = absolute_directory / NAME_OF_TABLE_FILE;
   const auto props_exists = boost::filesystem::is_regular_file(path_to_props);
   const auto store_exists = boost::filesystem::is_regular_file(path_to_store);
   const auto table_exists = boost::filesystem::is_regular_file(path_to_table);
@@ -160,144 +160,145 @@ void Map::Open(const boost::filesystem::path& directory,
 
   options_ = options;
   if (all_files_exist) {
-    internal::Check(!options_.error_if_exists,
+    internal::check(!options_.error_if_exists,
                     "A Multimap in '%s' does already exist.",
                     absolute_directory.c_str());
 
-    const auto properties = ReadPropertiesFromFile(path_to_props);
+    const auto properties = readPropertiesFromFile(path_to_props);
     const auto pos = properties.find("store.block_size");
     assert(pos != properties.end());
 
     options_.block_size = std::stoul(pos->second);
-    block_pool_.Init(options_.block_size);
+    block_pool_.init(options_.block_size);
 
     internal::Store::Options store_options;
     store_options.block_size = options_.block_size;
     store_options.append_only_mode = options_.write_only_mode;
-    store_.Open(path_to_store, store_options);
-    table_.Open(path_to_table);
+    store_.open(path_to_store, store_options);
+    table_.open(path_to_table);
 
   } else if (no_file_exists) {
-    internal::Check(options_.create_if_missing, "No Multimap found in '%s'.",
+    internal::check(options_.create_if_missing, "No Multimap found in '%s'.",
                     absolute_directory.c_str());
 
-    block_pool_.Init(options_.block_size);
+    block_pool_.init(options_.block_size);
 
     internal::Store::Options store_options;
     store_options.create_if_missing = true;
     store_options.block_size = options_.block_size;
     store_options.append_only_mode = options_.write_only_mode;
-    store_.Open(path_to_store, store_options);
-    table_.Open(path_to_table, true);
+    store_.open(path_to_store, store_options);
+    table_.open(path_to_table, true);
 
   } else {
-    internal::Throw("The Multimap in '%s' is corrupt because '%s' is missing.",
-                    absolute_directory.c_str(),
-                    store_exists ? (props_exists ? path_to_table.c_str()
-                                                 : path_to_props.c_str())
-                                 : path_to_store.c_str());
+    internal::throwRuntimeError(
+        "The Multimap in '%s' is corrupt because '%s' is missing.",
+        absolute_directory.c_str(),
+        store_exists
+            ? (props_exists ? path_to_table.c_str() : path_to_props.c_str())
+            : path_to_store.c_str());
   }
 
-  InitCallbacks();
+  initCallbacks();
   table_.set_commit_block_callback(callbacks_.commit_block);
 }
 
-void Map::Put(const Bytes& key, const Bytes& value) {
-  table_.GetUniqueOrCreate(key).list()->Add(value, callbacks_.new_block,
+void Map::put(const Bytes& key, const Bytes& value) {
+  table_.getUniqueOrCreate(key).list()->add(value, callbacks_.new_block,
                                             callbacks_.commit_block);
 }
 
-Map::ConstListIter Map::Get(const Bytes& key) const {
-  return ConstListIter(table_.GetShared(key), callbacks_.request_blocks);
+Map::ConstListIter Map::get(const Bytes& key) const {
+  return ConstListIter(table_.getShared(key), callbacks_.request_blocks);
 }
 
-Map::ListIter Map::GetMutable(const Bytes& key) {
-  return ListIter(table_.GetUnique(key), callbacks_.request_blocks,
-              callbacks_.replace_blocks);
+Map::ListIter Map::getMutable(const Bytes& key) {
+  return ListIter(table_.getUnique(key), callbacks_.request_blocks,
+                  callbacks_.replace_blocks);
 }
 
-bool Map::Contains(const Bytes& key) const {
-  const auto list_lock = table_.GetShared(key);
-  return list_lock.has_list() && !list_lock.clist()->empty();
+bool Map::contains(const Bytes& key) const {
+  const auto list_lock = table_.getShared(key);
+  return list_lock.hasList() && !list_lock.clist()->empty();
 }
 
-std::size_t Map::Delete(const Bytes& key) {
+std::size_t Map::remove(const Bytes& key) {
   std::size_t num_deleted = 0;
-  auto list_lock = table_.GetUnique(key);
-  if (list_lock.has_list()) {
+  auto list_lock = table_.getUnique(key);
+  if (list_lock.hasList()) {
     num_deleted = list_lock.clist()->size();
-    list_lock.list()->Clear();
+    list_lock.list()->clear();
   }
   return num_deleted;
 }
 
-std::size_t Map::DeleteAll(const Bytes& key, Callables::Predicate predicate) {
-  return Delete(key, predicate, true);
+std::size_t Map::removeAll(const Bytes& key, Callables::Predicate predicate) {
+  return remove(key, predicate, true);
 }
 
-std::size_t Map::DeleteAllEqual(const Bytes& key, const Bytes& value) {
-  return DeleteAll(key, [&value](const Bytes& current_value) {
+std::size_t Map::removeAllEqual(const Bytes& key, const Bytes& value) {
+  return removeAll(key, [&value](const Bytes& current_value) {
     return current_value == value;
   });
 }
 
-bool Map::DeleteFirst(const Bytes& key, Callables::Predicate predicate) {
-  return Delete(key, predicate, false);
+bool Map::removeFirst(const Bytes& key, Callables::Predicate predicate) {
+  return remove(key, predicate, false);
 }
 
-bool Map::DeleteFirstEqual(const Bytes& key, const Bytes& value) {
-  return DeleteFirst(key, [&value](const Bytes& current_value) {
+bool Map::removeFirstEqual(const Bytes& key, const Bytes& value) {
+  return removeFirst(key, [&value](const Bytes& current_value) {
     return current_value == value;
   });
 }
 
-std::size_t Map::ReplaceAll(const Bytes& key, Callables::Function function) {
-  return Replace(key, function, true);
+std::size_t Map::replaceAll(const Bytes& key, Callables::Function function) {
+  return replace(key, function, true);
 }
 
-std::size_t Map::ReplaceAllEqual(const Bytes& key, const Bytes& old_value,
+std::size_t Map::replaceAllEqual(const Bytes& key, const Bytes& old_value,
                                  const Bytes& new_value) {
-  return ReplaceAll(key, [&old_value, &new_value](const Bytes& current_value) {
-    return (current_value == old_value) ? new_value.ToString() : std::string();
+  return replaceAll(key, [&old_value, &new_value](const Bytes& current_value) {
+    return (current_value == old_value) ? new_value.toString() : std::string();
   });
 }
 
-bool Map::ReplaceFirst(const Bytes& key, Callables::Function function) {
-  return Replace(key, function, false);
+bool Map::replaceFirst(const Bytes& key, Callables::Function function) {
+  return replace(key, function, false);
 }
 
-bool Map::ReplaceFirstEqual(const Bytes& key, const Bytes& old_value,
+bool Map::replaceFirstEqual(const Bytes& key, const Bytes& old_value,
                             const Bytes& new_value) {
-  return ReplaceFirst(key,
+  return replaceFirst(key,
                       [&old_value, &new_value](const Bytes& current_value) {
-    return (current_value == old_value) ? new_value.ToString() : std::string();
+    return (current_value == old_value) ? new_value.toString() : std::string();
   });
 }
 
-void Map::ForEachKey(Callables::Procedure procedure) const {
-  table_.ForEachKey(procedure);
+void Map::forEachKey(Callables::Procedure procedure) const {
+  table_.forEachKey(procedure);
 }
 
-void Map::ForEachValue(const Bytes& key, Callables::Procedure procedure) const {
-  const auto list_lock = table_.GetShared(key);
-  if (list_lock.has_list()) {
-    list_lock.list()->ForEach(procedure, callbacks_.request_blocks);
+void Map::forEachValue(const Bytes& key, Callables::Procedure procedure) const {
+  const auto list_lock = table_.getShared(key);
+  if (list_lock.hasList()) {
+    list_lock.list()->forEach(procedure, callbacks_.request_blocks);
   }
 }
 
-void Map::ForEachValue(const Bytes& key, Callables::Predicate predicate) const {
-  const auto list_lock = table_.GetShared(key);
-  if (list_lock.has_list()) {
-    list_lock.list()->ForEach(predicate, callbacks_.request_blocks);
+void Map::forEachValue(const Bytes& key, Callables::Predicate predicate) const {
+  const auto list_lock = table_.getShared(key);
+  if (list_lock.hasList()) {
+    list_lock.list()->forEach(predicate, callbacks_.request_blocks);
   }
 }
 
-std::map<std::string, std::string> Map::GetProperties() const {
+std::map<std::string, std::string> Map::getProperties() const {
   std::map<std::string, std::string> properties;
-  properties["major_version"] = std::to_string(kMajorVersion);
-  properties["minor_version"] = std::to_string(kMinorVersion);
-  const auto store_stats = store_.GetStats().ToMap("store");
-  const auto table_stats = table_.GetStats().ToMap("table");
+  properties["major_version"] = std::to_string(MAJOR_VERSION);
+  properties["minor_version"] = std::to_string(MINOR_VERSION);
+  const auto store_stats = store_.getStats().toMap("store");
+  const auto table_stats = table_.getStats().toMap("table");
   properties.insert(store_stats.begin(), store_stats.end());
   properties.insert(table_stats.begin(), table_stats.end());
   return properties;
@@ -306,25 +307,25 @@ std::map<std::string, std::string> Map::GetProperties() const {
 std::size_t Map::max_key_size() const { return table_.max_key_size(); }
 
 std::size_t Map::max_value_size() const {
-  return options_.block_size - internal::Block::kSizeOfValueSizeField;
+  return options_.block_size - internal::Block::SIZE_OF_VALUE_SIZE_FIELD;
 }
 
-std::size_t Map::Delete(const Bytes& key, Callables::Predicate predicate,
+std::size_t Map::remove(const Bytes& key, Callables::Predicate predicate,
                         bool all) {
   std::size_t num_deleted = 0;
-  auto iter = GetMutable(key);
-  for (iter.SeekToFirst(); iter.HasValue(); iter.Next()) {
-    if (predicate(iter.GetValue())) {
-      iter.DeleteValue();
+  auto iter = getMutable(key);
+  for (iter.seekToFirst(); iter.hasValue(); iter.next()) {
+    if (predicate(iter.getValue())) {
+      iter.markAsDeleted();
       ++num_deleted;
-      iter.Next();
+      iter.next();
       break;
     }
   }
   if (all) {
-    for (; iter.HasValue(); iter.Next()) {
-      if (predicate(iter.GetValue())) {
-        iter.DeleteValue();
+    for (; iter.hasValue(); iter.next()) {
+      if (predicate(iter.getValue())) {
+        iter.markAsDeleted();
         ++num_deleted;
       }
     }
@@ -332,123 +333,123 @@ std::size_t Map::Delete(const Bytes& key, Callables::Predicate predicate,
   return num_deleted;
 }
 
-std::size_t Map::Replace(const Bytes& key, Callables::Function function,
+std::size_t Map::replace(const Bytes& key, Callables::Function function,
                          bool all) {
   std::vector<std::string> updated_values;
-  auto iter = GetMutable(key);
-  for (iter.SeekToFirst(); iter.HasValue(); iter.Next()) {
-    const auto updated_value = function(iter.GetValue());
+  auto iter = getMutable(key);
+  for (iter.seekToFirst(); iter.hasValue(); iter.next()) {
+    const auto updated_value = function(iter.getValue());
     if (!updated_value.empty()) {
       updated_values.emplace_back(updated_value);
-      iter.DeleteValue();
-      iter.Next();
+      iter.markAsDeleted();
+      iter.next();
       break;
     }
   }
   if (all) {
-    for (; iter.HasValue(); iter.Next()) {
-      const auto updated_value = function(iter.GetValue());
+    for (; iter.hasValue(); iter.next()) {
+      const auto updated_value = function(iter.getValue());
       if (!updated_value.empty()) {
         updated_values.emplace_back(updated_value);
-        iter.DeleteValue();
+        iter.markAsDeleted();
       }
     }
   }
   if (!updated_values.empty()) {
-    auto list_lock = iter.ReleaseListLock();
+    auto list_lock = iter.releaseListLock();
     for (const auto& value : updated_values) {
-      list_lock.list()->Add(value, callbacks_.new_block,
+      list_lock.list()->add(value, callbacks_.new_block,
                             callbacks_.commit_block);
     }
   }
   return updated_values.size();
 }
 
-void Map::InitCallbacks() {
+void Map::initCallbacks() {
   // Thread-safe: yes.
-  callbacks_.new_block = [this]() { return block_pool_.Allocate(); };
+  callbacks_.new_block = [this]() { return block_pool_.allocate(); };
 
   // Thread-safe: yes.
   callbacks_.commit_block =
-      [this](const internal::Block& block) { return store_.Append(block); };
+      [this](const internal::Block& block) { return store_.append(block); };
 
   // Thread-safe: yes.
   callbacks_.replace_blocks =
       [this](const std::vector<internal::BlockWithId>& blocks) {
-    store_.Write(blocks);
+    store_.write(blocks);
   };
 
   // Thread-safe: yes.
   callbacks_.request_blocks =
       [this](std::vector<internal::BlockWithId>* blocks,
-             internal::Arena* arena) { store_.Read(blocks, arena); };
+             internal::Arena* arena) { store_.read(blocks, arena); };
 }
 
-void Optimize(const boost::filesystem::path& from,
+void optimize(const boost::filesystem::path& from,
               const boost::filesystem::path& to) {
-  Optimize(from, to, -1);
+  optimize(from, to, -1);
 }
 
-void Optimize(const boost::filesystem::path& from,
+void optimize(const boost::filesystem::path& from,
               const boost::filesystem::path& to, std::size_t new_block_size) {
-  Optimize(from, to, Callables::Compare(), new_block_size);
+  optimize(from, to, Callables::Compare(), new_block_size);
 }
 
-void Optimize(const boost::filesystem::path& from,
-              const boost::filesystem::path& to,
-              Callables::Compare compare) {
-  Optimize(from, to, compare, -1);
+void optimize(const boost::filesystem::path& from,
+              const boost::filesystem::path& to, Callables::Compare compare) {
+  optimize(from, to, compare, -1);
 }
 
 // TODO https://bitbucket.org/mtrenkmann/multimap/issues/4
-void Optimize(const boost::filesystem::path& from,
-              const boost::filesystem::path& to,
-              Callables::Compare compare, std::size_t new_block_size) {
+void optimize(const boost::filesystem::path& from,
+              const boost::filesystem::path& to, Callables::Compare compare,
+              std::size_t new_block_size) {
   Map source(from, Options());
 
   Options options;
   options.write_only_mode = true;
   options.error_if_exists = true;
   options.create_if_missing = true;
-  options.block_size = std::stoul(source.GetProperties()["store.block_size"]);
+  options.block_size = std::stoul(source.getProperties()["store.block_size"]);
   if (new_block_size != static_cast<std::size_t>(-1)) {
     options.block_size = new_block_size;
   }
   Map target(to, options);
 
   if (compare) {
-    source.ForEachKey([&](const Bytes& key) {
+    source.forEachKey([&](const Bytes& key) {
       std::vector<std::string> values;
       Callables::Procedure procedure =
-          [&values](const Bytes& value) { values.push_back(value.ToString()); };
-      source.ForEachValue(key, procedure);
+          [&values](const Bytes& value) { values.push_back(value.toString()); };
+      source.forEachValue(key, procedure);
       std::sort(values.begin(), values.end(), compare);
       for (const auto& value : values) {
-        target.Put(key, value);
+        target.put(key, value);
       }
     });
   } else {
-    source.ForEachKey([&](const Bytes& key) {
+    source.forEachKey([&](const Bytes& key) {
       Callables::Procedure procedure =
-          [&](const Bytes& value) { target.Put(key, value); };
-      source.ForEachValue(key, procedure);
+          [&](const Bytes& value) { target.put(key, value); };
+      source.forEachValue(key, procedure);
     });
   }
 }
 
-void Import(const boost::filesystem::path& directory,
-            const boost::filesystem::path& file) {
-  Import(directory, file, false);
+void importFromBase64(const boost::filesystem::path& directory,
+                      const boost::filesystem::path& file) {
+  importFromBase64(directory, file, false);
 }
 
-void Import(const boost::filesystem::path& directory,
-            const boost::filesystem::path& file, bool create_if_missing) {
-  Import(directory, file, create_if_missing, -1);
+void importFromBase64(const boost::filesystem::path& directory,
+                      const boost::filesystem::path& file,
+                      bool create_if_missing) {
+  importFromBase64(directory, file, create_if_missing, -1);
 }
 
-void Import(const boost::filesystem::path& directory,
-            const boost::filesystem::path& file, bool create_if_missing,
-            std::size_t block_size) {
+void importFromBase64(const boost::filesystem::path& directory,
+                      const boost::filesystem::path& file,
+                      bool create_if_missing, std::size_t block_size) {
   Options options;
   options.write_only_mode = true;
   options.create_if_missing = create_if_missing;
@@ -457,20 +458,20 @@ void Import(const boost::filesystem::path& directory,
   }
   Map map(directory, options);
   std::ifstream ifs(file.string());
-  internal::Check(ifs, "Cannot open '%s'.", file.c_str());
+  internal::check(ifs, "Cannot open '%s'.", file.c_str());
 
   std::string base64_key;
   std::string binary_key;
   std::string base64_value;
   std::string binary_value;
   if (ifs >> base64_key) {
-    internal::Base64::Decode(base64_key, &binary_key);
+    internal::Base64::decode(base64_key, &binary_key);
     while (ifs) {
       switch (ifs.peek()) {
         case '\n':
         case '\r':
           ifs >> base64_key;
-          internal::Base64::Decode(base64_key, &binary_key);
+          internal::Base64::decode(base64_key, &binary_key);
           break;
         case '\f':
         case '\t':
@@ -480,34 +481,34 @@ void Import(const boost::filesystem::path& directory,
           break;
         default:
           ifs >> base64_value;
-          internal::Base64::Decode(base64_value, &binary_value);
-          map.Put(binary_key, binary_value);
+          internal::Base64::decode(base64_value, &binary_value);
+          map.put(binary_key, binary_value);
       }
     }
   }
 }
 
-void Export(const boost::filesystem::path& directory,
-            const boost::filesystem::path& file) {
+void exportToBase64(const boost::filesystem::path& directory,
+                    const boost::filesystem::path& file) {
   Map map(directory, Options());
   std::ofstream ofs(file.string());
-  internal::Check(ofs, "Cannot create '%s'.", file.c_str());
+  internal::check(ofs, "Cannot create '%s'.", file.c_str());
 
   std::string base64_key;
   std::string base64_value;
-  map.ForEachKey([&](const Bytes& binary_key) {
-    auto iter = map.Get(binary_key);
-    iter.SeekToFirst();
-    if (iter.HasValue()) {
-      internal::Base64::Encode(binary_key, &base64_key);
-      internal::Base64::Encode(iter.GetValue(), &base64_value);
+  map.forEachKey([&](const Bytes& binary_key) {
+    auto iter = map.get(binary_key);
+    iter.seekToFirst();
+    if (iter.hasValue()) {
+      internal::Base64::encode(binary_key, &base64_key);
+      internal::Base64::encode(iter.getValue(), &base64_value);
       ofs << base64_key << ' ' << base64_value;
-      iter.Next();
+      iter.next();
     }
-    while (iter.HasValue()) {
-      internal::Base64::Encode(iter.GetValue(), &base64_value);
+    while (iter.hasValue()) {
+      internal::Base64::encode(iter.getValue(), &base64_value);
       ofs << ' ' << base64_value;
-      iter.Next();
+      iter.next();
     }
     ofs << '\n';
   });

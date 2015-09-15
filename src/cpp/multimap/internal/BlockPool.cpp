@@ -22,11 +22,11 @@
 namespace multimap {
 namespace internal {
 
-//namespace {
+// namespace {
 
-//typedef std::vector<std::unique_ptr<char[]>> Chunks;
+// typedef std::vector<std::unique_ptr<char[]>> Chunks;
 
-//char* BlockIdToPtr(std::size_t block_id, std::size_t block_size,
+// char* BlockIdToPtr(std::size_t block_id, std::size_t block_size,
 //                   std::size_t chunk_size, const Chunks& chunks) {
 //  const auto absolute_offset = block_id * block_size;
 //  const auto relative_offset_in_chunk = absolute_offset % chunk_size;
@@ -35,7 +35,7 @@ namespace internal {
 //  return chunks[chunk_id].get() + relative_offset_in_chunk;
 //}
 
-//std::size_t PtrToBlockId(const char* ptr, std::size_t block_size,
+// std::size_t PtrToBlockId(const char* ptr, std::size_t block_size,
 //                         std::size_t chunk_size, const Chunks& chunks) {
 //  assert(ptr);
 //  const auto blocks_per_chunk = chunk_size / block_size;
@@ -55,10 +55,10 @@ namespace internal {
 //}  // namespace
 
 BlockPool::BlockPool(std::size_t block_size, std::size_t chunk_size) {
-  Init(block_size, chunk_size);
+  init(block_size, chunk_size);
 }
 
-void BlockPool::Init(std::size_t block_size, std::size_t chunk_size) {
+void BlockPool::init(std::size_t block_size, std::size_t chunk_size) {
   assert(chunk_size % block_size == 0);
   assert(chunk_size > block_size);
   assert(chunk_size != 0);
@@ -68,11 +68,11 @@ void BlockPool::Init(std::size_t block_size, std::size_t chunk_size) {
 
   block_size_ = block_size;
   chunk_size_ = chunk_size;
-  get_offset_ = chunk_size; // Tiggers chunk allocation in Allocate().
+  get_offset_ = chunk_size;  // Tiggers chunk allocation in Allocate().
   chunks_.clear();
 }
 
-Block BlockPool::Allocate() {
+Block BlockPool::allocate() {
   const std::lock_guard<std::mutex> lock(mutex_);
   if (get_offset_ == chunk_size_) {
     chunks_.emplace_back(new char[chunk_size_]);

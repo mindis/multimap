@@ -65,49 +65,49 @@ class Iterator {
   Iterator(Iterator&&) = default;
   Iterator& operator=(Iterator&&) = default;
 
-  // Returns the total number of values to iterate. This number does not change
-  // when the iterator moves forward. The method may be called at any time,
-  // even if SeekToFirst() or one of its friends have not been called.
-  std::size_t NumValues() const;
-
   // Initializes the iterator to point to the first value, if any. This process
   // will trigger disk IO if necessary. The method can also be used to seek
   // back to the beginning of the list at the end of an iteration.
-  void SeekToFirst();
+  void seekToFirst();
 
   // Initializes the iterator to point to the first value in the list that is
   // equal to target, if any. This process will trigger disk IO if necessary.
-  void SeekTo(const Bytes& target);
+  void seekTo(const Bytes& target);
 
   // Initializes the iterator to point to the first value for which predicate
   // yields true, if any. This process will trigger disk IO if necessary.
-  void SeekTo(Callables::Predicate predicate);
+  void seekTo(Callables::Predicate predicate);
 
   // Tells whether the iterator points to a value. If the result is true, the
-  // iterator may be dereferenced via GetValue().
-  bool HasValue() const;
+  // iterator may be dereferenced via getValue().
+  bool hasValue() const;
 
   // Returns the current value. The returned Bytes object wraps a pointer to
   // data that is managed by the iterator. Hence, this pointer is only valid as
   // long as the iterator does not move forward. Therefore, the value should
   // only be used to immediately parse information or some user-defined object
   // out of it. If an independent deep copy is needed you can call
-  // Bytes::ToString().
+  // Bytes::toString().
   // Preconditions:
-  //   * HasValue() == true
-  Bytes GetValue() const;
+  //   * hasValue() == true
+  Bytes getValue() const;
 
   // Marks the value the iterator currently points to as deleted.
   // Preconditions:
-  //   * HasValue() == true
+  //   * hasValue() == true
   // Postconditions:
-  //   * HasValue() == false
-  void DeleteValue();
+  //   * hasValue() == false
+  void markAsDeleted();
 
   // Moves the iterator to the next value, if any.
-  void Next();
+  void next();
 
-  internal::ListLock<IsConst> ReleaseListLock();
+  internal::ListLock<IsConst> releaseListLock();
+
+  // Returns the total number of values to iterate. This number does not change
+  // when the iterator moves forward. The method may be called at any time,
+  // even if seekToFirst() or one of its friends have not been called.
+  std::size_t num_values() const;
 
  private:
   internal::ListLock<IsConst> list_lock_;
@@ -120,7 +120,7 @@ inline Iterator<true>::Iterator(
     const internal::Callbacks::RequestBlocks& request_blocks_callback)
     : list_lock_(std::move(list_lock)) {
   if (list_lock_.clist()) {
-    list_iter_ = list_lock_.clist()->NewConstIterator(request_blocks_callback);
+    list_iter_ = list_lock_.clist()->const_iterator(request_blocks_callback);
   }
 }
 
@@ -131,58 +131,58 @@ inline Iterator<false>::Iterator(
     const internal::Callbacks::ReplaceBlocks& replace_blocks_callback)
     : list_lock_(std::move(list_lock)) {
   if (list_lock_.list()) {
-    list_iter_ = list_lock_.list()->NewIterator(request_blocks_callback,
-                                                replace_blocks_callback);
+    list_iter_ = list_lock_.list()->iterator(request_blocks_callback,
+                                             replace_blocks_callback);
   }
 }
 
 template <bool IsConst>
-std::size_t Iterator<IsConst>::NumValues() const {
+std::size_t Iterator<IsConst>::num_values() const {
   const auto list = list_lock_.list();
   return list ? list->size() : 0;
 }
 
 template <bool IsConst>
-void Iterator<IsConst>::SeekToFirst() {
-  list_iter_.SeekToFirst();
+void Iterator<IsConst>::seekToFirst() {
+  list_iter_.seekToFirst();
 }
 
 template <bool IsConst>
-void Iterator<IsConst>::SeekTo(const Bytes& target) {
-  SeekTo([&target](const Bytes& value) { return value == target; });
+void Iterator<IsConst>::seekTo(const Bytes& target) {
+  seekTo([&target](const Bytes& value) { return value == target; });
 }
 
 template <bool IsConst>
-void Iterator<IsConst>::SeekTo(Callables::Predicate predicate) {
-  for (SeekToFirst(); HasValue(); Next()) {
-    if (predicate(GetValue())) {
+void Iterator<IsConst>::seekTo(Callables::Predicate predicate) {
+  for (seekToFirst(); hasValue(); next()) {
+    if (predicate(getValue())) {
       break;
     }
   }
 }
 
 template <bool IsConst>
-bool Iterator<IsConst>::HasValue() const {
-  return list_iter_.HasValue();
+bool Iterator<IsConst>::hasValue() const {
+  return list_iter_.hasValue();
 }
 
 template <bool IsConst>
-Bytes Iterator<IsConst>::GetValue() const {
-  return list_iter_.GetValue();
+Bytes Iterator<IsConst>::getValue() const {
+  return list_iter_.getValue();
 }
 
 template <>
-inline void Iterator<false>::DeleteValue() {
-  list_iter_.Delete();
+inline void Iterator<false>::markAsDeleted() {
+  list_iter_.markAsDeleted();
 }
 
 template <bool IsConst>
-void Iterator<IsConst>::Next() {
-  return list_iter_.Next();
+void Iterator<IsConst>::next() {
+  return list_iter_.next();
 }
 
 template <bool IsConst>
-internal::ListLock<IsConst> Iterator<IsConst>::ReleaseListLock() {
+internal::ListLock<IsConst> Iterator<IsConst>::releaseListLock() {
   return std::move(list_lock_);
 }
 

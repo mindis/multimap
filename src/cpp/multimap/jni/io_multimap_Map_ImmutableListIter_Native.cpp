@@ -37,7 +37,7 @@ inline ConstListIterHolder* Cast(JNIEnv* env, jobject self) {
 JNIEXPORT jlong JNICALL
     Java_io_multimap_Map_00024ImmutableListIter_00024Native_numValues(
         JNIEnv* env, jclass, jobject self) {
-  return Cast(env, self)->get().NumValues();
+  return Cast(env, self)->get().num_values();
 }
 
 /*
@@ -48,7 +48,7 @@ JNIEXPORT jlong JNICALL
 JNIEXPORT void JNICALL
     Java_io_multimap_Map_00024ImmutableListIter_00024Native_seekToFirst(
         JNIEnv* env, jclass, jobject self) {
-  Cast(env, self)->get().SeekToFirst();
+  Cast(env, self)->get().seekToFirst();
 }
 
 /*
@@ -60,7 +60,7 @@ JNIEXPORT void JNICALL
     Java_io_multimap_Map_00024ImmutableListIter_00024Native_seekTo__Ljava_nio_ByteBuffer_2_3B(
         JNIEnv* env, jclass, jobject self, jbyteArray jtarget) {
   multimap::jni::BytesRaiiHelper target(env, jtarget);
-  Cast(env, self)->get().SeekTo(target.get());
+  Cast(env, self)->get().seekTo(target.get());
 }
 
 /*
@@ -72,7 +72,7 @@ JNIEXPORT void JNICALL
     Java_io_multimap_Map_00024ImmutableListIter_00024Native_seekTo__Ljava_nio_ByteBuffer_2Lio_multimap_Callables_Predicate_2(
         JNIEnv* env, jclass, jobject self, jobject jpredicate) {
   const auto predicate = multimap::jni::MakePredicate(env, jpredicate);
-  Cast(env, self)->get().SeekTo(predicate);
+  Cast(env, self)->get().seekTo(predicate);
 }
 
 /*
@@ -83,7 +83,7 @@ JNIEXPORT void JNICALL
 JNIEXPORT jboolean JNICALL
     Java_io_multimap_Map_00024ImmutableListIter_00024Native_hasValue(
         JNIEnv* env, jclass, jobject self) {
-  return Cast(env, self)->get().HasValue();
+  return Cast(env, self)->get().hasValue();
 }
 
 /*
@@ -94,7 +94,7 @@ JNIEXPORT jboolean JNICALL
 JNIEXPORT jobject JNICALL
     Java_io_multimap_Map_00024ImmutableListIter_00024Native_getValue(
         JNIEnv* env, jclass, jobject self) {
-  const auto val = Cast(env, self)->get().GetValue();
+  const auto val = Cast(env, self)->get().getValue();
   return env->NewDirectByteBuffer(const_cast<char*>(val.data()), val.size());
 }
 
@@ -106,7 +106,7 @@ JNIEXPORT jobject JNICALL
 JNIEXPORT void JNICALL
     Java_io_multimap_Map_00024ImmutableListIter_00024Native_next(
         JNIEnv* env, jclass, jobject self) {
-  Cast(env, self)->get().Next();
+  Cast(env, self)->get().next();
 }
 
 /*

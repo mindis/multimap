@@ -27,7 +27,7 @@ namespace internal {
 
 namespace {
 
-void Check(bool expression, const char* format, va_list args) {
+void check(bool expression, const char* format, va_list args) {
   if (!expression) {
     va_list args2;
     va_copy(args2, args);
@@ -41,17 +41,17 @@ void Check(bool expression, const char* format, va_list args) {
 
 }  // namespace
 
-void Check(bool expression, const char* format, ...) {
+void check(bool expression, const char* format, ...) {
   va_list args;
   va_start(args, format);
-  Check(expression, format, args);
+  check(expression, format, args);
   va_end(args);
 }
 
-void Throw(const char* format, ...) {
+void throwRuntimeError(const char* format, ...) {
   va_list args;
   va_start(args, format);
-  Check(false, format, args);
+  check(false, format, args);
   va_end(args);
 }
 
