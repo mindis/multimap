@@ -149,8 +149,6 @@ class BlockStore {
     Buffer buffer_;
     Stats stats_;
     int fd_ = -1;
-
-    boost::filesystem::path path_;
   };
 
   mutable std::mutex mutex_;

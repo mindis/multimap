@@ -243,7 +243,6 @@ void BlockStore::DataFile::open(const boost::filesystem::path& path,
   stats_.block_size = options.block_size;
   buffer_.data.reset(new char[options.buffer_size]);
   buffer_.size = options.buffer_size;
-  path_ = path;
 }
 
 std::uint32_t BlockStore::DataFile::append(const Block& block) {
