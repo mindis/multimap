@@ -45,7 +45,7 @@ class BlockStore {
   };
 
   struct Options {
-    bool append_only_mode = false;
+    bool append_only_mode = false;  // TODO Try to remove
     bool create_if_missing = false;
     std::size_t block_size = 1024;
     std::size_t buffer_size = mt::MiB(1);
@@ -116,6 +116,7 @@ class BlockStore {
     // Thread-safe: yes.
 
     Stats getStats() const;
+    // Thread-safe: yes.
 
     const boost::filesystem::path& path() const;
     // Thread-safe: yes.
@@ -130,17 +131,33 @@ class BlockStore {
     char* getAddressOf(std::uint32_t id) const;
     // Thread-safe: no.
 
+    struct Mapped {
+      void* data = nullptr;
+      std::size_t size = 0;
+
+      std::size_t num_blocks(std::size_t block_size) const {
+        return size / block_size;
+      }
+    };
+
+    struct Buffer {
+      std::unique_ptr<char[]> data;
+      std::size_t offset = 0;
+      std::size_t size = 0;
+
+      std::size_t num_blocks(std::size_t block_size) const {
+        return size / block_size;
+      }
+    };
+
     mutable std::mutex mutex_;
     mutable bool fill_page_cache_ = false;
-    std::unique_ptr<char[]> buffer_;
-    std::size_t num_blocks_written_ = 0;
-    std::size_t num_blocks_mapped_ = 0;
-    std::size_t buffer_offset_ = 0;
-    double load_factor_total_ = 0;
-    void* mmap_addr_ = nullptr;
+    Mapped mapped_;
+    Buffer buffer_;
+    Stats stats_;
     int fd_ = -1;
+
     boost::filesystem::path path_;
-    Options options_;
   };
 
   mutable std::mutex mutex_;

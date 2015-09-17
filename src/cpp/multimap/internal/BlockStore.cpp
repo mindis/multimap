@@ -158,8 +158,8 @@ std::uint32_t BlockStore::getFileId(const Bytes& key) const {
 BlockStore::Stats BlockStore::getStats() const {
   Stats total_stats;
   total_stats.load_factor_min = -1;
-  for (const auto& data_file : block_files_) {
-    const auto stats = data_file->getStats();
+  for (const auto& block_file : block_files_) {
+    const auto stats = block_file->getStats();
     total_stats.block_size = stats.block_size;
     total_stats.num_blocks += stats.num_blocks;
     total_stats.load_factor_min =
@@ -191,29 +191,19 @@ void BlockStore::advise_access_pattern(AccessPattern pattern) const {
 
 BlockStore::DataFile::~DataFile() {
   const std::lock_guard<std::mutex> lock(mutex_);
-  if (mmap_addr_) {
-    const auto mmap_len = options_.block_size * num_blocks_mapped_;
-    const auto status = munmap(mmap_addr_, mmap_len);
-    assert(status == 0);
+  if (mapped_.data) {
+    const auto status = ::munmap(mapped_.data, mapped_.size);
+    MT_ASSERT_EQ(status, 0);
   }
-  if (buffer_ && buffer_offset_ != 0) {
-    const auto nbytes = ::write(fd_, buffer_.get(), buffer_offset_);
-    assert(nbytes != -1);
-    assert(static_cast<std::size_t>(nbytes) == buffer_offset_);
+  if (buffer_.offset != 0) {
+    const auto nbytes = ::write(fd_, buffer_.data.get(), buffer_.offset);
+    MT_ASSERT_NE(nbytes, -1);
+    MT_ASSERT_EQ(static_cast<std::size_t>(nbytes), buffer_.offset);
   }
   if (fd_ != -1) {
     const auto status = ::close(fd_);
-    assert(status == 0);
+    MT_ASSERT_EQ(status, 0);
   }
-  buffer_.reset();
-  num_blocks_written_ = 0;
-  num_blocks_mapped_ = 0;
-  load_factor_total_ = 0;
-  buffer_offset_ = 0;
-  mmap_addr_ = nullptr;
-  fd_ = -1;
-  path_.clear();
-  options_ = Options();
 }
 
 BlockStore::DataFile::DataFile(const boost::filesystem::path& path,
@@ -231,9 +221,9 @@ void BlockStore::DataFile::open(const boost::filesystem::path& path,
   if (boost::filesystem::is_regular_file(path)) {
     const auto file_size = boost::filesystem::file_size(path);
     MT_ASSERT_EQ(file_size % options.block_size, 0);
-    num_blocks_written_ = file_size / options.block_size;
+    stats_.num_blocks = file_size / options.block_size;
 
-    if (options_.append_only_mode) {
+    if (options.append_only_mode) {
       fd_ = ::open(path.c_str(), O_WRONLY | O_APPEND);
       check(fd_ != -1, "Could not open '%s' in append mode.", path.c_str());
 
@@ -243,16 +233,16 @@ void BlockStore::DataFile::open(const boost::filesystem::path& path,
 
       if (file_size != 0) {
         const auto prot = PROT_READ | PROT_WRITE;
-        mmap_addr_ = ::mmap64(nullptr, file_size, prot, MAP_SHARED, fd_, 0);
-        check(mmap_addr_ != MAP_FAILED,
+        mapped_.data = ::mmap64(nullptr, file_size, prot, MAP_SHARED, fd_, 0);
+        check(mapped_.data != MAP_FAILED,
               "POSIX mmap64() failed for '%s' because: %s", path.c_str(),
               std::strerror(errno));
-        num_blocks_mapped_ = num_blocks_written_;
+        mapped_.size = file_size;
       }
     }
   } else if (options.create_if_missing) {
     const auto permissions = 0644;
-    if (options_.append_only_mode) {
+    if (options.append_only_mode) {
       fd_ = ::open(path.c_str(), O_CREAT | O_WRONLY | O_APPEND, permissions);
       check(fd_ != -1, "Could not create '%s' in append mode", path.c_str());
 
@@ -263,75 +253,72 @@ void BlockStore::DataFile::open(const boost::filesystem::path& path,
   } else {
     mt::throwRuntimeError2("Does not exist: '%s'", path.c_str());
   }
-  buffer_.reset(new char[options.buffer_size]);
-  options_ = options;
+  stats_.block_size = options.block_size;
+  buffer_.data.reset(new char[options.buffer_size]);
+  buffer_.size = options.buffer_size;
   path_ = path;
 }
 
 std::uint32_t BlockStore::DataFile::append(const Block& block) {
   MT_REQUIRE_NE(fd_, -1);
-  MT_REQUIRE_EQ(block.size(), options_.block_size);
+  MT_REQUIRE_EQ(block.size(), stats_.block_size);
 
   const std::lock_guard<std::mutex> lock(mutex_);
-  if (buffer_offset_ == options_.buffer_size) {
+  if (buffer_.offset == buffer_.size) {
     // Flush buffer
-    const auto nbytes = ::write(fd_, buffer_.get(), options_.buffer_size);
+    const auto nbytes = ::write(fd_, buffer_.data.get(), buffer_.size);
     check(nbytes != -1, "POSIX write() failed");
-    check(static_cast<std::size_t>(nbytes) == options_.buffer_size,
-          "POSIX write() wrote only %u of %u bytes", nbytes,
-          options_.buffer_size);
-    buffer_offset_ = 0;
+    check(static_cast<std::size_t>(nbytes) == buffer_.size,
+          "POSIX write() wrote only %u of %u bytes", nbytes, buffer_.size);
+    buffer_.offset = 0;
 
-    if (!options_.append_only_mode) {
-      // Remap file
-      const auto old_size = options_.block_size * num_blocks_mapped_;
-      const auto new_size = options_.block_size * num_blocks_written_;
-      if (mmap_addr_) {
-        // fsync(fd_);
-        // Since Linux provides a so-called unified virtual memory system, it
-        // is not necessary to write the content of the buffer cache to disk to
-        // ensure that the newly appended data is visible after the remapping.
-        // In a unified virtual memory system, memory mappings and blocks of the
-        // buffer cache share the same pages of physical memory. [kerrisk p1032]
-        mmap_addr_ = ::mremap(mmap_addr_, old_size, new_size, MREMAP_MAYMOVE);
-        check(mmap_addr_ != MAP_FAILED, "POSIX mremap() failed");
-      } else {
-        const auto prot = PROT_READ | PROT_WRITE;
-        mmap_addr_ = ::mmap64(nullptr, new_size, prot, MAP_SHARED, fd_, 0);
-        check(mmap_addr_ != MAP_FAILED, "POSIX mmap64() failed");
-      }
-      num_blocks_mapped_ = num_blocks_written_;
+    // Remap file
+    const auto new_size = stats_.block_size * stats_.num_blocks;
+    if (mapped_.data) {
+      // fsync(fd_);
+      // Since Linux provides a so-called unified virtual memory system, it
+      // is not necessary to write the content of the buffer cache to disk to
+      // ensure that the newly appended data is visible after the remapping.
+      // In a unified virtual memory system, memory mappings and blocks of the
+      // buffer cache share the same pages of physical memory. [kerrisk p1032]
+      mapped_.data =
+          ::mremap(mapped_.data, mapped_.size, new_size, MREMAP_MAYMOVE);
+      check(mapped_.data != MAP_FAILED, "POSIX mremap() failed");
+    } else {
+      const auto prot = PROT_READ | PROT_WRITE;
+      mapped_.data = ::mmap64(nullptr, new_size, prot, MAP_SHARED, fd_, 0);
+      check(mapped_.data != MAP_FAILED, "POSIX mmap64() failed");
     }
+    mapped_.size = new_size;
   }
 
-  std::memcpy(buffer_.get() + buffer_offset_, block.data(), block.size());
-  buffer_offset_ += block.size();
+  std::memcpy(buffer_.data.get() + buffer_.offset, block.data(), block.size());
+  buffer_.offset += block.size();
 
-  load_factor_total_ += block.load_factor();
-  return num_blocks_written_++;
+  stats_.load_factor_avg += block.load_factor();
+  return stats_.num_blocks++;
 }
 
 void BlockStore::DataFile::read(std::uint32_t id, Block* block,
                                 Arena* arena) const {
   MT_REQUIRE_NE(fd_, -1);
   MT_REQUIRE_NOT_NULL(block);
-  check(!options_.append_only_mode,
-        "DataFile::read() called in append-only mode");
 
   if (block->hasData()) {
-    MT_ASSERT_EQ(block->size(), options_.block_size);
+    MT_ASSERT_EQ(block->size(), stats_.block_size);
   } else {
     MT_ASSERT_NOT_NULL(arena);
-    block->setData(arena->allocate(options_.block_size), options_.block_size);
+    block->setData(arena->allocate(stats_.block_size), stats_.block_size);
   }
 
   const std::lock_guard<std::mutex> lock(mutex_);
   if (fill_page_cache_) {
     fill_page_cache_ = false;
     // Touch each block to load it into the OS page cache.
-    std::vector<char> buffer(options_.block_size);
-    for (std::uint32_t i = 0; i != num_blocks_mapped_; ++i) {
-      std::memcpy(buffer.data(), getAddressOf(i), options_.block_size);
+    std::vector<char> buffer(stats_.block_size);
+    const auto num_blocks_mapped = mapped_.num_blocks(stats_.block_size);
+    for (std::uint32_t i = 0; i != num_blocks_mapped; ++i) {
+      std::memcpy(buffer.data(), getAddressOf(i), stats_.block_size);
     }
   }
   std::memcpy(block->data(), getAddressOf(id), block->size());
@@ -339,9 +326,7 @@ void BlockStore::DataFile::read(std::uint32_t id, Block* block,
 
 void BlockStore::DataFile::write(std::uint32_t id, const Block& block) {
   MT_REQUIRE_NE(fd_, -1);
-  MT_REQUIRE_EQ(block.size(), options_.block_size);
-  check(!options_.append_only_mode,
-        "DataFile::write() called in append-only mode");
+  MT_REQUIRE_EQ(block.size(), stats_.block_size);
 
   const std::lock_guard<std::mutex> lock(mutex_);
   std::memcpy(getAddressOf(id), block.data(), block.size());
@@ -349,33 +334,28 @@ void BlockStore::DataFile::write(std::uint32_t id, const Block& block) {
 
 BlockStore::Stats BlockStore::DataFile::getStats() const {
   const std::lock_guard<std::mutex> lock(mutex_);
-  Stats stats;
-  stats.block_size = options_.block_size;
-  stats.num_blocks = num_blocks_written_;
-  if (stats.num_blocks != 0) {
-    stats.load_factor_avg = load_factor_total_ / num_blocks_written_;
+  Stats result = stats_;
+  if (stats_.num_blocks != 0) {
+    result.load_factor_avg /= stats_.num_blocks;
     //    stats.load_factor_min = TODO;
     //    stats.load_factor_max = TODO;
   }
-  return stats;
+  return result;
 }
 
 const boost::filesystem::path& BlockStore::DataFile::path() const {
   return path_;
 }
 
-const BlockStore::Options& BlockStore::DataFile::options() const {
-  return options_;
-}
-
 char* BlockStore::DataFile::getAddressOf(std::uint32_t id) const {
-  MT_REQUIRE_LT(id, num_blocks_written_);
-  if (id < num_blocks_mapped_) {
-    const auto offset = options_.block_size * id;
-    return static_cast<char*>(mmap_addr_) + offset;
+  MT_REQUIRE_LT(id, stats_.num_blocks);
+  const auto num_blocks_mapped = mapped_.num_blocks(stats_.block_size);
+  if (id < num_blocks_mapped) {
+    const auto offset = stats_.block_size * id;
+    return static_cast<char*>(mapped_.data) + offset;
   } else {
-    const auto offset = options_.block_size * (id - num_blocks_mapped_);
-    return buffer_.get() + offset;
+    const auto offset = stats_.block_size * (id - num_blocks_mapped);
+    return buffer_.data.get() + offset;
   }
 }
 
