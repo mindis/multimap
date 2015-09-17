@@ -26,12 +26,12 @@ namespace internal {
 
 namespace {
 
-std::size_t ReadUint32(const Varint::uchar* source, std::uint32_t* target) {
+std::size_t readUint32(const Varint::uchar* source, std::uint32_t* target) {
   std::memcpy(target, source, sizeof *target);
   return sizeof *target;
 }
 
-std::size_t WriteUint32(std::uint32_t source, Varint::uchar* target) {
+std::size_t writeUint32(std::uint32_t source, Varint::uchar* target) {
   std::memcpy(target, &source, sizeof source);
   return sizeof source;
 }
@@ -94,15 +94,15 @@ void UintVector::add(std::uint32_t value) {
   allocateMoreIfFull();
   if (empty()) {
     put_offset_ += Varint::writeUint32(value, data_.get());
-    put_offset_ += WriteUint32(value, data_.get() + put_offset_);
+    put_offset_ += writeUint32(value, data_.get() + put_offset_);
   } else {
     std::uint32_t prev_value;
     put_offset_ -= sizeof prev_value;
-    ReadUint32(data_.get() + put_offset_, &prev_value);
+    readUint32(data_.get() + put_offset_, &prev_value);
     assert(prev_value < value);
     const std::uint32_t delta = value - prev_value;
     put_offset_ += Varint::writeUint32(delta, data_.get() + put_offset_);
-    put_offset_ += WriteUint32(value, data_.get() + put_offset_);
+    put_offset_ += writeUint32(value, data_.get() + put_offset_);
   }
 }
 
