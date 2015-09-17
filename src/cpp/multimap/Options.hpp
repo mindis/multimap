@@ -32,12 +32,6 @@ struct Options {
 
   bool error_if_exists = false;
   // Determines whether an already existing map should be treated as an error.
-
-  bool write_only_mode = false;
-  // Determines if the map should be opened in write-only mode. This will
-  // enable some optimizations for putting a large number of values, but will
-  // disable the ability to retrieve values. Users normally should leave this
-  // parameter alone.
 };
 
 }  // namespace multimap

@@ -45,7 +45,6 @@ class BlockStore {
   };
 
   struct Options {
-    bool append_only_mode = false;  // TODO Try to remove
     bool create_if_missing = false;
     std::size_t block_size = 1024;
     std::size_t buffer_size = mt::MiB(1);
@@ -79,6 +78,9 @@ class BlockStore {
   std::uint32_t getFileId(const Bytes& key) const;
   // Thread-safe: yes.
 
+  void adviseAccessPattern(AccessPattern pattern) const;
+  // Thread-safe: yes.
+
   Stats getStats() const;
   // Thread-safe: yes.
 
@@ -89,9 +91,6 @@ class BlockStore {
   // Thread-safe: yes.
 
   std::size_t num_files() const;
-  // Thread-safe: yes.
-
-  void advise_access_pattern(AccessPattern pattern) const;
   // Thread-safe: yes.
 
  private:
@@ -115,17 +114,11 @@ class BlockStore {
     void write(std::uint32_t id, const Block& block);
     // Thread-safe: yes.
 
+    void adviseAccessPattern(AccessPattern pattern) const;
+    // Thread-safe: no.
+
     Stats getStats() const;
     // Thread-safe: yes.
-
-    const boost::filesystem::path& path() const;
-    // Thread-safe: yes.
-
-    const Options& options() const;
-    // Thread-safe: yes.
-
-    void advise_access_pattern(AccessPattern pattern) const;
-    // Thread-safe: no.
 
    private:
     char* getAddressOf(std::uint32_t id) const;

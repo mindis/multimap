@@ -154,7 +154,13 @@ std::uint32_t BlockStore::getFileId(const Bytes& key) const {
   return mt::fnv1aHash32(key.data(), key.size()) % block_files_.size();
 }
 
-// https://bitbucket.org/mtrenkmann/multimap/issues/11
+void BlockStore::adviseAccessPattern(AccessPattern pattern) const {
+  const std::lock_guard<std::mutex> lock(mutex_);
+  for (const auto& block_file : block_files_) {
+    block_file->adviseAccessPattern(pattern);
+  }
+}
+
 BlockStore::Stats BlockStore::getStats() const {
   Stats total_stats;
   total_stats.load_factor_min = -1;
@@ -181,13 +187,6 @@ const boost::filesystem::path& BlockStore::directory() const {
 const BlockStore::Options& BlockStore::options() const { return options_; }
 
 std::size_t BlockStore::num_files() const { return block_files_.size(); }
-
-void BlockStore::advise_access_pattern(AccessPattern pattern) const {
-  const std::lock_guard<std::mutex> lock(mutex_);
-  for (const auto& block_file : block_files_) {
-    block_file->advise_access_pattern(pattern);
-  }
-}
 
 BlockStore::DataFile::~DataFile() {
   const std::lock_guard<std::mutex> lock(mutex_);
@@ -223,33 +222,21 @@ void BlockStore::DataFile::open(const boost::filesystem::path& path,
     MT_ASSERT_EQ(file_size % options.block_size, 0);
     stats_.num_blocks = file_size / options.block_size;
 
-    if (options.append_only_mode) {
-      fd_ = ::open(path.c_str(), O_WRONLY | O_APPEND);
-      check(fd_ != -1, "Could not open '%s' in append mode.", path.c_str());
+    fd_ = ::open(path.c_str(), O_RDWR);
+    check(fd_ != -1, "Could not open '%s' in read/write mode.", path.c_str());
 
-    } else {
-      fd_ = ::open(path.c_str(), O_RDWR);
-      check(fd_ != -1, "Could not open '%s' in read/write mode.", path.c_str());
-
-      if (file_size != 0) {
-        const auto prot = PROT_READ | PROT_WRITE;
-        mapped_.data = ::mmap64(nullptr, file_size, prot, MAP_SHARED, fd_, 0);
-        check(mapped_.data != MAP_FAILED,
-              "POSIX mmap64() failed for '%s' because: %s", path.c_str(),
-              std::strerror(errno));
-        mapped_.size = file_size;
-      }
+    if (file_size != 0) {
+      const auto prot = PROT_READ | PROT_WRITE;
+      mapped_.data = ::mmap64(nullptr, file_size, prot, MAP_SHARED, fd_, 0);
+      check(mapped_.data != MAP_FAILED,
+            "POSIX mmap64() failed for '%s' because: %s", path.c_str(),
+            std::strerror(errno));
+      mapped_.size = file_size;
     }
   } else if (options.create_if_missing) {
     const auto permissions = 0644;
-    if (options.append_only_mode) {
-      fd_ = ::open(path.c_str(), O_CREAT | O_WRONLY | O_APPEND, permissions);
-      check(fd_ != -1, "Could not create '%s' in append mode", path.c_str());
-
-    } else {
-      fd_ = ::open(path.c_str(), O_CREAT | O_RDWR, permissions);
-      check(fd_ != -1, "Could not create '%s'", path.c_str());
-    }
+    fd_ = ::open(path.c_str(), O_CREAT | O_RDWR, permissions);
+    check(fd_ != -1, "Could not create '%s'", path.c_str());
   } else {
     mt::throwRuntimeError2("Does not exist: '%s'", path.c_str());
   }
@@ -332,6 +319,20 @@ void BlockStore::DataFile::write(std::uint32_t id, const Block& block) {
   std::memcpy(getAddressOf(id), block.data(), block.size());
 }
 
+void BlockStore::DataFile::adviseAccessPattern(AccessPattern pattern) const {
+  switch (pattern) {
+    case AccessPattern::RANDOM:
+      fill_page_cache_ = false;
+      break;
+    case AccessPattern::SEQUENTIAL:
+      fill_page_cache_ = true;
+      break;
+    default:
+      mt::throwRuntimeError("Default branch reached");
+      break;
+  }
+}
+
 BlockStore::Stats BlockStore::DataFile::getStats() const {
   const std::lock_guard<std::mutex> lock(mutex_);
   Stats result = stats_;
@@ -343,10 +344,6 @@ BlockStore::Stats BlockStore::DataFile::getStats() const {
   return result;
 }
 
-const boost::filesystem::path& BlockStore::DataFile::path() const {
-  return path_;
-}
-
 char* BlockStore::DataFile::getAddressOf(std::uint32_t id) const {
   MT_REQUIRE_LT(id, stats_.num_blocks);
   const auto num_blocks_mapped = mapped_.num_blocks(stats_.block_size);
@@ -356,20 +353,6 @@ char* BlockStore::DataFile::getAddressOf(std::uint32_t id) const {
   } else {
     const auto offset = stats_.block_size * (id - num_blocks_mapped);
     return buffer_.data.get() + offset;
-  }
-}
-
-void BlockStore::DataFile::advise_access_pattern(AccessPattern pattern) const {
-  switch (pattern) {
-    case AccessPattern::RANDOM:
-      fill_page_cache_ = false;
-      break;
-    case AccessPattern::SEQUENTIAL:
-      fill_page_cache_ = true;
-      break;
-    default:
-      mt::throwRuntimeError("Default branch reached");
-      break;
   }
 }
 

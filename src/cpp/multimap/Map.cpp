@@ -173,7 +173,6 @@ void Map::open(const boost::filesystem::path& directory,
 
     internal::BlockStore::Options store_options;
     store_options.block_size = options_.block_size;
-    store_options.append_only_mode = options_.write_only_mode;
     block_store_.open(absolute_directory, store_options);
     table_.open(path_to_table);
 
@@ -186,7 +185,6 @@ void Map::open(const boost::filesystem::path& directory,
     internal::BlockStore::Options store_options;
     store_options.create_if_missing = true;
     store_options.block_size = options_.block_size;
-    store_options.append_only_mode = options_.write_only_mode;
     block_store_.open(absolute_directory, store_options);
     table_.open(path_to_table, true);
 
@@ -289,9 +287,9 @@ void Map::forEachEntry(Callables::EntryProcedure procedure) const {
   auto compare = [this](const Bytes& key_a, const Bytes& key_b) {
     return block_store_.getFileId(key_a) < block_store_.getFileId(key_b);
   };
-  block_store_.advise_access_pattern(internal::AccessPattern::SEQUENTIAL);
+  block_store_.adviseAccessPattern(internal::AccessPattern::SEQUENTIAL);
   table_.forEachEntry(table_entry_proc, compare);
-  block_store_.advise_access_pattern(internal::AccessPattern::RANDOM);
+  block_store_.adviseAccessPattern(internal::AccessPattern::RANDOM);
 }
 
 void Map::forEachKey(Callables::BytesProcedure procedure) const {
@@ -424,14 +422,12 @@ void optimize(const boost::filesystem::path& from,
   optimize(from, to, compare, -1);
 }
 
-// TODO https://bitbucket.org/mtrenkmann/multimap/issues/4
 void optimize(const boost::filesystem::path& from,
               const boost::filesystem::path& to,
               Callables::BytesCompare compare, std::size_t new_block_size) {
   Map map_in(from, Options());
 
   Options options;
-  options.write_only_mode = true;
   options.error_if_exists = true;
   options.create_if_missing = true;
   options.block_size = std::stoul(map_in.getProperties()["store.block_size"]);
@@ -476,7 +472,6 @@ void importFromBase64(const boost::filesystem::path& directory,
                       const boost::filesystem::path& file,
                       bool create_if_missing, std::size_t block_size) {
   Options options;
-  options.write_only_mode = true;
   options.create_if_missing = create_if_missing;
   if (block_size != static_cast<std::size_t>(-1)) {
     options.block_size = block_size;
