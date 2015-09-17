@@ -68,8 +68,8 @@ std::map<std::string, std::string> BlockStore::Stats::toMap(
   map[prefix_copy + "block_size"] = std::to_string(block_size);
   map[prefix_copy + "num_blocks"] = std::to_string(num_blocks);
   map[prefix_copy + "load_factor_avg"] = std::to_string(load_factor_avg);
-  //  map[prefix_copy + "load_factor_max"] = std::to_string(load_factor_max);
-  //  map[prefix_copy + "load_factor_min"] = std::to_string(load_factor_min);
+  map[prefix_copy + "load_factor_max"] = std::to_string(load_factor_max);
+  map[prefix_copy + "load_factor_min"] = std::to_string(load_factor_min);
   return map;
 }
 
@@ -163,7 +163,7 @@ void BlockStore::adviseAccessPattern(AccessPattern pattern) const {
 
 BlockStore::Stats BlockStore::getStats() const {
   Stats total_stats;
-  total_stats.load_factor_min = -1;
+  total_stats.load_factor_min = 1.0;
   for (const auto& block_file : block_files_) {
     const auto stats = block_file->getStats();
     total_stats.block_size = stats.block_size;
@@ -240,9 +240,12 @@ void BlockStore::DataFile::open(const boost::filesystem::path& path,
   } else {
     mt::throwRuntimeError2("Does not exist: '%s'", path.c_str());
   }
-  stats_.block_size = options.block_size;
+
   buffer_.data.reset(new char[options.buffer_size]);
   buffer_.size = options.buffer_size;
+
+  stats_.block_size = options.block_size;
+  stats_.load_factor_min = 1.0;
 }
 
 std::uint32_t BlockStore::DataFile::append(const Block& block) {
@@ -281,7 +284,10 @@ std::uint32_t BlockStore::DataFile::append(const Block& block) {
   std::memcpy(buffer_.data.get() + buffer_.offset, block.data(), block.size());
   buffer_.offset += block.size();
 
-  stats_.load_factor_avg += block.load_factor();
+  const auto load_factor = block.load_factor();
+  stats_.load_factor_avg += load_factor;
+  stats_.load_factor_max = std::max(load_factor, stats_.load_factor_max);
+  stats_.load_factor_min = std::min(load_factor, stats_.load_factor_min);
   return stats_.num_blocks++;
 }
 
