@@ -45,7 +45,7 @@ inline multimap::Map* Cast(JNIEnv* env, jobject self) {
 
 typedef std::map<std::string, std::string> Properties;
 
-Properties ParseProperties(const std::string& input) {
+Properties parseProperties(const std::string& input) {
   Properties props;
   std::string line;
   std::istringstream iss(input);
@@ -63,7 +63,7 @@ Properties ParseProperties(const std::string& input) {
   return props;
 }
 
-std::string SerializeProperties(const Properties& properties) {
+std::string serializeProperties(const Properties& properties) {
   std::string result;
   for (const auto& entry : properties) {
     result.append(entry.first);
@@ -74,10 +74,10 @@ std::string SerializeProperties(const Properties& properties) {
   return result;
 }
 
-multimap::Options MakeOptions(JNIEnv* env, jstring joptions) {
+multimap::Options makeOptions(JNIEnv* env, jstring joptions) {
   multimap::Options options;
-  const auto str = multimap::jni::MakeString(env, joptions);
-  for (const auto& entry : ParseProperties(str)) {
+  const auto str = multimap::jni::makeString(env, joptions);
+  for (const auto& entry : parseProperties(str)) {
     if (entry.first == "block-size") {
       options.block_size = std::stoul(entry.second);
     } else if (entry.first == "create-if-missing") {
@@ -104,13 +104,13 @@ JNIEXPORT jobject JNICALL
     Java_io_multimap_Map_00024Native_open(JNIEnv* env, jclass,
                                           jstring jdirectory,
                                           jstring joptions) {
-  const auto directory = multimap::jni::MakeString(env, jdirectory);
-  const auto options = MakeOptions(env, joptions);
+  const auto directory = multimap::jni::makeString(env, jdirectory);
+  const auto options = makeOptions(env, joptions);
   try {
     const auto map = new multimap::Map(directory, options);
     return env->NewDirectByteBuffer(map, sizeof map);
   } catch (std::exception& error) {
-    multimap::jni::ThrowException(env, error.what());
+    multimap::jni::throwJavaException(env, error.what());
   }
   return nullptr;
 }
@@ -138,7 +138,7 @@ JNIEXPORT void JNICALL
   try {
     Cast(env, self)->put(key.get(), value.get());
   } catch (std::exception& error) {
-    multimap::jni::ThrowException(env, error.what());
+    multimap::jni::throwJavaException(env, error.what());
   }
 }
 
@@ -210,7 +210,7 @@ JNIEXPORT jlong JNICALL
                                                jobject self, jbyteArray jkey,
                                                jobject jpredicate) {
   multimap::jni::BytesRaiiHelper key(env, jkey);
-  const auto predicate = multimap::jni::MakePredicate(env, jpredicate);
+  const auto predicate = multimap::jni::makeBytesPredicate(env, jpredicate);
   try {
     return Cast(env, self)->removeAll(key.get(), predicate);
   } catch (std::exception& error) {
@@ -218,7 +218,7 @@ JNIEXPORT jlong JNICALL
       // The Java predicate has thrown an exception.
       // Not calling env->ExceptionClear() will forward it to the JVM.
     } else {
-      multimap::jni::ThrowException(env, error.what());
+      multimap::jni::throwJavaException(env, error.what());
       // The C++ code has thrown an exception that is rethrown to the JVM.
     }
     return 0;
@@ -247,7 +247,7 @@ JNIEXPORT jboolean JNICALL
                                                  jobject self, jbyteArray jkey,
                                                  jobject jpredicate) {
   multimap::jni::BytesRaiiHelper key(env, jkey);
-  const auto predicate = multimap::jni::MakePredicate(env, jpredicate);
+  const auto predicate = multimap::jni::makeBytesPredicate(env, jpredicate);
   try {
     return Cast(env, self)->removeFirst(key.get(), predicate);
   } catch (std::exception& error) {
@@ -255,7 +255,7 @@ JNIEXPORT jboolean JNICALL
       // The Java predicate has thrown an exception.
       // Not calling env->ExceptionClear() will forward it to the JVM.
     } else {
-      multimap::jni::ThrowException(env, error.what());
+      multimap::jni::throwJavaException(env, error.what());
       // The C++ code has thrown an exception that is rethrown to the JVM.
     }
     return false;
@@ -284,7 +284,7 @@ JNIEXPORT jlong JNICALL
                                                 jobject self, jbyteArray jkey,
                                                 jobject jfunction) {
   multimap::jni::BytesRaiiHelper key(env, jkey);
-  const auto function = multimap::jni::MakeFunction(env, jfunction);
+  const auto function = multimap::jni::makeBytesFunction(env, jfunction);
   try {
     return Cast(env, self)->replaceAll(key.get(), function);
   } catch (std::exception& error) {
@@ -292,7 +292,7 @@ JNIEXPORT jlong JNICALL
       // The Java function has thrown an exception.
       // Not calling env->ExceptionClear() will forward it to the JVM.
     } else {
-      multimap::jni::ThrowException(env, error.what());
+      multimap::jni::throwJavaException(env, error.what());
       // The C++ code has thrown an exception that is rethrown to the JVM.
     }
     return 0;
@@ -324,7 +324,7 @@ JNIEXPORT jboolean JNICALL
                                                   jobject self, jbyteArray jkey,
                                                   jobject jfunction) {
   multimap::jni::BytesRaiiHelper key(env, jkey);
-  const auto function = multimap::jni::MakeFunction(env, jfunction);
+  const auto function = multimap::jni::makeBytesFunction(env, jfunction);
   try {
     return Cast(env, self)->replaceFirst(key.get(), function);
   } catch (std::exception& error) {
@@ -332,7 +332,7 @@ JNIEXPORT jboolean JNICALL
       // The Java function has thrown an exception.
       // Not calling env->ExceptionClear() will forward it to the JVM.
     } else {
-      multimap::jni::ThrowException(env, error.what());
+      multimap::jni::throwJavaException(env, error.what());
       // The C++ code has thrown an exception that is rethrown to the JVM.
     }
     return false;
@@ -363,7 +363,7 @@ JNIEXPORT void JNICALL
     Java_io_multimap_Map_00024Native_forEachKey(JNIEnv* env, jclass,
                                                 jobject self,
                                                 jobject jprocedure) {
-  const auto procedure = multimap::jni::MakeProcedure(env, jprocedure);
+  const auto procedure = multimap::jni::makeBytesProcedure(env, jprocedure);
   try {
     Cast(env, self)->forEachKey(procedure);
   } catch (std::exception& error) {
@@ -371,7 +371,7 @@ JNIEXPORT void JNICALL
       // The Java procedure has thrown an exception.
       // Not calling env->ExceptionClear() will forward it to the JVM.
     } else {
-      multimap::jni::ThrowException(env, error.what());
+      multimap::jni::throwJavaException(env, error.what());
       // The C++ code has thrown an exception that is rethrown to the JVM.
     }
   }
@@ -386,7 +386,7 @@ JNIEXPORT void JNICALL
     Java_io_multimap_Map_00024Native_forEachValue__Ljava_nio_ByteBuffer_2_3BLio_multimap_Callables_00024Procedure_2(
         JNIEnv* env, jclass, jobject self, jbyteArray jkey,
         jobject jprocedure) {
-  const auto procedure = multimap::jni::MakeProcedure(env, jprocedure);
+  const auto procedure = multimap::jni::makeBytesProcedure(env, jprocedure);
   multimap::jni::BytesRaiiHelper key(env, jkey);
   try {
     Cast(env, self)->forEachValue(key.get(), procedure);
@@ -395,7 +395,7 @@ JNIEXPORT void JNICALL
       // The Java procedure has thrown an exception.
       // Not calling env->ExceptionClear() will forward it to the JVM.
     } else {
-      multimap::jni::ThrowException(env, error.what());
+      multimap::jni::throwJavaException(env, error.what());
       // The C++ code has thrown an exception that is rethrown to the JVM.
     }
   }
@@ -410,7 +410,7 @@ JNIEXPORT void JNICALL
     Java_io_multimap_Map_00024Native_forEachValue__Ljava_nio_ByteBuffer_2_3BLio_multimap_Callables_00024Predicate_2(
         JNIEnv* env, jclass, jobject self, jbyteArray jkey,
         jobject jpredicate) {
-  const auto predicate = multimap::jni::MakePredicate(env, jpredicate);
+  const auto predicate = multimap::jni::makeBytesPredicate(env, jpredicate);
   multimap::jni::BytesRaiiHelper key(env, jkey);
   try {
     Cast(env, self)->forEachValue(key.get(), predicate);
@@ -419,7 +419,7 @@ JNIEXPORT void JNICALL
       // The Java predicate has thrown an exception.
       // Not calling env->ExceptionClear() will forward it to the JVM.
     } else {
-      multimap::jni::ThrowException(env, error.what());
+      multimap::jni::throwJavaException(env, error.what());
       // The C++ code has thrown an exception that is rethrown to the JVM.
     }
   }
@@ -434,7 +434,7 @@ JNIEXPORT jstring JNICALL
     Java_io_multimap_Map_00024Native_getProperties(JNIEnv* env, jclass,
                                                    jobject self) {
   const auto properties = Cast(env, self)->getProperties();
-  return env->NewStringUTF(SerializeProperties(properties).c_str());
+  return env->NewStringUTF(serializeProperties(properties).c_str());
 }
 
 /*
@@ -470,15 +470,15 @@ JNIEXPORT void JNICALL
                                               jstring jfrom, jstring jto,
                                               jobject jless_than,
                                               jint new_block_size) {
-  const auto from = multimap::jni::MakeString(env, jfrom);
-  const auto to = multimap::jni::MakeString(env, jto);
+  const auto from = multimap::jni::makeString(env, jfrom);
+  const auto to = multimap::jni::makeString(env, jto);
   const auto compare = (jless_than != nullptr)
-                           ? multimap::jni::MakeCompare(env, jless_than)
-                           : multimap::Callables::Compare();
+                           ? multimap::jni::makeBytesCompare(env, jless_than)
+                           : multimap::Callables::BytesCompare();
   try {
     multimap::optimize(from, to, compare, new_block_size);
   } catch (std::exception& error) {
-    multimap::jni::ThrowException(env, error.what());
+    multimap::jni::throwJavaException(env, error.what());
   }
 }
 
@@ -492,12 +492,12 @@ JNIEXPORT void JNICALL
                                             jstring jdirectory, jstring jfile,
                                             jboolean create_if_missing,
                                             jint block_size) {
-  const auto directory = multimap::jni::MakeString(env, jdirectory);
-  const auto file = multimap::jni::MakeString(env, jfile);
+  const auto directory = multimap::jni::makeString(env, jdirectory);
+  const auto file = multimap::jni::makeString(env, jfile);
   try {
     multimap::importFromBase64(directory, file, create_if_missing, block_size);
   } catch (std::exception& error) {
-    multimap::jni::ThrowException(env, error.what());
+    multimap::jni::throwJavaException(env, error.what());
   }
 }
 
@@ -509,11 +509,11 @@ JNIEXPORT void JNICALL
 JNIEXPORT void JNICALL
     Java_io_multimap_Map_00024Native_Export(JNIEnv* env, jclass,
                                             jstring jdirectory, jstring jfile) {
-  const auto directory = multimap::jni::MakeString(env, jdirectory);
-  const auto file = multimap::jni::MakeString(env, jfile);
+  const auto directory = multimap::jni::makeString(env, jdirectory);
+  const auto file = multimap::jni::makeString(env, jfile);
   try {
     multimap::exportToBase64(directory, file);
   } catch (std::exception& error) {
-    multimap::jni::ThrowException(env, error.what());
+    multimap::jni::throwJavaException(env, error.what());
   }
 }

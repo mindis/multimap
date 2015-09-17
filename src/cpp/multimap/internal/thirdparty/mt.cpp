@@ -17,11 +17,33 @@
 
 #include "mt.hpp"
 
+#include <ios>
+#include <cmath>
 #include <cstdio>
 #include <cstdarg>
 #include <vector>
 
 namespace mt {
+
+bool isPrime(std::size_t number) {
+  if (number % 2 == 0) {
+    return false;
+  }
+  const std::size_t max = std::sqrt(number);
+  for (std::size_t i = 3; i <= max; i += 2) {
+    if (number % i == 0) {
+      return false;
+    }
+  }
+  return true;
+}
+
+std::size_t nextPrime(std::size_t number) {
+  while (!isPrime(number)) {
+    ++number;
+  }
+  return number;
+}
 
 // Source: http://www.isthe.com/chongo/src/fnv/hash_32a.c
 std::uint32_t fnv1aHash32(const void* buf, std::size_t len) {
@@ -29,8 +51,8 @@ std::uint32_t fnv1aHash32(const void* buf, std::size_t len) {
   const auto uchar_buf = reinterpret_cast<const unsigned char*>(buf);
   for (std::size_t i = 0; i != len; ++i) {
     hash ^= uchar_buf[i];
-    hash += (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) +
-            (hash << 24);
+    hash +=
+        (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24);
   }
   return hash;
 }
@@ -73,8 +95,16 @@ std::string makeErrorMessage(const char* what, const char* file,
                              bool expected) {
   std::ostringstream oss;
   oss << what << " in " << file << ':' << line;
-  oss << "\nThe expression '" << expr << "' should be " << expected
-      << ", but was " << !expected << '.';
+  oss << "\nThe expression '" << expr << "' should be " << std::boolalpha
+      << expected << ", but was " << !expected << '.';
+  return oss.str();
+}
+
+std::string makeErrorMessage(const char* what, const char* file,
+                             std::size_t line, const char* expr) {
+  std::ostringstream oss;
+  oss << what << " in " << file << ':' << line;
+  oss << "\nThe expression '" << expr << "' yields nullptr.";
   return oss.str();
 }
 
@@ -90,6 +120,11 @@ void failAssertFalse(const char* file, std::size_t line, const char* expr) {
       makeErrorMessage("Assertion failed", file, line, expr, false));
 }
 
+void failAssertNotNull(const char* file, std::size_t line, const char* expr) {
+  throw std::runtime_error(
+      makeErrorMessage("Assertion failed", file, line, expr));
+}
+
 void failRequireTrue(const char* file, std::size_t line, const char* expr) {
   throw std::runtime_error(
       makeErrorMessage("Precondition failed", file, line, expr, true));
@@ -100,6 +135,11 @@ void failRequireFalse(const char* file, std::size_t line, const char* expr) {
       makeErrorMessage("Precondition failed", file, line, expr, false));
 }
 
+void failRequireNotNull(const char* file, std::size_t line, const char* expr) {
+  throw std::runtime_error(
+      makeErrorMessage("Precondition failed", file, line, expr));
+}
+
 void failEnsureTrue(const char* file, std::size_t line, const char* expr) {
   throw std::runtime_error(
       makeErrorMessage("Postcondition failed", file, line, expr, true));
@@ -108,6 +148,11 @@ void failEnsureTrue(const char* file, std::size_t line, const char* expr) {
 void failEnsureFalse(const char* file, std::size_t line, const char* expr) {
   throw std::runtime_error(
       makeErrorMessage("Postcondition failed", file, line, expr, false));
+}
+
+void failEnsureNotNull(const char* file, std::size_t line, const char* expr) {
+  throw std::runtime_error(
+      makeErrorMessage("Postcondition failed", file, line, expr));
 }
 
 }  // namespace internal

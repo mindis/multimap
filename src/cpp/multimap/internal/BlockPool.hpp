@@ -21,19 +21,23 @@
 #include <memory>
 #include <mutex>
 #include <vector>
-#include "multimap/common.hpp"
 #include "multimap/internal/Block.hpp"
+#include "multimap/internal/thirdparty/mt.hpp"
 
 namespace multimap {
 namespace internal {
 
 class BlockPool {
  public:
+  static const std::size_t DEFAULT_CHUNK_SIZE = mt::MiB(100);
+
   BlockPool() = default;
 
-  BlockPool(std::size_t block_size, std::size_t chunk_size = MiB(100));
+  BlockPool(std::size_t block_size,
+            std::size_t chunk_size = DEFAULT_CHUNK_SIZE);
 
-  void init(std::size_t block_size, std::size_t chunk_size = MiB(100));
+  void init(std::size_t block_size,
+            std::size_t chunk_size = DEFAULT_CHUNK_SIZE);
 
   Block allocate();
   // Thread-safe: yes.

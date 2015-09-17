@@ -74,7 +74,7 @@ class Iterator {
   // Initializes the iterator to point to the first value in the list that is
   // equal to target, if any. This process will trigger disk IO if necessary.
 
-  void seekTo(Callables::Predicate predicate);
+  void seekTo(Callables::BytesPredicate predicate);
   // Initializes the iterator to point to the first value for which predicate
   // yields true, if any. This process will trigger disk IO if necessary.
 
@@ -153,7 +153,7 @@ void Iterator<IsConst>::seekTo(const Bytes& target) {
 }
 
 template <bool IsConst>
-void Iterator<IsConst>::seekTo(Callables::Predicate predicate) {
+void Iterator<IsConst>::seekTo(Callables::BytesPredicate predicate) {
   for (seekToFirst(); hasValue(); next()) {
     if (predicate(getValue())) {
       break;

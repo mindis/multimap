@@ -48,8 +48,8 @@ map.put(key, value);
 value = ByteBuffer.allocate(4).putInt(23).array();
 map.put(key, value);
 
-// Put a value constructed from some serialization library.
-value = somelib.serialize(someObject);
+// Put a value constructed via some serialization library.
+value = somelib.serializeAsByteArray(someObject);
 map.put(key, value);
 ```
 
@@ -73,7 +73,7 @@ iter.close();  // Releases internal list lock.
 
 Iterators allow for lazy initialization which means that no IO operation is performed until you call `seekToFirst()` or one of its friends `seekTo(target)` and `seekTo(predicate)`. This might be useful in cases where you need to request multiple iterators first to determine in which order they have to be processed. The length of the underlying list can be obtained via `numValues()` even if the iterator has not been initialized.
 
-A call to `getValue()` returns the value the iterator currently points to as `ByteBuffer`. This byte buffer is a direct one, which means that it is not backed by a `byte[]` managed by the Java Garbage Collector. Instead, it contains a pointer that points to memory allocated and managed by the shared library. Hence, the value is only valid as long as the iterator is not moved forward. You should never copy around this kind of byte buffer.
+A call to `getValue()` returns the value the iterator currently points to as `java.nio.ByteBuffer`. This byte buffer is a direct one, which means that it is not backed by a `byte[]` managed by the Java Garbage Collector. Instead, it contains a pointer that points to memory allocated and managed by the shared library. Hence, the value is only valid as long as the iterator is not moved forward. You should never copy around this kind of byte buffer.
 
 To get an independent copy of the value that is managed by the Java GC you can call `getValueAsByteArray()`. However, for performance reasons, you should try to parse the content directly out of the byte buffer. Most [serialization libraries](https://en.wikipedia.org/wiki/Comparison_of_data_serialization_formats) should support this operation.
 

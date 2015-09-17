@@ -26,7 +26,9 @@ namespace internal {
 
 class Arena {
  public:
-  Arena(std::size_t block_size = 4096);
+  static const std::size_t DEFAULT_BLOCK_SIZE = 4096;
+
+  Arena(std::size_t block_size = DEFAULT_BLOCK_SIZE);
 
   char* allocate(std::size_t num_bytes);
   // Thread-safe: no.

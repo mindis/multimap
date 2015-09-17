@@ -48,12 +48,5 @@ void check(bool expression, const char* format, ...) {
   va_end(args);
 }
 
-void throwRuntimeError(const char* format, ...) {
-  va_list args;
-  va_start(args, format);
-  check(false, format, args);
-  va_end(args);
-}
-
 }  // namespace internal
 }  // namespace multimap

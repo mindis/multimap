@@ -24,7 +24,7 @@
 #include "multimap/internal/AutoCloseFile.hpp"
 #include "multimap/internal/BlockPool.hpp"
 #include "multimap/internal/Callbacks.hpp"
-#include "multimap/internal/Store.hpp"
+#include "multimap/internal/BlockStore.hpp"
 #include "multimap/internal/Table.hpp"
 #include "multimap/internal/System.hpp"
 #include "multimap/Callables.hpp"
@@ -118,7 +118,7 @@ class Map {
   // will block until a writer lock can be acquired.
   // Returns: the number of deleted values.
 
-  std::size_t removeAll(const Bytes& key, Callables::Predicate predicate);
+  std::size_t removeAll(const Bytes& key, Callables::BytesPredicate predicate);
   // Deletes all values in the list associated with key for which predicate
   // yields true. This method will block until a writer lock can be acquired.
   // Returns: the number of deleted values.
@@ -129,7 +129,7 @@ class Map {
   // will block until a writer lock can be acquired.
   // Returns: the number of deleted values.
 
-  bool removeFirst(const Bytes& key, Callables::Predicate predicate);
+  bool removeFirst(const Bytes& key, Callables::BytesPredicate predicate);
   // Deletes the first value in the list associated with key for which
   // predicate yields true. This method will block until a writer lock can be
   // acquired.
@@ -141,7 +141,7 @@ class Map {
   // will block until a writer lock can be acquired.
   // Returns: true if a value was deleted, false otherwise.
 
-  std::size_t replaceAll(const Bytes& key, Callables::Function function);
+  std::size_t replaceAll(const Bytes& key, Callables::BytesFunction function);
   // Replaces all values in the list associated with key by the result of
   // invoking function. If the result of function is an empty string no
   // replacement is performed. A replacement does not happen in-place. Instead,
@@ -160,7 +160,7 @@ class Map {
   // until a writer lock can be acquired.
   // Returns: the number of replaced values.
 
-  bool replaceFirst(const Bytes& key, Callables::Function function);
+  bool replaceFirst(const Bytes& key, Callables::BytesFunction function);
   // Replaces the first value in the list associated with key by the result of
   // invoking function. If the result of function is an empty string no
   // replacement is performed. The replacement does not happen in-place.
@@ -179,21 +179,29 @@ class Map {
   // block until a writer lock can be acquired.
   // Returns: true if a value was replaced, false otherwise.
 
-  void forEachKey(Callables::Procedure procedure) const;
-  // Applies procedure to each key of the map whose associated list is not
-  // empty. For the time of execution the entire map is locked for read-only
-  // operations. It is possible to keep a reference to the map within procedure
-  // and to call other read-only operations such as Get(). However, trying to
-  // call mutable operations such as GetMutable() will cause a deadlock.
+  void forEachEntry(Callables::EntryProcedure procedure) const;
 
-  void forEachValue(const Bytes& key, Callables::Procedure procedure) const;
+  void forEachKey(Callables::BytesProcedure procedure) const;
+  // Applies `procedure` to each key of the map whose associated list is not
+  // empty. The keys are visited in random order. Although it is possible to
+  // emulate a for-each-entry iteration by keeping a `this` pointer of the map
+  // within `procedure` plus calling `Get(key)`, this operation should be
+  // avoided, because it produces a sub-optimal access pattern to the external
+  // data files. Moreover, calling `GetMutable(key)` in such a scenario will
+  // cause a deadlock. Use `forEachEntry` instead, which brings the entries in
+  // an optimal order before iterating them. During the time of execution the
+  // entire map is locked for read-only operations.
+
+  void forEachValue(const Bytes& key,
+                    Callables::BytesProcedure procedure) const;
   // Applies procedure to each value in the list associated with key. This is a
   // shorthand for requesting a read-only iterator via Get(key) followed by an
   // application of procedure to each value obtained via
   // ConstListIter::GetValue(). This method will block until a reader lock for
   // the list in question can be acquired.
 
-  void forEachValue(const Bytes& key, Callables::Predicate predicate) const;
+  void forEachValue(const Bytes& key,
+                    Callables::BytesPredicate predicate) const;
   // Applies predicate to each value in the list associated with key until
   // predicate yields false. This is a shorthand for requesting a read-only
   // iterator via Get(key) followed by an application of predicate to each
@@ -217,29 +225,35 @@ class Map {
   // this is options.block_size - 2 bytes.
 
  private:
-  std::size_t remove(const Bytes& key, Callables::Predicate pred, bool all);
+  std::size_t remove(const Bytes& key, Callables::BytesPredicate predicate,
+                     bool apply_to_all);
 
-  std::size_t replace(const Bytes& key, Callables::Function func, bool all);
+  std::size_t replace(const Bytes& key, Callables::BytesFunction function,
+                      bool apply_to_all);
 
   void initCallbacks();
 
   internal::System::DirectoryLockGuard directory_lock_guard_;
-  internal::Callbacks callbacks_;
+  internal::BlockStore block_store_;
   internal::BlockPool block_pool_;
-  internal::Store store_;
+  internal::Callbacks callbacks_;
   internal::Table table_;
   Options options_;
 };
 
 void optimize(const boost::filesystem::path& from,
               const boost::filesystem::path& to);
-// Copies the map located in the directory denoted by from to the directory
-// denoted by to performing the following optimizations:
+// Copies the map located in the directory denoted by `from` to the directory
+// denoted by `to` performing the following optimizations:
 //   * Defragmentation. All blocks which belong to the same list are written
 //     sequentially to disk which improves locality and leads to better read
 //     performance.
 //   * Garbage collection. Values that are marked as deleted won't be copied
 //     which reduces the size of the new map and also improves locality.
+//
+// Tip: If `from` and `to` point to different devices things will go faster. If
+// `from` points to an SSD things will go even faster, at least factor 2.
+//
 // Throws std::exception if:
 //   * from or to are not directories.
 //   * from does not contain a map.
@@ -256,15 +270,16 @@ void optimize(const boost::filesystem::path& from,
 //   * new_block_size is not a power of two.
 
 void optimize(const boost::filesystem::path& from,
-              const boost::filesystem::path& to, Callables::Compare compare);
+              const boost::filesystem::path& to,
+              Callables::BytesCompare compare);
 // Same as Optimize(from, to) but sorts each list before writing using compare
 // as the sorting criterion.
 // Throws std::exception if:
 //   * see Optimize(from, to)
 
 void optimize(const boost::filesystem::path& from,
-              const boost::filesystem::path& to, Callables::Compare compare,
-              std::size_t new_block_size);
+              const boost::filesystem::path& to,
+              Callables::BytesCompare compare, std::size_t new_block_size);
 // Same as Optimize(from, to, compare) but sets the block size of the new map
 // to new_block_size.
 // Throws std::exception if:
@@ -308,15 +323,20 @@ void importFromBase64(const boost::filesystem::path& directory,
 void exportToBase64(const boost::filesystem::path& directory,
                     const boost::filesystem::path& file);
 // Exports all key-value pairs from the map located in the directory denoted by
-// directory to a Base64-encoded text file denoted by file. If the file already
-// exists, its content will be overridden.
+// `directory` to a Base64-encoded text file denoted by `file`. If the file
+// already exists, its content will be overridden.
+//
+// Tip: If `directory` and `file` point to different devices things will go
+// faster. If `directory` points to an SSD things will go even faster, at least
+// factor 2.
+//
 // Postconditions:
-//   * The content in file follows the format described in Import / Export.
-// Throws std::exception if:
-//   * directory does not exist.
-//   * directory does not contain a map.
+//   * The content in `file` follows the format described in Import / Export.
+// Throws `std::exception` if:
+//   * `directory` does not exist.
+//   * `directory` does not contain a map.
 //   * the map in directory is locked.
-//   * file cannot be created.
+//   * `file` cannot be created.
 
 }  // namespace multimap
 

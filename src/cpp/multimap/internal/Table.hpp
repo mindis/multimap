@@ -53,6 +53,8 @@ class Table {
     std::map<std::string, std::string> toMap(const std::string& prefix) const;
   };
 
+  typedef std::function<void(const Bytes&, SharedListLock&&)> EntryProcedure;
+
   Table() = default;
 
   Table(const boost::filesystem::path& file);
@@ -73,7 +75,12 @@ class Table {
 
   UniqueListLock getUniqueOrCreate(const Bytes& key);
 
-  void forEachKey(Callables::Procedure procedure) const;
+  void forEachEntry(EntryProcedure procedure) const;
+
+  void forEachEntry(EntryProcedure procedure,
+                    Callables::BytesCompare compare) const;
+
+  void forEachKey(Callables::BytesProcedure procedure) const;
 
   std::map<std::string, std::string> getProperties() const;
 
@@ -100,10 +107,10 @@ class Table {
     }
   };
 
-  typedef std::unordered_map<Bytes, std::unique_ptr<List>, KeyHash> Map;
+  typedef std::unordered_map<Bytes, std::unique_ptr<List>, KeyHash> Hashtable;
 
-  Map map_;
   Arena arena_;
+  Hashtable map_;
   boost::filesystem::path path_;
   mutable boost::shared_mutex mutex_;
   Callbacks::CommitBlock commit_block_;

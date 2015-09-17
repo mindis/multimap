@@ -78,7 +78,7 @@ std::size_t Varint::writeUint32(std::uint32_t source, uchar* target) {
     target[3] = static_cast<uchar>(source);
     return 4;
   }
-  throw("Varint::WriteUint32 source is out of range");
+  throw("Varint::writeUint32 source is out of range");
   return 0;  // To suppress "no return value" warning.
 }
 

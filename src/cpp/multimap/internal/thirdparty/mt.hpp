@@ -23,22 +23,39 @@
 
 namespace mt {
 
-static const std::size_t VERSION = 20150915;
+static const std::size_t VERSION = 20150917;
+
+// COMMON
+// -----------------------------------------------------------------------------
+
+bool isPrime(std::size_t number);
+// Returns `true` if `number` is prime, `false` otherwise.
+
+std::size_t nextPrime(std::size_t number);
+// Returns the next prime number that is greater than or equal to `number`.
+
+constexpr std::size_t MiB(std::size_t mebibytes) { return mebibytes << 20; }
+// Converts a number in mebibytes to the equivalent number in bytes.
+
+constexpr std::size_t GiB(std::size_t gibibytes) { return gibibytes << 30; }
+// Converts a number in gibibytes to the equivalent number in bytes.
 
 // HASHING
 // -----------------------------------------------------------------------------
 
+std::uint32_t fnv1aHash32(const void* buf, std::size_t len);
+// Computes and returns a 32-bit hash value of the given byte array.
 // Source: http://www.isthe.com/chongo/src/fnv/fnv.h
 // Changes:
 //  * Parameter hashval removed, internally set to FNV1_32A_INIT.
 //  * More C++ like coding style.
-std::uint32_t fnv1aHash32(const void* buf, std::size_t len);
 
+std::uint64_t fnv1aHash64(const void* buf, std::size_t len);
+// Computes and returns a 64-bit hash value of the given byte array.
 // Source: http://www.isthe.com/chongo/src/fnv/fnv.h
 // Changes:
 //  * Parameter hashval removed, internally set to FNV1A_64_INIT.
 //  * More C++ like coding style.
-std::uint64_t fnv1aHash64(const void* buf, std::size_t len);
 
 // ERROR HANDLING
 // -----------------------------------------------------------------------------
@@ -58,14 +75,17 @@ void throwRuntimeError2(const char* format, ...);
 
 #define __MT_ASSERT_TRUE(expr) __MT_VOID
 #define __MT_ASSERT_FALSE(expr) __MT_VOID
+#define __MT_ASSERT_NOT_NULL(expr) __MT_VOID
 #define __MT_ASSERT_COMPARE(expr, a, b) __MT_VOID
 
 #define __MT_REQUIRE_TRUE(expr) __MT_VOID
 #define __MT_REQUIRE_FALSE(expr) __MT_VOID
+#define __MT_REQUIRE_NOT_NULL(expr) __MT_VOID
 #define __MT_REQUIRE_COMPARE(expr, a, b) __MT_VOID
 
 #define __MT_ENSURE_TRUE(expr) __MT_VOID
 #define __MT_ENSURE_FALSE(expr) __MT_VOID
+#define __MT_ENSURE_NOT_NULL(expr) __MT_VOID
 #define __MT_ENSURE_COMPARE(expr, a, b) __MT_VOID
 
 #else  // NDEBUG
@@ -77,13 +97,19 @@ void failAssertTrue(const char* file, std::size_t line, const char* expr);
 
 void failAssertFalse(const char* file, std::size_t line, const char* expr);
 
+void failAssertNotNull(const char* file, std::size_t line, const char* expr);
+
 void failRequireTrue(const char* file, std::size_t line, const char* expr);
 
 void failRequireFalse(const char* file, std::size_t line, const char* expr);
 
+void failRequireNotNull(const char* file, std::size_t line, const char* expr);
+
 void failEnsureTrue(const char* file, std::size_t line, const char* expr);
 
 void failEnsureFalse(const char* file, std::size_t line, const char* expr);
+
+void failEnsureNotNull(const char* file, std::size_t line, const char* expr);
 
 template <typename A, typename B>
 std::string makeErrorMessage(const char* what, const char* file,
@@ -124,6 +150,9 @@ void failEnsureCompare(const char* file, std::size_t line, const char* expr,
   (expr) ? __MT_VOID : mt::internal::failAssertTrue(__FILE__, __LINE__, #expr)
 #define __MT_ASSERT_FALSE(expr) \
   !(expr) ? __MT_VOID : mt::internal::failAssertFalse(__FILE__, __LINE__, #expr)
+#define __MT_ASSERT_NOT_NULL(expr) \
+  (expr) ? __MT_VOID               \
+         : mt::internal::failAssertNotNull(__FILE__, __LINE__, #expr)
 #define __MT_ASSERT_COMPARE(expr, a, b) \
   (expr) ? __MT_VOID                    \
          : mt::internal::failAssertCompare(__FILE__, __LINE__, #expr, a, b)
@@ -133,6 +162,9 @@ void failEnsureCompare(const char* file, std::size_t line, const char* expr,
 #define __MT_REQUIRE_FALSE(expr) \
   !(expr) ? __MT_VOID            \
           : mt::internal::failRequireFalse(__FILE__, __LINE__, #expr)
+#define __MT_REQUIRE_NOT_NULL(expr) \
+  (expr) ? __MT_VOID                \
+         : mt::internal::failRequireNotNull(__FILE__, __LINE__, #expr)
 #define __MT_REQUIRE_COMPARE(expr, a, b) \
   (expr) ? __MT_VOID                     \
          : mt::internal::failRequireCompare(__FILE__, __LINE__, #expr, a, b)
@@ -141,6 +173,9 @@ void failEnsureCompare(const char* file, std::size_t line, const char* expr,
   (expr) ? __MT_VOID : mt::internal::failEnsureTrue(__FILE__, __LINE__, #expr)
 #define __MT_ENSURE_FALSE(expr) \
   !(expr) ? __MT_VOID : mt::internal::failEnsureFalse(__FILE__, __LINE__, #expr)
+#define __MT_ENSURE_NOT_NULL(expr) \
+  (expr) ? __MT_VOID               \
+         : mt::internal::failEnsureNotNull(__FILE__, __LINE__, #expr)
 #define __MT_ENSURE_COMPARE(expr, a, b) \
   (expr) ? __MT_VOID                    \
          : mt::internal::failEnsureCompare(__FILE__, __LINE__, #expr, a, b)
@@ -149,6 +184,7 @@ void failEnsureCompare(const char* file, std::size_t line, const char* expr,
 
 #define MT_ASSERT_TRUE(expr) __MT_ASSERT_TRUE(expr)
 #define MT_ASSERT_FALSE(expr) __MT_ASSERT_FALSE(expr)
+#define MT_ASSERT_NOT_NULL(expr) __MT_ASSERT_NOT_NULL(expr)
 #define MT_ASSERT_EQ(a, b) __MT_ASSERT_COMPARE(a == b, a, b)
 #define MT_ASSERT_NE(a, b) __MT_ASSERT_COMPARE(a != b, a, b)
 #define MT_ASSERT_LT(a, b) __MT_ASSERT_COMPARE(a <  b, a, b)
@@ -158,6 +194,7 @@ void failEnsureCompare(const char* file, std::size_t line, const char* expr,
 
 #define MT_REQUIRE_TRUE(expr) __MT_REQUIRE_TRUE(expr)
 #define MT_REQUIRE_FALSE(expr) __MT_REQUIRE_FALSE(expr)
+#define MT_REQUIRE_NOT_NULL(expr) __MT_REQUIRE_NOT_NULL(expr)
 #define MT_REQUIRE_EQ(a, b) __MT_REQUIRE_COMPARE(a == b, a, b)
 #define MT_REQUIRE_NE(a, b) __MT_REQUIRE_COMPARE(a != b, a, b)
 #define MT_REQUIRE_LT(a, b) __MT_REQUIRE_COMPARE(a <  b, a, b)
@@ -167,6 +204,7 @@ void failEnsureCompare(const char* file, std::size_t line, const char* expr,
 
 #define MT_ENSURE_TRUE(expr) __MT_ENSURE_TRUE(expr)
 #define MT_ENSURE_FALSE(expr) __MT_ENSURE_FALSE(expr)
+#define MT_ENSURE_NOT_NULL(expr) __MT_ENSURE_NOT_NULL(expr)
 #define MT_ENSURE_EQ(a, b) __MT_ENSURE_COMPARE(a == b, a, b)
 #define MT_ENSURE_NE(a, b) __MT_ENSURE_COMPARE(a != b, a, b)
 #define MT_ENSURE_LT(a, b) __MT_ENSURE_COMPARE(a <  b, a, b)

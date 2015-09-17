@@ -121,11 +121,12 @@ class List {
   List(const List&) = delete;
   List& operator=(const List&) = delete;
 
-  void add(const Bytes& value,
+  void add(const Bytes& key, const Bytes& value,
            const Callbacks::NewBlock& allocate_block_callback,
            const Callbacks::CommitBlock& commit_block_callback);
 
-  void flush(const Callbacks::CommitBlock& commit_block_callback);
+  void flush(const Bytes& key,
+             const Callbacks::CommitBlock& commit_block_callback);
   // Requires: not isLocked()
 
   void clear() { head_ = Head(); }
@@ -148,10 +149,10 @@ class List {
   ConstIterator const_iterator(
       const Callbacks::RequestBlocks& request_blocks_callback) const;
 
-  void forEach(const Callables::Procedure& procedure,
+  void forEach(const Callables::BytesProcedure& procedure,
                const Callbacks::RequestBlocks& request_blocks_callback) const;
 
-  void forEach(const Callables::Predicate& predicate,
+  void forEach(const Callables::BytesPredicate& predicate,
                const Callbacks::RequestBlocks& request_blocks_callback) const;
 
   // Synchronization interface in tradition of std::mutex.

@@ -17,52 +17,18 @@
 
 #include "multimap/internal/BlockPool.hpp"
 
-#include <cassert>
-
 namespace multimap {
 namespace internal {
-
-// namespace {
-
-// typedef std::vector<std::unique_ptr<char[]>> Chunks;
-
-// char* BlockIdToPtr(std::size_t block_id, std::size_t block_size,
-//                   std::size_t chunk_size, const Chunks& chunks) {
-//  const auto absolute_offset = block_id * block_size;
-//  const auto relative_offset_in_chunk = absolute_offset % chunk_size;
-//  const auto chunk_id = absolute_offset / chunk_size;
-//  assert(chunk_id < chunks.size());
-//  return chunks[chunk_id].get() + relative_offset_in_chunk;
-//}
-
-// std::size_t PtrToBlockId(const char* ptr, std::size_t block_size,
-//                         std::size_t chunk_size, const Chunks& chunks) {
-//  assert(ptr);
-//  const auto blocks_per_chunk = chunk_size / block_size;
-//  for (std::size_t i = 0; i != chunks.size(); ++i) {
-//    const auto beg_of_chunk = chunks[i].get();
-//    const auto end_of_chunk = beg_of_chunk + chunk_size;
-//    if (ptr >= beg_of_chunk && ptr < end_of_chunk) {
-//      assert((ptr - beg_of_chunk) % block_size == 0);
-//      const auto relative_id_in_chunk = (ptr - beg_of_chunk) / block_size;
-//      const auto absolute_id = relative_id_in_chunk + (blocks_per_chunk * i);
-//      return absolute_id;
-//    }
-//  }
-//  return -1;
-//}
-
-//}  // namespace
 
 BlockPool::BlockPool(std::size_t block_size, std::size_t chunk_size) {
   init(block_size, chunk_size);
 }
 
 void BlockPool::init(std::size_t block_size, std::size_t chunk_size) {
-  assert(chunk_size % block_size == 0);
-  assert(chunk_size > block_size);
-  assert(chunk_size != 0);
-  assert(block_size != 0);
+  MT_REQUIRE_EQ(chunk_size % block_size, 0);
+  MT_REQUIRE_GT(chunk_size, block_size);
+  MT_REQUIRE_NE(chunk_size, 0);
+  MT_REQUIRE_NE(block_size, 0);
 
   const std::lock_guard<std::mutex> lock(mutex_);
 

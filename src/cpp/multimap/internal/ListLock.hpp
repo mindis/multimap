@@ -31,10 +31,10 @@ class ListLock {
  public:
   ListLock() : list_(nullptr) {}
 
-  ListLock(List* list);
-  ListLock(const List& list);
-
   ListLock(ListLock&& other) : list_(other.list_) { other.list_ = nullptr; }
+
+  explicit ListLock(List* list);
+  explicit ListLock(const List& list);
 
   ~ListLock() {
     if (list_) {

@@ -20,22 +20,24 @@
 
 #include <cstddef>
 
+// TODO Move into MT library.
+
 namespace multimap {
 namespace internal {
 
-enum class Arch { k32, k64 };
+enum class Arch { X32, X64 };
 
 template <std::size_t SizeOfVoidPtr>
 struct ToArch;
 
 template <>
 struct ToArch<4> {
-  static const Arch value = Arch::k32;
+  static const Arch value = Arch::X32;
 };
 
 template <>
 struct ToArch<8> {
-  static const Arch value = Arch::k64;
+  static const Arch value = Arch::X64;
 };
 
 template <typename T, Arch>
@@ -43,7 +45,7 @@ struct ExpectedSizeOf;
 
 template <typename T, std::size_t ExpectedSize32, std::size_t ExpectedSize64>
 struct HasExpectedSize {
-  static const bool is32arch = ToArch<sizeof(void*)>::value == Arch::k32;
+  static const bool is32arch = ToArch<sizeof(void*)>::value == Arch::X32;
   static const auto expected = is32arch ? ExpectedSize32 : ExpectedSize64;
   static const bool value = sizeof(T) == expected;
 };
@@ -53,8 +55,6 @@ struct HasExpectedSize {
 //               "class List does not have expected size");
 
 void check(bool expression, const char* format, ...);
-
-void throwRuntimeError(const char* format, ...);
 
 }  // namespace internal
 }  // namespace multimap

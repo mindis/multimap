@@ -69,7 +69,8 @@ Holder<T>* NewHolder(T&& element) {
   return new Holder<T>(std::move(element));
 }
 
-inline Callables::Procedure MakeProcedure(JNIEnv* env, jobject jprocedure) {
+inline Callables::BytesProcedure makeBytesProcedure(JNIEnv* env,
+                                                    jobject jprocedure) {
   const auto cls = env->GetObjectClass(jprocedure);
   const auto mid = env->GetMethodID(cls, "call", "(Ljava/nio/ByteBuffer;)V");
   assert(mid != nullptr);
@@ -88,7 +89,8 @@ inline Callables::Procedure MakeProcedure(JNIEnv* env, jobject jprocedure) {
   };
 }
 
-inline Callables::Predicate MakePredicate(JNIEnv* env, jobject jpredicate) {
+inline Callables::BytesPredicate makeBytesPredicate(JNIEnv* env,
+                                                    jobject jpredicate) {
   const auto cls = env->GetObjectClass(jpredicate);
   const auto mid = env->GetMethodID(cls, "call", "(Ljava/nio/ByteBuffer;)Z");
   assert(mid != nullptr);
@@ -108,7 +110,8 @@ inline Callables::Predicate MakePredicate(JNIEnv* env, jobject jpredicate) {
   };
 }
 
-inline Callables::Function MakeFunction(JNIEnv* env, jobject jfunction) {
+inline Callables::BytesFunction makeBytesFunction(JNIEnv* env,
+                                                  jobject jfunction) {
   const auto cls = env->GetObjectClass(jfunction);
   const auto mid = env->GetMethodID(cls, "call", "(Ljava/nio/ByteBuffer;)[B");
   assert(mid != nullptr);
@@ -130,7 +133,8 @@ inline Callables::Function MakeFunction(JNIEnv* env, jobject jfunction) {
   };
 }
 
-inline Callables::Compare MakeCompare(JNIEnv* env, jobject jless_than) {
+inline Callables::BytesCompare makeBytesCompare(JNIEnv* env,
+                                                jobject jless_than) {
   const auto cls = env->GetObjectClass(jless_than);
   const auto mid = env->GetMethodID(
       cls, "call", "(Ljava/nio/ByteBuffer;Ljava/nio/ByteBuffer;)Z");
@@ -152,14 +156,14 @@ inline Callables::Compare MakeCompare(JNIEnv* env, jobject jless_than) {
   };
 }
 
-inline std::string MakeString(JNIEnv* env, jstring string) {
+inline std::string makeString(JNIEnv* env, jstring string) {
   const auto chars = env->GetStringUTFChars(string, nullptr);
   std::string str(chars);
   env->ReleaseStringUTFChars(string, chars);
   return str;
 }
 
-inline void ThrowException(JNIEnv* env, const char* message) {
+inline void throwJavaException(JNIEnv* env, const char* message) {
   /* static */ const auto clazz = env->FindClass("java/lang/Exception");
   // static lets the VM crash.
   env->ThrowNew(clazz, message);

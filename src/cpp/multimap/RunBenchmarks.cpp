@@ -24,12 +24,13 @@
 #include "multimap/internal/Generator.hpp"
 #include "multimap/internal/System.hpp"
 #include "multimap/Map.hpp"
+#include "multimap/internal/thirdparty/mt.hpp"
 
 namespace po = boost::program_options;
 
 void checkOption(const po::variables_map& variables, const char* option) {
   if (variables.count(option) == 0) {
-    multimap::internal::throwRuntimeError("Option '--%s' is missing.", option);
+    mt::throwRuntimeError2("Option '--%s' is missing.", option);
   }
 }
 

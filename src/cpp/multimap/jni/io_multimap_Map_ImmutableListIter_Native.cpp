@@ -71,7 +71,7 @@ JNIEXPORT void JNICALL
 JNIEXPORT void JNICALL
     Java_io_multimap_Map_00024ImmutableListIter_00024Native_seekTo__Ljava_nio_ByteBuffer_2Lio_multimap_Callables_Predicate_2(
         JNIEnv* env, jclass, jobject self, jobject jpredicate) {
-  const auto predicate = multimap::jni::MakePredicate(env, jpredicate);
+  const auto predicate = multimap::jni::makeBytesPredicate(env, jpredicate);
   Cast(env, self)->get().seekTo(predicate);
 }
 

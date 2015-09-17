@@ -83,7 +83,7 @@ void List::Iter<false>::writeBackMutatedBlocks() {
 
 List::List(const Head& head) : head_(head) {}
 
-void List::add(const Bytes& value,
+void List::add(const Bytes& key, const Bytes& value,
                const Callbacks::NewBlock& allocate_block_callback,
                const Callbacks::CommitBlock& commit_block_callback) {
   if (!block_.hasData()) {
@@ -91,16 +91,17 @@ void List::add(const Bytes& value,
   }
   auto ok = block_.add(value);
   if (!ok) {
-    flush(commit_block_callback);
+    flush(key, commit_block_callback);
     ok = block_.add(value);
     assert(ok);
   }
   ++head_.num_values_total;
 }
 
-void List::flush(const Callbacks::CommitBlock& commit_block_callback) {
+void List::flush(const Bytes& key,
+                 const Callbacks::CommitBlock& commit_block_callback) {
   if (block_.empty()) return;
-  head_.block_ids.add(commit_block_callback(block_));
+  head_.block_ids.add(commit_block_callback(key, block_));
   block_.clear();
 }
 
@@ -117,7 +118,7 @@ List::ConstIterator List::const_iterator(
 }
 
 void List::forEach(
-    const Callables::Procedure& procedure,
+    const Callables::BytesProcedure& procedure,
     const Callbacks::RequestBlocks& request_blocks_callback) const {
   auto iter = const_iterator(request_blocks_callback);
   for (iter.seekToFirst(); iter.hasValue(); iter.next()) {
@@ -126,7 +127,7 @@ void List::forEach(
 }
 
 void List::forEach(
-    const Callables::Predicate& predicate,
+    const Callables::BytesPredicate& predicate,
     const Callbacks::RequestBlocks& request_blocks_callback) const {
   auto iter = const_iterator(request_blocks_callback);
   for (iter.seekToFirst(); iter.hasValue(); iter.next()) {

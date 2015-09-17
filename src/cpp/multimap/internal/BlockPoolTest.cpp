@@ -43,7 +43,7 @@ TEST(BlockPoolTest, IsNotMoveConstructibleOrAssignable) {
 
 TEST(BlockPoolTest, ConstructedWithValidParamsHasProperState) {
   const auto block_size = 128;
-  const auto chunk_size = MiB(10);
+  const auto chunk_size = mt::MiB(10);
   BlockPool block_pool(block_size, chunk_size);
   ASSERT_THAT(block_pool.block_size(), Eq(block_size));
   ASSERT_THAT(block_pool.num_blocks(), Eq(81920));

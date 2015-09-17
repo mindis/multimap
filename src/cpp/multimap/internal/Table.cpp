@@ -23,6 +23,7 @@
 #include <boost/thread/locks.hpp>
 #include "multimap/internal/AutoCloseFile.hpp"
 #include "multimap/internal/System.hpp"
+#include "multimap/internal/thirdparty/mt.hpp"
 
 namespace multimap {
 namespace internal {
@@ -107,7 +108,7 @@ void Table::open(const boost::filesystem::path& file, bool create_if_missing) {
     System::write(stream.get(), &num_keys, sizeof num_keys);
 
   } else {
-    internal::throwRuntimeError("Table: No such file '%s'.", file.c_str());
+    mt::throwRuntimeError2("Table: No such file '%s'.", file.c_str());
   }
   path_ = file;
 }
@@ -134,7 +135,7 @@ void Table::close() {
     const auto list = entry.second.get();
     if (list->tryLockUnique()) {
       if (!list->empty()) {
-        list->flush(commit_block_);
+        list->flush(entry.first, commit_block_);
         writeEntryToFile(Entry(entry.first, list->chead()), file.get());
         ++num_keys_written;
       }
@@ -207,7 +208,38 @@ UniqueListLock Table::getUniqueOrCreate(const Bytes& key) {
   return UniqueListLock(list);
 }
 
-void Table::forEachKey(Callables::Procedure procedure) const {
+void Table::forEachEntry(EntryProcedure procedure) const {
+  const boost::shared_lock<boost::shared_mutex> lock(mutex_);
+  for (const auto& entry : map_) {
+    SharedListLock lock(*entry.second);
+    if (!lock.clist()->empty()) {
+      procedure(entry.first, std::move(lock));
+    }
+  }
+}
+
+void Table::forEachEntry(EntryProcedure procedure,
+                         Callables::BytesCompare compare) const {
+  const boost::shared_lock<boost::shared_mutex> lock(mutex_);
+  std::vector<const Hashtable::value_type*> entries;
+  entries.reserve(map_.size());
+  for (const auto& entry : map_) {
+    entries.push_back(&entry);
+  }
+  std::sort(entries.begin(), entries.end(),
+            [compare](const Hashtable::value_type* a,
+                      const Hashtable::value_type* b) {
+    return compare(a->first, b->first);
+  });
+  for (auto entry : entries) {
+    SharedListLock lock(*entry->second);
+    if (!lock.clist()->empty()) {
+      procedure(entry->first, std::move(lock));
+    }
+  }
+}
+
+void Table::forEachKey(Callables::BytesProcedure procedure) const {
   const boost::shared_lock<boost::shared_mutex> lock(mutex_);
   for (const auto& entry : map_) {
     SharedListLock lock(*entry.second);
@@ -222,7 +254,7 @@ void Table::flushAllListsAndWaitIfLocked() const {
   for (const auto& entry : map_) {
     auto list = entry.second.get();
     list->lockUnique();
-    list->flush(commit_block_);
+    list->flush(entry.first, commit_block_);
     list->unlockUnique();
   }
 }
@@ -232,7 +264,7 @@ void Table::flushAllListsOrThrowIfLocked() const {
   for (const auto& entry : map_) {
     auto list = entry.second.get();
     if (list->tryLockUnique()) {
-      list->flush(commit_block_);
+      list->flush(entry.first, commit_block_);
       list->unlockUnique();
     } else {
       throw("Some list is locked");
@@ -245,7 +277,7 @@ void Table::flushAllUnlockedLists() const {
   for (const auto& entry : map_) {
     auto list = entry.second.get();
     if (list->tryLockUnique()) {
-      list->flush(commit_block_);
+      list->flush(entry.first, commit_block_);
       list->unlockUnique();
     }
   }
