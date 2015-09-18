@@ -352,6 +352,18 @@ void Map::importFromBase64(const boost::filesystem::path& directory,
   map.importFromBase64(file);
 }
 
+void Map::exportToBase64(const boost::filesystem::path& directory,
+                         const boost::filesystem::path& file) {
+  exportToBase64(directory, file, Callables::BytesCompare());
+}
+
+void Map::exportToBase64(const boost::filesystem::path& directory,
+                         const boost::filesystem::path& file,
+                         Callables::BytesCompare compare) {
+  Map map(directory, Options());
+  map.exportToBase64(file, compare);
+}
+
 void Map::initCallbacks() {
   // Thread-safe: yes.
   callbacks_.new_block = [this]() { return block_pool_.allocate(); };
@@ -461,6 +473,63 @@ void Map::importFromBase64(const boost::filesystem::path& file) {
   }
 }
 
+void Map::exportToBase64(const boost::filesystem::path& file,
+                         Callables::BytesCompare compare) {
+  std::ofstream ofs(file.string());
+  internal::check(ofs, "Cannot create '%s'.", file.c_str());
+
+  std::string key_as_base64;
+  std::string value_as_base64;
+  std::vector<std::string> sorted_values;
+  if (compare) {
+    forEachEntry([&](const Bytes& key, Map::ConstListIter&& iter) {
+      MT_ASSERT_NE(iter.num_values(), 0);
+
+      // Sort values
+      sorted_values.clear();
+      sorted_values.reserve(iter.num_values());
+      for (iter.seekToFirst(); iter.hasValue(); iter.next()) {
+        sorted_values.push_back(iter.getValue().toString());
+      }
+      std::sort(sorted_values.begin(), sorted_values.end(), compare);
+
+      // Write as Base64
+      auto it = sorted_values.begin();
+      if (it != sorted_values.end()) {
+        internal::Base64::encode(key, &key_as_base64);
+        internal::Base64::encode(*it, &value_as_base64);
+        ofs << key_as_base64 << ' ' << value_as_base64;
+        ++it;
+      }
+      while (it != sorted_values.end()) {
+        internal::Base64::encode(*it, &value_as_base64);
+        ofs << ' ' << value_as_base64;
+        ++it;
+      }
+      ofs << '\n';
+    });
+  } else {
+    forEachEntry([&](const Bytes& key, Map::ConstListIter&& iter) {
+      MT_ASSERT_NE(iter.num_values(), 0);
+
+      // Write as Base64
+      iter.seekToFirst();
+      if (iter.hasValue()) {
+        internal::Base64::encode(key, &key_as_base64);
+        internal::Base64::encode(iter.getValue(), &value_as_base64);
+        ofs << key_as_base64 << ' ' << value_as_base64;
+        iter.next();
+      }
+      while (iter.hasValue()) {
+        internal::Base64::encode(iter.getValue(), &value_as_base64);
+        ofs << ' ' << value_as_base64;
+        iter.next();
+      }
+      ofs << '\n';
+    });
+  }
+}
+
 void optimize(const boost::filesystem::path& from,
               const boost::filesystem::path& to) {
   optimize(from, to, -1);
@@ -510,32 +579,6 @@ void optimize(const boost::filesystem::path& from,
       }
     });
   }
-}
-
-void exportToBase64(const boost::filesystem::path& directory,
-                    const boost::filesystem::path& file) {
-  Map map(directory, Options());
-  std::ofstream ofs(file.string());
-  internal::check(ofs, "Cannot create '%s'.", file.c_str());
-
-  std::string key_as_base64;
-  std::string value_as_base64;
-  map.forEachEntry([&](const Bytes& key, Map::ConstListIter&& iter) {
-    MT_ASSERT_NE(iter.num_values(), 0);
-    iter.seekToFirst();
-    if (iter.hasValue()) {
-      internal::Base64::encode(key, &key_as_base64);
-      internal::Base64::encode(iter.getValue(), &value_as_base64);
-      ofs << key_as_base64 << ' ' << value_as_base64;
-      iter.next();
-    }
-    while (iter.hasValue()) {
-      internal::Base64::encode(iter.getValue(), &value_as_base64);
-      ofs << ' ' << value_as_base64;
-      iter.next();
-    }
-    ofs << '\n';
-  });
 }
 
 }  // namespace multimap

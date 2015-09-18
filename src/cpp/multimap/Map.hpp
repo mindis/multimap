@@ -224,7 +224,7 @@ class Map {
   // Returns the maximum size of a value in bytes which may be put. Currently
   // this is options.block_size - 2 bytes.
 
-  // LONG RUNNING OPERATIONS (require exclusive access)
+  // LONG RUNNING OPERATIONS (require exclusive access to entire map)
   // ---------------------------------------------------------------------------
 
   static void importFromBase64(const boost::filesystem::path& directory,
@@ -261,6 +261,28 @@ class Map {
   //   * see Import(directory, file, create_if_missing)
   //   * block_size is not a power of two.
 
+  void exportToBase64(const boost::filesystem::path& directory,
+                      const boost::filesystem::path& file);
+  // Exports all key-value pairs from the map located in the directory denoted
+  // by `directory` to a Base64-encoded text file denoted by `file`. If the file
+  // already exists, its content will be overridden.
+  //
+  // Tip: If `directory` and `file` point to different devices things will go
+  // faster. If `directory` points to an SSD things will go even faster, at
+  // least factor 2.
+  //
+  // Postconditions:
+  //   * The content in `file` follows the format described in Import / Export.
+  // Throws `std::exception` if:
+  //   * `directory` does not exist.
+  //   * `directory` does not contain a map.
+  //   * the map in directory is locked.
+  //   * `file` cannot be created.
+
+  void exportToBase64(const boost::filesystem::path& directory,
+                      const boost::filesystem::path& file,
+                      Callables::BytesCompare compare);
+
  private:
   void initCallbacks();
 
@@ -271,6 +293,9 @@ class Map {
                       bool apply_to_all);
 
   void importFromBase64(const boost::filesystem::path& file);
+
+  void exportToBase64(const boost::filesystem::path& file,
+                      Callables::BytesCompare compare);
 
   internal::System::DirectoryLockGuard directory_lock_guard_;
   internal::BlockStore block_store_;
@@ -324,24 +349,6 @@ void optimize(const boost::filesystem::path& from,
 // Throws std::exception if:
 //   * see Optimize(from, to, compare)
 //   * new_block_size is not a power of two.
-
-void exportToBase64(const boost::filesystem::path& directory,
-                    const boost::filesystem::path& file);
-// Exports all key-value pairs from the map located in the directory denoted by
-// `directory` to a Base64-encoded text file denoted by `file`. If the file
-// already exists, its content will be overridden.
-//
-// Tip: If `directory` and `file` point to different devices things will go
-// faster. If `directory` points to an SSD things will go even faster, at least
-// factor 2.
-//
-// Postconditions:
-//   * The content in `file` follows the format described in Import / Export.
-// Throws `std::exception` if:
-//   * `directory` does not exist.
-//   * `directory` does not contain a map.
-//   * the map in directory is locked.
-//   * `file` cannot be created.
 
 }  // namespace multimap
 
