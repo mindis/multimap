@@ -180,6 +180,7 @@ class Map {
   // Returns: true if a value was replaced, false otherwise.
 
   void forEachEntry(Callables::EntryProcedure procedure) const;
+  // TODO Document this.
 
   void forEachKey(Callables::BytesProcedure procedure) const;
   // Applies `procedure` to each key of the map whose associated list is not
@@ -282,6 +283,54 @@ class Map {
   static void exportToBase64(const boost::filesystem::path& directory,
                              const boost::filesystem::path& file,
                              Callables::BytesCompare compare);
+  // TODO Document this.
+
+  static void optimize(const boost::filesystem::path& directory);
+  // Optimizes the map located in the directory denoted by `directory`
+  // performing the following tasks:
+  //
+  //   * Defragmentation. All blocks which belong to the same list are written
+  //     sequentially to disk which improves locality and leads to better read
+  //     performance.
+  //   * Garbage collection. Values marked as deleted will be removed physically
+  //     which reduces the size of the map and also improves locality.
+  //
+  // Throws `std::exception` if:
+  //
+  //   * `directory` is not a directory.
+  //   * `directory` does not contain a map.
+  //   * the map in `directory` is locked.
+  //   * `directory` is not writable.
+
+  static void optimize(const boost::filesystem::path& directory,
+                       std::size_t new_block_size);
+  // Same as `optimize(const boost::filesystem::path&)` but changes the block
+  // size of the map to `new_block_size`.
+  //
+  // Throws `std::exception` if:
+  //
+  //   * see `optimize(const boost::filesystem::path&)`
+  //   * `new_block_size` is not a power of two.
+
+  static void optimize(const boost::filesystem::path& directory,
+                       Callables::BytesCompare compare);
+  // Same as `optimize(const boost::filesystem::path&)` but sorts each list
+  // using `compare` as the sorting criterion.
+  //
+  // Throws `std::exception` if:
+  //
+  //   * see `optimize(const boost::filesystem::path&)`
+
+  static void optimize(const boost::filesystem::path& directory,
+                       Callables::BytesCompare compare,
+                       std::size_t new_block_size);
+  // Same as `optimize(const boost::filesystem::path&, Callables::BytesCompare)`
+  // but changes the block size of the map to `new_block_size`.
+  //
+  // Throws `std::exception` if:
+  //
+  //   * see `optimize(const boost::filesystem::path&, Callables::BytesCompare)`
+  //   * `new_block_size` is not a power of two.
 
  private:
   void initCallbacks();
@@ -297,6 +346,8 @@ class Map {
   void exportToBase64(const boost::filesystem::path& file,
                       Callables::BytesCompare compare);
 
+  void optimize(Callables::BytesCompare compare, std::size_t new_block_size);
+
   internal::System::DirectoryLockGuard directory_lock_guard_;
   internal::BlockStore block_store_;
   internal::BlockPool block_pool_;
@@ -306,49 +357,8 @@ class Map {
 };
 
 void optimize(const boost::filesystem::path& from,
-              const boost::filesystem::path& to);
-// Copies the map located in the directory denoted by `from` to the directory
-// denoted by `to` performing the following optimizations:
-//   * Defragmentation. All blocks which belong to the same list are written
-//     sequentially to disk which improves locality and leads to better read
-//     performance.
-//   * Garbage collection. Values that are marked as deleted won't be copied
-//     which reduces the size of the new map and also improves locality.
-//
-// Tip: If `from` and `to` point to different devices things will go faster. If
-// `from` points to an SSD things will go even faster, at least factor 2.
-//
-// Throws std::exception if:
-//   * from or to are not directories.
-//   * from does not contain a map.
-//   * the map in from is locked.
-//   * to already contains a map.
-//   * to is not writable.
-
-void optimize(const boost::filesystem::path& from,
-              const boost::filesystem::path& to, std::size_t new_block_size);
-// Same as Optimize(from, to) but sets the block size of the new map to
-// new_block_size.
-// Throws std::exception if:
-//   * see Optimize(from, to)
-//   * new_block_size is not a power of two.
-
-void optimize(const boost::filesystem::path& from,
-              const boost::filesystem::path& to,
-              Callables::BytesCompare compare);
-// Same as Optimize(from, to) but sorts each list before writing using compare
-// as the sorting criterion.
-// Throws std::exception if:
-//   * see Optimize(from, to)
-
-void optimize(const boost::filesystem::path& from,
               const boost::filesystem::path& to,
               Callables::BytesCompare compare, std::size_t new_block_size);
-// Same as Optimize(from, to, compare) but sets the block size of the new map
-// to new_block_size.
-// Throws std::exception if:
-//   * see Optimize(from, to, compare)
-//   * new_block_size is not a power of two.
 
 }  // namespace multimap
 

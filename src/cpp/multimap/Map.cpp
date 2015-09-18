@@ -331,13 +331,13 @@ std::size_t Map::max_value_size() const {
 
 void Map::importFromBase64(const boost::filesystem::path& directory,
                            const boost::filesystem::path& file) {
-  importFromBase64(directory, file, false);
+  Map::importFromBase64(directory, file, false);
 }
 
 void Map::importFromBase64(const boost::filesystem::path& directory,
                            const boost::filesystem::path& file,
                            bool create_if_missing) {
-  importFromBase64(directory, file, create_if_missing, -1);
+  Map::importFromBase64(directory, file, create_if_missing, -1);
 }
 
 void Map::importFromBase64(const boost::filesystem::path& directory,
@@ -354,7 +354,7 @@ void Map::importFromBase64(const boost::filesystem::path& directory,
 
 void Map::exportToBase64(const boost::filesystem::path& directory,
                          const boost::filesystem::path& file) {
-  exportToBase64(directory, file, Callables::BytesCompare());
+  Map::exportToBase64(directory, file, Callables::BytesCompare());
 }
 
 void Map::exportToBase64(const boost::filesystem::path& directory,
@@ -362,6 +362,27 @@ void Map::exportToBase64(const boost::filesystem::path& directory,
                          Callables::BytesCompare compare) {
   Map map(directory, Options());
   map.exportToBase64(file, compare);
+}
+
+void Map::optimize(const boost::filesystem::path& directory) {
+  Map::optimize(directory, -1);
+}
+
+void Map::optimize(const boost::filesystem::path& directory,
+                   std::size_t new_block_size) {
+  Map::optimize(directory, Callables::BytesCompare(), new_block_size);
+}
+
+void Map::optimize(const boost::filesystem::path& directory,
+                   Callables::BytesCompare compare) {
+  Map::optimize(directory, compare, -1);
+}
+
+void Map::optimize(const boost::filesystem::path& directory,
+                   Callables::BytesCompare compare,
+                   std::size_t new_block_size) {
+  Map map(directory, Options());
+  map.optimize(compare, new_block_size);
 }
 
 void Map::initCallbacks() {
@@ -530,20 +551,10 @@ void Map::exportToBase64(const boost::filesystem::path& file,
   }
 }
 
-void optimize(const boost::filesystem::path& from,
-              const boost::filesystem::path& to) {
-  optimize(from, to, -1);
-}
-
-void optimize(const boost::filesystem::path& from,
-              const boost::filesystem::path& to, std::size_t new_block_size) {
-  optimize(from, to, Callables::BytesCompare(), new_block_size);
-}
-
-void optimize(const boost::filesystem::path& from,
-              const boost::filesystem::path& to,
-              Callables::BytesCompare compare) {
-  optimize(from, to, compare, -1);
+void Map::optimize(Callables::BytesCompare /* compare */,
+                   std::size_t /* new_block_size */) {
+  MT_ASSERT_TRUE(false);
+  // TODO Implement this (requires real shards).
 }
 
 void optimize(const boost::filesystem::path& from,
