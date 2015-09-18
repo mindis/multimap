@@ -261,8 +261,8 @@ class Map {
   //   * see Import(directory, file, create_if_missing)
   //   * block_size is not a power of two.
 
-  void exportToBase64(const boost::filesystem::path& directory,
-                      const boost::filesystem::path& file);
+  static void exportToBase64(const boost::filesystem::path& directory,
+                             const boost::filesystem::path& file);
   // Exports all key-value pairs from the map located in the directory denoted
   // by `directory` to a Base64-encoded text file denoted by `file`. If the file
   // already exists, its content will be overridden.
@@ -279,9 +279,9 @@ class Map {
   //   * the map in directory is locked.
   //   * `file` cannot be created.
 
-  void exportToBase64(const boost::filesystem::path& directory,
-                      const boost::filesystem::path& file,
-                      Callables::BytesCompare compare);
+  static void exportToBase64(const boost::filesystem::path& directory,
+                             const boost::filesystem::path& file,
+                             Callables::BytesCompare compare);
 
  private:
   void initCallbacks();
