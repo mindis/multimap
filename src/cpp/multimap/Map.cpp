@@ -329,6 +329,51 @@ std::size_t Map::max_value_size() const {
   return options_.block_size - internal::Block::SIZE_OF_VALUE_SIZE_FIELD;
 }
 
+void Map::importFromBase64(const boost::filesystem::path& directory,
+                           const boost::filesystem::path& file) {
+  importFromBase64(directory, file, false);
+}
+
+void Map::importFromBase64(const boost::filesystem::path& directory,
+                           const boost::filesystem::path& file,
+                           bool create_if_missing) {
+  importFromBase64(directory, file, create_if_missing, -1);
+}
+
+void Map::importFromBase64(const boost::filesystem::path& directory,
+                           const boost::filesystem::path& file,
+                           bool create_if_missing, std::size_t block_size) {
+  Options options;
+  options.create_if_missing = create_if_missing;
+  if (block_size != static_cast<std::size_t>(-1)) {
+    options.block_size = block_size;
+  }
+  Map map(directory, options);
+  map.importFromBase64(file);
+}
+
+void Map::initCallbacks() {
+  // Thread-safe: yes.
+  callbacks_.new_block = [this]() { return block_pool_.allocate(); };
+
+  // Thread-safe: yes.
+  callbacks_.commit_block =
+      [this](const Bytes& key, const internal::Block& block) {
+    return block_store_.put(key, block);
+  };
+
+  // Thread-safe: yes.
+  callbacks_.replace_blocks =
+      [this](const std::vector<internal::BlockWithId>& blocks) {
+    block_store_.replace(blocks);
+  };
+
+  // Thread-safe: yes.
+  callbacks_.request_blocks =
+      [this](std::vector<internal::BlockWithId>* blocks,
+             internal::Arena* arena) { block_store_.get(blocks, arena); };
+}
+
 std::size_t Map::remove(const Bytes& key, Callables::BytesPredicate predicate,
                         bool apply_to_all) {
   std::size_t num_deleted = 0;
@@ -384,26 +429,36 @@ std::size_t Map::replace(const Bytes& key, Callables::BytesFunction function,
   return updated_values.size();
 }
 
-void Map::initCallbacks() {
-  // Thread-safe: yes.
-  callbacks_.new_block = [this]() { return block_pool_.allocate(); };
+void Map::importFromBase64(const boost::filesystem::path& file) {
+  std::ifstream ifs(file.string());
+  internal::check(ifs, "Cannot open '%s'.", file.c_str());
 
-  // Thread-safe: yes.
-  callbacks_.commit_block =
-      [this](const Bytes& key, const internal::Block& block) {
-    return block_store_.put(key, block);
-  };
-
-  // Thread-safe: yes.
-  callbacks_.replace_blocks =
-      [this](const std::vector<internal::BlockWithId>& blocks) {
-    block_store_.replace(blocks);
-  };
-
-  // Thread-safe: yes.
-  callbacks_.request_blocks =
-      [this](std::vector<internal::BlockWithId>* blocks,
-             internal::Arena* arena) { block_store_.get(blocks, arena); };
+  std::string key_as_base64;
+  std::string key_as_binary;
+  std::string value_as_base64;
+  std::string value_as_binary;
+  if (ifs >> key_as_base64) {
+    internal::Base64::decode(key_as_base64, &key_as_binary);
+    while (ifs) {
+      switch (ifs.peek()) {
+        case '\n':
+        case '\r':
+          ifs >> key_as_base64;
+          internal::Base64::decode(key_as_base64, &key_as_binary);
+          break;
+        case '\f':
+        case '\t':
+        case '\v':
+        case ' ':
+          ifs.ignore();
+          break;
+        default:
+          ifs >> value_as_base64;
+          internal::Base64::decode(value_as_base64, &value_as_binary);
+          put(key_as_binary, value_as_binary);
+      }
+    }
+  }
 }
 
 void optimize(const boost::filesystem::path& from,
@@ -454,57 +509,6 @@ void optimize(const boost::filesystem::path& from,
         map_out.put(key, iter.getValue());
       }
     });
-  }
-}
-
-void importFromBase64(const boost::filesystem::path& directory,
-                      const boost::filesystem::path& file) {
-  importFromBase64(directory, file, false);
-}
-
-void importFromBase64(const boost::filesystem::path& directory,
-                      const boost::filesystem::path& file,
-                      bool create_if_missing) {
-  importFromBase64(directory, file, create_if_missing, -1);
-}
-
-void importFromBase64(const boost::filesystem::path& directory,
-                      const boost::filesystem::path& file,
-                      bool create_if_missing, std::size_t block_size) {
-  Options options;
-  options.create_if_missing = create_if_missing;
-  if (block_size != static_cast<std::size_t>(-1)) {
-    options.block_size = block_size;
-  }
-  Map map(directory, options);
-  std::ifstream ifs(file.string());
-  internal::check(ifs, "Cannot open '%s'.", file.c_str());
-
-  std::string key_as_base64;
-  std::string key_as_binary;
-  std::string value_as_base64;
-  std::string value_as_binary;
-  if (ifs >> key_as_base64) {
-    internal::Base64::decode(key_as_base64, &key_as_binary);
-    while (ifs) {
-      switch (ifs.peek()) {
-        case '\n':
-        case '\r':
-          ifs >> key_as_base64;
-          internal::Base64::decode(key_as_base64, &key_as_binary);
-          break;
-        case '\f':
-        case '\t':
-        case '\v':
-        case ' ':
-          ifs.ignore();
-          break;
-        default:
-          ifs >> value_as_base64;
-          internal::Base64::decode(value_as_base64, &value_as_binary);
-          map.put(key_as_binary, value_as_binary);
-      }
-    }
   }
 }
 

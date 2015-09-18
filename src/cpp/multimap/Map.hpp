@@ -224,14 +224,53 @@ class Map {
   // Returns the maximum size of a value in bytes which may be put. Currently
   // this is options.block_size - 2 bytes.
 
+  // LONG RUNNING OPERATIONS (require exclusive access)
+  // ---------------------------------------------------------------------------
+
+  static void importFromBase64(const boost::filesystem::path& directory,
+                               const boost::filesystem::path& file);
+  // Imports key-value pairs from a Base64-encoded text file denoted by file
+  // into the map located in the directory denoted by directory.
+  // Preconditions:
+  //   * The content in file follows the format described in Import / Export.
+  // Throws std::exception if:
+  //   * directory does not exist.
+  //   * directory does not contain a map.
+  //   * the map in directory is locked.
+  //   * file is not a regular file.
+
+  static void importFromBase64(const boost::filesystem::path& directory,
+                               const boost::filesystem::path& file,
+                               bool create_if_missing);
+  // Same as Import(directory, file) but creates a new map with default block
+  // size if the directory denoted by directory does not contain a map and
+  // create_if_missing is true.
+  // Preconditions:
+  //   * see Import(directory, file)
+  // Throws std::exception if:
+  //   * see Import(directory, file)
+
+  static void importFromBase64(const boost::filesystem::path& directory,
+                               const boost::filesystem::path& file,
+                               bool create_if_missing, std::size_t block_size);
+  // Same as Import(directory, file, create_if_missing) but sets the block size
+  // of a newly created map to block_size.
+  // Preconditions:
+  //   * see Import(directory, file, create_if_missing)
+  // Throws std::exception if:
+  //   * see Import(directory, file, create_if_missing)
+  //   * block_size is not a power of two.
+
  private:
+  void initCallbacks();
+
   std::size_t remove(const Bytes& key, Callables::BytesPredicate predicate,
                      bool apply_to_all);
 
   std::size_t replace(const Bytes& key, Callables::BytesFunction function,
                       bool apply_to_all);
 
-  void initCallbacks();
+  void importFromBase64(const boost::filesystem::path& file);
 
   internal::System::DirectoryLockGuard directory_lock_guard_;
   internal::BlockStore block_store_;
@@ -285,40 +324,6 @@ void optimize(const boost::filesystem::path& from,
 // Throws std::exception if:
 //   * see Optimize(from, to, compare)
 //   * new_block_size is not a power of two.
-
-void importFromBase64(const boost::filesystem::path& directory,
-                      const boost::filesystem::path& file);
-// Imports key-value pairs from a Base64-encoded text file denoted by file into
-// the map located in the directory denoted by directory.
-// Preconditions:
-//   * The content in file follows the format described in Import / Export.
-// Throws std::exception if:
-//   * directory does not exist.
-//   * directory does not contain a map.
-//   * the map in directory is locked.
-//   * file is not a regular file.
-
-void importFromBase64(const boost::filesystem::path& directory,
-                      const boost::filesystem::path& file,
-                      bool create_if_missing);
-// Same as Import(directory, file) but creates a new map with default block
-// size if the directory denoted by directory does not contain a map and
-// create_if_missing is true.
-// Preconditions:
-//   * see Import(directory, file)
-// Throws std::exception if:
-//   * see Import(directory, file)
-
-void importFromBase64(const boost::filesystem::path& directory,
-                      const boost::filesystem::path& file,
-                      bool create_if_missing, std::size_t block_size);
-// Same as Import(directory, file, create_if_missing) but sets the block size
-// of a newly created map to block_size.
-// Preconditions:
-//   * see Import(directory, file, create_if_missing)
-// Throws std::exception if:
-//   * see Import(directory, file, create_if_missing)
-//   * block_size is not a power of two.
 
 void exportToBase64(const boost::filesystem::path& directory,
                     const boost::filesystem::path& file);
