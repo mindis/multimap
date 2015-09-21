@@ -28,7 +28,6 @@
 #include "multimap/internal/Arena.hpp"
 #include "multimap/internal/Callbacks.hpp"
 #include "multimap/internal/ListLock.hpp"
-#include "multimap/internal/thirdparty/mt.hpp"
 
 namespace multimap {
 namespace internal {
@@ -48,6 +47,8 @@ class Table {
     std::size_t list_size_max = 0;
     std::size_t list_size_avg = 0;
 
+    void combine(const Stats& other);
+
     std::map<std::string, std::string> toMap() const;
 
     std::map<std::string, std::string> toMap(const std::string& prefix) const;
@@ -59,13 +60,9 @@ class Table {
 
   Table(const boost::filesystem::path& file);
 
-  Table(const boost::filesystem::path& file, bool create_if_missing);
-
   ~Table();
 
   void open(const boost::filesystem::path& file);
-
-  void open(const boost::filesystem::path& file, bool create_if_missing);
 
   void close();
 
@@ -75,12 +72,9 @@ class Table {
 
   UniqueListLock getUniqueOrCreate(const Bytes& key);
 
-  void forEachEntry(EntryProcedure procedure) const;
-
-  void forEachEntry(EntryProcedure procedure,
-                    Callables::BytesCompare compare) const;
-
   void forEachKey(Callables::BytesProcedure procedure) const;
+
+  void forEachEntry(EntryProcedure procedure) const;
 
   std::map<std::string, std::string> getProperties() const;
 
@@ -101,13 +95,7 @@ class Table {
   }
 
  private:
-  struct KeyHash {
-    std::size_t operator()(const Bytes& key) const {
-      return mt::fnv1aHash64(key.data(), key.size());
-    }
-  };
-
-  typedef std::unordered_map<Bytes, std::unique_ptr<List>, KeyHash> Hashtable;
+  typedef std::unordered_map<Bytes, std::unique_ptr<List>> Hashtable;
 
   Arena arena_;
   Hashtable map_;

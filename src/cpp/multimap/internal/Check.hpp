@@ -54,8 +54,6 @@ struct HasExpectedSize {
 // static_assert(HasExpectedSize<List, 40, 40>::value,
 //               "class List does not have expected size");
 
-void check(bool expression, const char* format, ...);
-
 }  // namespace internal
 }  // namespace multimap
 

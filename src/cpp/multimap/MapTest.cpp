@@ -48,10 +48,12 @@ struct MapTestWithParam : public testing::TestWithParam<std::uint32_t> {
   boost::filesystem::path directory;
 };
 
-const auto kTruePredicate = [](const Bytes&) { return true; };
-const auto kFalsePredicate = [](const Bytes&) { return false; };
-const auto kNullProcedure = [](const Bytes&) {};
-const auto kNullFunction = [](const Bytes&) { return ""; };
+const Map::BytesPredicate TRUE_PREDICATE = [](const Bytes&) { return true; };
+const Map::BytesPredicate FALSE_PREDICATE = [](const Bytes&) { return false; };
+const Map::BytesProcedure NULL_PROCEDURE = [](const Bytes&) {};
+const Map::BytesFunction NULL_FUNCTION = [](const Bytes&) { return ""; };
+const Map::EntryProcedure NULL_ENTRY_PROCEDURE =
+    [](const Bytes&, Map::ListIterator&&) {};
 
 TEST(MapTest, IsDefaultConstructible) {
   ASSERT_THAT(std::is_default_constructible<Map>::value, Eq(true));
@@ -60,22 +62,24 @@ TEST(MapTest, IsDefaultConstructible) {
 TEST(MapTest, DefaultConstructedHasProperState) {
   const Bytes key = "key";
   const Bytes value = "value";
-  ASSERT_FALSE(Map().contains(key));
-  ASSERT_EQ(Map().remove(key), 0);
-  ASSERT_EQ(Map().removeAll(key, kTruePredicate), 0);
-  ASSERT_EQ(Map().removeAll(key, kFalsePredicate), 0);
-  ASSERT_EQ(Map().removeAllEqual(key, value), 0);
-  ASSERT_FALSE(Map().removeFirst(key, kTruePredicate));
-  ASSERT_FALSE(Map().removeFirst(key, kFalsePredicate));
-  ASSERT_FALSE(Map().removeFirstEqual(key, value));
-  Map().forEachKey(kNullProcedure);
-  ASSERT_EQ(Map().get(key).num_values(), 0);
-  ASSERT_EQ(Map().getMutable(key).num_values(), 0);
-  ASSERT_THROW(Map().put(key, value), std::bad_function_call);
-  ASSERT_EQ(Map().replaceAll(key, kNullFunction), 0);
-  ASSERT_EQ(Map().replaceAllEqual(key, value, value), 0);
-  ASSERT_FALSE(Map().replaceFirst(key, kNullFunction));
-  ASSERT_FALSE(Map().replaceFirstEqual(key, value, value));
+  ASSERT_THROW(Map().put(key, value), mt::AssertionError);
+  ASSERT_THROW(Map().get(key).num_values(), mt::AssertionError);
+  ASSERT_THROW(Map().getMutable(key).num_values(), mt::AssertionError);
+  ASSERT_THROW(Map().contains(key), mt::AssertionError);
+  ASSERT_THROW(Map().remove(key), mt::AssertionError);
+  ASSERT_THROW(Map().removeAll(key, TRUE_PREDICATE), mt::AssertionError);
+  ASSERT_THROW(Map().removeAllEqual(key, value), mt::AssertionError);
+  ASSERT_THROW(Map().removeFirst(key, TRUE_PREDICATE), mt::AssertionError);
+  ASSERT_THROW(Map().removeFirstEqual(key, value), mt::AssertionError);
+  ASSERT_THROW(Map().replaceAll(key, NULL_FUNCTION), mt::AssertionError);
+  ASSERT_THROW(Map().replaceAllEqual(key, value, value), mt::AssertionError);
+  ASSERT_THROW(Map().replaceFirst(key, NULL_FUNCTION), mt::AssertionError);
+  ASSERT_THROW(Map().replaceFirstEqual(key, value, value), mt::AssertionError);
+  ASSERT_THROW(Map().forEachKey(NULL_PROCEDURE), mt::AssertionError);
+  ASSERT_THROW(Map().forEachValue(key, NULL_PROCEDURE), mt::AssertionError);
+  ASSERT_THROW(Map().forEachValue(key, TRUE_PREDICATE), mt::AssertionError);
+  ASSERT_THROW(Map().forEachEntry(NULL_ENTRY_PROCEDURE), mt::AssertionError);
+  ASSERT_THROW(Map().getProperties(), mt::AssertionError);
 }
 
 TEST(MapTest, IsNotCopyConstructibleOrAssignable) {
@@ -83,9 +87,9 @@ TEST(MapTest, IsNotCopyConstructibleOrAssignable) {
   ASSERT_THAT(std::is_copy_assignable<Map>::value, Eq(false));
 }
 
-TEST(MapTest, IsNotMoveConstructibleOrAssignable) {
-  ASSERT_THAT(std::is_move_constructible<Map>::value, Eq(false));
-  ASSERT_THAT(std::is_move_assignable<Map>::value, Eq(false));
+TEST(MapTest, IsMoveConstructibleOrAssignable) {
+  ASSERT_THAT(std::is_move_constructible<Map>::value, Eq(true));
+  ASSERT_THAT(std::is_move_assignable<Map>::value, Eq(true));
 }
 
 TEST_F(MapTestFixture, OpenThrowsIfFilesAreMissing) {
@@ -351,7 +355,7 @@ TEST_F(MapTestFixture, ReplaceFirstReplacesOneMatch) {
     map.put("key", std::to_string(i));
   }
 
-  ASSERT_FALSE(map.replaceFirst("key", kNullFunction));
+  ASSERT_FALSE(map.replaceFirst("key", NULL_FUNCTION));
   ASSERT_EQ(map.get("key").num_values(), num_values);
 
   const auto map_250_to_2500 = [](const multimap::Bytes& value) {
@@ -392,7 +396,7 @@ TEST_F(MapTestFixture, ReplaceAllReplacesAllMatches) {
     map.put("key", std::to_string(i));
   }
 
-  ASSERT_EQ(map.replaceAll("key", kNullFunction), 0);
+  ASSERT_EQ(map.replaceAll("key", NULL_FUNCTION), 0);
   ASSERT_EQ(map.get("key").num_values(), num_values);
 
   const auto map_250_to_2500 = [](const multimap::Bytes& value) {

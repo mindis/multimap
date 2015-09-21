@@ -19,16 +19,10 @@
 #define MULTIMAP_INCLUDE_MAP_HPP
 
 #include <map>
-#include <string>
+#include <vector>
 #include <boost/filesystem/path.hpp>
-#include "multimap/internal/AutoCloseFile.hpp"
-#include "multimap/internal/BlockPool.hpp"
-#include "multimap/internal/Callbacks.hpp"
-#include "multimap/internal/BlockStore.hpp"
-#include "multimap/internal/Table.hpp"
+#include "multimap/internal/Shard.hpp"
 #include "multimap/internal/System.hpp"
-#include "multimap/Callables.hpp"
-#include "multimap/Iterator.hpp"
 #include "multimap/Options.hpp"
 
 namespace multimap {
@@ -40,15 +34,40 @@ static const std::size_t MINOR_VERSION = 3;
 // with a list of values.
 class Map {
  public:
-  typedef Iterator<false> ListIter;
+  typedef internal::Shard::ListIterator ListIterator;
+  // An iterator type to iterate a immutable list. All operations declared in
+  // the class template Iterator<bool> that can mutate the underlying list are
+  // disabled.
+
+  typedef internal::Shard::MutableListIterator MutableListIterator;
   // An iterator type to iterate a mutable list. All operations declared in the
   // class template Iterator<bool> that can mutate the underlying list are
   // enabled.
 
-  typedef Iterator<true> ConstListIter;
-  // An iterator type to iterate a immutable list. All operations declared in
-  // the class template Iterator<bool> that can mutate the underlying list are
-  // disabled.
+  typedef internal::Shard::BytesPredicate BytesPredicate;
+  // Types implementing this interface can process a value and return a boolean.
+  // Predicates check a value for certain property and thus, depending on the
+  // outcome, can be used to control the path of execution.
+
+  typedef internal::Shard::BytesProcedure BytesProcedure;
+  // Types implementing this interface can process a value, but do not return a
+  // result. However, since objects of this type may have state, a procedure
+  // can be used to collect information about the processed data, and thus
+  // returning a result indirectly.
+
+  typedef internal::Shard::BytesFunction BytesFunction;
+  // Types implementing this interface can process a value and return a new one.
+  // Functions map an input value to an output value. An empty or no result can
+  // be signaled returning an empty string. std::string is used here as a
+  // convenient byte buffer that may contain arbitrary bytes.
+
+  typedef internal::Shard::BytesCompare BytesCompare;
+  // Types implementing this interface can process two values and return a
+  // boolean. Such functions determine the less than order of the given values
+  // according to the Compare concept.
+  // See http://en.cppreference.com/w/cpp/concept/Compare
+
+  typedef internal::Shard::EntryProcedure EntryProcedure;
 
   Map();
   // Creates a default instance which is not associated with a physical map.
@@ -59,6 +78,12 @@ class Map {
   // Preconditions:
   //   * No list is in locked state, i.e. there is no iterator object pointing
   //     to an existing list.
+
+  Map(const Map&) = delete;
+  Map& operator=(const Map&) = delete;
+
+  Map(Map&&) = default;
+  Map& operator=(Map&&) = default;
 
   Map(const boost::filesystem::path& directory, const Options& options);
   // Creates a new instance and opens the map located in directory. If the map
@@ -87,7 +112,7 @@ class Map {
   //   * key.size() > max_key_size()
   //   * value.size() > max_value_size()
 
-  ConstListIter get(const Bytes& key) const;
+  ListIterator get(const Bytes& key) const;
   // Returns a read-only iterator to the list associated with key. If no such
   // mapping exists the list is considered to be empty. If the list is not
   // empty a reader lock will be acquired to synchronize concurrent access to
@@ -97,7 +122,7 @@ class Map {
   // locked exclusively by a writer lock, see getMutable(), the method will
   // block until the lock is released.
 
-  ListIter getMutable(const Bytes& key);
+  MutableListIterator getMutable(const Bytes& key);
   // Returns a read-write iterator to the list associated with key. If no such
   // mapping exists the list is considered to be empty. If the list is not
   // empty a writer lock will be acquired to synchronize concurrent access to
@@ -179,9 +204,6 @@ class Map {
   // block until a writer lock can be acquired.
   // Returns: true if a value was replaced, false otherwise.
 
-  void forEachEntry(Callables::EntryProcedure procedure) const;
-  // TODO Document this.
-
   void forEachKey(Callables::BytesProcedure procedure) const;
   // Applies `procedure` to each key of the map whose associated list is not
   // empty. The keys are visited in random order. Although it is possible to
@@ -209,6 +231,9 @@ class Map {
   // value obtained via ConstListIter::GetValue() until predicate yields false.
   // This method will block until a reader lock for the list in question can be
   // acquired.
+
+  void forEachEntry(EntryProcedure procedure) const;
+  // TODO Document this.
 
   std::map<std::string, std::string> getProperties() const;
   // Returns a list of properties which describe the state of the map similar
@@ -333,13 +358,9 @@ class Map {
   //   * `new_block_size` is not a power of two.
 
  private:
-  void initCallbacks();
+  internal::Shard& getShard(const Bytes& key);
 
-  std::size_t remove(const Bytes& key, Callables::BytesPredicate predicate,
-                     bool apply_to_all);
-
-  std::size_t replace(const Bytes& key, Callables::BytesFunction function,
-                      bool apply_to_all);
+  const internal::Shard& getShard(const Bytes& key) const;
 
   void importFromBase64(const boost::filesystem::path& file);
 
@@ -349,11 +370,7 @@ class Map {
   void optimize(Callables::BytesCompare compare, std::size_t new_block_size);
 
   internal::System::DirectoryLockGuard directory_lock_guard_;
-  internal::BlockStore block_store_;
-  internal::BlockPool block_pool_;
-  internal::Callbacks callbacks_;
-  internal::Table table_;
-  Options options_;
+  std::vector<std::unique_ptr<internal::Shard>> shards_;
 };
 
 void optimize(const boost::filesystem::path& from,

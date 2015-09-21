@@ -20,7 +20,9 @@
 
 #include <algorithm>
 #include <cstring>
+#include <functional>
 #include <string>
+#include "multimap/internal/thirdparty/mt.hpp"
 
 namespace multimap {
 
@@ -110,5 +112,17 @@ inline bool operator<(const Bytes& lhs, const Bytes& rhs) {
 // first std::min(lhs.size(), rhs.size()) bytes will be compared.
 
 }  // namespace multimap
+
+namespace std {
+
+template <>
+struct hash< ::multimap::Bytes> {
+  // struct hash<multimap::Bytes> yields "template argument 1 is invalid"!?
+  size_t operator()(const ::multimap::Bytes& bytes) const {
+    return mt::fnv1aHash64(bytes.data(), bytes.size());
+  }
+};
+
+}  // namespace std
 
 #endif  // MULTIMAP_INCLUDE_BYTES_HPP

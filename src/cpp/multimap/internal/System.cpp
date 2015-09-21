@@ -27,7 +27,7 @@
 #include <iomanip>
 #include <iostream>
 #include <boost/filesystem/operations.hpp>
-#include "multimap/internal/AutoCloseFile.hpp"
+#include "multimap/internal/thirdparty/mt.hpp"
 #include "multimap/internal/Check.hpp"
 
 namespace multimap {
@@ -117,10 +117,11 @@ System::DirectoryLockGuard::DirectoryLockGuard(
 
 System::DirectoryLockGuard::~DirectoryLockGuard() {
   if (!directory_.empty()) {
-    check(std::remove((directory_ / filename_).c_str()) == 0,
-          "DirectoryLockGuard: Could not unlock directory '%s' because it is "
-          "not locked.",
-          directory_.c_str());
+    mt::check(
+        std::remove((directory_ / filename_).c_str()) == 0,
+        "DirectoryLockGuard: Could not unlock directory '%s' because it is "
+        "not locked.",
+        directory_.c_str());
   }
 }
 
@@ -131,12 +132,12 @@ void System::DirectoryLockGuard::lock(
 
 void System::DirectoryLockGuard::lock(const boost::filesystem::path& directory,
                                       const std::string filename) {
-  check(directory_.empty(), "DirectoryLockGuard: Already locked.");
-  const AutoCloseFile file(std::fopen((directory / filename).c_str(), "w"));
-  check(file.get(),
-        "DirectoryLockGuard: Could not lock directory '%s' because it is "
-        "already locked.",
-        directory.c_str());
+  mt::check(directory_.empty(), "DirectoryLockGuard: Already locked.");
+  const mt::AutoCloseFile file(std::fopen((directory / filename).c_str(), "w"));
+  mt::check(file.get(),
+            "DirectoryLockGuard: Could not lock directory '%s' because it is "
+            "already locked.",
+            directory.c_str());
   directory_ = directory;
   filename_ = filename;
 }

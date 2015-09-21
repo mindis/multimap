@@ -19,7 +19,7 @@
 #include <type_traits>
 #include <vector>
 #include "gmock/gmock.h"
-#include "multimap/internal/BlockPool.hpp"
+#include "multimap/internal/BlockArena.hpp"
 
 namespace multimap {
 namespace internal {
@@ -28,23 +28,23 @@ using testing::Eq;
 using testing::NotNull;
 
 TEST(BlockPoolTest, IsDefaultConstructible) {
-  ASSERT_THAT(std::is_default_constructible<BlockPool>::value, Eq(true));
+  ASSERT_THAT(std::is_default_constructible<BlockArena>::value, Eq(true));
 }
 
 TEST(BlockPoolTest, IsNotCopyConstructibleOrAssignable) {
-  ASSERT_THAT(std::is_copy_constructible<BlockPool>::value, Eq(false));
-  ASSERT_THAT(std::is_copy_assignable<BlockPool>::value, Eq(false));
+  ASSERT_THAT(std::is_copy_constructible<BlockArena>::value, Eq(false));
+  ASSERT_THAT(std::is_copy_assignable<BlockArena>::value, Eq(false));
 }
 
 TEST(BlockPoolTest, IsNotMoveConstructibleOrAssignable) {
-  ASSERT_THAT(std::is_move_constructible<BlockPool>::value, Eq(false));
-  ASSERT_THAT(std::is_move_assignable<BlockPool>::value, Eq(false));
+  ASSERT_THAT(std::is_move_constructible<BlockArena>::value, Eq(false));
+  ASSERT_THAT(std::is_move_assignable<BlockArena>::value, Eq(false));
 }
 
 TEST(BlockPoolTest, ConstructedWithValidParamsHasProperState) {
   const auto block_size = 128;
   const auto chunk_size = mt::MiB(10);
-  BlockPool block_pool(block_size, chunk_size);
+  BlockArena block_pool(block_size, chunk_size);
   ASSERT_THAT(block_pool.block_size(), Eq(block_size));
   ASSERT_THAT(block_pool.num_blocks(), Eq(81920));
   ASSERT_THAT(block_pool.allocate().data(), NotNull());

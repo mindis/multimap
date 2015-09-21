@@ -21,6 +21,7 @@
 #include <cstring>
 #include <array>
 #include "multimap/internal/System.hpp"
+#include "multimap/internal/thirdparty/mt.hpp"
 
 namespace multimap {
 namespace internal {
@@ -40,7 +41,7 @@ std::uint32_t Block::max_value_size() const {
 
 bool Block::add(const Bytes& value) {
   assert(data_);
-  check(value.size() <= max_value_size(),
+  mt::check(value.size() <= max_value_size(),
         "Block: Reject value because its size of %u bytes exceeds the allowed "
         "maximum of %u bytes.",
         value.size(), max_value_size());

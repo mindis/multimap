@@ -21,7 +21,6 @@
 #include <cstdio>
 #include <boost/filesystem/operations.hpp>
 #include <boost/thread/locks.hpp>
-#include "multimap/internal/AutoCloseFile.hpp"
 #include "multimap/internal/System.hpp"
 #include "multimap/internal/thirdparty/mt.hpp"
 
@@ -51,6 +50,27 @@ void writeEntryToFile(const Entry& entry, std::FILE* file) {
 
 }  // namespace
 
+void Table::Stats::combine(const Stats& other) {
+  if (other.num_keys != 0) {
+    num_lists_empty += other.num_lists_empty;
+    num_lists_locked += other.num_lists_locked;
+    num_values_total += other.num_values_total;
+    num_values_deleted += other.num_values_deleted;
+    key_size_min = std::min(key_size_min, other.key_size_min);
+    key_size_max = std::max(key_size_max, other.key_size_max);
+    const double total_keys = num_keys + other.num_keys;
+    key_size_avg *= (num_keys / total_keys);
+    key_size_avg += (other.num_keys / total_keys) * other.key_size_avg;
+    // new_avg = (weight * avg'old) + (weight'other * avg'other)
+    list_size_min = std::min(list_size_min, other.list_size_min);
+    list_size_max = std::max(list_size_max, other.list_size_max);
+    list_size_avg *= (num_keys / total_keys);
+    list_size_avg += (other.num_keys / total_keys) * other.list_size_avg;
+    // new_avg = (weight * avg'old) + (weight'other * avg'other)
+    num_keys += other.num_keys;
+  }
+}
+
 std::map<std::string, std::string> Table::Stats::toMap() const {
   return toMap("");
 }
@@ -62,53 +82,37 @@ std::map<std::string, std::string> Table::Stats::toMap(
     prefix_copy.push_back('.');
   }
   std::map<std::string, std::string> map;
-  map[prefix_copy + "key_size_avg"] = std::to_string(key_size_avg);
-  map[prefix_copy + "key_size_max"] = std::to_string(key_size_max);
-  map[prefix_copy + "key_size_min"] = std::to_string(key_size_min);
-  map[prefix_copy + "list_size_avg"] = std::to_string(list_size_avg);
-  map[prefix_copy + "list_size_max"] = std::to_string(list_size_max);
-  map[prefix_copy + "list_size_min"] = std::to_string(list_size_min);
   map[prefix_copy + "num_keys"] = std::to_string(num_keys);
   map[prefix_copy + "num_lists_empty"] = std::to_string(num_lists_empty);
   map[prefix_copy + "num_lists_locked"] = std::to_string(num_lists_locked);
-  map[prefix_copy + "num_values_deleted"] = std::to_string(num_values_deleted);
   map[prefix_copy + "num_values_total"] = std::to_string(num_values_total);
+  map[prefix_copy + "num_values_deleted"] = std::to_string(num_values_deleted);
+  map[prefix_copy + "key_size_min"] = std::to_string(key_size_min);
+  map[prefix_copy + "key_size_max"] = std::to_string(key_size_max);
+  map[prefix_copy + "key_size_avg"] = std::to_string(key_size_avg);
+  map[prefix_copy + "list_size_min"] = std::to_string(list_size_min);
+  map[prefix_copy + "list_size_max"] = std::to_string(list_size_max);
+  map[prefix_copy + "list_size_avg"] = std::to_string(list_size_avg);
   return map;
 }
 
-Table::Table(const boost::filesystem::path& file) : Table(file, false) {}
-
-Table::Table(const boost::filesystem::path& file, bool create_if_missing) {
-  open(file, create_if_missing);
+Table::Table(const boost::filesystem::path& file) {
+  open(file);
 }
 
 Table::~Table() { close(); }
 
-void Table::open(const boost::filesystem::path& file) { open(file, false); }
+void Table::open(const boost::filesystem::path& file) {
+  MT_REQUIRE_TRUE(path_.empty());
 
-void Table::open(const boost::filesystem::path& file, bool create_if_missing) {
-  assert(path_.empty());
-
-  if (boost::filesystem::is_regular_file(file)) {
-    const AutoCloseFile stream(std::fopen(file.c_str(), "r"));
-    check(stream.get(), "Table: Could not open '%s'.", file.c_str());
-
+  const mt::AutoCloseFile stream(std::fopen(file.c_str(), "r"));
+  if (stream.get()) {
     std::uint32_t num_keys;
     System::read(stream.get(), &num_keys, sizeof num_keys);
     for (std::size_t i = 0; i != num_keys; ++i) {
       const auto entry = readEntryFromFile(stream.get(), &arena_);
       map_.emplace(entry.first, std::unique_ptr<List>(new List(entry.second)));
     }
-
-  } else if (create_if_missing) {
-    const AutoCloseFile stream(std::fopen(file.c_str(), "w"));
-    check(stream.get(), "Table: Could not create '%s'.", file.c_str());
-
-    std::uint32_t num_keys = 0;
-    System::write(stream.get(), &num_keys, sizeof num_keys);
-
-  } else {
-    mt::throwRuntimeError2("Table: No such file '%s'.", file.c_str());
   }
   path_ = file;
 }
@@ -118,11 +122,14 @@ void Table::close() {
 
   const boost::shared_lock<boost::shared_mutex> lock(mutex_);
 
+  int status;
   const auto backup_path = path_.string() + ".old";
-  auto status = std::rename(path_.c_str(), backup_path.c_str());
-  assert(status == 0);
+  if (boost::filesystem::is_regular_file(path_)) {
+    status = std::rename(path_.c_str(), backup_path.c_str());
+    assert(status == 0);
+  }
 
-  const AutoCloseFile file(std::fopen(path_.c_str(), "w"));
+  const mt::AutoCloseFile file(std::fopen(path_.c_str(), "w"));
   assert(file.get());
   status = std::setvbuf(file.get(), nullptr, _IOFBF, 1 << 7);  // 10 MiB
   assert(status == 0);
@@ -135,7 +142,7 @@ void Table::close() {
     const auto list = entry.second.get();
     if (list->tryLockUnique()) {
       if (!list->empty()) {
-        list->flush(entry.first, commit_block_);
+        list->flush(commit_block_);
         writeEntryToFile(Entry(entry.first, list->chead()), file.get());
         ++num_keys_written;
       }
@@ -152,8 +159,10 @@ void Table::close() {
     System::write(file.get(), &num_keys_written, sizeof num_keys_written);
   }
 
-  status = std::remove(backup_path.c_str());
-  assert(status == 0);
+  if (boost::filesystem::is_regular_file(backup_path)) {
+    status = std::remove(backup_path.c_str());
+    assert(status == 0);
+  }
 
   arena_.reset();
   path_.clear();
@@ -185,10 +194,9 @@ UniqueListLock Table::getUnique(const Bytes& key) const {
 }
 
 UniqueListLock Table::getUniqueOrCreate(const Bytes& key) {
-  check(key.size() <= max_key_size(),
-        "%s: Reject key because its size of %u bytes exceeds the allowed "
-        "maximum of %u bytes.",
-        __PRETTY_FUNCTION__, key.size(), max_key_size());
+  mt::check(key.size() <= max_key_size(),
+        "Reject key because its size of %u bytes exceeds the allowed maximum "
+        "of %u bytes.", key.size(), max_key_size());
 
   List* list = nullptr;
   {
@@ -208,37 +216,6 @@ UniqueListLock Table::getUniqueOrCreate(const Bytes& key) {
   return UniqueListLock(list);
 }
 
-void Table::forEachEntry(EntryProcedure procedure) const {
-  const boost::shared_lock<boost::shared_mutex> lock(mutex_);
-  for (const auto& entry : map_) {
-    SharedListLock lock(*entry.second);
-    if (!lock.clist()->empty()) {
-      procedure(entry.first, std::move(lock));
-    }
-  }
-}
-
-void Table::forEachEntry(EntryProcedure procedure,
-                         Callables::BytesCompare compare) const {
-  const boost::shared_lock<boost::shared_mutex> lock(mutex_);
-  std::vector<const Hashtable::value_type*> entries;
-  entries.reserve(map_.size());
-  for (const auto& entry : map_) {
-    entries.push_back(&entry);
-  }
-  std::sort(entries.begin(), entries.end(),
-            [compare](const Hashtable::value_type* a,
-                      const Hashtable::value_type* b) {
-    return compare(a->first, b->first);
-  });
-  for (auto entry : entries) {
-    SharedListLock lock(*entry->second);
-    if (!lock.clist()->empty()) {
-      procedure(entry->first, std::move(lock));
-    }
-  }
-}
-
 void Table::forEachKey(Callables::BytesProcedure procedure) const {
   const boost::shared_lock<boost::shared_mutex> lock(mutex_);
   for (const auto& entry : map_) {
@@ -249,12 +226,22 @@ void Table::forEachKey(Callables::BytesProcedure procedure) const {
   }
 }
 
+void Table::forEachEntry(EntryProcedure procedure) const {
+  const boost::shared_lock<boost::shared_mutex> lock(mutex_);
+  for (const auto& entry : map_) {
+    SharedListLock lock(*entry.second);
+    if (!lock.clist()->empty()) {
+      procedure(entry.first, std::move(lock));
+    }
+  }
+}
+
 void Table::flushAllListsAndWaitIfLocked() const {
   boost::shared_lock<boost::shared_mutex> lock(mutex_);
   for (const auto& entry : map_) {
     auto list = entry.second.get();
     list->lockUnique();
-    list->flush(entry.first, commit_block_);
+    list->flush(commit_block_);
     list->unlockUnique();
   }
 }
@@ -264,7 +251,7 @@ void Table::flushAllListsOrThrowIfLocked() const {
   for (const auto& entry : map_) {
     auto list = entry.second.get();
     if (list->tryLockUnique()) {
-      list->flush(entry.first, commit_block_);
+      list->flush(commit_block_);
       list->unlockUnique();
     } else {
       throw("Some list is locked");
@@ -277,7 +264,7 @@ void Table::flushAllUnlockedLists() const {
   for (const auto& entry : map_) {
     auto list = entry.second.get();
     if (list->tryLockUnique()) {
-      list->flush(entry.first, commit_block_);
+      list->flush(commit_block_);
       list->unlockUnique();
     }
   }

@@ -17,13 +17,143 @@
 
 #include "mt.hpp"
 
-#include <ios>
+#include <cxxabi.h>
+#include <execinfo.h>
+#include <array>
+#include <algorithm>
+#include <cctype>
 #include <cmath>
-#include <cstdio>
 #include <cstdarg>
+#include <cstdio>
+#include <fstream>
+#include <iostream>
+#include <memory>
 #include <vector>
+#include <boost/crc.hpp>
+#include <boost/algorithm/string/trim.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 
 namespace mt {
+
+namespace {
+
+std::string serializeToString(const Properties& properties) {
+  std::string joined;
+  const auto is_space = [](char c) { return std::isspace(c); };
+  for (const auto& entry : properties) {
+    const auto key = boost::trim_copy(entry.first);
+    const auto val = boost::trim_copy(entry.second);
+    if (std::any_of(key.begin(), key.end(), is_space)) continue;
+    if (std::any_of(val.begin(), val.end(), is_space)) continue;
+    if (key.empty() || val.empty()) continue;
+    joined.append(key);
+    joined.push_back('=');
+    joined.append(val);
+    joined.push_back('\n');
+  }
+  return joined;
+}
+
+void throwRuntimeError3(const char* format, va_list args) {
+  va_list args2;
+  va_copy(args2, args);
+  const auto num_bytes = std::vsnprintf(nullptr, 0, format, args) + 1;
+  std::vector<char> buffer(num_bytes);
+  std::vsnprintf(buffer.data(), buffer.size(), format, args2);
+  va_end(args2);
+  throwRuntimeError(buffer.data());
+}
+
+void demangle(std::string& symbol) {
+  const auto stripFunctionName = [](std::string& symbol) {
+    const auto pos_lparen = symbol.find('(');
+    const auto pos_rparen = symbol.find(')');
+    if (pos_lparen < pos_rparen) {
+      symbol = symbol.substr(pos_lparen + 1, pos_rparen - pos_lparen - 1);
+    }
+  };
+
+  const auto stripAddress = [](std::string& symbol) {
+    const auto pos_plus = symbol.find('+');
+    if (pos_plus != std::string::npos) {
+      symbol = symbol.substr(0, pos_plus);
+    }
+  };
+
+  int status;
+  stripFunctionName(symbol);
+  stripAddress(symbol);
+  boost::trim(symbol);
+  if (symbol.empty()) {
+    symbol.assign("== inlined function ==");
+  } else if (boost::starts_with(symbol, "_Z")) {
+    std::unique_ptr<char, decltype(std::free)*> realname(
+        abi::__cxa_demangle(symbol.c_str(), nullptr, nullptr, &status),
+        std::free);
+    switch (status) {
+      case -1:
+        std::cerr << "demangle: A memory allocation failure occurred.\n";
+        break;
+      case -2:
+        std::cerr << "demangle: " << symbol
+                  << " is not a valid name under the C++ ABI mangling rules.\n";
+        break;
+      case -3:
+        std::cerr << "demagle: One of the arguments is invalid.\n";
+        break;
+      default:
+        symbol.assign(realname.get());
+    }
+  }
+}
+
+std::string makeErrorMessage(const char* file, unsigned line, const char* expr,
+                             AssertionError::Expected expected,
+                             AssertionError::Type type,
+                             std::size_t skip_head_from_stacktrace) {
+  std::ostringstream oss;
+  switch (type) {
+    case AssertionError::Type::ASSERTION:
+      oss << "Assertion failed";
+      break;
+    case AssertionError::Type::PRECONDITION:
+      oss << "Precondition failed";
+      break;
+    case AssertionError::Type::POSTCONDITION:
+      oss << "Postcondition failed";
+      break;
+    default:
+      throw "The unexpected happened.";
+  }
+  oss << " in " << file << ':' << line << '\n';
+  switch (expected) {
+    case AssertionError::Expected::TRUE:
+      oss << "The expression '" << expr << "' should be true, but was false.";
+      break;
+    case AssertionError::Expected::FALSE:
+      oss << "The expression '" << expr << "' should be false, but was true.";
+      break;
+    case AssertionError::Expected::IS_NULL:
+      oss << "The expression '" << expr << "' doesn't yield nullptr.";
+      break;
+    case AssertionError::Expected::IS_ZERO:
+      oss << "The expression '" << expr << "' doesn't yield zero.";
+      break;
+    case AssertionError::Expected::NOT_NULL:
+      oss << "The expression '" << expr << "' yields nullptr.";
+      break;
+    case AssertionError::Expected::NOT_ZERO:
+      oss << "The expression '" << expr << "' yields zero.";
+      break;
+    default:
+      throw "The unexpected happened.";
+  }
+  oss << "\n\n";
+  printStackTraceTo(oss, skip_head_from_stacktrace);
+  return oss.str();
+}
+
+}  // namespace
 
 bool isPrime(std::size_t number) {
   if (number % 2 == 0) {
@@ -43,6 +173,12 @@ std::size_t nextPrime(std::size_t number) {
     ++number;
   }
   return number;
+}
+
+std::size_t crc32(const std::string& str) {
+  boost::crc_32_type crc;
+  crc.process_bytes(str.data(), str.size());
+  return crc.checksum();
 }
 
 // Source: http://www.isthe.com/chongo/src/fnv/hash_32a.c
@@ -69,6 +205,69 @@ std::uint64_t fnv1aHash64(const void* buf, std::size_t len) {
   return hash;
 }
 
+AutoCloseFile::AutoCloseFile(std::FILE* file) : file_(file) {}
+
+AutoCloseFile::~AutoCloseFile() { reset(); }
+
+AutoCloseFile::AutoCloseFile(AutoCloseFile&& other) : file_(other.file_) {
+  other.file_ = nullptr;
+}
+
+AutoCloseFile& AutoCloseFile::operator=(AutoCloseFile&& other) {
+  if (&other != this) {
+    reset(other.file_);
+    other.file_ = nullptr;
+  }
+  return *this;
+}
+
+std::FILE* AutoCloseFile::get() const { return file_; }
+
+void AutoCloseFile::reset(std::FILE* file) {
+  if (file_) {
+    const auto status = std::fclose(file_);
+    MT_ASSERT_IS_ZERO(status);
+  }
+  file_ = file;
+}
+
+Properties readPropertiesFromFile(const char* file) {
+  std::ifstream ifs(file);
+  check(ifs, "Could not open '%s'.", file);
+
+  std::string line;
+  Properties properties;
+  while (std::getline(ifs, line)) {
+    if (line.empty()) continue;
+    const auto pos_of_delim = line.find('=');
+    if (pos_of_delim == std::string::npos) continue;
+    const auto key = line.substr(0, pos_of_delim);
+    const auto value = line.substr(pos_of_delim + 1);
+    // We don't make any checks here, because external modification
+    // of key or value will be captured during checksum verification.
+    properties[key] = value;
+  }
+
+  check(properties.count("checksum") != 0,
+        "Properties file '%s' is missing checksum.", file);
+  const auto actual_checksum = std::stoul(properties.at("checksum"));
+
+  properties.erase("checksum");
+  const auto expected_checksum = crc32(serializeToString(properties));
+  check(actual_checksum == expected_checksum, "'%s' has wrong checksum.", file);
+  return properties;
+}
+
+void writePropertiesToFile(const Properties& properties, const char* file) {
+  MT_REQUIRE_EQ(properties.count("checksum"), 0);
+
+  std::ofstream ofs(file);
+  check(ofs, "Could not create '%s'.", file);
+
+  const auto content = serializeToString(properties);
+  ofs << content << "checksum=" << crc32(content) << '\n';
+}
+
 void throwRuntimeError(const char* message) {
   throw std::runtime_error(message);
 }
@@ -76,84 +275,53 @@ void throwRuntimeError(const char* message) {
 void throwRuntimeError2(const char* format, ...) {
   va_list args;
   va_start(args, format);
-  va_list args2;
-  va_copy(args2, args);
-  const auto num_bytes = std::vsnprintf(nullptr, 0, format, args) + 1;
-  std::vector<char> buffer(num_bytes);
-  std::vsnprintf(buffer.data(), buffer.size(), format, args2);
-  va_end(args2);
+  throwRuntimeError3(format, args);
   va_end(args);
-  throwRuntimeError(buffer.data());
 }
 
-namespace internal {
-
-namespace {
-
-std::string makeErrorMessage(const char* what, const char* file,
-                             std::size_t line, const char* expr,
-                             bool expected) {
-  std::ostringstream oss;
-  oss << what << " in " << file << ':' << line;
-  oss << "\nThe expression '" << expr << "' should be " << std::boolalpha
-      << expected << ", but was " << !expected << '.';
-  return oss.str();
+void check(bool expression, const char* format, ...) {
+  if (!expression) {
+    va_list args;
+    va_start(args, format);
+    throwRuntimeError3(format, args);
+    va_end(args);
+  }
 }
 
-std::string makeErrorMessage(const char* what, const char* file,
-                             std::size_t line, const char* expr) {
-  std::ostringstream oss;
-  oss << what << " in " << file << ':' << line;
-  oss << "\nThe expression '" << expr << "' yields nullptr.";
-  return oss.str();
+std::vector<std::string> getStackTrace(std::size_t skip_head) {
+  std::vector<std::string> result;
+  std::array<void*, 23> frames;
+  const auto size = backtrace(frames.data(), frames.size());
+  if (static_cast<std::size_t>(size) > skip_head) {
+    const auto symbols = backtrace_symbols(frames.data(), size);
+    result.assign(symbols + skip_head, symbols + size);
+    std::for_each(result.begin(), result.end(), demangle);
+    std::free(symbols);
+  }
+  return result;
 }
 
-}  // namespace
-
-void failAssertTrue(const char* file, std::size_t line, const char* expr) {
-  throw std::runtime_error(
-      makeErrorMessage("Assertion failed", file, line, expr, true));
+void printStackTraceTo(std::ostream& os, std::size_t skip_head) {
+  const auto stacktrace = getStackTrace(skip_head);
+  std::copy(stacktrace.begin(), stacktrace.end(),
+            std::ostream_iterator<std::string>(os, "\n"));
 }
 
-void failAssertFalse(const char* file, std::size_t line, const char* expr) {
-  throw std::runtime_error(
-      makeErrorMessage("Assertion failed", file, line, expr, false));
+void printStackTrace(std::size_t skip_head) {
+  printStackTraceTo(std::cerr, skip_head);
 }
 
-void failAssertNotNull(const char* file, std::size_t line, const char* expr) {
-  throw std::runtime_error(
-      makeErrorMessage("Assertion failed", file, line, expr));
-}
+AssertionError::AssertionError(const char* message)
+    : std::runtime_error(message) {}
 
-void failRequireTrue(const char* file, std::size_t line, const char* expr) {
-  throw std::runtime_error(
-      makeErrorMessage("Precondition failed", file, line, expr, true));
-}
+AssertionError::AssertionError(const std::string& message)
+    : std::runtime_error(message) {}
 
-void failRequireFalse(const char* file, std::size_t line, const char* expr) {
-  throw std::runtime_error(
-      makeErrorMessage("Precondition failed", file, line, expr, false));
-}
+AssertionError::AssertionError(const char* file, std::size_t line,
+                               const char* expr,
+                               AssertionError::Expected expected,
+                               AssertionError::Type type)
+    : std::runtime_error(
+          makeErrorMessage(file, line, expr, expected, type, 5)) {}
 
-void failRequireNotNull(const char* file, std::size_t line, const char* expr) {
-  throw std::runtime_error(
-      makeErrorMessage("Precondition failed", file, line, expr));
-}
-
-void failEnsureTrue(const char* file, std::size_t line, const char* expr) {
-  throw std::runtime_error(
-      makeErrorMessage("Postcondition failed", file, line, expr, true));
-}
-
-void failEnsureFalse(const char* file, std::size_t line, const char* expr) {
-  throw std::runtime_error(
-      makeErrorMessage("Postcondition failed", file, line, expr, false));
-}
-
-void failEnsureNotNull(const char* file, std::size_t line, const char* expr) {
-  throw std::runtime_error(
-      makeErrorMessage("Postcondition failed", file, line, expr));
-}
-
-}  // namespace internal
 }  // namespace mt

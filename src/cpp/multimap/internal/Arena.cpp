@@ -19,17 +19,18 @@
 
 #include <algorithm>
 #include "multimap/internal/Check.hpp"
+#include "multimap/internal/thirdparty/mt.hpp"
 
 namespace multimap {
 namespace internal {
 
 Arena::Arena(std::size_t block_size)
     : block_size_(block_size), capacity_(0), size_(0) {
-  check(block_size > 0, "Arena::Arena: block_size must be positive");
+  mt::check(block_size > 0, "Arena::Arena: block_size must be positive");
 }
 
 char* Arena::allocate(std::size_t num_bytes) {
-  check(num_bytes > 0, "Arena::Allocate: num_bytes must be positive");
+  mt::check(num_bytes > 0, "Arena::Allocate: num_bytes must be positive");
   const auto num_bytes_free = capacity_ - size_;
   if (num_bytes_free < num_bytes) {
     allocateNewBlock(std::max(block_size_, num_bytes));

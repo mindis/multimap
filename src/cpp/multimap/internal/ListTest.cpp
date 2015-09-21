@@ -18,7 +18,7 @@
 #include <thread>
 #include "gmock/gmock.h"
 #include "multimap/internal/List.hpp"
-#include "multimap/internal/BlockPool.hpp"
+#include "multimap/internal/BlockArena.hpp"
 
 namespace multimap {
 namespace internal {
@@ -71,21 +71,20 @@ TEST(ListTest, IsNotMoveConstructibleOrAssignable) {
 struct ListTestWithParam : testing::TestWithParam<std::uint32_t> {};
 
 TEST_P(ListTestWithParam, AddValuesAndIterateAll) {
-  BlockPool block_pool(128);
+  BlockArena block_pool(128);
   const auto allocate_block_callback =
       [&block_pool]() { return block_pool.allocate(); };
 
   std::vector<std::string> store;
-  const auto commit_block_callback = [&store](const Bytes& /* key */, const Block& block) {
+  const auto commit_block_callback = [&store](const Block& block) {
     store.push_back(std::string(block.data(), block.size()));
     return store.size() - 1;
   };
 
   List list;
-  Bytes key; // ignored
   for (std::size_t i = 0; i != GetParam(); ++i) {
     const auto value = std::to_string(i);
-    list.add(key, value, allocate_block_callback, commit_block_callback);
+    list.add(value, allocate_block_callback, commit_block_callback);
     ASSERT_THAT(list.head().num_values_deleted, Eq(0));
     ASSERT_THAT(list.head().num_values_total, Eq(i + 1));
   }

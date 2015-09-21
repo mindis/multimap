@@ -22,6 +22,7 @@
 #include <functional>
 #include "multimap/Bytes.hpp"
 #include "multimap/internal/Check.hpp"
+#include "multimap/internal/thirdparty/mt.hpp"
 
 namespace multimap {
 namespace internal {
@@ -47,6 +48,11 @@ namespace internal {
 class Block {
  public:
   static const std::size_t SIZE_OF_VALUE_SIZE_FIELD = sizeof(std::int16_t);
+
+  static std::size_t max_value_size(std::size_t block_size) {
+    MT_REQUIRE_GT(block_size, SIZE_OF_VALUE_SIZE_FIELD);
+    return block_size - SIZE_OF_VALUE_SIZE_FIELD;
+  }
 
   template <bool IsConst>
   class Iter {

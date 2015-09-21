@@ -15,16 +15,16 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "multimap/internal/BlockPool.hpp"
+#include "multimap/internal/BlockArena.hpp"
 
 namespace multimap {
 namespace internal {
 
-BlockPool::BlockPool(std::size_t block_size, std::size_t chunk_size) {
+BlockArena::BlockArena(std::size_t block_size, std::size_t chunk_size) {
   init(block_size, chunk_size);
 }
 
-void BlockPool::init(std::size_t block_size, std::size_t chunk_size) {
+void BlockArena::init(std::size_t block_size, std::size_t chunk_size) {
   MT_REQUIRE_EQ(chunk_size % block_size, 0);
   MT_REQUIRE_GT(chunk_size, block_size);
   MT_REQUIRE_NE(chunk_size, 0);
@@ -38,7 +38,7 @@ void BlockPool::init(std::size_t block_size, std::size_t chunk_size) {
   chunks_.clear();
 }
 
-Block BlockPool::allocate() {
+Block BlockArena::allocate() {
   const std::lock_guard<std::mutex> lock(mutex_);
   if (get_offset_ == chunk_size_) {
     chunks_.emplace_back(new char[chunk_size_]);
@@ -49,11 +49,11 @@ Block BlockPool::allocate() {
   return Block(block_data, block_size_);
 }
 
-std::size_t BlockPool::block_size() const { return block_size_; }
+std::size_t BlockArena::block_size() const { return block_size_; }
 
-std::size_t BlockPool::chunk_size() const { return chunk_size_; }
+std::size_t BlockArena::chunk_size() const { return chunk_size_; }
 
-std::size_t BlockPool::num_blocks() const {
+std::size_t BlockArena::num_blocks() const {
   const std::lock_guard<std::mutex> lock(mutex_);
   const auto full_chunks = chunks_.empty() ? 0 : (chunks_.size() - 1);
   const auto blocks_per_chunk = chunk_size_ / block_size_;
@@ -61,7 +61,7 @@ std::size_t BlockPool::num_blocks() const {
   return full_chunks * blocks_per_chunk + blocks_in_last_chunk;
 }
 
-std::size_t BlockPool::num_chunks() const {
+std::size_t BlockArena::num_chunks() const {
   const std::lock_guard<std::mutex> lock(mutex_);
   return chunks_.size();
 }

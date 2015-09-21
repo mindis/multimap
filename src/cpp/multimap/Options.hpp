@@ -27,6 +27,8 @@ struct Options {
   // the map already exists when opened. The value must be a power of two. Have
   // a look at Choosing the block size for more information.
 
+  std::size_t num_shards = 23;
+
   bool create_if_missing = false;
   // Determines whether a map has to be created if it does not exist.
 

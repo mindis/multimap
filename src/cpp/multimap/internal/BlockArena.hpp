@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTIMAP_INCLUDE_INTERNAL_BLOCK_POOL_HPP
-#define MULTIMAP_INCLUDE_INTERNAL_BLOCK_POOL_HPP
+#ifndef MULTIMAP_INCLUDE_INTERNAL_BLOCK_ARENA_HPP
+#define MULTIMAP_INCLUDE_INTERNAL_BLOCK_ARENA_HPP
 
 #include <memory>
 #include <mutex>
@@ -27,13 +27,13 @@
 namespace multimap {
 namespace internal {
 
-class BlockPool {
+class BlockArena {
  public:
-  static const std::size_t DEFAULT_CHUNK_SIZE = mt::MiB(100);
+  static const std::size_t DEFAULT_CHUNK_SIZE = mt::MiB(10);
 
-  BlockPool() = default;
+  BlockArena() = default;
 
-  BlockPool(std::size_t block_size,
+  BlockArena(std::size_t block_size,
             std::size_t chunk_size = DEFAULT_CHUNK_SIZE);
 
   void init(std::size_t block_size,
@@ -65,4 +65,4 @@ class BlockPool {
 }  // namespace internal
 }  // namespace multimap
 
-#endif  // MULTIMAP_INCLUDE_INTERNAL_BLOCK_POOL_HPP
+#endif  // MULTIMAP_INCLUDE_INTERNAL_BLOCK_ARENA_HPP

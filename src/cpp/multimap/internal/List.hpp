@@ -121,12 +121,11 @@ class List {
   List(const List&) = delete;
   List& operator=(const List&) = delete;
 
-  void add(const Bytes& key, const Bytes& value,
+  void add(const Bytes& value,
            const Callbacks::NewBlock& allocate_block_callback,
            const Callbacks::CommitBlock& commit_block_callback);
 
-  void flush(const Bytes& key,
-             const Callbacks::CommitBlock& commit_block_callback);
+  void flush(const Callbacks::CommitBlock& commit_block_callback);
   // Requires: not isLocked()
 
   void clear() { head_ = Head(); }
