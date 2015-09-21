@@ -80,12 +80,12 @@ multimap::Options makeOptions(JNIEnv* env, jstring joptions) {
   for (const auto& entry : parseProperties(str)) {
     if (entry.first == "block-size") {
       options.block_size = std::stoul(entry.second);
+    } else if (entry.first == "num-shards") {
+      options.num_shards = std::stoul(entry.second);
     } else if (entry.first == "create-if-missing") {
       options.create_if_missing = (entry.second == "true");
     } else if (entry.first == "error-if-exists") {
       options.error_if_exists = (entry.second == "true");
-    } else if (entry.first == "write-only-mode") {
-      options.write_only_mode = (entry.second == "true");
     } else {
       std::cerr << "WARNING Unknown option: " << entry.first << '\n';
     }
@@ -476,7 +476,7 @@ JNIEXPORT void JNICALL
                            ? multimap::jni::makeBytesCompare(env, jless_than)
                            : multimap::Callables::BytesCompare();
   try {
-    multimap::optimize(from, to, compare, new_block_size);
+    multimap::optimize(from, to, new_block_size, compare);
   } catch (std::exception& error) {
     multimap::jni::throwJavaException(env, error.what());
   }
@@ -495,7 +495,8 @@ JNIEXPORT void JNICALL
   const auto directory = multimap::jni::makeString(env, jdirectory);
   const auto file = multimap::jni::makeString(env, jfile);
   try {
-    multimap::importFromBase64(directory, file, create_if_missing, block_size);
+    multimap::Map::importFromBase64(directory, file, create_if_missing,
+                                    block_size);
   } catch (std::exception& error) {
     multimap::jni::throwJavaException(env, error.what());
   }
@@ -512,7 +513,7 @@ JNIEXPORT void JNICALL
   const auto directory = multimap::jni::makeString(env, jdirectory);
   const auto file = multimap::jni::makeString(env, jfile);
   try {
-    multimap::exportToBase64(directory, file);
+    multimap::Map::exportToBase64(directory, boost::filesystem::path(file));
   } catch (std::exception& error) {
     multimap::jni::throwJavaException(env, error.what());
   }

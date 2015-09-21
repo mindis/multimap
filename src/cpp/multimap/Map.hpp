@@ -307,7 +307,7 @@ class Map {
 
   static void exportToBase64(const boost::filesystem::path& directory,
                              const boost::filesystem::path& file,
-                             Callables::BytesCompare compare);
+                             BytesCompare compare);
   // TODO Document this.
 
   static void optimize(const boost::filesystem::path& directory);
@@ -328,6 +328,15 @@ class Map {
   //   * `directory` is not writable.
 
   static void optimize(const boost::filesystem::path& directory,
+                       BytesCompare compare);
+  // Same as `optimize(const boost::filesystem::path&)` but sorts each list
+  // using `compare` as the sorting criterion.
+  //
+  // Throws `std::exception` if:
+  //
+  //   * see `optimize(const boost::filesystem::path&)`
+
+  static void optimize(const boost::filesystem::path& directory,
                        std::size_t new_block_size);
   // Same as `optimize(const boost::filesystem::path&)` but changes the block
   // size of the map to `new_block_size`.
@@ -338,17 +347,7 @@ class Map {
   //   * `new_block_size` is not a power of two.
 
   static void optimize(const boost::filesystem::path& directory,
-                       Callables::BytesCompare compare);
-  // Same as `optimize(const boost::filesystem::path&)` but sorts each list
-  // using `compare` as the sorting criterion.
-  //
-  // Throws `std::exception` if:
-  //
-  //   * see `optimize(const boost::filesystem::path&)`
-
-  static void optimize(const boost::filesystem::path& directory,
-                       Callables::BytesCompare compare,
-                       std::size_t new_block_size);
+                       std::size_t new_block_size, BytesCompare compare);
   // Same as `optimize(const boost::filesystem::path&, Callables::BytesCompare)`
   // but changes the block size of the map to `new_block_size`.
   //
@@ -365,17 +364,17 @@ class Map {
   void importFromBase64(const boost::filesystem::path& file);
 
   void exportToBase64(const boost::filesystem::path& file,
-                      Callables::BytesCompare compare);
+                      BytesCompare compare);
 
-  void optimize(Callables::BytesCompare compare, std::size_t new_block_size);
+  void optimize(std::size_t new_block_size, BytesCompare compare);
 
   internal::System::DirectoryLockGuard directory_lock_guard_;
   std::vector<std::unique_ptr<internal::Shard>> shards_;
 };
 
 void optimize(const boost::filesystem::path& from,
-              const boost::filesystem::path& to,
-              Callables::BytesCompare compare, std::size_t new_block_size);
+              const boost::filesystem::path& to, std::size_t new_block_size,
+              Map::BytesCompare compare);
 
 }  // namespace multimap
 

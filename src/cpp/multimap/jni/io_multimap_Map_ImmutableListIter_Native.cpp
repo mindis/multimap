@@ -20,11 +20,12 @@
 
 namespace {
 
-typedef multimap::jni::Holder<multimap::Map::ConstListIter> ConstListIterHolder;
+typedef multimap::jni::Holder<multimap::Map::ListIterator>
+    MutableListIterHolder;
 
-inline ConstListIterHolder* Cast(JNIEnv* env, jobject self) {
+inline MutableListIterHolder* Cast(JNIEnv* env, jobject self) {
   assert(self != nullptr);
-  return static_cast<ConstListIterHolder*>(env->GetDirectBufferAddress(self));
+  return static_cast<MutableListIterHolder*>(env->GetDirectBufferAddress(self));
 }
 
 }  // namespace
@@ -104,8 +105,9 @@ JNIEXPORT jobject JNICALL
  * Signature: (Ljava/nio/ByteBuffer;)V
  */
 JNIEXPORT void JNICALL
-    Java_io_multimap_Map_00024ImmutableListIter_00024Native_next(
-        JNIEnv* env, jclass, jobject self) {
+    Java_io_multimap_Map_00024ImmutableListIter_00024Native_next(JNIEnv* env,
+                                                                 jclass,
+                                                                 jobject self) {
   Cast(env, self)->get().next();
 }
 

@@ -242,24 +242,23 @@ void Map::exportToBase64(const boost::filesystem::path& directory,
 }
 
 void Map::optimize(const boost::filesystem::path& directory) {
-  Map::optimize(directory, -1);
+  Map::optimize(directory, -1, BytesCompare());
+}
+
+void Map::optimize(const boost::filesystem::path& directory,
+                   BytesCompare compare) {
+  Map::optimize(directory, -1, compare);
 }
 
 void Map::optimize(const boost::filesystem::path& directory,
                    std::size_t new_block_size) {
-  Map::optimize(directory, Callables::BytesCompare(), new_block_size);
+  Map::optimize(directory, new_block_size, BytesCompare());
 }
 
 void Map::optimize(const boost::filesystem::path& directory,
-                   Callables::BytesCompare compare) {
-  Map::optimize(directory, compare, -1);
-}
-
-void Map::optimize(const boost::filesystem::path& directory,
-                   Callables::BytesCompare compare,
-                   std::size_t new_block_size) {
+                   std::size_t new_block_size, BytesCompare compare) {
   Map map(directory, Options());
-  map.optimize(compare, new_block_size);
+  map.optimize(new_block_size, compare);
 }
 
 internal::Shard& Map::getShard(const Bytes& key) {
@@ -305,7 +304,7 @@ void Map::importFromBase64(const boost::filesystem::path& file) {
 }
 
 void Map::exportToBase64(const boost::filesystem::path& file,
-                         Callables::BytesCompare compare) {
+                         BytesCompare compare) {
   std::ofstream ofs(file.string());
   mt::check(ofs, "Cannot create '%s'.", file.c_str());
 
@@ -361,8 +360,7 @@ void Map::exportToBase64(const boost::filesystem::path& file,
   }
 }
 
-void Map::optimize(Callables::BytesCompare compare,
-                   std::size_t new_block_size) {
+void Map::optimize(std::size_t new_block_size, BytesCompare compare) {
   // No locking since a user cannot call this method directly, because it's
   // private. It can only be called indirectly via the static version of this
   // operation. Hence, this method has always exclusive access to the map.
@@ -373,8 +371,8 @@ void Map::optimize(Callables::BytesCompare compare,
 
 // TODO Remove
 void optimize(const boost::filesystem::path& from,
-              const boost::filesystem::path& to,
-              Callables::BytesCompare compare, std::size_t new_block_size) {
+              const boost::filesystem::path& to, std::size_t new_block_size,
+              Map::BytesCompare compare) {
   Map map_in(from, Options());
 
   Options options;
