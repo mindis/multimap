@@ -280,4 +280,12 @@ iframe#javadoc {
   }
 }
 
+/* ngdocs */
+
+div#logo {
+  text-align: center;
+  color: #663366;
+  font-family: 'Faster One', cursive;
+  font-size: 5em;
+}
 
