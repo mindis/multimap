@@ -19,6 +19,8 @@
 #define MULTIMAP_INCLUDE_OPTIONS_HPP
 
 #include <cstddef>
+#include <functional>
+#include "multimap/Bytes.hpp"
 
 namespace multimap {
 
@@ -36,6 +38,11 @@ struct Options {
 
   bool error_if_exists = false;
   // Determines whether an already existing map should be treated as an error.
+
+  std::function<bool(const Bytes&, const Bytes&)> compare;
+  // Optional: Compare function which returns `true` if the left operand is
+  // less than the right operand. Returns `false` otherwise.
+  // Used by `Map::optimize()`.
 };
 
 }  // namespace multimap
