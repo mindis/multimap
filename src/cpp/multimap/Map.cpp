@@ -17,6 +17,7 @@
 
 #include "multimap/Map.hpp"
 
+#include <algorithm>
 #include <fstream>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -27,8 +28,9 @@ namespace multimap {
 
 namespace {
 
-const char* NAME_OF_LOCK_FILE = "multimap.lock";
-const char* NAME_OF_PROPERTIES_FILE = "multimap.properties";
+const std::string FILE_PREFIX = "multimap";
+const std::string NAME_OF_LOCK_FILE = FILE_PREFIX + ".lock";
+const std::string NAME_OF_PROPERTIES_FILE = FILE_PREFIX + ".properties";
 
 bool isPowerOfTwo(std::size_t value) { return (value & (value - 1)) == 0; }
 
@@ -97,7 +99,7 @@ void Map::open(const boost::filesystem::path& directory,
     shards_.resize(mt::nextPrime(options.num_shards));
   }
 
-  const auto prefix = abs_dir / "multimap";
+  const auto prefix = abs_dir / FILE_PREFIX;
   for (std::size_t i = 0; i != shards_.size(); ++i) {
     const auto prefix_i = prefix.string() + '.' + std::to_string(i);
     shards_[i].reset(new internal::Shard(prefix_i, options.block_size));
@@ -210,7 +212,7 @@ void Map::importFromBase64(const boost::filesystem::path& directory,
 void Map::importFromBase64(const boost::filesystem::path& directory,
                            const boost::filesystem::path& file,
                            bool create_if_missing) {
-  Map::importFromBase64(directory, file, create_if_missing, -1);
+  Map::importFromBase64(directory, file, create_if_missing, 0);
 }
 
 void Map::importFromBase64(const boost::filesystem::path& directory,
@@ -218,11 +220,10 @@ void Map::importFromBase64(const boost::filesystem::path& directory,
                            bool create_if_missing, std::size_t block_size) {
   Options options;
   options.create_if_missing = create_if_missing;
-  if (block_size != static_cast<std::size_t>(-1)) {
+  if (block_size != 0) {
     options.block_size = block_size;
   }
-  Map map(directory, options);
-  map.importFromBase64(file);
+  Map(directory, options).importFromBase64(file);
 }
 
 void Map::exportToBase64(const boost::filesystem::path& directory,
@@ -233,28 +234,63 @@ void Map::exportToBase64(const boost::filesystem::path& directory,
 void Map::exportToBase64(const boost::filesystem::path& directory,
                          const boost::filesystem::path& file,
                          BytesCompare compare) {
-  Map map(directory, Options());
-  map.exportToBase64(file, compare);
+  Map(directory, Options()).exportToBase64(file, compare);
 }
 
-void Map::optimize(const boost::filesystem::path& directory) {
-  Map::optimize(directory, -1, BytesCompare());
-}
+void Map::optimize(const boost::filesystem::path& from,
+                   const boost::filesystem::path& to, const Options& options) {
+  const auto abs_from = boost::filesystem::absolute(from);
+  mt::check(boost::filesystem::is_directory(abs_from),
+            "The path '%s' does not refer to a directory.", abs_from.c_str());
 
-void Map::optimize(const boost::filesystem::path& directory,
-                   BytesCompare compare) {
-  Map::optimize(directory, -1, compare);
-}
+  internal::System::DirectoryLockGuard lock(abs_from, NAME_OF_LOCK_FILE);
+  const auto properties_file = abs_from / NAME_OF_PROPERTIES_FILE;
+  const auto map_exists = boost::filesystem::is_regular_file(properties_file);
+  mt::check(map_exists, "No Multimap found in '%s'.", abs_from.c_str());
 
-void Map::optimize(const boost::filesystem::path& directory,
-                   std::size_t new_block_size) {
-  Map::optimize(directory, new_block_size, BytesCompare());
-}
+  const auto props = mt::readPropertiesFromFile(properties_file.string());
+  const auto major_version = std::stoul(props.at("map.major_version"));
+  const auto minor_version = std::stoul(props.at("map.minor_version"));
+  checkVersion(major_version, minor_version);
 
-void Map::optimize(const boost::filesystem::path& directory,
-                   std::size_t new_block_size, BytesCompare compare) {
-  Map map(directory, Options());
-  map.optimize(new_block_size, compare);
+  Options new_options = options;
+  new_options.error_if_exists = true;
+  new_options.create_if_missing = true;
+  if (options.block_size == 0) {
+    new_options.block_size = std::stoul(props.at("store.block_size"));
+  }
+  const auto old_num_shards = std::stoul(props.at("map.num_shards"));
+  if (options.num_shards == 0) {
+    new_options.num_shards = old_num_shards;
+  }
+
+  Map new_map(to, new_options);
+  const auto prefix = abs_from / FILE_PREFIX;
+  for (std::size_t i = 0; i != old_num_shards; ++i) {
+    internal::Shard shard(prefix.string() + '.' + std::to_string(i));
+    if (options.compare) {
+      std::vector<std::string> sorted_values;
+      // TODO Test if reusing sorted_values makes any difference.
+      shard.forEachEntry([&new_map, &options, &sorted_values](
+          const Bytes& key, ListIterator&& iter) {
+        sorted_values.clear();
+        sorted_values.reserve(iter.num_values());
+        for (iter.seekToFirst(); iter.hasValue(); iter.next()) {
+          sorted_values.push_back(iter.getValue().toString());
+        }
+        std::sort(sorted_values.begin(), sorted_values.end(), options.compare);
+        for (const auto& value : sorted_values) {
+          new_map.put(key, value);
+        }
+      });
+    } else {
+      shard.forEachEntry([&new_map](const Bytes& key, ListIterator&& iter) {
+        for (iter.seekToFirst(); iter.hasValue(); iter.next()) {
+          new_map.put(key, iter.getValue());
+        }
+      });
+    }
+  }
 }
 
 internal::Shard& Map::getShard(const Bytes& key) {
@@ -269,7 +305,7 @@ const internal::Shard& Map::getShard(const Bytes& key) const {
 
 void Map::importFromBase64(const boost::filesystem::path& file) {
   std::ifstream ifs(file.string());
-  mt::check(ifs, "Cannot open '%s'.", file.c_str());
+  mt::check(ifs, "Could not open '%s'.", file.c_str());
 
   std::string key_as_base64;
   std::string key_as_binary;
@@ -302,7 +338,7 @@ void Map::importFromBase64(const boost::filesystem::path& file) {
 void Map::exportToBase64(const boost::filesystem::path& file,
                          BytesCompare compare) {
   std::ofstream ofs(file.string());
-  mt::check(ofs, "Cannot create '%s'.", file.c_str());
+  mt::check(ofs, "Could not create '%s'.", file.c_str());
 
   std::string key_as_base64;
   std::string value_as_base64;
@@ -352,51 +388,6 @@ void Map::exportToBase64(const boost::filesystem::path& file,
         iter.next();
       }
       ofs << '\n';
-    });
-  }
-}
-
-void Map::optimize(std::size_t new_block_size, BytesCompare compare) {
-  // No locking since a user cannot call this method directly, because it's
-  // private. It can only be called indirectly via the static version of this
-  // operation. Hence, this method has always exclusive access to the map.
-  for (auto& shard : shards_) {
-    shard->optimize(compare, new_block_size);
-  }
-}
-
-// TODO Remove
-void optimize(const boost::filesystem::path& from,
-              const boost::filesystem::path& to, std::size_t new_block_size,
-              Map::BytesCompare compare) {
-  Map map_in(from, Options());
-
-  Options options;
-  options.error_if_exists = true;
-  options.create_if_missing = true;
-  options.block_size = std::stoul(map_in.getProperties()["store.block_size"]);
-  if (new_block_size != static_cast<std::size_t>(-1)) {
-    options.block_size = new_block_size;
-  }
-  Map map_out(to, options);
-
-  if (compare) {
-    map_in.forEachEntry([&](const Bytes& key, Map::ListIterator&& iter) {
-      std::vector<std::string> values;
-      values.reserve(iter.num_values());
-      for (iter.seekToFirst(); iter.hasValue(); iter.next()) {
-        values.push_back(iter.getValue().toString());
-      }
-      std::sort(values.begin(), values.end(), compare);
-      for (const auto& value : values) {
-        map_out.put(key, value);
-      }
-    });
-  } else {
-    map_in.forEachEntry([&](const Bytes& key, Map::ListIterator&& iter) {
-      for (iter.seekToFirst(); iter.hasValue(); iter.next()) {
-        map_out.put(key, iter.getValue());
-      }
     });
   }
 }

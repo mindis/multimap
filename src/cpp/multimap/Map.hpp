@@ -308,7 +308,9 @@ class Map {
                              BytesCompare compare);
   // TODO Document this.
 
-  static void optimize(const boost::filesystem::path& directory);
+  static void optimize(const boost::filesystem::path& from,
+                       const boost::filesystem::path& to,
+                       const Options& options);
   // Optimizes the map located in the directory denoted by `directory`
   // performing the following tasks:
   //
@@ -324,34 +326,6 @@ class Map {
   //   * `directory` does not contain a map.
   //   * the map in `directory` is locked.
   //   * `directory` is not writable.
-
-  static void optimize(const boost::filesystem::path& directory,
-                       BytesCompare compare);
-  // Same as `optimize(const boost::filesystem::path&)` but sorts each list
-  // using `compare` as the sorting criterion.
-  //
-  // Throws `std::exception` if:
-  //
-  //   * see `optimize(const boost::filesystem::path&)`
-
-  static void optimize(const boost::filesystem::path& directory,
-                       std::size_t new_block_size);
-  // Same as `optimize(const boost::filesystem::path&)` but changes the block
-  // size of the map to `new_block_size`.
-  //
-  // Throws `std::exception` if:
-  //
-  //   * see `optimize(const boost::filesystem::path&)`
-  //   * `new_block_size` is not a power of two.
-
-  static void optimize(const boost::filesystem::path& directory,
-                       std::size_t new_block_size, BytesCompare compare);
-  // Same as `optimize(const boost::filesystem::path&, Callables::BytesCompare)`
-  // but changes the block size of the map to `new_block_size`.
-  //
-  // Throws `std::exception` if:
-  //
-  //   * see `optimize(const boost::filesystem::path&, Callables::BytesCompare)`
   //   * `new_block_size` is not a power of two.
 
  private:
@@ -359,20 +333,16 @@ class Map {
 
   const internal::Shard& getShard(const Bytes& key) const;
 
+  // TODO Remove
   void importFromBase64(const boost::filesystem::path& file);
 
+  // TODO Remove
   void exportToBase64(const boost::filesystem::path& file,
                       BytesCompare compare);
-
-  void optimize(std::size_t new_block_size, BytesCompare compare);
 
   internal::System::DirectoryLockGuard directory_lock_guard_;
   std::vector<std::unique_ptr<internal::Shard>> shards_;
 };
-
-void optimize(const boost::filesystem::path& from,
-              const boost::filesystem::path& to, std::size_t new_block_size,
-              Map::BytesCompare compare);
 
 }  // namespace multimap
 

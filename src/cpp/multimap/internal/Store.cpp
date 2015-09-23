@@ -146,8 +146,6 @@ Store::Store(const boost::filesystem::path& file, std::size_t block_size,
 void Store::open(const boost::filesystem::path& file, std::size_t block_size,
                  std::size_t buffer_size) {
   MT_REQUIRE_FALSE(isOpen());
-  MT_REQUIRE_GT(buffer_size, block_size);
-  MT_REQUIRE_IS_ZERO(buffer_size % block_size);
 
   if (boost::filesystem::is_regular_file(file)) {
     fd_ = ::open(file.c_str(), O_RDWR);
@@ -170,7 +168,13 @@ void Store::open(const boost::filesystem::path& file, std::size_t block_size,
       mapped_.size = file_size;
     }
 
+  } else if (block_size == 0) {
+    mt::throwRuntimeError2("Store file '%s' does not exist", file.c_str());
+
   } else {
+    MT_REQUIRE_GT(buffer_size, block_size);
+    MT_REQUIRE_IS_ZERO(buffer_size % block_size);
+
     fd_ = ::open(file.c_str(), O_RDWR | O_CREAT, 0644);
     mt::check(fd_ != -1, "Could not create '%s' in O_RDWR mode", file.c_str());
 

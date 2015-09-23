@@ -58,7 +58,11 @@ class Shard {
 
   ~Shard();
 
+  Shard(const boost::filesystem::path& prefix);
+
   Shard(const boost::filesystem::path& prefix, std::size_t block_size);
+
+  void open(const boost::filesystem::path& prefix);
 
   void open(const boost::filesystem::path& prefix, std::size_t block_size);
 
@@ -107,14 +111,6 @@ class Shard {
   std::size_t max_value_size() const;
 
   Stats getStats() const;
-
-  void optimize();
-
-  void optimize(std::size_t new_block_size);
-
-  void optimize(BytesCompare compare);
-
-  void optimize(BytesCompare compare, std::size_t new_block_size);
 
  private:
   void initCallbacks();

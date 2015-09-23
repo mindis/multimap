@@ -62,8 +62,16 @@ Shard::~Shard() {
   }
 }
 
+Shard::Shard(const boost::filesystem::path& prefix) {
+  open(prefix);
+}
+
 Shard::Shard(const boost::filesystem::path& prefix, std::size_t block_size) {
   open(prefix, block_size);
+}
+
+void Shard::open(const boost::filesystem::path& prefix) {
+  open(prefix, 0);
 }
 
 void Shard::open(const boost::filesystem::path& prefix,
@@ -203,18 +211,6 @@ Shard::Stats Shard::getStats() const {
   stats.store = store_.getStats();
   stats.table = table_.getStats();
   return stats;
-}
-
-void Shard::optimize() { optimize(BytesCompare(), -1); }
-
-void Shard::optimize(std::size_t new_block_size) {
-  optimize(BytesCompare(), new_block_size);
-}
-
-void Shard::optimize(BytesCompare compare) { optimize(compare, -1); }
-
-void Shard::optimize(BytesCompare compare, std::size_t new_block_size) {
-  MT_ASSERT_TRUE(false);
 }
 
 void Shard::initCallbacks() {
