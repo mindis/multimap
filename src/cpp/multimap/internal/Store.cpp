@@ -59,9 +59,9 @@ void writeStatsToTail(const Store::Stats& stats, int fd) {
 }  // namespace
 
 Store::Stats& Store::Stats::summarize(const Stats& other) {
-  MT_REQUIRE_LE(load_factor_avg, 1.0);
-  MT_REQUIRE_LE(load_factor_max, 1.0);
   MT_REQUIRE_LE(load_factor_min, 1.0);
+  MT_REQUIRE_LE(load_factor_max, 1.0);
+  MT_REQUIRE_LE(load_factor_avg, 1.0);
 
   if (block_size == 0) {
     block_size = other.block_size;
@@ -70,12 +70,13 @@ Store::Stats& Store::Stats::summarize(const Stats& other) {
   }
 
   if (other.num_blocks != 0) {
-    const double total = num_blocks + other.num_blocks;
-    load_factor_avg *= (num_blocks / total);
-    load_factor_avg += (other.num_blocks / total) * other.load_factor_avg;
-    // new_avg = (weight * avg'old) + (weight'other * avg'other)
-    load_factor_max = std::max(load_factor_max, other.load_factor_max);
     load_factor_min = std::min(load_factor_min, other.load_factor_min);
+    load_factor_max = std::max(load_factor_max, other.load_factor_max);
+    const double total_blocks = num_blocks + other.num_blocks;
+    load_factor_avg =
+        ((num_blocks / total_blocks) * load_factor_avg) +
+        ((other.num_blocks / total_blocks) * other.load_factor_avg);
+    // new_avg = (weight * avg'old) + (weight'other * avg'other)
     num_blocks += other.num_blocks;
   }
   return *this;
