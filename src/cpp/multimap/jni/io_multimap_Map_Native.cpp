@@ -474,7 +474,7 @@ JNIEXPORT void JNICALL
   const auto to = multimap::jni::makeString(env, jto);
   const auto compare = (jless_than != nullptr)
                            ? multimap::jni::makeBytesCompare(env, jless_than)
-                           : multimap::Callables::BytesCompare();
+                           : multimap::Map::BytesCompare();
   try {
     multimap::optimize(from, to, new_block_size, compare);
   } catch (std::exception& error) {
