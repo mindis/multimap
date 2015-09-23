@@ -57,11 +57,11 @@ struct System {
 
   class DirectoryLockGuard {
    public:
-    static const std::string kDefaultFilename;
+    static const std::string DEFAULT_FILENAME;
 
     DirectoryLockGuard();
 
-    DirectoryLockGuard(const boost::filesystem::path& path);
+    explicit DirectoryLockGuard(const boost::filesystem::path& path);
 
     DirectoryLockGuard(const boost::filesystem::path& path,
                        const std::string filename);

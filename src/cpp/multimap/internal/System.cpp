@@ -100,7 +100,7 @@ void System::write(std::FILE* stream, const void* buf, std::size_t count) {
   assert(nbytes == count);
 }
 
-const std::string System::DirectoryLockGuard::kDefaultFilename(".lock");
+const std::string System::DirectoryLockGuard::DEFAULT_FILENAME = ".lock";
 
 System::DirectoryLockGuard::DirectoryLockGuard() {}
 
@@ -126,7 +126,7 @@ System::DirectoryLockGuard::~DirectoryLockGuard() {
 
 void System::DirectoryLockGuard::lock(
     const boost::filesystem::path& directory) {
-  lock(directory, kDefaultFilename);
+  lock(directory, DEFAULT_FILENAME);
 }
 
 void System::DirectoryLockGuard::lock(const boost::filesystem::path& directory,
