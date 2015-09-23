@@ -28,7 +28,6 @@
 #include <iostream>
 #include <boost/filesystem/operations.hpp>
 #include "multimap/internal/thirdparty/mt.hpp"
-#include "multimap/internal/Check.hpp"
 
 namespace multimap {
 namespace internal {
@@ -86,8 +85,8 @@ std::uint64_t System::offset(std::FILE* stream) {
   return result;
 }
 
-void System::seek(std::FILE* stream, std::uint64_t offset) {
-  const auto result = std::fseek(stream, offset, SEEK_SET);
+void System::seek(std::FILE* stream, std::int64_t offset, int origin) {
+  const auto result = std::fseek(stream, offset, origin);
   assert(result == 0);
 }
 

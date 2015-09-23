@@ -19,7 +19,6 @@
 #define MULTIMAP_INCLUDE_INTERNAL_ITERATOR_HPP
 
 #include <cstdint>
-#include "multimap/Callables.hpp"
 #include "multimap/internal/Callbacks.hpp"
 #include "multimap/internal/ListLock.hpp"
 
@@ -51,6 +50,9 @@ namespace internal {
 template <bool IsConst>
 class Iterator {
  public:
+  typedef List::BytesPredicate BytesPredicate;
+  // TODO Remove when we have new iterator interface.
+
   Iterator() = default;
   // Creates a default instance that has no values to iterate.
   // Postconditions:
@@ -75,7 +77,7 @@ class Iterator {
   // Initializes the iterator to point to the first value in the list that is
   // equal to target, if any. This process will trigger disk IO if necessary.
 
-  void seekTo(Callables::BytesPredicate predicate);
+  void seekTo(BytesPredicate predicate);
   // Initializes the iterator to point to the first value for which predicate
   // yields true, if any. This process will trigger disk IO if necessary.
 
@@ -154,7 +156,7 @@ void Iterator<IsConst>::seekTo(const Bytes& target) {
 }
 
 template <bool IsConst>
-void Iterator<IsConst>::seekTo(Callables::BytesPredicate predicate) {
+void Iterator<IsConst>::seekTo(BytesPredicate predicate) {
   for (seekToFirst(); hasValue(); next()) {
     if (predicate(getValue())) {
       break;

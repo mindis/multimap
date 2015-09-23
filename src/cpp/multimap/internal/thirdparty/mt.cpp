@@ -231,9 +231,9 @@ void AutoCloseFile::reset(std::FILE* file) {
   file_ = file;
 }
 
-Properties readPropertiesFromFile(const char* file) {
-  std::ifstream ifs(file);
-  check(ifs, "Could not open '%s'.", file);
+Properties readPropertiesFromFile(const std::string& filepath) {
+  std::ifstream ifs(filepath);
+  check(ifs, "Could not open '%s'.", filepath.c_str());
 
   std::string line;
   Properties properties;
@@ -249,20 +249,22 @@ Properties readPropertiesFromFile(const char* file) {
   }
 
   check(properties.count("checksum") != 0,
-        "Properties file '%s' is missing checksum.", file);
+        "Properties file '%s' is missing checksum.", filepath.c_str());
   const auto actual_checksum = std::stoul(properties.at("checksum"));
 
   properties.erase("checksum");
   const auto expected_checksum = crc32(serializeToString(properties));
-  check(actual_checksum == expected_checksum, "'%s' has wrong checksum.", file);
+  check(actual_checksum == expected_checksum, "'%s' has wrong checksum.",
+        filepath.c_str());
   return properties;
 }
 
-void writePropertiesToFile(const Properties& properties, const char* file) {
+void writePropertiesToFile(const Properties& properties,
+                           const std::string& filepath) {
   MT_REQUIRE_EQ(properties.count("checksum"), 0);
 
-  std::ofstream ofs(file);
-  check(ofs, "Could not create '%s'.", file);
+  std::ofstream ofs(filepath);
+  check(ofs, "Could not create '%s'.", filepath.c_str());
 
   const auto content = serializeToString(properties);
   ofs << content << "checksum=" << crc32(content) << '\n';

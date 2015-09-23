@@ -21,7 +21,6 @@ HEADERS += \
     $$PWD/src/cpp/multimap/internal/Block.hpp \
     $$PWD/src/cpp/multimap/internal/BlockArena.hpp \
     $$PWD/src/cpp/multimap/internal/Callbacks.hpp \
-    $$PWD/src/cpp/multimap/internal/Check.hpp \
     $$PWD/src/cpp/multimap/internal/Iterator.hpp \
     $$PWD/src/cpp/multimap/internal/List.hpp \
     $$PWD/src/cpp/multimap/internal/ListLock.hpp \

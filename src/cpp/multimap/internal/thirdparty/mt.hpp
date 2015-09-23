@@ -27,7 +27,7 @@
 
 namespace mt {
 
-static const std::size_t VERSION = 20150921;
+static const std::size_t VERSION = 20150923;
 
 // COMMON
 // -----------------------------------------------------------------------------
@@ -94,9 +94,26 @@ class AutoCloseFile {
 
 typedef std::map<std::string, std::string> Properties;
 
-Properties readPropertiesFromFile(const char* file);
+Properties readPropertiesFromFile(const std::string& filepath);
 
-void writePropertiesToFile(const Properties& properties, const char* file);
+void writePropertiesToFile(const Properties& properties,
+                           const std::string& filepath);
+
+// TYPE TRAITS
+// -----------------------------------------------------------------------------
+
+constexpr bool is32BitSystem() { return sizeof(void*) == 4; }
+
+constexpr bool is64BitSystem() { return sizeof(void*) == 8; }
+
+template <typename T>
+constexpr bool hasExpectedSize(std::size_t size32Bit, std::size_t size64Bit) {
+  return sizeof(T) == (is32BitSystem() ? size32Bit : size64Bit);
+}
+
+// Usage:
+// static_assert(mt::hasExpectedSize<Type>(40, 48)::value,
+//               "class Type does not have expected size");
 
 // ERROR HANDLING
 // -----------------------------------------------------------------------------
@@ -331,9 +348,9 @@ AssertionError::AssertionError(const char* file, std::size_t line,
 #define MT_ASSERT_NOT_ZERO(expr) __MT_ASSERT_NOT_ZERO(expr)
 #define MT_ASSERT_EQ(a, b) __MT_ASSERT_COMPARE(a == b, a, b)
 #define MT_ASSERT_NE(a, b) __MT_ASSERT_COMPARE(a != b, a, b)
-#define MT_ASSERT_LT(a, b) __MT_ASSERT_COMPARE(a <  b, a, b)
+#define MT_ASSERT_LT(a, b) __MT_ASSERT_COMPARE(a < b, a, b)
 #define MT_ASSERT_LE(a, b) __MT_ASSERT_COMPARE(a <= b, a, b)
-#define MT_ASSERT_GT(a, b) __MT_ASSERT_COMPARE(a >  b, a, b)
+#define MT_ASSERT_GT(a, b) __MT_ASSERT_COMPARE(a > b, a, b)
 #define MT_ASSERT_GE(a, b) __MT_ASSERT_COMPARE(a >= b, a, b)
 
 #define MT_REQUIRE_TRUE(expr) __MT_REQUIRE_TRUE(expr)
@@ -344,9 +361,9 @@ AssertionError::AssertionError(const char* file, std::size_t line,
 #define MT_REQUIRE_NOT_ZERO(expr) __MT_REQUIRE_NOT_ZERO(expr)
 #define MT_REQUIRE_EQ(a, b) __MT_REQUIRE_COMPARE(a == b, a, b)
 #define MT_REQUIRE_NE(a, b) __MT_REQUIRE_COMPARE(a != b, a, b)
-#define MT_REQUIRE_LT(a, b) __MT_REQUIRE_COMPARE(a <  b, a, b)
+#define MT_REQUIRE_LT(a, b) __MT_REQUIRE_COMPARE(a < b, a, b)
 #define MT_REQUIRE_LE(a, b) __MT_REQUIRE_COMPARE(a <= b, a, b)
-#define MT_REQUIRE_GT(a, b) __MT_REQUIRE_COMPARE(a >  b, a, b)
+#define MT_REQUIRE_GT(a, b) __MT_REQUIRE_COMPARE(a > b, a, b)
 #define MT_REQUIRE_GE(a, b) __MT_REQUIRE_COMPARE(a >= b, a, b)
 
 #define MT_ENSURE_TRUE(expr) __MT_ENSURE_TRUE(expr)
@@ -357,9 +374,9 @@ AssertionError::AssertionError(const char* file, std::size_t line,
 #define MT_ENSURE_NOT_ZERO(expr) __MT_ENSURE_NOT_ZERO(expr)
 #define MT_ENSURE_EQ(a, b) __MT_ENSURE_COMPARE(a == b, a, b)
 #define MT_ENSURE_NE(a, b) __MT_ENSURE_COMPARE(a != b, a, b)
-#define MT_ENSURE_LT(a, b) __MT_ENSURE_COMPARE(a <  b, a, b)
+#define MT_ENSURE_LT(a, b) __MT_ENSURE_COMPARE(a < b, a, b)
 #define MT_ENSURE_LE(a, b) __MT_ENSURE_COMPARE(a <= b, a, b)
-#define MT_ENSURE_GT(a, b) __MT_ENSURE_COMPARE(a >  b, a, b)
+#define MT_ENSURE_GT(a, b) __MT_ENSURE_COMPARE(a > b, a, b)
 #define MT_ENSURE_GE(a, b) __MT_ENSURE_COMPARE(a >= b, a, b)
 
 #endif  // MT_INCLUDE_MT_HPP

@@ -25,8 +25,8 @@ namespace internal {
 
 using testing::Eq;
 
-typedef List::Iterator ListIter;
-typedef List::ConstIterator ListConstIter;
+typedef List::MutableIterator ListIter;
+typedef List::Iterator ListConstIter;
 
 TEST(ListIterTest, IsDefaultConstructible) {
   ASSERT_TRUE(std::is_default_constructible<ListIter>::value);
@@ -50,8 +50,8 @@ TEST(ListTest, IsDefaultConstructible) {
 
 TEST(ListTest, DefaultConstructedHasProperState) {
   ASSERT_THAT(List().head().block_ids.empty(), Eq(true));
-  ASSERT_THAT(List().head().num_values_deleted, Eq(0));
-  ASSERT_THAT(List().head().num_values_total, Eq(0));
+  ASSERT_THAT(List().head().num_values_removed, Eq(0));
+  ASSERT_THAT(List().head().num_values_added, Eq(0));
   ASSERT_THAT(List().block().hasData(), Eq(false));
   ASSERT_THAT(List().size(), Eq(0));
   ASSERT_THAT(List().empty(), Eq(true));
@@ -85,8 +85,8 @@ TEST_P(ListTestWithParam, AddValuesAndIterateAll) {
   for (std::size_t i = 0; i != GetParam(); ++i) {
     const auto value = std::to_string(i);
     list.add(value, allocate_block_callback, commit_block_callback);
-    ASSERT_THAT(list.head().num_values_deleted, Eq(0));
-    ASSERT_THAT(list.head().num_values_total, Eq(i + 1));
+    ASSERT_THAT(list.head().num_values_removed, Eq(0));
+    ASSERT_THAT(list.head().num_values_added, Eq(i + 1));
   }
   ASSERT_THAT(list.size(), Eq(GetParam()));
 

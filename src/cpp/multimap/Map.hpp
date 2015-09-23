@@ -69,7 +69,7 @@ class Map {
 
   typedef internal::Shard::EntryProcedure EntryProcedure;
 
-  Map();
+  Map() = default;
   // Creates a default instance which is not associated with a physical map.
 
   ~Map();
@@ -143,7 +143,7 @@ class Map {
   // will block until a writer lock can be acquired.
   // Returns: the number of deleted values.
 
-  std::size_t removeAll(const Bytes& key, Callables::BytesPredicate predicate);
+  std::size_t removeAll(const Bytes& key, BytesPredicate predicate);
   // Deletes all values in the list associated with key for which predicate
   // yields true. This method will block until a writer lock can be acquired.
   // Returns: the number of deleted values.
@@ -154,7 +154,7 @@ class Map {
   // will block until a writer lock can be acquired.
   // Returns: the number of deleted values.
 
-  bool removeFirst(const Bytes& key, Callables::BytesPredicate predicate);
+  bool removeFirst(const Bytes& key, BytesPredicate predicate);
   // Deletes the first value in the list associated with key for which
   // predicate yields true. This method will block until a writer lock can be
   // acquired.
@@ -166,7 +166,7 @@ class Map {
   // will block until a writer lock can be acquired.
   // Returns: true if a value was deleted, false otherwise.
 
-  std::size_t replaceAll(const Bytes& key, Callables::BytesFunction function);
+  std::size_t replaceAll(const Bytes& key, BytesFunction function);
   // Replaces all values in the list associated with key by the result of
   // invoking function. If the result of function is an empty string no
   // replacement is performed. A replacement does not happen in-place. Instead,
@@ -185,7 +185,7 @@ class Map {
   // until a writer lock can be acquired.
   // Returns: the number of replaced values.
 
-  bool replaceFirst(const Bytes& key, Callables::BytesFunction function);
+  bool replaceFirst(const Bytes& key, BytesFunction function);
   // Replaces the first value in the list associated with key by the result of
   // invoking function. If the result of function is an empty string no
   // replacement is performed. The replacement does not happen in-place.
@@ -204,7 +204,7 @@ class Map {
   // block until a writer lock can be acquired.
   // Returns: true if a value was replaced, false otherwise.
 
-  void forEachKey(Callables::BytesProcedure procedure) const;
+  void forEachKey(BytesProcedure procedure) const;
   // Applies `procedure` to each key of the map whose associated list is not
   // empty. The keys are visited in random order. Although it is possible to
   // emulate a for-each-entry iteration by keeping a `this` pointer of the map
@@ -215,16 +215,14 @@ class Map {
   // an optimal order before iterating them. During the time of execution the
   // entire map is locked for read-only operations.
 
-  void forEachValue(const Bytes& key,
-                    Callables::BytesProcedure procedure) const;
+  void forEachValue(const Bytes& key, BytesProcedure procedure) const;
   // Applies procedure to each value in the list associated with key. This is a
   // shorthand for requesting a read-only iterator via Get(key) followed by an
   // application of procedure to each value obtained via
   // ConstListIter::GetValue(). This method will block until a reader lock for
   // the list in question can be acquired.
 
-  void forEachValue(const Bytes& key,
-                    Callables::BytesPredicate predicate) const;
+  void forEachValue(const Bytes& key, BytesPredicate predicate) const;
   // Applies predicate to each value in the list associated with key until
   // predicate yields false. This is a shorthand for requesting a read-only
   // iterator via Get(key) followed by an application of predicate to each

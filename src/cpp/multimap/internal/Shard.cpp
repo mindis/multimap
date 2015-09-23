@@ -17,9 +17,6 @@
 
 #include "multimap/internal/Shard.hpp"
 
-#include <cctype>
-#include <fstream>
-#include <boost/algorithm/string/trim.hpp>
 #include <boost/filesystem/operations.hpp>
 #include "multimap/internal/thirdparty/mt.hpp"
 
@@ -28,101 +25,71 @@ namespace internal {
 
 namespace {
 
+const char* STORE_FILE_SUFFIX = ".store";
 const char* TABLE_FILE_SUFFIX = ".table";
-
-std::string join(const std::map<std::string, std::string>& properties) {
-  std::string joined;
-  const auto is_space = [](char c) { return std::isspace(c); };
-  for (const auto& entry : properties) {
-    const auto key = boost::trim_copy(entry.first);
-    const auto val = boost::trim_copy(entry.second);
-    if (std::any_of(key.begin(), key.end(), is_space)) continue;
-    if (std::any_of(val.begin(), val.end(), is_space)) continue;
-    if (key.empty() || val.empty()) continue;
-    joined.append(key);
-    joined.push_back('=');
-    joined.append(val);
-    joined.push_back('\n');
-  }
-  return joined;
-}
-
-Shard::Stats readStatsFromFile(const boost::filesystem::path& file) {
-  std::ifstream ifs(file.string());
-  mt::check(ifs, "Could not open '%s'.", file.c_str());
-
-  std::string line;
-  std::map<std::string, std::string> properties;
-  while (std::getline(ifs, line)) {
-    if (line.empty()) continue;
-    const auto pos_of_delim = line.find('=');
-    if (pos_of_delim == std::string::npos) continue;
-    const auto key = line.substr(0, pos_of_delim);
-    const auto val = line.substr(pos_of_delim + 1);
-    // We don't make any checks here, because external modification
-    // of key and val will be captured during checksum verification.
-    properties[key] = val;
-  }
-
-  const auto actual_checksum_str = properties["checksum"];
-  mt::check(!actual_checksum_str.empty(),
-            "Properties file '%s' is missing checksum.", file.c_str());
-  const auto actual_checksum = std::stoul(actual_checksum_str);
-
-  properties.erase("checksum");
-  const auto expected_checksum = mt::crc32(join(properties));
-  mt::check(actual_checksum == expected_checksum,
-            "Metadata in '%s' has wrong checksum.", file.c_str());
-  //  return properties;
-  return Shard::Stats();  // TODO
-}
 
 }  // namespace
 
-void Shard::Stats::combine(const Stats& other) {
-  store.combine(other.store);
-  table.combine(other.table);
+Shard::Stats& Shard::Stats::summarize(const Stats& other) {
+  store.summarize(other.store);
+  table.summarize(other.table);
+  return *this;
 }
 
-std::map<std::string, std::string> Shard::Stats::toMap() const {
-  std::map<std::string, std::string> map;
-  const auto store_map = store.toMap("store");
-  const auto table_map = table.toMap("table");
-  map.insert(store_map.begin(), store_map.end());
-  map.insert(table_map.begin(), table_map.end());
-  return map;
+Shard::Stats Shard::Stats::summarize(const Stats& a, const Stats& b) {
+  return Stats(a).summarize(b);
+}
+
+Shard::Stats Shard::Stats::fromProperties(const mt::Properties& properties) {
+  Stats stats;
+  stats.store = Store::Stats::fromProperties(properties, "store");
+  stats.table = Table::Stats::fromProperties(properties, "table");
+  return stats;
+}
+
+mt::Properties Shard::Stats::toProperties() const {
+  mt::Properties properties;
+  const auto store_properties = store.toProperties("store");
+  const auto table_properties = table.toProperties("table");
+  properties.insert(store_properties.begin(), store_properties.end());
+  properties.insert(table_properties.begin(), table_properties.end());
+  return properties;
 }
 
 Shard::~Shard() {
-  try {
-    table_.flushAllListsOrThrowIfLocked();
-  } catch (...) {
-    std::terminate();
-    // The destructor has the precondition that no list is still locked.
+  if (isOpen()) {
+    close();
   }
 }
 
-Shard::Shard(const boost::filesystem::path& prefix) { open(prefix); }
-
 Shard::Shard(const boost::filesystem::path& prefix, std::size_t block_size) {
-  create(prefix, block_size);
+  open(prefix, block_size);
 }
 
-void Shard::open(const boost::filesystem::path& prefix) {
-  store_.open(prefix);
+void Shard::open(const boost::filesystem::path& prefix,
+                 std::size_t block_size) {
+  MT_REQUIRE_FALSE(isOpen());
+
+  store_.open(prefix.string() + STORE_FILE_SUFFIX, block_size);
   table_.open(prefix.string() + TABLE_FILE_SUFFIX);
   block_arena_.init(store_.block_size());
+  prefix_ = prefix;
   initCallbacks();
-  table_.set_commit_block_callback(callbacks_.commit_block);
+
+  MT_REQUIRE_TRUE(isOpen());
 }
 
-void Shard::create(const boost::filesystem::path& prefix,
-                   std::size_t block_size) {
-  store_.create(prefix, block_size);
-  table_.open(prefix.string() + TABLE_FILE_SUFFIX);
-  block_arena_.init(store_.block_size());
-  initCallbacks();
-  table_.set_commit_block_callback(callbacks_.commit_block);
+bool Shard::isOpen() const { return table_.isOpen(); }
+
+Shard::Stats Shard::close() {
+  MT_REQUIRE_TRUE(isOpen());
+
+  Stats stats;
+  stats.table = table_.close(callbacks_.commit_block);
+  stats.store = store_.getStats();
+
+  MT_ENSURE_FALSE(isOpen());
+  return stats;
 }
 
 void Shard::put(const Bytes& key, const Bytes& value) {
@@ -154,8 +121,7 @@ std::size_t Shard::remove(const Bytes& key) {
   return num_deleted;
 }
 
-std::size_t Shard::removeAll(const Bytes& key,
-                             Callables::BytesPredicate predicate) {
+std::size_t Shard::removeAll(const Bytes& key, BytesPredicate predicate) {
   return remove(key, predicate, true);
 }
 
@@ -165,7 +131,7 @@ std::size_t Shard::removeAllEqual(const Bytes& key, const Bytes& value) {
   });
 }
 
-bool Shard::removeFirst(const Bytes& key, Callables::BytesPredicate predicate) {
+bool Shard::removeFirst(const Bytes& key, BytesPredicate predicate) {
   return remove(key, predicate, false);
 }
 
@@ -175,8 +141,7 @@ bool Shard::removeFirstEqual(const Bytes& key, const Bytes& value) {
   });
 }
 
-std::size_t Shard::replaceAll(const Bytes& key,
-                              Callables::BytesFunction function) {
+std::size_t Shard::replaceAll(const Bytes& key, BytesFunction function) {
   return replace(key, function, true);
 }
 
@@ -187,7 +152,7 @@ std::size_t Shard::replaceAllEqual(const Bytes& key, const Bytes& old_value,
   });
 }
 
-bool Shard::replaceFirst(const Bytes& key, Callables::BytesFunction function) {
+bool Shard::replaceFirst(const Bytes& key, BytesFunction function) {
   return replace(key, function, false);
 }
 
@@ -199,20 +164,18 @@ bool Shard::replaceFirstEqual(const Bytes& key, const Bytes& old_value,
   });
 }
 
-void Shard::forEachKey(Callables::BytesProcedure procedure) const {
+void Shard::forEachKey(BytesProcedure procedure) const {
   table_.forEachKey(procedure);
 }
 
-void Shard::forEachValue(const Bytes& key,
-                         Callables::BytesProcedure procedure) const {
+void Shard::forEachValue(const Bytes& key, BytesProcedure procedure) const {
   const auto list_lock = table_.getShared(key);
   if (list_lock.hasList()) {
     list_lock.list()->forEach(procedure, callbacks_.request_blocks);
   }
 }
 
-void Shard::forEachValue(const Bytes& key,
-                         Callables::BytesPredicate predicate) const {
+void Shard::forEachValue(const Bytes& key, BytesPredicate predicate) const {
   const auto list_lock = table_.getShared(key);
   if (list_lock.hasList()) {
     list_lock.list()->forEach(predicate, callbacks_.request_blocks);
@@ -236,21 +199,21 @@ std::size_t Shard::max_value_size() const {
 }
 
 Shard::Stats Shard::getStats() const {
-  return {store_.getStats(), table_.getStats()};
+  Stats stats;
+  stats.store = store_.getStats();
+  stats.table = table_.getStats();
+  return stats;
 }
 
-void Shard::flush() { table_.flushAllUnlockedLists(); }
-
-void Shard::optimize() { optimize(Callables::BytesCompare(), -1); }
+void Shard::optimize() { optimize(BytesCompare(), -1); }
 
 void Shard::optimize(std::size_t new_block_size) {
-  optimize(Callables::BytesCompare(), new_block_size);
+  optimize(BytesCompare(), new_block_size);
 }
 
-void Shard::optimize(Callables::BytesCompare compare) { optimize(compare, -1); }
+void Shard::optimize(BytesCompare compare) { optimize(compare, -1); }
 
-void Shard::optimize(Callables::BytesCompare compare,
-                     std::size_t new_block_size) {
+void Shard::optimize(BytesCompare compare, std::size_t new_block_size) {
   MT_ASSERT_TRUE(false);
 }
 
@@ -282,7 +245,7 @@ void Shard::initCallbacks() {
   };
 }
 
-std::size_t Shard::remove(const Bytes& key, Callables::BytesPredicate predicate,
+std::size_t Shard::remove(const Bytes& key, BytesPredicate predicate,
                           bool apply_to_all) {
   std::size_t num_deleted = 0;
   auto iter = getMutable(key);
@@ -305,7 +268,7 @@ std::size_t Shard::remove(const Bytes& key, Callables::BytesPredicate predicate,
   return num_deleted;
 }
 
-std::size_t Shard::replace(const Bytes& key, Callables::BytesFunction function,
+std::size_t Shard::replace(const Bytes& key, BytesFunction function,
                            bool apply_to_all) {
   std::vector<std::string> updated_values;
   auto iter = getMutable(key);

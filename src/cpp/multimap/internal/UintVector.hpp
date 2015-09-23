@@ -22,7 +22,7 @@
 #include <cstdint>
 #include <memory>
 #include <vector>
-#include "multimap/internal/Check.hpp"
+#include "multimap/internal/thirdparty/mt.hpp"
 #include "multimap/internal/Varint.hpp"
 
 namespace multimap {
@@ -64,7 +64,7 @@ class UintVector {
   std::uint32_t put_offset_;
 };
 
-static_assert(HasExpectedSize<UintVector, 12, 16>::value,
+static_assert(mt::hasExpectedSize<UintVector>(12, 16),
               "class UintVector does not have expected size");
 
 }  // internal

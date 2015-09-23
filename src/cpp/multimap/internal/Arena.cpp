@@ -18,7 +18,6 @@
 #include "multimap/internal/Arena.hpp"
 
 #include <algorithm>
-#include "multimap/internal/Check.hpp"
 #include "multimap/internal/thirdparty/mt.hpp"
 
 namespace multimap {

@@ -25,17 +25,17 @@ namespace internal {
 
 std::mutex List::mutex_allocation_protector;
 
-List::Head List::Head::ReadFromFile(std::FILE* file) {
+List::Head List::Head::readFromFile(std::FILE* file) {
   Head head;
-  System::read(file, &head.num_values_total, sizeof head.num_values_total);
-  System::read(file, &head.num_values_deleted, sizeof head.num_values_deleted);
+  System::read(file, &head.num_values_added, sizeof head.num_values_added);
+  System::read(file, &head.num_values_removed, sizeof head.num_values_removed);
   head.block_ids = UintVector::readFromStream(file);
   return head;
 }
 
-void List::Head::WriteToFile(std::FILE* file) const {
-  System::write(file, &num_values_total, sizeof num_values_total);
-  System::write(file, &num_values_deleted, sizeof num_values_deleted);
+void List::Head::writeToFile(std::FILE* file) const {
+  System::write(file, &num_values_added, sizeof num_values_added);
+  System::write(file, &num_values_removed, sizeof num_values_removed);
   block_ids.writeToStream(file);
 }
 
@@ -66,7 +66,7 @@ List::Iter<false>::Iter(Head* head, Block* last_block,
 template <>
 void List::Iter<false>::markAsDeleted() {
   block_iter_.markAsDeleted();
-  ++head_->num_values_deleted;
+  ++head_->num_values_removed;
   if (state_.cached_blocks_index < cached_blocks_.size()) {
     cached_blocks_[state_.cached_blocks_index].ignore = false;
     // last_block_ is in-memory and therefore updated in-place.
@@ -95,7 +95,7 @@ void List::add(const Bytes& value,
     ok = block_.add(value);
     assert(ok);
   }
-  ++head_.num_values_total;
+  ++head_.num_values_added;
 }
 
 void List::flush(const Callbacks::CommitBlock& commit_block_callback) {
@@ -104,20 +104,20 @@ void List::flush(const Callbacks::CommitBlock& commit_block_callback) {
   block_.clear();
 }
 
-List::Iterator List::iterator(
+List::MutableIterator List::iterator(
     const Callbacks::RequestBlocks& request_blocks_callback,
     const Callbacks::ReplaceBlocks& replace_blocks_callback) {
-  return Iterator(&head_, &block_, request_blocks_callback,
+  return MutableIterator(&head_, &block_, request_blocks_callback,
                   replace_blocks_callback);
 }
 
-List::ConstIterator List::const_iterator(
+List::Iterator List::const_iterator(
     const Callbacks::RequestBlocks& request_blocks_callback) const {
-  return ConstIterator(head_, block_, request_blocks_callback);
+  return Iterator(head_, block_, request_blocks_callback);
 }
 
 void List::forEach(
-    const Callables::BytesProcedure& procedure,
+    const BytesProcedure& procedure,
     const Callbacks::RequestBlocks& request_blocks_callback) const {
   auto iter = const_iterator(request_blocks_callback);
   for (iter.seekToFirst(); iter.hasValue(); iter.next()) {
@@ -126,7 +126,7 @@ void List::forEach(
 }
 
 void List::forEach(
-    const Callables::BytesPredicate& predicate,
+    const BytesPredicate& predicate,
     const Callbacks::RequestBlocks& request_blocks_callback) const {
   auto iter = const_iterator(request_blocks_callback);
   for (iter.seekToFirst(); iter.hasValue(); iter.next()) {

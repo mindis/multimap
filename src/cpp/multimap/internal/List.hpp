@@ -23,7 +23,7 @@
 #include <functional>
 #include <mutex>
 #include <boost/thread/shared_mutex.hpp>
-#include "multimap/Callables.hpp"
+#include "multimap/internal/thirdparty/mt.hpp"
 #include "multimap/internal/Arena.hpp"
 #include "multimap/internal/Callbacks.hpp"
 #include "multimap/internal/UintVector.hpp"
@@ -36,21 +36,21 @@ class List {
 
  public:
   struct Head {
-    static Head ReadFromFile(std::FILE* file);
+    std::uint32_t num_values_added = 0;
+    std::uint32_t num_values_removed = 0;
+    UintVector block_ids;
 
-    void WriteToFile(std::FILE* file) const;
-
-    std::size_t num_values_not_deleted() const {
-      assert(num_values_total >= num_values_deleted);
-      return num_values_total - num_values_deleted;
+    std::size_t num_values_not_removed() const {
+      assert(num_values_added >= num_values_removed);
+      return num_values_added - num_values_removed;
     }
 
-    std::uint32_t num_values_total = 0;
-    std::uint32_t num_values_deleted = 0;
-    UintVector block_ids;
+    static Head readFromFile(std::FILE* file);
+
+    void writeToFile(std::FILE* file) const;
   };
 
-  static_assert(HasExpectedSize<Head, 20, 24>::value,
+  static_assert(mt::hasExpectedSize<Head>(20, 24),
                 "class Head does not have expected size");
 
   template <bool IsConst>
@@ -109,8 +109,11 @@ class List {
     Callbacks::ReplaceBlocks replace_blocks_callback_;
   };
 
-  typedef Iter<false> Iterator;
-  typedef Iter<true> ConstIterator;
+  typedef Iter<true> Iterator;
+  typedef Iter<false> MutableIterator;
+
+  typedef std::function<bool(const Bytes&)> BytesPredicate;
+  typedef std::function<void(const Bytes&)> BytesProcedure;
 
   List() = default;
   List(const Head& head);
@@ -138,20 +141,20 @@ class List {
 
   const Block& cblock() const { return block_; }
 
-  std::size_t size() const { return head_.num_values_not_deleted(); }
+  std::size_t size() const { return head_.num_values_not_removed(); }
 
   bool empty() const { return size() == 0; }
 
-  Iterator iterator(const Callbacks::RequestBlocks& request_blocks_callback,
+  MutableIterator iterator(const Callbacks::RequestBlocks& request_blocks_callback,
                     const Callbacks::ReplaceBlocks& replace_blocks_callback);
 
-  ConstIterator const_iterator(
+  Iterator const_iterator(
       const Callbacks::RequestBlocks& request_blocks_callback) const;
 
-  void forEach(const Callables::BytesProcedure& procedure,
+  void forEach(const BytesProcedure& procedure,
                const Callbacks::RequestBlocks& request_blocks_callback) const;
 
-  void forEach(const Callables::BytesPredicate& predicate,
+  void forEach(const BytesPredicate& predicate,
                const Callbacks::RequestBlocks& request_blocks_callback) const;
 
   // Synchronization interface in tradition of std::mutex.
@@ -183,7 +186,7 @@ class List {
   mutable std::uint32_t mutex_use_count_ = 0;
 };
 
-static_assert(HasExpectedSize<List, 40, 56>::value,
+static_assert(mt::hasExpectedSize<List>(40, 56),
               "class List does not have expected size");
 
 template <>

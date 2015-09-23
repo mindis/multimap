@@ -49,7 +49,7 @@ struct System {
 
   static std::uint64_t offset(std::FILE* stream);
 
-  static void seek(std::FILE* stream, std::uint64_t offset);
+  static void seek(std::FILE* stream, std::int64_t offset, int origin);
 
   static void read(std::FILE* stream, void* buf, std::size_t count);
 

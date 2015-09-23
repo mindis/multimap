@@ -18,9 +18,9 @@
 #ifndef MULTIMAP_INCLUDE_INTERNAL_STORE_HPP
 #define MULTIMAP_INCLUDE_INTERNAL_STORE_HPP
 
-#include <map>
 #include <memory>
 #include <mutex>
+#include <type_traits>
 #include <boost/filesystem/path.hpp>
 #include "multimap/internal/thirdparty/mt.hpp"
 #include "multimap/internal/Arena.hpp"
@@ -32,18 +32,32 @@ namespace internal {
 class Store {
  public:
   struct Stats {
-    std::size_t block_size = 0;
-    std::size_t num_blocks = 0;
+    std::uint64_t block_size = 0;
+    std::uint64_t num_blocks = 0;
     double load_factor_min = 1.0;
     double load_factor_max = 0;
     double load_factor_avg = 0;
 
-    void combine(const Stats& other);
+    Stats& summarize(const Stats& other);
 
-    std::map<std::string, std::string> toMap() const;
+    static Stats summarize(const Stats& a, const Stats& b);
 
-    std::map<std::string, std::string> toMap(const std::string& prefix) const;
+    static Stats fromProperties(const mt::Properties& properties);
+
+    static Stats fromProperties(const mt::Properties& properties,
+                                const std::string& prefix);
+
+    mt::Properties toProperties() const;
+
+    mt::Properties toProperties(const std::string& prefix) const;
   };
+
+  static_assert(std::is_standard_layout<Stats>::value,
+                "Store::Stats is no standard layout type");
+
+  static_assert(mt::hasExpectedSize<Stats>(40, 40),
+                "Store::Stats does not have expected size");
+  // Use __attribute__((packed)) if 32- and 64-bit size differ.
 
   enum class AccessPattern { RANDOM, SEQUENTIAL };
 
@@ -53,17 +67,13 @@ class Store {
 
   ~Store();
 
-  Store(const boost::filesystem::path& prefix,
+  Store(const boost::filesystem::path& filepath, std::size_t block_size,
         std::size_t buffer_size = DEFAULT_BUFFER_SIZE);
 
-  Store(const boost::filesystem::path& prefix, std::size_t block_size,
-        std::size_t buffer_size = DEFAULT_BUFFER_SIZE);
-
-  void open(const boost::filesystem::path& prefix,
+  void open(const boost::filesystem::path& filepath, std::size_t block_size,
             std::size_t buffer_size = DEFAULT_BUFFER_SIZE);
 
-  void create(const boost::filesystem::path& prefix, std::size_t block_size,
-              std::size_t buffer_size = DEFAULT_BUFFER_SIZE);
+  bool isOpen() const;
 
   std::uint32_t append(const Block& block);
   // Writes the block to the end of the file and returns its id.
@@ -78,9 +88,10 @@ class Store {
   void adviseAccessPattern(AccessPattern pattern) const;
   // Thread-safe: no.
 
-  std::size_t block_size() const;
-
   Stats getStats() const;
+  // Returns various statistics about the store.
+
+  std::size_t block_size() const;
   // Thread-safe: yes.
 
  private:
@@ -101,6 +112,8 @@ class Store {
     std::size_t offset = 0;
     std::size_t size = 0;
 
+    bool empty() const { return offset == 0; }
+
     std::size_t num_blocks(std::size_t block_size) const {
       return size / block_size;
     }
@@ -108,7 +121,6 @@ class Store {
 
   mutable std::mutex mutex_;
   mutable bool fill_page_cache_ = false;
-  boost::filesystem::path prefix_;
   Mapped mapped_;
   Buffer buffer_;
   Stats stats_;

@@ -18,15 +18,13 @@
 #ifndef MULTIMAP_INCLUDE_INTERNAL_TABLE_HPP
 #define MULTIMAP_INCLUDE_INTERNAL_TABLE_HPP
 
-#include <map>
+#include <functional>
 #include <memory>
-#include <string>
 #include <unordered_map>
 #include <boost/filesystem/path.hpp>
 #include <boost/thread/shared_mutex.hpp>
-#include "multimap/Callables.hpp"
+#include "multimap/internal/thirdparty/mt.hpp"
 #include "multimap/internal/Arena.hpp"
-#include "multimap/internal/Callbacks.hpp"
 #include "multimap/internal/ListLock.hpp"
 
 namespace multimap {
@@ -35,36 +33,55 @@ namespace internal {
 class Table {
  public:
   struct Stats {
-    std::size_t num_keys = 0;
-    std::size_t num_lists_empty = 0;
-    std::size_t num_lists_locked = 0;
-    std::size_t num_values_total = 0;
-    std::size_t num_values_deleted = 0;
-    std::size_t key_size_min = -1;
-    std::size_t key_size_max = 0;
-    std::size_t key_size_avg = 0;
-    std::size_t list_size_min = -1;
-    std::size_t list_size_max = 0;
-    std::size_t list_size_avg = 0;
+    std::uint64_t num_keys = 0;
+    std::uint64_t num_values_put = 0;
+    std::uint64_t num_values_removed = 0;
+    std::uint64_t num_values_unowned = 0;
+    std::uint64_t key_size_min = -1;
+    std::uint64_t key_size_max = 0;
+    std::uint64_t key_size_avg = 0;
+    std::uint64_t list_size_min = -1;
+    std::uint64_t list_size_max = 0;
+    std::uint64_t list_size_avg = 0;
 
-    void combine(const Stats& other);
+    Stats& summarize(const Stats& other);
 
-    std::map<std::string, std::string> toMap() const;
+    static Stats summarize(const Stats& a, const Stats& b);
 
-    std::map<std::string, std::string> toMap(const std::string& prefix) const;
+    static Stats fromProperties(const mt::Properties& properties);
+
+    static Stats fromProperties(const mt::Properties& properties,
+                                const std::string& prefix);
+
+    mt::Properties toProperties() const;
+
+    mt::Properties toProperties(const std::string& prefix) const;
   };
+
+  static_assert(std::is_standard_layout<Stats>::value,
+                "Table::Stats is no standard layout type");
+
+  static_assert(mt::hasExpectedSize<Stats>(80, 80),
+                "Table::Stats does not have expected size");
+  // Use __attribute__((packed)) if 32- and 64-bit size differ.
+
+  typedef std::function<void(const Bytes&)> BytesProcedure;
 
   typedef std::function<void(const Bytes&, SharedListLock&&)> EntryProcedure;
 
-  Table() = default;
+  typedef std::function<std::uint32_t(const Block&)> CommitBlock;
 
-  Table(const boost::filesystem::path& file);
+  Table() = default;
 
   ~Table();
 
-  void open(const boost::filesystem::path& file);
+  Table(const boost::filesystem::path& filepath);
 
-  void close();
+  void open(const boost::filesystem::path& filepath);
+
+  Stats close(CommitBlock commit_block_callback);
+
+  bool isOpen() const;
 
   SharedListLock getShared(const Bytes& key) const;
 
@@ -72,23 +89,13 @@ class Table {
 
   UniqueListLock getUniqueOrCreate(const Bytes& key);
 
-  void forEachKey(Callables::BytesProcedure procedure) const;
+  void forEachKey(BytesProcedure procedure) const;
 
   void forEachEntry(EntryProcedure procedure) const;
 
-  std::map<std::string, std::string> getProperties() const;
-
-  void flushAllListsAndWaitIfLocked() const;
-
-  void flushAllListsOrThrowIfLocked() const;
-
-  void flushAllUnlockedLists() const;
-
   Stats getStats() const;
-
-  const Callbacks::CommitBlock& commit_block_callback() const;
-
-  void set_commit_block_callback(const Callbacks::CommitBlock& callback);
+  // Returns various statistics about the table.
+  // The data is collected upon request and triggers a full table scan.
 
   static constexpr std::size_t max_key_size() {
     return std::numeric_limits<std::uint16_t>::max();
@@ -97,11 +104,11 @@ class Table {
  private:
   typedef std::unordered_map<Bytes, std::unique_ptr<List>> Hashtable;
 
-  Arena arena_;
-  Hashtable map_;
-  boost::filesystem::path path_;
   mutable boost::shared_mutex mutex_;
-  Callbacks::CommitBlock commit_block_;
+  Hashtable map_;
+  Arena arena_;
+  Stats old_stats_;
+  boost::filesystem::path filepath_;
 };
 
 }  // namespace internal

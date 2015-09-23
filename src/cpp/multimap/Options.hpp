@@ -18,6 +18,8 @@
 #ifndef MULTIMAP_INCLUDE_OPTIONS_HPP
 #define MULTIMAP_INCLUDE_OPTIONS_HPP
 
+#include <cstddef>
+
 namespace multimap {
 
 // A pure data holder used to configure an instantiation of class Map.

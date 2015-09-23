@@ -18,6 +18,7 @@
 #include "multimap/internal/Store.hpp"
 
 #include <fcntl.h>
+#include <unistd.h>
 #include <sys/mman.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -28,23 +29,36 @@ namespace internal {
 
 namespace {
 
-const char* STATS_FILE_SUFFIX = ".properties";
-const char* STORE_FILE_SUFFIX = ".store";
-
-Store::Stats readStatsFromFile(const boost::filesystem::path& file) {
+Store::Stats readAndRemoveStatsFromTail(int fd) {
   Store::Stats stats;
-  auto properties = mt::readPropertiesFromFile(file.c_str());
-  stats.block_size = std::stoul(properties.at("block_size"));
-  stats.num_blocks = std::stoul(properties.at("num_blocks"));
-  stats.load_factor_min = std::stod(properties.at("load_factor_min"));
-  stats.load_factor_max = std::stod(properties.at("load_factor_max"));
-  stats.load_factor_avg = std::stod(properties.at("load_factor_avg"));
+  auto end_of_data = ::lseek64(fd, -(sizeof stats), SEEK_END);
+  MT_ASSERT_NE(end_of_data, -1);
+
+  auto status = ::read(fd, &stats, sizeof stats);
+  MT_ASSERT_NE(status, -1);
+  MT_ASSERT_EQ(static_cast<std::size_t>(status), sizeof stats);
+
+  end_of_data = ::lseek64(fd, -(sizeof stats), SEEK_CUR);
+  MT_ASSERT_NE(end_of_data, -1);
+
+  status = ::ftruncate64(fd, end_of_data);
+  MT_ASSERT_IS_ZERO(status);
+
   return stats;
+}
+
+void writeStatsToTail(const Store::Stats& stats, int fd) {
+  auto status = ::lseek64(fd, 0, SEEK_END);
+  MT_ASSERT_NE(status, -1);
+
+  status = ::write(fd, &stats, sizeof stats);
+  MT_ASSERT_NE(status, -1);
+  MT_ASSERT_EQ(static_cast<std::size_t>(status), sizeof stats);
 }
 
 }  // namespace
 
-void Store::Stats::combine(const Stats& other) {
+Store::Stats& Store::Stats::summarize(const Stats& other) {
   MT_REQUIRE_LE(load_factor_avg, 1.0);
   MT_REQUIRE_LE(load_factor_max, 1.0);
   MT_REQUIRE_LE(load_factor_min, 1.0);
@@ -64,119 +78,114 @@ void Store::Stats::combine(const Stats& other) {
     load_factor_min = std::min(load_factor_min, other.load_factor_min);
     num_blocks += other.num_blocks;
   }
+  return *this;
 }
 
-std::map<std::string, std::string> Store::Stats::toMap() const {
-  return toMap("");
+Store::Stats Store::Stats::summarize(const Stats& a, const Stats& b) {
+  return Stats(a).summarize(b);
 }
 
-std::map<std::string, std::string> Store::Stats::toMap(
-    const std::string& prefix) const {
-  auto prefix_copy = prefix;
-  if (!prefix_copy.empty()) {
-    prefix_copy.push_back('.');
+Store::Stats Store::Stats::fromProperties(const mt::Properties& properties) {
+  return fromProperties(properties, "");
+}
+
+Store::Stats Store::Stats::fromProperties(const mt::Properties& properties,
+                                          const std::string& prefix) {
+  auto pfx = prefix;
+  if (!pfx.empty()) {
+    pfx.push_back('.');
   }
-  std::map<std::string, std::string> map;
-  map[prefix_copy + "block_size"] = std::to_string(block_size);
-  map[prefix_copy + "num_blocks"] = std::to_string(num_blocks);
-  map[prefix_copy + "load_factor_avg"] = std::to_string(load_factor_avg);
-  map[prefix_copy + "load_factor_max"] = std::to_string(load_factor_max);
-  map[prefix_copy + "load_factor_min"] = std::to_string(load_factor_min);
-  return map;
+  Stats stats;
+  stats.block_size = std::stoul(properties.at(pfx + "block_size"));
+  stats.num_blocks = std::stoul(properties.at(pfx + "num_blocks"));
+  stats.load_factor_min = std::stod(properties.at(pfx + "load_factor_min"));
+  stats.load_factor_max = std::stod(properties.at(pfx + "load_factor_max"));
+  stats.load_factor_avg = std::stod(properties.at(pfx + "load_factor_avg"));
+  return stats;
+}
+
+mt::Properties Store::Stats::toProperties() const { return toProperties(""); }
+
+mt::Properties Store::Stats::toProperties(const std::string& prefix) const {
+  auto pfx = prefix;
+  if (!pfx.empty()) {
+    pfx.push_back('.');
+  }
+  mt::Properties properties;
+  properties[pfx + "block_size"] = std::to_string(block_size);
+  properties[pfx + "num_blocks"] = std::to_string(num_blocks);
+  properties[pfx + "load_factor_min"] = std::to_string(load_factor_min);
+  properties[pfx + "load_factor_max"] = std::to_string(load_factor_max);
+  properties[pfx + "load_factor_avg"] = std::to_string(load_factor_avg);
+  return properties;
 }
 
 Store::~Store() {
-  if (mapped_.data) {
-    const auto status = ::munmap(mapped_.data, mapped_.size);
-    MT_ASSERT_EQ(status, 0);
-  }
-  if (buffer_.offset != 0) {
-    const auto nbytes = ::write(fd_, buffer_.data.get(), buffer_.offset);
-    MT_ASSERT_NE(nbytes, -1);
-    MT_ASSERT_EQ(static_cast<std::size_t>(nbytes), buffer_.offset);
-  }
-  if (fd_ != -1) {
+  if (isOpen()) {
+    if (mapped_.data) {
+      const auto status = ::munmap(mapped_.data, mapped_.size);
+      MT_ASSERT_EQ(status, 0);
+    }
+    if (!buffer_.empty()) {
+      const auto nbytes = ::write(fd_, buffer_.data.get(), buffer_.offset);
+      MT_ASSERT_NE(nbytes, -1);
+      MT_ASSERT_EQ(static_cast<std::size_t>(nbytes), buffer_.offset);
+    }
+    writeStatsToTail(getStats(), fd_);
     const auto status = ::close(fd_);
     MT_ASSERT_EQ(status, 0);
   }
-  if (!prefix_.empty()) {
-    const auto path_to_stats = prefix_.string() + STATS_FILE_SUFFIX;
-    mt::writePropertiesToFile(getStats().toMap(), path_to_stats.c_str());
-  }
 }
 
-Store::Store(const boost::filesystem::path& prefix, std::size_t buffer_size) {
-  open(prefix, buffer_size);
-}
-
-Store::Store(const boost::filesystem::path& prefix, std::size_t block_size,
+Store::Store(const boost::filesystem::path& file, std::size_t block_size,
              std::size_t buffer_size) {
-  create(prefix, block_size, buffer_size);
+  open(file, block_size, buffer_size);
 }
 
-void Store::open(const boost::filesystem::path& prefix,
+void Store::open(const boost::filesystem::path& file, std::size_t block_size,
                  std::size_t buffer_size) {
-  MT_REQUIRE_EQ(fd_, -1);
+  MT_REQUIRE_FALSE(isOpen());
+  MT_REQUIRE_GT(buffer_size, block_size);
+  MT_REQUIRE_IS_ZERO(buffer_size % block_size);
 
-  const auto path_to_stats = prefix.string() + STATS_FILE_SUFFIX;
-  const auto path_to_store = prefix.string() + STORE_FILE_SUFFIX;
-  MT_REQUIRE_TRUE(boost::filesystem::is_regular_file(path_to_stats));
-  MT_REQUIRE_TRUE(boost::filesystem::is_regular_file(path_to_store));
+  if (boost::filesystem::is_regular_file(file)) {
+    fd_ = ::open(file.c_str(), O_RDWR);
+    mt::check(fd_ != -1, "Could not open '%s' in O_RDWR mode", file.c_str());
 
-  stats_ = readStatsFromFile(path_to_stats);
-  stats_.load_factor_avg *= stats_.num_blocks;
-  // Will be normalized back in `getStats()`.
+    stats_ = readAndRemoveStatsFromTail(fd_);
+    const auto file_size = boost::filesystem::file_size(file);
+    MT_ASSERT_IS_ZERO(file_size % stats_.block_size);
+    MT_ASSERT_EQ(file_size / stats_.block_size, stats_.num_blocks);
 
-  MT_ASSERT_GT(buffer_size, stats_.block_size);
-  MT_ASSERT_EQ(buffer_size % stats_.block_size, 0);
+    stats_.load_factor_avg *= stats_.num_blocks;
+    // Will be normalized back in getStats().
 
-  fd_ = ::open(path_to_store.c_str(), O_RDWR);
-  mt::check(fd_ != -1, "Could not open '%s' in read-write mode",
-            path_to_store.c_str());
+    if (file_size != 0) {
+      const auto prot = PROT_READ | PROT_WRITE;
+      mapped_.data = ::mmap64(nullptr, file_size, prot, MAP_SHARED, fd_, 0);
+      mt::check(mapped_.data != MAP_FAILED,
+                "POSIX mmap64() failed for '%s' because: %s", file.c_str(),
+                std::strerror(errno));
+      mapped_.size = file_size;
+    }
 
-  const auto file_size = boost::filesystem::file_size(path_to_store);
-  if (file_size != 0) {
-    const auto prot = PROT_READ | PROT_WRITE;
-    mapped_.data = ::mmap64(nullptr, file_size, prot, MAP_SHARED, fd_, 0);
-    mt::check(mapped_.data != MAP_FAILED,
-              "POSIX mmap64() failed for '%s' because: %s",
-              path_to_store.c_str(), std::strerror(errno));
-    mapped_.size = file_size;
+  } else {
+    fd_ = ::open(file.c_str(), O_RDWR | O_CREAT, 0644);
+    mt::check(fd_ != -1, "Could not create '%s' in O_RDWR mode", file.c_str());
+
+    stats_.block_size = block_size;
   }
 
-  MT_ASSERT_EQ(file_size % stats_.block_size, 0);
-  const auto num_blocks_expected = file_size / stats_.block_size;
-  MT_ASSERT_EQ(stats_.num_blocks, num_blocks_expected);
-
   buffer_.data.reset(new char[buffer_size]);
   buffer_.size = buffer_size;
-  prefix_ = prefix;
+
+  MT_ENSURE_TRUE(isOpen());
 }
 
-void Store::create(const boost::filesystem::path& prefix,
-                   std::size_t block_size, std::size_t buffer_size) {
-  MT_REQUIRE_EQ(fd_, -1);
-  MT_REQUIRE_GT(buffer_size, block_size);
-  MT_REQUIRE_EQ(buffer_size % block_size, 0);
-  stats_.block_size = block_size;
-
-  const auto path_to_stats = prefix.string() + STATS_FILE_SUFFIX;
-  const auto path_to_store = prefix.string() + STORE_FILE_SUFFIX;
-  MT_REQUIRE_FALSE(boost::filesystem::is_regular_file(path_to_stats));
-  MT_REQUIRE_FALSE(boost::filesystem::is_regular_file(path_to_store));
-
-  const auto permissions = 0644;
-  fd_ = ::open(path_to_store.c_str(), O_CREAT | O_RDWR, permissions);
-  mt::check(fd_ != -1, "Could not create '%s' in read-write mode",
-            path_to_store.c_str());
-
-  buffer_.data.reset(new char[buffer_size]);
-  buffer_.size = buffer_size;
-  prefix_ = prefix;
-}
+bool Store::isOpen() const { return fd_ != -1; }
 
 std::uint32_t Store::append(const Block& block) {
-  MT_REQUIRE_NE(fd_, -1);
+  MT_REQUIRE_TRUE(isOpen());
   MT_REQUIRE_EQ(block.size(), stats_.block_size);
 
   const std::lock_guard<std::mutex> lock(mutex_);
@@ -215,6 +224,7 @@ std::uint32_t Store::append(const Block& block) {
   stats_.load_factor_avg += load_factor;
   stats_.load_factor_max = std::max(load_factor, stats_.load_factor_max);
   stats_.load_factor_min = std::min(load_factor, stats_.load_factor_min);
+
   return stats_.num_blocks++;
 }
 
@@ -263,8 +273,6 @@ void Store::adviseAccessPattern(AccessPattern pattern) const {
   }
 }
 
-std::size_t Store::block_size() const { return stats_.block_size; }
-
 Store::Stats Store::getStats() const {
   const std::lock_guard<std::mutex> lock(mutex_);
   Stats result = stats_;
@@ -273,6 +281,8 @@ Store::Stats Store::getStats() const {
   }
   return result;
 }
+
+std::size_t Store::block_size() const { return stats_.block_size; }
 
 char* Store::getAddressOf(std::uint32_t id) const {
   MT_REQUIRE_LT(id, stats_.num_blocks);

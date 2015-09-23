@@ -20,12 +20,12 @@
 
 #include <functional>
 #include <boost/filesystem/path.hpp>
+#include "multimap/internal/thirdparty/mt.hpp"
 #include "multimap/internal/BlockArena.hpp"
 #include "multimap/internal/Store.hpp"
 #include "multimap/internal/Iterator.hpp"
 #include "multimap/internal/Table.hpp"
 #include "multimap/Bytes.hpp"
-#include "multimap/Callables.hpp"
 
 namespace multimap {
 namespace internal {
@@ -36,16 +36,20 @@ class Shard {
     Store::Stats store;
     Table::Stats table;
 
-    void combine(const Stats& other);
+    Stats& summarize(const Stats& other);
 
-    std::map<std::string, std::string> toMap() const;
+    static Stats summarize(const Stats& a, const Stats& b);
+
+    static Stats fromProperties(const mt::Properties& properties);
+
+    mt::Properties toProperties() const;
   };
 
   typedef Iterator<true> ListIterator;
   typedef Iterator<false> MutableListIterator;
 
-  typedef std::function<bool(const Bytes&)> BytesPredicate;
-  typedef std::function<void(const Bytes&)> BytesProcedure;
+  typedef List::BytesPredicate BytesPredicate;
+  typedef List::BytesProcedure BytesProcedure;
   typedef std::function<std::string(const Bytes&)> BytesFunction;
   typedef std::function<bool(const Bytes&, const Bytes&)> BytesCompare;
   typedef std::function<void(const Bytes&, ListIterator&&)> EntryProcedure;
@@ -54,13 +58,13 @@ class Shard {
 
   ~Shard();
 
-  Shard(const boost::filesystem::path& prefix);
-
   Shard(const boost::filesystem::path& prefix, std::size_t block_size);
 
-  void open(const boost::filesystem::path& prefix);
+  void open(const boost::filesystem::path& prefix, std::size_t block_size);
 
-  void create(const boost::filesystem::path& prefix, std::size_t block_size);
+  bool isOpen() const;
+
+  Stats close();
 
   void put(const Bytes& key, const Bytes& value);
 
@@ -72,31 +76,29 @@ class Shard {
 
   std::size_t remove(const Bytes& key);
 
-  std::size_t removeAll(const Bytes& key, Callables::BytesPredicate predicate);
+  std::size_t removeAll(const Bytes& key, BytesPredicate predicate);
 
   std::size_t removeAllEqual(const Bytes& key, const Bytes& value);
 
-  bool removeFirst(const Bytes& key, Callables::BytesPredicate predicate);
+  bool removeFirst(const Bytes& key, BytesPredicate predicate);
 
   bool removeFirstEqual(const Bytes& key, const Bytes& value);
 
-  std::size_t replaceAll(const Bytes& key, Callables::BytesFunction function);
+  std::size_t replaceAll(const Bytes& key, BytesFunction function);
 
   std::size_t replaceAllEqual(const Bytes& key, const Bytes& old_value,
                               const Bytes& new_value);
 
-  bool replaceFirst(const Bytes& key, Callables::BytesFunction function);
+  bool replaceFirst(const Bytes& key, BytesFunction function);
 
   bool replaceFirstEqual(const Bytes& key, const Bytes& old_value,
                          const Bytes& new_value);
 
-  void forEachKey(Callables::BytesProcedure procedure) const;
+  void forEachKey(BytesProcedure procedure) const;
 
-  void forEachValue(const Bytes& key,
-                    Callables::BytesProcedure procedure) const;
+  void forEachValue(const Bytes& key, BytesProcedure procedure) const;
 
-  void forEachValue(const Bytes& key,
-                    Callables::BytesPredicate predicate) const;
+  void forEachValue(const Bytes& key, BytesPredicate predicate) const;
 
   void forEachEntry(EntryProcedure procedure) const;
 
@@ -106,29 +108,28 @@ class Shard {
 
   Stats getStats() const;
 
-  void flush();
-
   void optimize();
 
   void optimize(std::size_t new_block_size);
 
-  void optimize(Callables::BytesCompare compare);
+  void optimize(BytesCompare compare);
 
-  void optimize(Callables::BytesCompare compare, std::size_t new_block_size);
+  void optimize(BytesCompare compare, std::size_t new_block_size);
 
  private:
   void initCallbacks();
 
-  std::size_t remove(const Bytes& key, Callables::BytesPredicate predicate,
+  std::size_t remove(const Bytes& key, BytesPredicate predicate,
                      bool apply_to_all);
 
-  std::size_t replace(const Bytes& key, Callables::BytesFunction function,
+  std::size_t replace(const Bytes& key, BytesFunction function,
                       bool apply_to_all);
 
   Table table_;
   Store store_;
   Callbacks callbacks_;
   BlockArena block_arena_;
+  boost::filesystem::path prefix_;
 };
 
 }  // namespace internal

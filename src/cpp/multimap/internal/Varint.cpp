@@ -18,7 +18,6 @@
 #include "multimap/internal/Varint.hpp"
 
 #include <cassert>
-#include "multimap/internal/Check.hpp"
 
 namespace multimap {
 namespace internal {

@@ -21,7 +21,6 @@
 #include <cassert>
 #include <functional>
 #include "multimap/Bytes.hpp"
-#include "multimap/internal/Check.hpp"
 #include "multimap/internal/thirdparty/mt.hpp"
 
 namespace multimap {
@@ -174,7 +173,7 @@ class Block {
   std::uint32_t position_;
 };
 
-static_assert(HasExpectedSize<Block, 12, 16>::value,
+static_assert(mt::hasExpectedSize<Block>(12, 16),
               "class Block does not have expected size");
 
 bool operator==(const Block& lhs, const Block& rhs);
