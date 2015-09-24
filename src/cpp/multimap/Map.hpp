@@ -251,7 +251,7 @@ class Map {
   // LONG RUNNING OPERATIONS (require exclusive access to entire map)
   // ---------------------------------------------------------------------------
 
-  static void importFromBase64(const boost::filesystem::path& directory,
+  static void importFromBase64(const boost::filesystem::path& target,
                                const boost::filesystem::path& source);
   // Imports key-value pairs from a Base64-encoded text file denoted by file
   // into the map located in the directory denoted by directory.
@@ -263,7 +263,7 @@ class Map {
   //   * the map in directory is locked.
   //   * file is not a regular file.
 
-  static void importFromBase64(const boost::filesystem::path& directory,
+  static void importFromBase64(const boost::filesystem::path& target,
                                const boost::filesystem::path& source,
                                const Options& options);
   // Same as Import(directory, file) but creates a new map with default block
@@ -275,8 +275,8 @@ class Map {
   //   * see Import(directory, file)
   //   * block_size is not a power of two.
 
-  static void exportToBase64(const boost::filesystem::path& directory,
-                             const boost::filesystem::path& file);
+  static void exportToBase64(const boost::filesystem::path& source,
+                             const boost::filesystem::path& target);
   // Exports all key-value pairs from the map located in the directory denoted
   // by `directory` to a Base64-encoded text file denoted by `file`. If the file
   // already exists, its content will be overridden.
@@ -293,13 +293,13 @@ class Map {
   //   * the map in directory is locked.
   //   * `file` cannot be created.
 
-  static void exportToBase64(const boost::filesystem::path& directory,
-                             const boost::filesystem::path& file,
+  static void exportToBase64(const boost::filesystem::path& source,
+                             const boost::filesystem::path& target,
                              BytesCompare compare);
   // TODO Document this.
 
-  static void optimize(const boost::filesystem::path& from,
-                       const boost::filesystem::path& to,
+  static void optimize(const boost::filesystem::path& source,
+                       const boost::filesystem::path& target,
                        const Options& options);
   // Optimizes the map located in the directory denoted by `directory`
   // performing the following tasks:
@@ -322,10 +322,6 @@ class Map {
   internal::Shard& getShard(const Bytes& key);
 
   const internal::Shard& getShard(const Bytes& key) const;
-
-  // TODO Remove
-  void exportToBase64(const boost::filesystem::path& file,
-                      BytesCompare compare);
 
   internal::System::DirectoryLockGuard directory_lock_guard_;
   std::vector<std::unique_ptr<internal::Shard>> shards_;

@@ -204,18 +204,18 @@ std::size_t Map::max_value_size() const {
   return shards_.front()->max_value_size();
 }
 
-void Map::importFromBase64(const boost::filesystem::path& directory,
+void Map::importFromBase64(const boost::filesystem::path& target,
                            const boost::filesystem::path& source) {
   Options options;
   options.error_if_exists = false;
   options.create_if_missing = false;
-  Map::importFromBase64(directory, source, options);
+  Map::importFromBase64(target, source, options);
 }
 
-void Map::importFromBase64(const boost::filesystem::path& directory,
+void Map::importFromBase64(const boost::filesystem::path& target,
                            const boost::filesystem::path& source,
                            const Options& options) {
-  Map map(directory, options);
+  Map map(target, options);
 
   const auto import_file = [&map](const boost::filesystem::path& filepath) {
     mt::check(boost::filesystem::is_regular_file(filepath),
@@ -268,27 +268,75 @@ void Map::importFromBase64(const boost::filesystem::path& directory,
   }
 }
 
-void Map::exportToBase64(const boost::filesystem::path& directory,
-                         const boost::filesystem::path& file) {
-  Map::exportToBase64(directory, file, BytesCompare());
+void Map::exportToBase64(const boost::filesystem::path& source,
+                         const boost::filesystem::path& target) {
+  Map::exportToBase64(source, target, BytesCompare());
 }
 
-void Map::exportToBase64(const boost::filesystem::path& directory,
-                         const boost::filesystem::path& file,
+void Map::exportToBase64(const boost::filesystem::path& source,
+                         const boost::filesystem::path& target,
                          BytesCompare compare) {
-  Map(directory, Options()).exportToBase64(file, compare);
+  Options options;
+  options.error_if_exists = false;
+  options.create_if_missing = false;
+  Map map(source, options);
+
+  std::ofstream ofs(target.string());
+  mt::check(ofs, "Could not create '%s'.", target.c_str());
+
+  std::string key_as_base64;
+  std::string value_as_base64;
+  std::vector<std::string> sorted_values;
+  if (compare) {
+    map.forEachEntry([&](const Bytes& key, ListIterator&& iter) {
+      MT_ASSERT_NOT_ZERO(iter.num_values());
+
+      // TODO Test if reusing sorted_values makes any difference.
+
+      // Sort values
+      sorted_values.clear();
+      sorted_values.reserve(iter.num_values());
+      for (iter.seekToFirst(); iter.hasValue(); iter.next()) {
+        sorted_values.push_back(iter.getValue().toString());
+      }
+      std::sort(sorted_values.begin(), sorted_values.end(), compare);
+
+      // Write as Base64
+      internal::Base64::encode(key, &key_as_base64);
+      ofs << key_as_base64;
+      for (const auto& value : sorted_values) {
+        internal::Base64::encode(value, &value_as_base64);
+        ofs << ' ' << value_as_base64;
+      }
+      ofs << '\n';
+    });
+  } else {
+    map.forEachEntry([&](const Bytes& key, ListIterator&& iter) {
+      MT_ASSERT_NOT_ZERO(iter.num_values());
+
+      // Write as Base64
+      internal::Base64::encode(key, &key_as_base64);
+      ofs << key_as_base64;
+      for (iter.seekToFirst(); iter.hasValue(); iter.next()) {
+        internal::Base64::encode(iter.getValue(), &value_as_base64);
+        ofs << ' ' << value_as_base64;
+      }
+      ofs << '\n';
+    });
+  }
 }
 
-void Map::optimize(const boost::filesystem::path& from,
-                   const boost::filesystem::path& to, const Options& options) {
-  const auto abs_from = boost::filesystem::absolute(from);
-  mt::check(boost::filesystem::is_directory(abs_from),
-            "The path '%s' does not refer to a directory.", abs_from.c_str());
+void Map::optimize(const boost::filesystem::path& source,
+                   const boost::filesystem::path& target,
+                   const Options& options) {
+  const auto abs_source = boost::filesystem::absolute(source);
+  mt::check(boost::filesystem::is_directory(abs_source),
+            "The path '%s' does not refer to a directory.", abs_source.c_str());
 
-  internal::System::DirectoryLockGuard lock(abs_from, NAME_OF_LOCK_FILE);
-  const auto properties_file = abs_from / NAME_OF_PROPERTIES_FILE;
+  internal::System::DirectoryLockGuard lock(abs_source, NAME_OF_LOCK_FILE);
+  const auto properties_file = abs_source / NAME_OF_PROPERTIES_FILE;
   const auto map_exists = boost::filesystem::is_regular_file(properties_file);
-  mt::check(map_exists, "No Multimap found in '%s'.", abs_from.c_str());
+  mt::check(map_exists, "No Multimap found in '%s'.", abs_source.c_str());
 
   const auto props = mt::readPropertiesFromFile(properties_file.string());
   const auto major_version = std::stoul(props.at("map.major_version"));
@@ -306,8 +354,8 @@ void Map::optimize(const boost::filesystem::path& from,
     new_options.num_shards = old_num_shards;
   }
 
-  Map new_map(to, new_options);
-  const auto prefix = abs_from / FILE_PREFIX;
+  Map new_map(target, new_options);
+  const auto prefix = abs_source / FILE_PREFIX;
   for (std::size_t i = 0; i != old_num_shards; ++i) {
     internal::Shard shard(prefix.string() + '.' + std::to_string(i));
     if (options.bytes_compare) {
@@ -344,63 +392,6 @@ internal::Shard& Map::getShard(const Bytes& key) {
 const internal::Shard& Map::getShard(const Bytes& key) const {
   MT_REQUIRE_FALSE(shards_.empty());
   return *shards_[mt::fnv1aHash32(key.data(), key.size()) % shards_.size()];
-}
-
-void Map::exportToBase64(const boost::filesystem::path& file,
-                         BytesCompare compare) {
-  std::ofstream ofs(file.string());
-  mt::check(ofs, "Could not create '%s'.", file.c_str());
-
-  std::string key_as_base64;
-  std::string value_as_base64;
-  std::vector<std::string> sorted_values;
-  if (compare) {
-    forEachEntry([&](const Bytes& key, ListIterator&& iter) {
-      MT_ASSERT_NE(iter.num_values(), 0);
-
-      // Sort values
-      sorted_values.clear();
-      sorted_values.reserve(iter.num_values());
-      for (iter.seekToFirst(); iter.hasValue(); iter.next()) {
-        sorted_values.push_back(iter.getValue().toString());
-      }
-      std::sort(sorted_values.begin(), sorted_values.end(), compare);
-
-      // Write as Base64
-      auto it = sorted_values.begin();
-      if (it != sorted_values.end()) {
-        internal::Base64::encode(key, &key_as_base64);
-        internal::Base64::encode(*it, &value_as_base64);
-        ofs << key_as_base64 << ' ' << value_as_base64;
-        ++it;
-      }
-      while (it != sorted_values.end()) {
-        internal::Base64::encode(*it, &value_as_base64);
-        ofs << ' ' << value_as_base64;
-        ++it;
-      }
-      ofs << '\n';
-    });
-  } else {
-    forEachEntry([&](const Bytes& key, ListIterator&& iter) {
-      MT_ASSERT_NE(iter.num_values(), 0);
-
-      // Write as Base64
-      iter.seekToFirst();
-      if (iter.hasValue()) {
-        internal::Base64::encode(key, &key_as_base64);
-        internal::Base64::encode(iter.getValue(), &value_as_base64);
-        ofs << key_as_base64 << ' ' << value_as_base64;
-        iter.next();
-      }
-      while (iter.hasValue()) {
-        internal::Base64::encode(iter.getValue(), &value_as_base64);
-        ofs << ' ' << value_as_base64;
-        iter.next();
-      }
-      ofs << '\n';
-    });
-  }
 }
 
 }  // namespace multimap
