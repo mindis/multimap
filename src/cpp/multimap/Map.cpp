@@ -48,6 +48,13 @@ void checkVersion(std::uint32_t client_major, std::uint32_t client_minor) {
             client_major, client_minor, MAJOR_VERSION, MINOR_VERSION);
 }
 
+internal::Shard& selectShard(
+    const std::vector<std::unique_ptr<internal::Shard>>& shards,
+    const Bytes& key) {
+  MT_REQUIRE_FALSE(shards.empty());
+  return *shards[mt::fnv1aHash32(key.data(), key.size()) % shards.size()];
+}
+
 }  // namespace
 
 Map::~Map() {
@@ -107,55 +114,57 @@ void Map::open(const boost::filesystem::path& directory,
 }
 
 void Map::put(const Bytes& key, const Bytes& value) {
-  getShard(key).put(key, value);
+  selectShard(shards_, key).put(key, value);
 }
 
 Map::ListIterator Map::get(const Bytes& key) const {
-  return getShard(key).get(key);
+  return selectShard(shards_, key).get(key);
 }
 
 Map::MutableListIterator Map::getMutable(const Bytes& key) {
-  return getShard(key).getMutable(key);
+  return selectShard(shards_, key).getMutable(key);
 }
 
 bool Map::contains(const Bytes& key) const {
-  return getShard(key).contains(key);
+  return selectShard(shards_, key).contains(key);
 }
 
-std::size_t Map::remove(const Bytes& key) { return getShard(key).remove(key); }
+std::size_t Map::remove(const Bytes& key) {
+  return selectShard(shards_, key).remove(key);
+}
 
 std::size_t Map::removeAll(const Bytes& key, BytesPredicate predicate) {
-  return getShard(key).removeAll(key, predicate);
+  return selectShard(shards_, key).removeAll(key, predicate);
 }
 
 std::size_t Map::removeAllEqual(const Bytes& key, const Bytes& value) {
-  return getShard(key).removeAllEqual(key, value);
+  return selectShard(shards_, key).removeAllEqual(key, value);
 }
 
 bool Map::removeFirst(const Bytes& key, BytesPredicate predicate) {
-  return getShard(key).removeFirst(key, predicate);
+  return selectShard(shards_, key).removeFirst(key, predicate);
 }
 
 bool Map::removeFirstEqual(const Bytes& key, const Bytes& value) {
-  return getShard(key).removeFirstEqual(key, value);
+  return selectShard(shards_, key).removeFirstEqual(key, value);
 }
 
 std::size_t Map::replaceAll(const Bytes& key, BytesFunction function) {
-  return getShard(key).replaceAll(key, function);
+  return selectShard(shards_, key).replaceAll(key, function);
 }
 
 std::size_t Map::replaceAllEqual(const Bytes& key, const Bytes& old_value,
                                  const Bytes& new_value) {
-  return getShard(key).replaceAllEqual(key, old_value, new_value);
+  return selectShard(shards_, key).replaceAllEqual(key, old_value, new_value);
 }
 
 bool Map::replaceFirst(const Bytes& key, BytesFunction function) {
-  return getShard(key).replaceFirst(key, function);
+  return selectShard(shards_, key).replaceFirst(key, function);
 }
 
 bool Map::replaceFirstEqual(const Bytes& key, const Bytes& old_value,
                             const Bytes& new_value) {
-  return getShard(key).replaceFirstEqual(key, old_value, new_value);
+  return selectShard(shards_, key).replaceFirstEqual(key, old_value, new_value);
 }
 
 void Map::forEachKey(BytesProcedure procedure) const {
@@ -166,11 +175,11 @@ void Map::forEachKey(BytesProcedure procedure) const {
 }
 
 void Map::forEachValue(const Bytes& key, BytesProcedure procedure) const {
-  getShard(key).forEachValue(key, procedure);
+  selectShard(shards_, key).forEachValue(key, procedure);
 }
 
 void Map::forEachValue(const Bytes& key, BytesPredicate predicate) const {
-  getShard(key).forEachValue(key, predicate);
+  selectShard(shards_, key).forEachValue(key, predicate);
 }
 
 void Map::forEachEntry(EntryProcedure procedure) const {
@@ -382,16 +391,6 @@ void Map::optimize(const boost::filesystem::path& source,
       });
     }
   }
-}
-
-internal::Shard& Map::getShard(const Bytes& key) {
-  MT_REQUIRE_FALSE(shards_.empty());
-  return *shards_[mt::fnv1aHash32(key.data(), key.size()) % shards_.size()];
-}
-
-const internal::Shard& Map::getShard(const Bytes& key) const {
-  MT_REQUIRE_FALSE(shards_.empty());
-  return *shards_[mt::fnv1aHash32(key.data(), key.size()) % shards_.size()];
 }
 
 }  // namespace multimap

@@ -319,12 +319,8 @@ class Map {
   //   * `new_block_size` is not a power of two.
 
  private:
-  internal::Shard& getShard(const Bytes& key);
-
-  const internal::Shard& getShard(const Bytes& key) const;
-
-  internal::System::DirectoryLockGuard directory_lock_guard_;
   std::vector<std::unique_ptr<internal::Shard>> shards_;
+  internal::System::DirectoryLockGuard directory_lock_guard_;
 };
 
 }  // namespace multimap
