@@ -205,25 +205,67 @@ std::size_t Map::max_value_size() const {
 }
 
 void Map::importFromBase64(const boost::filesystem::path& directory,
-                           const boost::filesystem::path& file) {
-  Map::importFromBase64(directory, file, false);
-}
-
-void Map::importFromBase64(const boost::filesystem::path& directory,
-                           const boost::filesystem::path& file,
-                           bool create_if_missing) {
-  Map::importFromBase64(directory, file, create_if_missing, 0);
-}
-
-void Map::importFromBase64(const boost::filesystem::path& directory,
-                           const boost::filesystem::path& file,
-                           bool create_if_missing, std::size_t block_size) {
+                           const boost::filesystem::path& source) {
   Options options;
-  options.create_if_missing = create_if_missing;
-  if (block_size != 0) {
-    options.block_size = block_size;
+  options.error_if_exists = false;
+  options.create_if_missing = false;
+  Map::importFromBase64(directory, source, options);
+}
+
+void Map::importFromBase64(const boost::filesystem::path& directory,
+                           const boost::filesystem::path& source,
+                           const Options& options) {
+  Map map(directory, options);
+
+  const auto import_file = [&map](const boost::filesystem::path& filepath) {
+    mt::check(boost::filesystem::is_regular_file(filepath),
+              "'%s' is not a regular file.", filepath.c_str());
+    std::ifstream ifs(filepath.string());
+    mt::check(ifs, "Could not open '%s'.", filepath.c_str());
+
+    std::string key_as_base64;
+    std::string key_as_binary;
+    std::string value_as_base64;
+    std::string value_as_binary;
+    if (ifs >> key_as_base64) {
+      internal::Base64::decode(key_as_base64, &key_as_binary);
+      while (ifs) {
+        switch (ifs.peek()) {
+          case '\n':
+          case '\r':
+            ifs >> key_as_base64;
+            internal::Base64::decode(key_as_base64, &key_as_binary);
+            break;
+          case '\f':
+          case '\t':
+          case '\v':
+          case ' ':
+            ifs.ignore();
+            break;
+          default:
+            ifs >> value_as_base64;
+            internal::Base64::decode(value_as_base64, &value_as_binary);
+            map.put(key_as_binary, value_as_binary);
+        }
+      }
+    }
+  };
+
+  const auto is_hidden = [](const boost::filesystem::path& path) {
+    return path.filename().string().front() == '.';
+  };
+
+  if (boost::filesystem::is_directory(source)) {
+    boost::filesystem::directory_iterator end;
+    boost::filesystem::directory_iterator iter(source);
+    while (iter != end) {
+      if (is_hidden(iter->path())) continue;
+      import_file(iter->path());
+      ++iter;
+    }
+  } else {
+    import_file(source);
   }
-  Map(directory, options).importFromBase64(file);
 }
 
 void Map::exportToBase64(const boost::filesystem::path& directory,
@@ -268,7 +310,7 @@ void Map::optimize(const boost::filesystem::path& from,
   const auto prefix = abs_from / FILE_PREFIX;
   for (std::size_t i = 0; i != old_num_shards; ++i) {
     internal::Shard shard(prefix.string() + '.' + std::to_string(i));
-    if (options.compare) {
+    if (options.bytes_compare) {
       std::vector<std::string> sorted_values;
       // TODO Test if reusing sorted_values makes any difference.
       shard.forEachEntry([&new_map, &options, &sorted_values](
@@ -278,7 +320,8 @@ void Map::optimize(const boost::filesystem::path& from,
         for (iter.seekToFirst(); iter.hasValue(); iter.next()) {
           sorted_values.push_back(iter.getValue().toString());
         }
-        std::sort(sorted_values.begin(), sorted_values.end(), options.compare);
+        std::sort(sorted_values.begin(), sorted_values.end(),
+                  options.bytes_compare);
         for (const auto& value : sorted_values) {
           new_map.put(key, value);
         }
@@ -301,38 +344,6 @@ internal::Shard& Map::getShard(const Bytes& key) {
 const internal::Shard& Map::getShard(const Bytes& key) const {
   MT_REQUIRE_FALSE(shards_.empty());
   return *shards_[mt::fnv1aHash32(key.data(), key.size()) % shards_.size()];
-}
-
-void Map::importFromBase64(const boost::filesystem::path& file) {
-  std::ifstream ifs(file.string());
-  mt::check(ifs, "Could not open '%s'.", file.c_str());
-
-  std::string key_as_base64;
-  std::string key_as_binary;
-  std::string value_as_base64;
-  std::string value_as_binary;
-  if (ifs >> key_as_base64) {
-    internal::Base64::decode(key_as_base64, &key_as_binary);
-    while (ifs) {
-      switch (ifs.peek()) {
-        case '\n':
-        case '\r':
-          ifs >> key_as_base64;
-          internal::Base64::decode(key_as_base64, &key_as_binary);
-          break;
-        case '\f':
-        case '\t':
-        case '\v':
-        case ' ':
-          ifs.ignore();
-          break;
-        default:
-          ifs >> value_as_base64;
-          internal::Base64::decode(value_as_base64, &value_as_binary);
-          put(key_as_binary, value_as_binary);
-      }
-    }
-  }
 }
 
 void Map::exportToBase64(const boost::filesystem::path& file,

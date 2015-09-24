@@ -252,7 +252,7 @@ class Map {
   // ---------------------------------------------------------------------------
 
   static void importFromBase64(const boost::filesystem::path& directory,
-                               const boost::filesystem::path& file);
+                               const boost::filesystem::path& source);
   // Imports key-value pairs from a Base64-encoded text file denoted by file
   // into the map located in the directory denoted by directory.
   // Preconditions:
@@ -264,8 +264,8 @@ class Map {
   //   * file is not a regular file.
 
   static void importFromBase64(const boost::filesystem::path& directory,
-                               const boost::filesystem::path& file,
-                               bool create_if_missing);
+                               const boost::filesystem::path& source,
+                               const Options& options);
   // Same as Import(directory, file) but creates a new map with default block
   // size if the directory denoted by directory does not contain a map and
   // create_if_missing is true.
@@ -273,16 +273,6 @@ class Map {
   //   * see Import(directory, file)
   // Throws std::exception if:
   //   * see Import(directory, file)
-
-  static void importFromBase64(const boost::filesystem::path& directory,
-                               const boost::filesystem::path& file,
-                               bool create_if_missing, std::size_t block_size);
-  // Same as Import(directory, file, create_if_missing) but sets the block size
-  // of a newly created map to block_size.
-  // Preconditions:
-  //   * see Import(directory, file, create_if_missing)
-  // Throws std::exception if:
-  //   * see Import(directory, file, create_if_missing)
   //   * block_size is not a power of two.
 
   static void exportToBase64(const boost::filesystem::path& directory,
@@ -332,9 +322,6 @@ class Map {
   internal::Shard& getShard(const Bytes& key);
 
   const internal::Shard& getShard(const Bytes& key) const;
-
-  // TODO Remove
-  void importFromBase64(const boost::filesystem::path& file);
 
   // TODO Remove
   void exportToBase64(const boost::filesystem::path& file,
