@@ -38,7 +38,7 @@ bool isPrime(std::size_t number);
 std::size_t nextPrime(std::size_t number);
 // Returns the next prime number that is greater than or equal to `number`.
 
-bool isPowerOfTwo(std::size_t value) { return (value & (value - 1)) == 0; }
+inline bool isPowerOfTwo(std::size_t num) { return (num & (num - 1)) == 0; }
 
 constexpr std::size_t MiB(std::size_t mebibytes) { return mebibytes << 20; }
 // Converts a number in mebibytes to the equivalent number in bytes.
