@@ -472,11 +472,16 @@ JNIEXPORT void JNICALL
                                               jint new_block_size) {
   const auto from = multimap::jni::makeString(env, jfrom);
   const auto to = multimap::jni::makeString(env, jto);
-  const auto compare = (jless_than != nullptr)
-                           ? multimap::jni::makeBytesCompare(env, jless_than)
-                           : multimap::Map::BytesCompare();
   try {
-    multimap::optimize(from, to, new_block_size, compare);
+    multimap::Options options;
+    if (new_block_size == -1) {
+      options.block_size = 0;
+    }
+    if (jless_than != nullptr) {
+      options.bytes_compare = multimap::jni::makeBytesCompare(env, jless_than);
+    }
+//    options.num_shards  // TODO
+    multimap::Map::optimize(from, to, options);
   } catch (std::exception& error) {
     multimap::jni::throwJavaException(env, error.what());
   }
@@ -495,8 +500,12 @@ JNIEXPORT void JNICALL
   const auto directory = multimap::jni::makeString(env, jdirectory);
   const auto file = multimap::jni::makeString(env, jfile);
   try {
-    multimap::Map::importFromBase64(directory, file, create_if_missing,
-                                    block_size);
+    multimap::Options options;
+    if (block_size != -1) {
+      options.block_size = block_size;
+    }
+    options.create_if_missing = create_if_missing;
+    multimap::Map::importFromBase64(directory, file, options);
   } catch (std::exception& error) {
     multimap::jni::throwJavaException(env, error.what());
   }
