@@ -32,12 +32,10 @@ const std::string FILE_PREFIX = "multimap";
 const std::string NAME_OF_LOCK_FILE = FILE_PREFIX + ".lock";
 const std::string NAME_OF_PROPERTIES_FILE = FILE_PREFIX + ".properties";
 
-bool isPowerOfTwo(std::size_t value) { return (value & (value - 1)) == 0; }
-
 void checkOptions(const Options& options) {
-  const auto bs = "options.block_size";
-  mt::check(options.block_size != 0, "%s must be positive.", bs);
-  mt::check(isPowerOfTwo(options.block_size), "%s must be a power of two.", bs);
+  mt::check(options.block_size != 0, "options.block_size must be positive");
+  mt::check(mt::isPowerOfTwo(options.block_size),
+            "options.block_size must be a power of two");
 }
 
 void checkVersion(std::uint32_t client_major, std::uint32_t client_minor) {
