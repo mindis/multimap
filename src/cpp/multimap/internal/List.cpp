@@ -17,7 +17,6 @@
 
 #include "multimap/internal/List.hpp"
 
-#include "multimap/internal/BlockArena.hpp"
 #include "multimap/internal/System.hpp"
 
 namespace multimap {
@@ -84,10 +83,10 @@ void List::Iter<false>::writeBackMutatedBlocks() {
 List::List(const Head& head) : head_(head) {}
 
 void List::add(const Bytes& value,
-               const Callbacks::NewBlock& allocate_block_callback,
+               const Callbacks::NewBlock& new_block_callback,
                const Callbacks::CommitBlock& commit_block_callback) {
   if (!block_.hasData()) {
-    block_ = allocate_block_callback();
+    block_ = new_block_callback();
   }
   auto ok = block_.add(value);
   if (!ok) {

@@ -21,7 +21,7 @@
 #include <functional>
 #include <boost/filesystem/path.hpp>
 #include "multimap/internal/thirdparty/mt.hpp"
-#include "multimap/internal/BlockArena.hpp"
+#include "multimap/internal/Arena.hpp"
 #include "multimap/internal/Store.hpp"
 #include "multimap/internal/Iterator.hpp"
 #include "multimap/internal/Table.hpp"
@@ -123,8 +123,8 @@ class Shard {
 
   Table table_;
   Store store_;
+  Arena arena_;
   Callbacks callbacks_;
-  BlockArena block_arena_;
   boost::filesystem::path prefix_;
 };
 

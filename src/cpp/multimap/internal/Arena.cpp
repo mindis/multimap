@@ -17,38 +17,35 @@
 
 #include "multimap/internal/Arena.hpp"
 
-#include <algorithm>
 #include "multimap/internal/thirdparty/mt.hpp"
 
 namespace multimap {
 namespace internal {
 
-Arena::Arena(std::size_t block_size)
-    : block_size_(block_size), capacity_(0), size_(0) {
-  mt::check(block_size > 0, "Arena::Arena: block_size must be positive");
+Arena::Arena(std::size_t chunk_size) {
+  MT_REQUIRE_NOT_ZERO(chunk_size);
+  MT_REQUIRE_TRUE(mt::isPowerOfTwo(chunk_size));
+  chunk_size_ = chunk_size;
+  offset_ = chunk_size;  // First request will trigger allocation.
 }
 
 char* Arena::allocate(std::size_t num_bytes) {
-  mt::check(num_bytes > 0, "Arena::Allocate: num_bytes must be positive");
-  const auto num_bytes_free = capacity_ - size_;
-  if (num_bytes_free < num_bytes) {
-    allocateNewBlock(std::max(block_size_, num_bytes));
+  MT_REQUIRE_NOT_ZERO(num_bytes);
+
+  const auto num_bytes_free = chunk_size_ - offset_;
+  if (num_bytes > num_bytes_free) {
+    if (num_bytes > chunk_size_) {
+      blobs_.emplace_back(new char[num_bytes]);
+      allocated_ += num_bytes;
+      return blobs_.back().get();
+    }
+    chunks_.emplace_back(new char[chunk_size_]);
+    offset_ = 0;
   }
-  const auto data = blocks_.back().get() + size_;
-  size_ += num_bytes;
-  return data;
-}
-
-void Arena::reset() {
-  blocks_.clear();
-  capacity_ = 0;
-  size_ = 0;
-}
-
-void Arena::allocateNewBlock(std::size_t block_size) {
-  blocks_.emplace_back(new char[block_size]);
-  capacity_ = block_size;
-  size_ = 0;
+  const auto result = chunks_.back().get() + offset_;
+  allocated_ += num_bytes;
+  offset_ += num_bytes;
+  return result;
 }
 
 }  // namespace internal

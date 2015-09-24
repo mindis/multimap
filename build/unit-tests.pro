@@ -28,7 +28,6 @@ SOURCES += \
     /usr/src/gtest/src/gtest-typed-test.cc \
     /usr/src/gtest/src/gtest.cc \
     ../src/cpp/multimap/internal/Base64Test.cpp \
-    ../src/cpp/multimap/internal/BlockPoolTest.cpp \
     ../src/cpp/multimap/internal/BlockTest.cpp \
     ../src/cpp/multimap/internal/IteratorTest.cpp \
     ../src/cpp/multimap/internal/ListLockTest.cpp \
@@ -37,4 +36,5 @@ SOURCES += \
     ../src/cpp/multimap/internal/UintVectorTest.cpp \
     ../src/cpp/multimap/internal/VarintTest.cpp \
     ../src/cpp/multimap/MapTest.cpp \
-    ../src/cpp/multimap/RunUnitTests.cpp
+    ../src/cpp/multimap/RunUnitTests.cpp \
+    ../src/cpp/multimap/internal/ArenaTest.cpp

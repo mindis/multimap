@@ -15,11 +15,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include <limits>
 #include <type_traits>
-#include <vector>
 #include "gmock/gmock.h"
-#include "multimap/internal/BlockArena.hpp"
+#include "multimap/internal/Arena.hpp"
+#include "multimap/internal/thirdparty/mt.hpp"
 
 namespace multimap {
 namespace internal {
@@ -27,27 +26,32 @@ namespace internal {
 using testing::Eq;
 using testing::NotNull;
 
-TEST(BlockPoolTest, IsDefaultConstructible) {
-  ASSERT_THAT(std::is_default_constructible<BlockArena>::value, Eq(true));
+TEST(ArenaTest, IsDefaultConstructible) {
+  ASSERT_TRUE(std::is_default_constructible<Arena>::value);
 }
 
-TEST(BlockPoolTest, IsNotCopyConstructibleOrAssignable) {
-  ASSERT_THAT(std::is_copy_constructible<BlockArena>::value, Eq(false));
-  ASSERT_THAT(std::is_copy_assignable<BlockArena>::value, Eq(false));
+TEST(ArenaTest, IsNotCopyConstructibleOrAssignable) {
+  ASSERT_FALSE(std::is_copy_constructible<Arena>::value);
+  ASSERT_FALSE(std::is_copy_assignable<Arena>::value);
 }
 
-TEST(BlockPoolTest, IsNotMoveConstructibleOrAssignable) {
-  ASSERT_THAT(std::is_move_constructible<BlockArena>::value, Eq(false));
-  ASSERT_THAT(std::is_move_assignable<BlockArena>::value, Eq(false));
+TEST(ArenaTest, IsMoveConstructibleAndAssignable) {
+  ASSERT_TRUE(std::is_move_constructible<Arena>::value);
+  ASSERT_TRUE(std::is_move_assignable<Arena>::value);
 }
 
-TEST(BlockPoolTest, ConstructedWithValidParamsHasProperState) {
-  const auto block_size = 128;
-  const auto chunk_size = mt::MiB(10);
-  BlockArena block_pool(block_size, chunk_size);
-  ASSERT_THAT(block_pool.block_size(), Eq(block_size));
-  ASSERT_THAT(block_pool.num_blocks(), Eq(81920));
-  ASSERT_THAT(block_pool.allocate().data(), NotNull());
+TEST(ArenaTest, ConstructedWithValidParamsHasProperState) {
+  const auto chunk_size = 128;
+  Arena arena(chunk_size);
+  ASSERT_THROW(arena.allocate(0), mt::AssertionError);
+  ASSERT_THAT(arena.allocate(1), NotNull());
+  ASSERT_THAT(arena.allocated(), Eq(1));
+  ASSERT_THAT(arena.allocate(2), NotNull());
+  ASSERT_THAT(arena.allocated(), Eq(3));
+  ASSERT_THAT(arena.allocate(128), NotNull());
+  ASSERT_THAT(arena.allocated(), Eq(131));
+  ASSERT_THAT(arena.allocate(5000), NotNull());
+  ASSERT_THAT(arena.allocated(), Eq(5131));
 }
 
 }  // namespace internal

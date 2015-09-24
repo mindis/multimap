@@ -80,7 +80,7 @@ void Shard::open(const boost::filesystem::path& prefix,
 
   store_.open(prefix.string() + STORE_FILE_SUFFIX, block_size);
   table_.open(prefix.string() + TABLE_FILE_SUFFIX);
-  block_arena_.init(store_.block_size());
+  // TODO Check if arena_(large_chunk_size) makes any difference.
   prefix_ = prefix;
   initCallbacks();
 
@@ -214,8 +214,11 @@ Shard::Stats Shard::getStats() const {
 }
 
 void Shard::initCallbacks() {
-  // Thread-safe: yes.
-  callbacks_.new_block = [this]() { return block_arena_.allocate(); };
+  // Thread-safe: yes.  // TODO Check this.
+  callbacks_.new_block = [this]() {
+    const auto block_size = store_.block_size();
+    return Block(arena_.allocate(block_size), block_size);
+  };
 
   // Thread-safe: yes.
   callbacks_.commit_block =

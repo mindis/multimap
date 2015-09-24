@@ -125,7 +125,7 @@ class List {
   List& operator=(const List&) = delete;
 
   void add(const Bytes& value,
-           const Callbacks::NewBlock& allocate_block_callback,
+           const Callbacks::NewBlock& new_block_callback,
            const Callbacks::CommitBlock& commit_block_callback);
 
   void flush(const Callbacks::CommitBlock& commit_block_callback);
@@ -202,7 +202,7 @@ List::Iter<false>::Iter(
 template <bool IsConst>
 void List::Iter<IsConst>::seekToFirst() {
   if (head_) {
-    arena_.reset();
+    arena_ = Arena();
     state_ = State();
     cached_blocks_.clear();
     block_iter_ = getNextBlockIter();

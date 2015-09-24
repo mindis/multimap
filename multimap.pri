@@ -19,7 +19,6 @@ HEADERS += \
     $$PWD/src/cpp/multimap/internal/Arena.hpp \
     $$PWD/src/cpp/multimap/internal/Base64.hpp \
     $$PWD/src/cpp/multimap/internal/Block.hpp \
-    $$PWD/src/cpp/multimap/internal/BlockArena.hpp \
     $$PWD/src/cpp/multimap/internal/Callbacks.hpp \
     $$PWD/src/cpp/multimap/internal/Iterator.hpp \
     $$PWD/src/cpp/multimap/internal/List.hpp \
@@ -40,7 +39,6 @@ SOURCES += \
     $$PWD/src/cpp/multimap/internal/Arena.cpp \
     $$PWD/src/cpp/multimap/internal/Base64.cpp \
     $$PWD/src/cpp/multimap/internal/Block.cpp \
-    $$PWD/src/cpp/multimap/internal/BlockArena.cpp \
     $$PWD/src/cpp/multimap/internal/List.cpp \
     $$PWD/src/cpp/multimap/internal/Shard.cpp \
     $$PWD/src/cpp/multimap/internal/Store.cpp \

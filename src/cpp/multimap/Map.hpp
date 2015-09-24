@@ -79,9 +79,6 @@ class Map {
   //   * No list is in locked state, i.e. there is no iterator object pointing
   //     to an existing list.
 
-  Map(const Map&) = delete;
-  Map& operator=(const Map&) = delete;
-
   Map(Map&&) = default;
   Map& operator=(Map&&) = default;
 
