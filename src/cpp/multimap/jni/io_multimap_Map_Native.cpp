@@ -478,7 +478,7 @@ JNIEXPORT void JNICALL
       options.block_size = 0;
     }
     if (jless_than != nullptr) {
-      options.bytes_compare = multimap::jni::makeBytesCompare(env, jless_than);
+      options.compare_bytes = multimap::jni::makeBytesCompare(env, jless_than);
     }
 //    options.num_shards  // TODO
     multimap::Map::optimize(from, to, options);

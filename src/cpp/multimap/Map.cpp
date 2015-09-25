@@ -365,7 +365,7 @@ void Map::optimize(const boost::filesystem::path& source,
   const auto prefix = abs_source / FILE_PREFIX;
   for (std::size_t i = 0; i != old_num_shards; ++i) {
     internal::Shard shard(prefix.string() + '.' + std::to_string(i));
-    if (options.bytes_compare) {
+    if (options.compare_bytes) {
       std::vector<std::string> sorted_values;
       // TODO Test if reusing sorted_values makes any difference.
       shard.forEachEntry([&new_map, &options, &sorted_values](
@@ -376,7 +376,7 @@ void Map::optimize(const boost::filesystem::path& source,
           sorted_values.push_back(iter.getValue().toString());
         }
         std::sort(sorted_values.begin(), sorted_values.end(),
-                  options.bytes_compare);
+                  options.compare_bytes);
         for (const auto& value : sorted_values) {
           new_map.put(key, value);
         }
