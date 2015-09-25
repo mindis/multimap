@@ -1,5 +1,7 @@
 TEMPLATE = app
 CONFIG += console
+CONFIG -= app_bundle
+CONFIG -= qt
 
 COMMON = multimap.pri
 !include(../$$COMMON) {
