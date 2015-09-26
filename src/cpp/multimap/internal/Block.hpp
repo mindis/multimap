@@ -56,37 +56,52 @@ class Block {
   template <bool IsConst>
   class Iter {
    public:
+    typedef std::function<void()> HasChanged;
+
     typedef typename std::conditional<IsConst, const char, char>::type Char;
 
-    Iter() : data_(nullptr), size_(0), offset_(0) {}
+    Iter() = default;
 
-    Iter(Char* data, std::size_t size) : data_(data), size_(size), offset_(0) {
-      assert(data);
+    Iter(Char* data, std::size_t size) : data_(data), data_size_(size) {
+      MT_REQUIRE_NOT_NULL(data);
     }
 
-    bool hasValue() const { return hasData() && (size() != 0); }
+    Iter(char* data, std::size_t size, HasChanged has_changed_callback);
+    // Specialized for Iter<false>.
 
-    Bytes getValue() const { return Bytes(data(), size()); }
-    // @pre hasValue()
-
-    bool isDeleted() const { return *tellGetAddress() & 0x80; }
-    // @pre hasValue()
-
-    void markAsDeleted() { *tellGetAddress() |= 0x80; }
-    // @pre hasValue()
-
-    void next() { offset_ += SIZE_OF_VALUE_SIZE_FIELD + size(); }
-    // @pre hasValue()
-
-    void nextNotDeleted() {
-      do {
-        next();
-      } while (hasValue() && isDeleted());
+    bool hasNext() {
+      while (data_offset_ + SIZE_OF_VALUE_SIZE_FIELD < data_size_) {
+        const auto value_size = size();
+        if (value_size == 0) return false;
+        if (deleted()) {
+          data_offset_ += SIZE_OF_VALUE_SIZE_FIELD + value_size;
+        } else {
+          return true;
+        }
+      }
+      return false;
     }
-    // @pre hasValue()
+
+    Bytes next() {
+      const auto value = peekNext();
+      data_offset_prev_ = data_offset_;
+      data_offset_ += SIZE_OF_VALUE_SIZE_FIELD;
+      data_offset_ += value.size();
+      return value;
+    }
+
+    Bytes peekNext() const { return Bytes(data(), size()); }
+
+    void markAsDeleted();
+    // Specialized for Iter<false>.
+
+    void toFront() {
+      data_size_ = 0;
+      data_offset_ = 0;
+      data_offset_prev_ = 0;
+    }
 
     Char* data() const { return tellGetAddress() + SIZE_OF_VALUE_SIZE_FIELD; }
-    // @pre hasValue()
 
     std::size_t size() const {
       std::int16_t size = 0;
@@ -94,18 +109,17 @@ class Block {
       size += tellGetAddress()[1];
       return size & 0x7fff;
     }
-    // @pre hasValue()
 
    private:
-    bool hasData() const {
-      return (offset_ + SIZE_OF_VALUE_SIZE_FIELD) < size_;
-    }
+    Char* tellGetAddress() const { return data_ + data_offset_; }
 
-    Char* tellGetAddress() const { return data_ + offset_; }
+    bool deleted() const { return *tellGetAddress() & 0x80; }
 
-    Char* data_;
-    std::uint32_t size_;
-    std::uint32_t offset_;
+    Char* data_ = nullptr;
+    std::uint32_t data_size_ = 0;
+    std::uint32_t data_offset_ = 0;
+    std::uint32_t data_offset_prev_ = 0;
+    HasChanged has_changed_callback_;
   };
 
   typedef Iter<false> Iterator;
@@ -148,17 +162,13 @@ class Block {
   std::uint32_t max_value_size() const;
   // Returns the maximum size of a value to be put when the block is empty.
 
-  Iterator iterator() {
-    // We do not use this->position_ to indicate the end of data, because
-    // this member is always zero when the block is read from disk.
-    return hasData() ? Iterator(data_, size_) : Iterator();
-  }
+  Iterator iterator();
 
-  ConstIterator iterator() const {
-    // We do not use this->position_ to indicate the end of data, because
-    // this member is always zero when the block is read from disk.
-    return hasData() ? ConstIterator(data_, size_) : ConstIterator();
-  }
+  Iterator iterator(Iterator::HasChanged has_changed_callback);
+
+  ConstIterator iterator() const;
+
+  ConstIterator const_iterator() const;
 
   bool add(const Bytes& value);
   // Writes a copy of value's data into the block.
@@ -175,6 +185,46 @@ class Block {
 
 static_assert(mt::hasExpectedSize<Block>(12, 16),
               "class Block does not have expected size");
+
+template <>
+inline Block::Iter<false>::Iter(char* data, std::size_t size,
+                                HasChanged has_changed_callback)
+    : data_(data),
+      data_size_(size),
+      has_changed_callback_(has_changed_callback) {
+  MT_REQUIRE_NOT_NULL(data);
+  MT_REQUIRE_TRUE(has_changed_callback);
+}
+
+template <>
+inline void Block::Iter<false>::markAsDeleted() {
+  char* prev_value_addr = data_ + data_offset_prev_;
+  *prev_value_addr |= 0x80;
+  if (has_changed_callback_) {
+    has_changed_callback_();
+  }
+}
+
+inline Block::Iterator Block::iterator() {
+  // We do not use this->position_ to indicate the end of data, because
+  // this member is always zero when the block is read from disk.
+  return hasData() ? Iterator(data_, size_) : Iterator();
+}
+
+inline Block::Iterator Block::iterator(
+    Iterator::HasChanged has_changed_callback) {
+  // We do not use this->position_ to indicate the end of data, because
+  // this member is always zero when the block is read from disk.
+  return hasData() ? Iterator(data_, size_, has_changed_callback) : Iterator();
+}
+
+inline Block::ConstIterator Block::iterator() const { return const_iterator(); }
+
+inline Block::ConstIterator Block::const_iterator() const {
+  // We do not use this->position_ to indicate the end of data, because
+  // this member is always zero when the block is read from disk.
+  return hasData() ? ConstIterator(data_, size_) : ConstIterator();
+}
 
 bool operator==(const Block& lhs, const Block& rhs);
 

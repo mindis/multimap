@@ -296,15 +296,13 @@ void Map::exportToBase64(const boost::filesystem::path& source,
   std::vector<std::string> sorted_values;
   if (compare) {
     map.forEachEntry([&](const Bytes& key, ListIterator&& iter) {
-      MT_ASSERT_NOT_ZERO(iter.num_values());
-
       // TODO Test if reusing sorted_values makes any difference.
 
       // Sort values
       sorted_values.clear();
-      sorted_values.reserve(iter.num_values());
-      for (iter.seekToFirst(); iter.hasValue(); iter.next()) {
-        sorted_values.push_back(iter.getValue().toString());
+      sorted_values.reserve(iter.available());
+      while (iter.hasNext()) {
+        sorted_values.push_back(iter.next().toString());
       }
       std::sort(sorted_values.begin(), sorted_values.end(), compare);
 
@@ -319,13 +317,11 @@ void Map::exportToBase64(const boost::filesystem::path& source,
     });
   } else {
     map.forEachEntry([&](const Bytes& key, ListIterator&& iter) {
-      MT_ASSERT_NOT_ZERO(iter.num_values());
-
       // Write as Base64
       internal::Base64::encode(key, &key_as_base64);
       ofs << key_as_base64;
-      for (iter.seekToFirst(); iter.hasValue(); iter.next()) {
-        internal::Base64::encode(iter.getValue(), &value_as_base64);
+      while (iter.hasNext()) {
+        internal::Base64::encode(iter.next(), &value_as_base64);
         ofs << ' ' << value_as_base64;
       }
       ofs << '\n';
@@ -371,9 +367,9 @@ void Map::optimize(const boost::filesystem::path& source,
       shard.forEachEntry([&new_map, &options, &sorted_values](
           const Bytes& key, ListIterator&& iter) {
         sorted_values.clear();
-        sorted_values.reserve(iter.num_values());
-        for (iter.seekToFirst(); iter.hasValue(); iter.next()) {
-          sorted_values.push_back(iter.getValue().toString());
+        sorted_values.reserve(iter.available());
+        while (iter.hasNext()) {
+          sorted_values.push_back(iter.next().toString());
         }
         std::sort(sorted_values.begin(), sorted_values.end(),
                   options.compare_bytes);
@@ -383,8 +379,8 @@ void Map::optimize(const boost::filesystem::path& source,
       });
     } else {
       shard.forEachEntry([&new_map](const Bytes& key, ListIterator&& iter) {
-        for (iter.seekToFirst(); iter.hasValue(); iter.next()) {
-          new_map.put(key, iter.getValue());
+        while (iter.hasNext()) {
+          new_map.put(key, iter.next());
         }
       });
     }

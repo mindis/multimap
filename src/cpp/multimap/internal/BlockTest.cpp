@@ -56,7 +56,7 @@ TEST(BlockIterTest, IsMoveConstructibleAndAssignable) {
 }
 
 TEST(BlockIterTest, DefaultConstructedHasProperState) {
-  ASSERT_THAT(ListIter().hasValue(), Eq(false));
+  ASSERT_THAT(ListIter().hasNext(), Eq(false));
 }
 
 TEST(BlockConstIterTest, IsDefaultConstructible) {
@@ -74,7 +74,7 @@ TEST(BlockConstIterTest, IsMoveConstructibleAndAssignable) {
 }
 
 TEST(BlockConstIterTest, DefaultConstructedHasProperState) {
-  ASSERT_THAT(ListConstIter().hasValue(), Eq(false));
+  ASSERT_THAT(ListConstIter().hasNext(), Eq(false));
 }
 
 TEST(BlockTest, IsDefaultConstructible) {
@@ -128,6 +128,46 @@ TEST(BlockTest, AddTooLargeValueToEmptyBlockThrows) {
   ASSERT_THROW(block.add(value), std::runtime_error);
 }
 
+// TODO Remove duplication
+TEST(BlockTest, AddingValuesIncreasesLoadFactor) {
+  const auto num_values = 100;
+  const auto value_size = 23;
+  const auto block_size =
+      (Block::SIZE_OF_VALUE_SIZE_FIELD + value_size) * num_values;
+  char block_data[block_size];
+  Block block(block_data, block_size);
+  auto generator = SequenceGenerator::create();
+  double prev_load_factor = 0;
+  for (auto i = 0; i != num_values; ++i) {
+    ASSERT_TRUE(block.add(generator->generate(value_size)));
+    ASSERT_THAT(block.load_factor(), Gt(prev_load_factor));
+    prev_load_factor = block.load_factor();
+  }
+}
+
+// TODO Remove duplication
+TEST(BlockTest, AddValuesAndIterateAll) {
+  const auto num_values = 100;
+  const auto value_size = 23;
+  const auto block_size =
+      (Block::SIZE_OF_VALUE_SIZE_FIELD + value_size) * num_values;
+  char block_data[block_size];
+  Block block(block_data, block_size);
+  auto generator = SequenceGenerator::create();
+  for (auto i = 0; i != num_values; ++i) {
+    ASSERT_TRUE(block.add(generator->generate(value_size)));
+  }
+  ASSERT_FALSE(block.add(generator->generate(value_size)));
+
+  generator->reset();
+  auto iter = block.iterator();
+  for (auto i = 0; i != num_values; ++i) {
+    ASSERT_TRUE(iter.hasNext());
+    ASSERT_THAT(iter.next(), Eq(generator->generate(value_size)));
+  }
+  ASSERT_FALSE(iter.hasNext());
+}
+
 TEST_P(BlockTestParam, AddingValuesIncreasesLoadFactor) {
   const auto num_values = 100;
   const auto value_size = GetParam();
@@ -160,11 +200,10 @@ TEST_P(BlockTestParam, AddValuesAndIterateAll) {
   generator->reset();
   auto iter = block.iterator();
   for (auto i = 0; i != num_values; ++i) {
-    ASSERT_TRUE(iter.hasValue());
-    ASSERT_THAT(iter.getValue(), Eq(generator->generate(value_size)));
-    iter.next();
+    ASSERT_TRUE(iter.hasNext());
+    ASSERT_THAT(iter.next(), Eq(generator->generate(value_size)));
   }
-  ASSERT_FALSE(iter.hasValue());
+  ASSERT_FALSE(iter.hasNext());
 }
 
 TEST_P(BlockTestParam, AddValuesAndDeleteEvery2ndWhileIterating) {
@@ -181,28 +220,24 @@ TEST_P(BlockTestParam, AddValuesAndDeleteEvery2ndWhileIterating) {
 
   auto iter = block.iterator();
   for (auto i = 0; i != num_values; ++i) {
-    ASSERT_TRUE(iter.hasValue());
+    ASSERT_TRUE(iter.hasNext());
+    iter.next();
     if (i % 2 == 0) {
       iter.markAsDeleted();
     }
-    iter.next();
   }
-  ASSERT_FALSE(iter.hasValue());
+  ASSERT_FALSE(iter.hasNext());
 
   generator->reset();
   iter = block.iterator();
   for (auto i = 0; i != num_values; ++i) {
     const auto expected_value = generator->generate(value_size);
-    ASSERT_TRUE(iter.hasValue());
-    if (i % 2 == 0) {
-      ASSERT_TRUE(iter.isDeleted());
-    } else {
-      ASSERT_FALSE(iter.isDeleted());
-      ASSERT_THAT(iter.getValue(), Eq(expected_value));
+    if (i % 2 != 0) {
+      ASSERT_TRUE(iter.hasNext());
+      ASSERT_THAT(iter.next(), Eq(expected_value));
     }
-    iter.next();
   }
-  ASSERT_FALSE(iter.hasValue());
+  ASSERT_FALSE(iter.hasNext());
 }
 
 INSTANTIATE_TEST_CASE_P(Parameterized, BlockTestParam,

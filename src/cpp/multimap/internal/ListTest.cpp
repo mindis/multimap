@@ -33,7 +33,8 @@ TEST(ListIterTest, IsDefaultConstructible) {
 }
 
 TEST(ListIterTest, DefaultConstructedHasProperState) {
-  ASSERT_FALSE(ListIter().hasValue());
+  ASSERT_FALSE(ListIter().hasNext());
+  ASSERT_EQ(ListIter().available(), 0);
 }
 
 TEST(ListConstIterTest, IsDefaultConstructible) {
@@ -41,7 +42,8 @@ TEST(ListConstIterTest, IsDefaultConstructible) {
 }
 
 TEST(ListConstIterTest, DefaultConstructedHasProperState) {
-  ASSERT_FALSE(ListConstIter().hasValue());
+  ASSERT_FALSE(ListConstIter().hasNext());
+  ASSERT_EQ(ListConstIter().available(), 0);
 }
 
 TEST(ListTest, IsDefaultConstructible) {
@@ -70,7 +72,7 @@ TEST(ListTest, IsNotMoveConstructibleOrAssignable) {
 
 struct ListTestWithParam : testing::TestWithParam<std::uint32_t> {};
 
-TEST_P(ListTestWithParam, AddValuesAndIterateAll) {
+TEST_P(ListTestWithParam, AddValuesAndIterateTwice) {
   Arena arena;
   const auto new_block_callback = [&arena]() {
     const auto block_size = 128;
@@ -107,19 +109,22 @@ TEST_P(ListTestWithParam, AddValuesAndIterateAll) {
   };
 
   auto iter = list.const_iterator(request_blocks_callback);
-  iter.seekToFirst();
+  ASSERT_THAT(iter.available(), Eq(GetParam()));
   for (std::size_t i = 0; i != GetParam(); ++i) {
-    ASSERT_THAT(iter.hasValue(), Eq(true));
-    ASSERT_THAT(iter.getValue().toString(), Eq(std::to_string(i)));
-    iter.next();
+    ASSERT_THAT(iter.hasNext(), Eq(true));
+    ASSERT_THAT(iter.next().toString(), Eq(std::to_string(i)));
   }
-  ASSERT_THAT(iter.hasValue(), Eq(false));
+  ASSERT_THAT(iter.hasNext(), Eq(false));
+  ASSERT_THAT(iter.available(), Eq(0));
 
-  std::size_t i = 0;
-  for (iter.seekToFirst(); iter.hasValue(); iter.next(), ++i) {
-    ASSERT_THAT(iter.getValue().toString(), Eq(std::to_string(i)));
+  iter = list.const_iterator(request_blocks_callback);
+  ASSERT_THAT(iter.available(), Eq(GetParam()));
+  for (std::size_t i = 0; i != GetParam(); ++i) {
+    ASSERT_THAT(iter.hasNext(), Eq(true));
+    ASSERT_THAT(iter.next().toString(), Eq(std::to_string(i)));
   }
-  ASSERT_THAT(i, Eq(GetParam()));
+  ASSERT_THAT(iter.hasNext(), Eq(false));
+  ASSERT_THAT(iter.available(), Eq(0));
 }
 
 INSTANTIATE_TEST_CASE_P(Parameterized, ListTestWithParam,

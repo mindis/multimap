@@ -38,48 +38,6 @@ void List::Head::writeToFile(std::FILE* file) const {
   block_ids.writeToStream(file);
 }
 
-template <>
-List::Iter<true>::Iter(const Head& head, const Block& last_block,
-                       const Callbacks::RequestBlocks& request_blocks_callback)
-    : head_(&head),
-      last_block_(&last_block),
-      block_ids_(head.block_ids.unpack()),
-      request_blocks_callback_(request_blocks_callback) {
-  assert(request_blocks_callback_);
-}
-
-template <>
-List::Iter<false>::Iter(Head* head, Block* last_block,
-                        const Callbacks::RequestBlocks& request_blocks_callback,
-                        const Callbacks::ReplaceBlocks& replace_blocks_callback)
-    : head_(head),
-      last_block_(last_block),
-      block_ids_(head->block_ids.unpack()),
-      request_blocks_callback_(request_blocks_callback),
-      replace_blocks_callback_(replace_blocks_callback) {
-  assert(last_block);
-  assert(request_blocks_callback);
-  assert(replace_blocks_callback);
-}
-
-template <>
-void List::Iter<false>::markAsDeleted() {
-  block_iter_.markAsDeleted();
-  ++head_->num_values_removed;
-  if (state_.cached_blocks_index < cached_blocks_.size()) {
-    cached_blocks_[state_.cached_blocks_index].ignore = false;
-    // last_block_ is in-memory and therefore updated in-place.
-  }
-}
-
-template <>
-void List::Iter<false>::writeBackMutatedBlocks() {
-  if (replace_blocks_callback_) {
-    replace_blocks_callback_(cached_blocks_);
-    // last_block_ is in-memory and therefore updated in-place.
-  }
-}
-
 List::List(const Head& head) : head_(head) {}
 
 void List::add(const Bytes& value,
@@ -107,7 +65,7 @@ List::MutableIterator List::iterator(
     const Callbacks::RequestBlocks& request_blocks_callback,
     const Callbacks::ReplaceBlocks& replace_blocks_callback) {
   return MutableIterator(&head_, &block_, request_blocks_callback,
-                  replace_blocks_callback);
+                         replace_blocks_callback);
 }
 
 List::Iterator List::const_iterator(
@@ -119,8 +77,8 @@ void List::forEach(
     const BytesProcedure& procedure,
     const Callbacks::RequestBlocks& request_blocks_callback) const {
   auto iter = const_iterator(request_blocks_callback);
-  for (iter.seekToFirst(); iter.hasValue(); iter.next()) {
-    procedure(iter.getValue());
+  while (iter.hasNext()) {
+    procedure(iter.next());
   }
 }
 
@@ -128,8 +86,8 @@ void List::forEach(
     const BytesPredicate& predicate,
     const Callbacks::RequestBlocks& request_blocks_callback) const {
   auto iter = const_iterator(request_blocks_callback);
-  for (iter.seekToFirst(); iter.hasValue(); iter.next()) {
-    if (!predicate(iter.getValue())) {
+  while (iter.hasNext()) {
+    if (!predicate(iter.next())) {
       break;
     }
   }

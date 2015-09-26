@@ -62,17 +62,13 @@ Shard::~Shard() {
   }
 }
 
-Shard::Shard(const boost::filesystem::path& prefix) {
-  open(prefix);
-}
+Shard::Shard(const boost::filesystem::path& prefix) { open(prefix); }
 
 Shard::Shard(const boost::filesystem::path& prefix, std::size_t block_size) {
   open(prefix, block_size);
 }
 
-void Shard::open(const boost::filesystem::path& prefix) {
-  open(prefix, 0);
-}
+void Shard::open(const boost::filesystem::path& prefix) { open(prefix, 0); }
 
 void Shard::open(const boost::filesystem::path& prefix,
                  std::size_t block_size) {
@@ -120,17 +116,17 @@ bool Shard::contains(const Bytes& key) const {
 }
 
 std::size_t Shard::remove(const Bytes& key) {
-  std::size_t num_deleted = 0;
+  std::size_t num_removed = 0;
   auto list_lock = table_.getUnique(key);
   if (list_lock.hasList()) {
-    num_deleted = list_lock.clist()->size();
+    num_removed = list_lock.clist()->size();
     list_lock.list()->clear();
   }
-  return num_deleted;
+  return num_removed;
 }
 
 std::size_t Shard::removeAll(const Bytes& key, BytesPredicate predicate) {
-  return remove(key, predicate, true);
+  return remove(key, predicate, false);
 }
 
 std::size_t Shard::removeAllEqual(const Bytes& key, const Bytes& value) {
@@ -140,7 +136,7 @@ std::size_t Shard::removeAllEqual(const Bytes& key, const Bytes& value) {
 }
 
 bool Shard::removeFirst(const Bytes& key, BytesPredicate predicate) {
-  return remove(key, predicate, false);
+  return remove(key, predicate, true);
 }
 
 bool Shard::removeFirstEqual(const Bytes& key, const Bytes& value) {
@@ -150,7 +146,7 @@ bool Shard::removeFirstEqual(const Bytes& key, const Bytes& value) {
 }
 
 std::size_t Shard::replaceAll(const Bytes& key, BytesFunction function) {
-  return replace(key, function, true);
+  return replace(key, function, false);
 }
 
 std::size_t Shard::replaceAllEqual(const Bytes& key, const Bytes& old_value,
@@ -161,7 +157,7 @@ std::size_t Shard::replaceAllEqual(const Bytes& key, const Bytes& old_value,
 }
 
 bool Shard::replaceFirst(const Bytes& key, BytesFunction function) {
-  return replace(key, function, false);
+  return replace(key, function, true);
 }
 
 bool Shard::replaceFirstEqual(const Bytes& key, const Bytes& old_value,
@@ -179,14 +175,14 @@ void Shard::forEachKey(BytesProcedure procedure) const {
 void Shard::forEachValue(const Bytes& key, BytesProcedure procedure) const {
   const auto list_lock = table_.getShared(key);
   if (list_lock.hasList()) {
-    list_lock.list()->forEach(procedure, callbacks_.request_blocks);
+    list_lock.clist()->forEach(procedure, callbacks_.request_blocks);
   }
 }
 
 void Shard::forEachValue(const Bytes& key, BytesPredicate predicate) const {
   const auto list_lock = table_.getShared(key);
   if (list_lock.hasList()) {
-    list_lock.list()->forEach(predicate, callbacks_.request_blocks);
+    list_lock.clist()->forEach(predicate, callbacks_.request_blocks);
   }
 }
 
@@ -245,56 +241,34 @@ void Shard::initCallbacks() {
 }
 
 std::size_t Shard::remove(const Bytes& key, BytesPredicate predicate,
-                          bool apply_to_all) {
-  std::size_t num_deleted = 0;
+                          bool exit_on_first_success) {
+  std::size_t num_removed = 0;
   auto iter = getMutable(key);
-  for (iter.seekToFirst(); iter.hasValue(); iter.next()) {
-    if (predicate(iter.getValue())) {
-      iter.markAsDeleted();
-      ++num_deleted;
-      iter.next();
-      break;
+  while (iter.hasNext()) {
+    if (predicate(iter.next())) {
+      iter.remove();
+      ++num_removed;
+      if (exit_on_first_success) break;
     }
   }
-  if (apply_to_all) {
-    for (; iter.hasValue(); iter.next()) {
-      if (predicate(iter.getValue())) {
-        iter.markAsDeleted();
-        ++num_deleted;
-      }
-    }
-  }
-  return num_deleted;
+  return num_removed;
 }
 
 std::size_t Shard::replace(const Bytes& key, BytesFunction function,
-                           bool apply_to_all) {
+                           bool exit_on_first_success) {
   std::vector<std::string> updated_values;
   auto iter = getMutable(key);
-  for (iter.seekToFirst(); iter.hasValue(); iter.next()) {
-    const auto updated_value = function(iter.getValue());
+  while (iter.hasNext()) {
+    const auto updated_value = function(iter.next());
     if (!updated_value.empty()) {
-      updated_values.emplace_back(updated_value);
-      iter.markAsDeleted();
-      iter.next();
-      break;
+      updated_values.push_back(std::move(updated_value));
+      iter.remove();
+      if (exit_on_first_success) break;
     }
   }
-  if (apply_to_all) {
-    for (; iter.hasValue(); iter.next()) {
-      const auto updated_value = function(iter.getValue());
-      if (!updated_value.empty()) {
-        updated_values.emplace_back(updated_value);
-        iter.markAsDeleted();
-      }
-    }
-  }
-  if (!updated_values.empty()) {
-    auto list_lock = iter.releaseListLock();
-    for (const auto& value : updated_values) {
-      list_lock.list()->add(value, callbacks_.new_block,
-                            callbacks_.commit_block);
-    }
+
+  for (const auto& value : updated_values) {
+    iter.list()->add(value, callbacks_.new_block, callbacks_.commit_block);
   }
   return updated_values.size();
 }

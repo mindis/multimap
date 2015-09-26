@@ -29,7 +29,7 @@ namespace internal {
 template <bool IsShared>
 class ListLock {
  public:
-  ListLock() : list_(nullptr) {}
+  ListLock() = default;
 
   ListLock(ListLock&& other) : list_(other.list_) { other.list_ = nullptr; }
 
@@ -54,8 +54,6 @@ class ListLock {
 
   const List* clist() const { return list_; }
 
-  const List* list() const { return list_; }
-
   List* list();
 
  private:
@@ -63,7 +61,7 @@ class ListLock {
 
   void unlock() { list_->unlockShared(); }
 
-  typename std::conditional<IsShared, const List, List>::type* list_;
+  typename std::conditional<IsShared, const List, List>::type* list_ = nullptr;
 };
 
 template <>

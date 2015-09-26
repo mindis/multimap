@@ -116,10 +116,10 @@ class Shard {
   void initCallbacks();
 
   std::size_t remove(const Bytes& key, BytesPredicate predicate,
-                     bool apply_to_all);
+                     bool exit_on_first_success);
 
   std::size_t replace(const Bytes& key, BytesFunction function,
-                      bool apply_to_all);
+                      bool exit_on_first_success);
 
   Table table_;
   Store store_;
