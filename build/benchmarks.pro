@@ -14,4 +14,4 @@ HEADERS += \
 SOURCES += \
     ../src/cpp/multimap/RunBenchmarks.cpp
 
-unix: LIBS += -lboost_program_options
+unix: LIBS += -lboost_program_options -lprofiler
