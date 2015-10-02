@@ -48,11 +48,12 @@ struct MapTestWithParam : public testing::TestWithParam<std::uint32_t> {
   boost::filesystem::path directory;
 };
 
-const Map::BytesPredicate TRUE_PREDICATE = [](const Bytes&) { return true; };
-const Map::BytesPredicate FALSE_PREDICATE = [](const Bytes&) { return false; };
-const Map::BytesProcedure NULL_PROCEDURE = [](const Bytes&) {};
-const Map::BytesFunction NULL_FUNCTION = [](const Bytes&) { return ""; };
-const Map::EntryProcedure NULL_ENTRY_PROCEDURE =
+typedef Map::Callables MC;
+const MC::BytesPredicate TRUE_PREDICATE = [](const Bytes&) { return true; };
+const MC::BytesPredicate FALSE_PREDICATE = [](const Bytes&) { return false; };
+const MC::BytesProcedure NULL_PROCEDURE = [](const Bytes&) {};
+const MC::BytesFunction NULL_FUNCTION = [](const Bytes&) { return ""; };
+const MC::EntryProcedure NULL_ENTRY_PROCEDURE =
     [](const Bytes&, Map::ListIterator&&) {};
 
 TEST(MapTest, IsDefaultConstructible) {
@@ -446,7 +447,6 @@ TEST_F(MapTestFixture, IteratorWritesBackMutatedBlocks) {
       } else {
         ASSERT_TRUE(iter.hasNext());
         ASSERT_EQ(iter.next().toString(), "value" + std::to_string(i));
-
       }
       iter.remove();
     }

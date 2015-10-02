@@ -44,30 +44,32 @@ class Map {
   // class template Iterator<bool> that can mutate the underlying list are
   // enabled.
 
-  typedef internal::Shard::BytesPredicate BytesPredicate;
-  // Types implementing this interface can process a value and return a boolean.
-  // Predicates check a value for certain property and thus, depending on the
-  // outcome, can be used to control the path of execution.
+  struct Callables {
+    typedef internal::Shard::BytesPredicate BytesPredicate;
+    // Types implementing this interface can process a value and return a
+    // boolean. Predicates check a value for certain property and thus,
+    // depending on the outcome, can be used to control the path of execution.
 
-  typedef internal::Shard::BytesProcedure BytesProcedure;
-  // Types implementing this interface can process a value, but do not return a
-  // result. However, since objects of this type may have state, a procedure
-  // can be used to collect information about the processed data, and thus
-  // returning a result indirectly.
+    typedef internal::Shard::BytesProcedure BytesProcedure;
+    // Types implementing this interface can process a value, but do not return
+    // a result. However, since objects of this type may have state, a procedure
+    // can be used to collect information about the processed data, and thus
+    // returning a result indirectly.
 
-  typedef internal::Shard::BytesFunction BytesFunction;
-  // Types implementing this interface can process a value and return a new one.
-  // Functions map an input value to an output value. An empty or no result can
-  // be signaled returning an empty string. std::string is used here as a
-  // convenient byte buffer that may contain arbitrary bytes.
+    typedef internal::Shard::BytesFunction BytesFunction;
+    // Types implementing this interface can process a value and return a new
+    // one. Functions map an input value to an output value. An empty or no
+    // result can be signaled returning an empty string. std::string is used
+    // here as a convenient byte buffer that may contain arbitrary bytes.
 
-  typedef internal::Shard::BytesCompare BytesCompare;
-  // Types implementing this interface can process two values and return a
-  // boolean. Such functions determine the less than order of the given values
-  // according to the Compare concept.
-  // See http://en.cppreference.com/w/cpp/concept/Compare
+    typedef internal::Shard::BytesCompare BytesCompare;
+    // Types implementing this interface can process two values and return a
+    // boolean. Such functions determine the less than order of the given values
+    // according to the Compare concept.
+    // See http://en.cppreference.com/w/cpp/concept/Compare
 
-  typedef internal::Shard::EntryProcedure EntryProcedure;
+    typedef internal::Shard::EntryProcedure EntryProcedure;
+  };
 
   Map() = default;
   // Creates a default instance which is not associated with a physical map.
@@ -93,7 +95,8 @@ class Map {
   //   * directory contains a map and options.error_if_exists is true.
   //   * options.block_size is not a power of two.
 
-  void open(const boost::filesystem::path& directory, const Options& options);
+  static Map open(const boost::filesystem::path& directory,
+                  const Options& options);
   // Opens the map located in directory. If the map does not exist and
   // options.create_if_missing is set to true a new map will be created.
   // Throws std::exception if:
@@ -140,7 +143,7 @@ class Map {
   // will block until a writer lock can be acquired.
   // Returns: the number of deleted values.
 
-  std::size_t removeAll(const Bytes& key, BytesPredicate predicate);
+  std::size_t removeAll(const Bytes& key, Callables::BytesPredicate predicate);
   // Deletes all values in the list associated with key for which predicate
   // yields true. This method will block until a writer lock can be acquired.
   // Returns: the number of deleted values.
@@ -151,7 +154,7 @@ class Map {
   // will block until a writer lock can be acquired.
   // Returns: the number of deleted values.
 
-  bool removeFirst(const Bytes& key, BytesPredicate predicate);
+  bool removeFirst(const Bytes& key, Callables::BytesPredicate predicate);
   // Deletes the first value in the list associated with key for which
   // predicate yields true. This method will block until a writer lock can be
   // acquired.
@@ -163,7 +166,7 @@ class Map {
   // will block until a writer lock can be acquired.
   // Returns: true if a value was deleted, false otherwise.
 
-  std::size_t replaceAll(const Bytes& key, BytesFunction function);
+  std::size_t replaceAll(const Bytes& key, Callables::BytesFunction function);
   // Replaces all values in the list associated with key by the result of
   // invoking function. If the result of function is an empty string no
   // replacement is performed. A replacement does not happen in-place. Instead,
@@ -182,7 +185,7 @@ class Map {
   // until a writer lock can be acquired.
   // Returns: the number of replaced values.
 
-  bool replaceFirst(const Bytes& key, BytesFunction function);
+  bool replaceFirst(const Bytes& key, Callables::BytesFunction function);
   // Replaces the first value in the list associated with key by the result of
   // invoking function. If the result of function is an empty string no
   // replacement is performed. The replacement does not happen in-place.
@@ -201,7 +204,7 @@ class Map {
   // block until a writer lock can be acquired.
   // Returns: true if a value was replaced, false otherwise.
 
-  void forEachKey(BytesProcedure procedure) const;
+  void forEachKey(Callables::BytesProcedure procedure) const;
   // Applies `procedure` to each key of the map whose associated list is not
   // empty. The keys are visited in random order. Although it is possible to
   // emulate a for-each-entry iteration by keeping a `this` pointer of the map
@@ -212,14 +215,16 @@ class Map {
   // an optimal order before iterating them. During the time of execution the
   // entire map is locked for read-only operations.
 
-  void forEachValue(const Bytes& key, BytesProcedure procedure) const;
+  void forEachValue(const Bytes& key,
+                    Callables::BytesProcedure procedure) const;
   // Applies procedure to each value in the list associated with key. This is a
   // shorthand for requesting a read-only iterator via Get(key) followed by an
   // application of procedure to each value obtained via
   // ConstListIter::GetValue(). This method will block until a reader lock for
   // the list in question can be acquired.
 
-  void forEachValue(const Bytes& key, BytesPredicate predicate) const;
+  void forEachValue(const Bytes& key,
+                    Callables::BytesPredicate predicate) const;
   // Applies predicate to each value in the list associated with key until
   // predicate yields false. This is a shorthand for requesting a read-only
   // iterator via Get(key) followed by an application of predicate to each
@@ -227,7 +232,7 @@ class Map {
   // This method will block until a reader lock for the list in question can be
   // acquired.
 
-  void forEachEntry(EntryProcedure procedure) const;
+  void forEachEntry(Callables::EntryProcedure procedure) const;
   // TODO Document this.
 
   std::map<std::string, std::string> getProperties() const;
@@ -292,7 +297,7 @@ class Map {
 
   static void exportToBase64(const boost::filesystem::path& source,
                              const boost::filesystem::path& target,
-                             BytesCompare compare);
+                             Callables::BytesCompare compare);
   // TODO Document this.
 
   static void optimize(const boost::filesystem::path& source,

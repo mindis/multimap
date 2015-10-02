@@ -75,14 +75,15 @@ Map::Map(const boost::filesystem::path& directory, const Options& options) {
   open(directory, options);
 }
 
-void Map::open(const boost::filesystem::path& directory,
-               const Options& options) {
+Map Map::open(const boost::filesystem::path& directory,
+              const Options& options) {
   checkOptions(options);
   const auto abs_dir = boost::filesystem::absolute(directory);
   mt::check(boost::filesystem::is_directory(abs_dir),
             "The path '%s' does not refer to a directory.", abs_dir.c_str());
 
-  directory_lock_guard_.lock(abs_dir, NAME_OF_LOCK_FILE);
+  Map map;
+  map.directory_lock_guard_.lock(abs_dir, NAME_OF_LOCK_FILE);
   const auto properties_file = abs_dir / NAME_OF_PROPERTIES_FILE;
   const auto map_exists = boost::filesystem::is_regular_file(properties_file);
 
@@ -95,20 +96,22 @@ void Map::open(const boost::filesystem::path& directory,
     const auto minor_version = std::stoul(props.at("map.minor_version"));
     checkVersion(major_version, minor_version);
 
-    shards_.resize(std::stoul(props.at("map.num_shards")));
+    map.shards_.resize(std::stoul(props.at("map.num_shards")));
 
   } else {
     mt::check(options.create_if_missing, "No Multimap found in '%s'.",
               abs_dir.c_str());
 
-    shards_.resize(mt::nextPrime(options.num_shards));
+    map.shards_.resize(mt::nextPrime(options.num_shards));
   }
 
   const auto prefix = abs_dir / FILE_PREFIX;
-  for (std::size_t i = 0; i != shards_.size(); ++i) {
+  for (std::size_t i = 0; i != map.shards_.size(); ++i) {
     const auto prefix_i = prefix.string() + '.' + std::to_string(i);
-    shards_[i].reset(new internal::Shard(prefix_i, options.block_size));
+    map.shards_[i].reset(new internal::Shard(prefix_i, options.block_size));
   }
+
+  return map;
 }
 
 void Map::put(const Bytes& key, const Bytes& value) {
@@ -131,7 +134,8 @@ std::size_t Map::remove(const Bytes& key) {
   return selectShard(shards_, key).remove(key);
 }
 
-std::size_t Map::removeAll(const Bytes& key, BytesPredicate predicate) {
+std::size_t Map::removeAll(const Bytes& key,
+                           Callables::BytesPredicate predicate) {
   return selectShard(shards_, key).removeAll(key, predicate);
 }
 
@@ -139,7 +143,7 @@ std::size_t Map::removeAllEqual(const Bytes& key, const Bytes& value) {
   return selectShard(shards_, key).removeAllEqual(key, value);
 }
 
-bool Map::removeFirst(const Bytes& key, BytesPredicate predicate) {
+bool Map::removeFirst(const Bytes& key, Callables::BytesPredicate predicate) {
   return selectShard(shards_, key).removeFirst(key, predicate);
 }
 
@@ -147,7 +151,8 @@ bool Map::removeFirstEqual(const Bytes& key, const Bytes& value) {
   return selectShard(shards_, key).removeFirstEqual(key, value);
 }
 
-std::size_t Map::replaceAll(const Bytes& key, BytesFunction function) {
+std::size_t Map::replaceAll(const Bytes& key,
+                            Callables::BytesFunction function) {
   return selectShard(shards_, key).replaceAll(key, function);
 }
 
@@ -156,7 +161,7 @@ std::size_t Map::replaceAllEqual(const Bytes& key, const Bytes& old_value,
   return selectShard(shards_, key).replaceAllEqual(key, old_value, new_value);
 }
 
-bool Map::replaceFirst(const Bytes& key, BytesFunction function) {
+bool Map::replaceFirst(const Bytes& key, Callables::BytesFunction function) {
   return selectShard(shards_, key).replaceFirst(key, function);
 }
 
@@ -165,22 +170,24 @@ bool Map::replaceFirstEqual(const Bytes& key, const Bytes& old_value,
   return selectShard(shards_, key).replaceFirstEqual(key, old_value, new_value);
 }
 
-void Map::forEachKey(BytesProcedure procedure) const {
+void Map::forEachKey(Callables::BytesProcedure procedure) const {
   MT_REQUIRE_FALSE(shards_.empty());
   for (const auto& shard : shards_) {
     shard->forEachKey(procedure);
   }
 }
 
-void Map::forEachValue(const Bytes& key, BytesProcedure procedure) const {
+void Map::forEachValue(const Bytes& key,
+                       Callables::BytesProcedure procedure) const {
   selectShard(shards_, key).forEachValue(key, procedure);
 }
 
-void Map::forEachValue(const Bytes& key, BytesPredicate predicate) const {
+void Map::forEachValue(const Bytes& key,
+                       Callables::BytesPredicate predicate) const {
   selectShard(shards_, key).forEachValue(key, predicate);
 }
 
-void Map::forEachEntry(EntryProcedure procedure) const {
+void Map::forEachEntry(Callables::EntryProcedure procedure) const {
   MT_REQUIRE_FALSE(shards_.empty());
   for (const auto& shard : shards_) {
     shard->forEachEntry(procedure);
@@ -277,12 +284,12 @@ void Map::importFromBase64(const boost::filesystem::path& target,
 
 void Map::exportToBase64(const boost::filesystem::path& source,
                          const boost::filesystem::path& target) {
-  Map::exportToBase64(source, target, BytesCompare());
+  Map::exportToBase64(source, target, Callables::BytesCompare());
 }
 
 void Map::exportToBase64(const boost::filesystem::path& source,
                          const boost::filesystem::path& target,
-                         BytesCompare compare) {
+                         Callables::BytesCompare compare) {
   Options options;
   options.error_if_exists = false;
   options.create_if_missing = false;
