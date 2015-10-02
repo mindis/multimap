@@ -39,11 +39,11 @@ void checkOptions(const Options& options) {
 }
 
 void checkVersion(std::uint32_t client_major, std::uint32_t client_minor) {
-  mt::check(client_major == MAJOR_VERSION && client_minor == MINOR_VERSION,
+  mt::check(client_major == VERSION_MAJOR && client_minor == VERSION_MINOR,
             "Version check failed. The Multimap you are trying to open "
             "was created with version %u.%u of the library. Your "
             "installed version is %u.%u which is not compatible.",
-            client_major, client_minor, MAJOR_VERSION, MINOR_VERSION);
+            client_major, client_minor, VERSION_MAJOR, VERSION_MINOR);
 }
 
 internal::Shard& selectShard(
@@ -62,8 +62,8 @@ Map::~Map() {
       stats.summarize(shard->close());
     }
     auto properties = stats.toProperties();
-    properties["map.major_version"] = std::to_string(MAJOR_VERSION);
-    properties["map.minor_version"] = std::to_string(MINOR_VERSION);
+    properties["map.major_version"] = std::to_string(VERSION_MAJOR);
+    properties["map.minor_version"] = std::to_string(VERSION_MINOR);
     properties["map.num_shards"] = std::to_string(shards_.size());
 
     const auto file = directory_lock_guard_.path() / NAME_OF_PROPERTIES_FILE;
@@ -202,8 +202,8 @@ std::map<std::string, std::string> Map::getProperties() const {
     stats.summarize(shard->getStats());
   }
   auto properties = stats.toProperties();
-  properties["map.major_version"] = std::to_string(MAJOR_VERSION);
-  properties["map.minor_version"] = std::to_string(MINOR_VERSION);
+  properties["map.major_version"] = std::to_string(VERSION_MAJOR);
+  properties["map.minor_version"] = std::to_string(VERSION_MINOR);
   properties["map.num_shards"] = std::to_string(shards_.size());
   return properties;
 }

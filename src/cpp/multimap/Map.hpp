@@ -27,8 +27,8 @@
 
 namespace multimap {
 
-static const std::size_t MAJOR_VERSION = 0;
-static const std::size_t MINOR_VERSION = 3;
+static const std::size_t VERSION_MAJOR = 0;
+static const std::size_t VERSION_MINOR = 3;
 
 // This class implements a 1:n key-value store where each key is associated
 // with a list of values.
