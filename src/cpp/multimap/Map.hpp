@@ -84,17 +84,6 @@ class Map {
   Map(Map&&) = default;
   Map& operator=(Map&&) = default;
 
-  Map(const boost::filesystem::path& directory, const Options& options);
-  // Creates a new instance and opens the map located in directory. If the map
-  // does not exist and options.create_if_missing is set to true a new map will
-  // be created.
-  // Throws std::exception if:
-  //   * directory does not exist.
-  //   * directory does not contain a map and options.create_if_missing is
-  //     false.
-  //   * directory contains a map and options.error_if_exists is true.
-  //   * options.block_size is not a power of two.
-
   static Map open(const boost::filesystem::path& directory,
                   const Options& options);
   // Opens the map located in directory. If the map does not exist and

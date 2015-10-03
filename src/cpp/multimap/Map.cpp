@@ -71,10 +71,6 @@ Map::~Map() {
   }
 }
 
-Map::Map(const boost::filesystem::path& directory, const Options& options) {
-  open(directory, options);
-}
-
 Map Map::open(const boost::filesystem::path& directory,
               const Options& options) {
   checkOptions(options);
@@ -229,7 +225,7 @@ void Map::importFromBase64(const boost::filesystem::path& target,
 void Map::importFromBase64(const boost::filesystem::path& target,
                            const boost::filesystem::path& source,
                            const Options& options) {
-  Map map(target, options);
+  Map map = Map::open(target, options);
 
   const auto import_file = [&map](const boost::filesystem::path& filepath) {
     mt::check(boost::filesystem::is_regular_file(filepath),
@@ -293,7 +289,7 @@ void Map::exportToBase64(const boost::filesystem::path& source,
   Options options;
   options.error_if_exists = false;
   options.create_if_missing = false;
-  Map map(source, options);
+  Map map = Map::open(source, options);
 
   std::ofstream ofs(target.string());
   mt::check(ofs, "Could not create '%s'.", target.c_str());
@@ -364,7 +360,7 @@ void Map::optimize(const boost::filesystem::path& source,
     new_options.num_shards = old_num_shards;
   }
 
-  Map new_map(target, new_options);
+  Map new_map = Map::open(target, new_options);
   const auto prefix = abs_source / FILE_PREFIX;
   for (std::size_t i = 0; i != old_num_shards; ++i) {
     internal::Shard shard(prefix.string() + '.' + std::to_string(i));

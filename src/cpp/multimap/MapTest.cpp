@@ -94,91 +94,74 @@ TEST(MapTest, IsMoveConstructibleOrAssignable) {
 }
 
 TEST_F(MapTestFixture, OpenThrowsIfFilesAreMissing) {
-  Map map;
   Options options;
   options.create_if_missing = false;
-  ASSERT_THROW(map.open(directory, options), std::runtime_error);
+  ASSERT_THROW(Map::open(directory, options), std::runtime_error);
 }
 
 TEST_F(MapTestFixture, OpenDoesNotThrowIfCreateIsMissingIsTrue) {
   {
-    Map map;
     Options options;
     options.create_if_missing = true;
-    map.open(directory, options);
+    Map::open(directory, options);
   }
   ASSERT_FALSE(boost::filesystem::is_empty(directory));
 }
 
 TEST_F(MapTestFixture, OpenThrowsIfMapExistsAndErrorIfExistsIsTrue) {
   {
-    Map map;
     Options options;
     options.create_if_missing = true;
-    map.open(directory, options);
+    Map::open(directory, options);
   }
-  Map map;
   Options options;
   options.error_if_exists = true;
-  ASSERT_THROW(map.open(directory, options), std::runtime_error);
+  ASSERT_THROW(Map::open(directory, options), std::runtime_error);
 }
 
 TEST_F(MapTestFixture, OpenThrowsIfBlockSizeIsNotPowerOfTwo) {
-  Map map;
   Options options;
   options.create_if_missing = true;
   options.block_size = 100;
-  ASSERT_THROW(map.open(directory, options), std::runtime_error);
-}
-
-TEST_F(MapTestFixture, OpenThrowsIfCalledTwice) {
-  Map map;
-  Options options;
-  options.create_if_missing = true;
-  ASSERT_NO_THROW(map.open(directory, options));
-  ASSERT_THROW(map.open(directory, options), std::runtime_error);
+  ASSERT_THROW(Map::open(directory, options), std::runtime_error);
 }
 
 TEST_F(MapTestFixture, PutWithMaxKeySizeWorks) {
-  Map map;
   Options options;
   options.create_if_missing = true;
-  map.open(directory, options);
+  Map map = Map::open(directory, options);
   std::string key(map.max_key_size(), 'k');
   ASSERT_NO_THROW(map.put(key, "value"));
 }
 
 TEST_F(MapTestFixture, PutWithTooLargeKeyThrows) {
-  Map map;
   Options options;
   options.create_if_missing = true;
-  map.open(directory, options);
+  Map map = Map::open(directory, options);
   std::string key(map.max_key_size() + 1, 'k');
   ASSERT_THROW(map.put(key, "value"), std::runtime_error);
 }
 
 TEST_F(MapTestFixture, PutWithMaxValueSizeWorks) {
-  Map map;
   Options options;
   options.create_if_missing = true;
-  map.open(directory, options);
+  Map map = Map::open(directory, options);
   std::string value(map.max_value_size(), 'v');
   ASSERT_NO_THROW(map.put("key", value));
 }
 
 TEST_F(MapTestFixture, PutWithTooLargeValueThrows) {
-  Map map;
   Options options;
   options.create_if_missing = true;
-  map.open(directory, options);
+  Map map = Map::open(directory, options);
   std::string value(map.max_value_size() + 1, 'v');
   ASSERT_THROW(map.put("key", value), std::runtime_error);
 }
 
 TEST_P(MapTestWithParam, PutThenGetWorks) {
-  multimap::Options options;
+  Options options;
   options.create_if_missing = true;
-  multimap::Map map(directory, options);
+  Map map = Map::open(directory, options);
   for (std::uint32_t k = 0; k != GetParam(); ++k) {
     for (std::uint32_t v = 0; v != GetParam(); ++v) {
       map.put(std::to_string(k), std::to_string(k + v * v));
@@ -196,9 +179,9 @@ TEST_P(MapTestWithParam, PutThenGetWorks) {
 
 TEST_P(MapTestWithParam, PutThenCloseThenOpenThenGetWorks) {
   {
-    multimap::Options options;
+    Options options;
     options.create_if_missing = true;
-    multimap::Map map(directory, options);
+    Map map = Map::open(directory, options);
     for (std::uint32_t k = 0; k != GetParam(); ++k) {
       for (std::uint32_t v = 0; v != GetParam(); ++v) {
         map.put(std::to_string(k), std::to_string(k + v * v));
@@ -206,7 +189,7 @@ TEST_P(MapTestWithParam, PutThenCloseThenOpenThenGetWorks) {
     }
   }
   {
-    multimap::Map map(directory, Options());
+    Map map = Map::open(directory, Options());
     for (std::uint32_t k = 0; k != GetParam(); ++k) {
       auto iter = map.get(std::to_string(k));
       ASSERT_THAT(iter.available(), Eq(GetParam()));
@@ -225,40 +208,40 @@ INSTANTIATE_TEST_CASE_P(Parameterized, MapTestWithParam,
 //                        testing::Values(10000, 100000, 1000000));
 
 TEST_F(MapTestFixture, ContainsReturnsFalseForNonExistingKey) {
-  multimap::Options options;
+  Options options;
   options.create_if_missing = true;
-  multimap::Map map(directory, options);
+  Map map = Map::open(directory, options);
   ASSERT_FALSE(map.contains("key"));
 }
 
 TEST_F(MapTestFixture, ContainsReturnsTrueForExistingKey) {
-  multimap::Options options;
+  Options options;
   options.create_if_missing = true;
-  multimap::Map map(directory, options);
+  Map map = Map::open(directory, options);
   map.put("key", "value");
   ASSERT_TRUE(map.contains("key"));
 }
 
 TEST_F(MapTestFixture, ContainsReturnsFalseForDeletedKey) {
-  multimap::Options options;
+  Options options;
   options.create_if_missing = true;
-  multimap::Map map(directory, options);
+  Map map = Map::open(directory, options);
   map.put("key", "value");
   map.remove("key");
   ASSERT_FALSE(map.contains("key"));
 }
 
 TEST_F(MapTestFixture, DeleteReturnsZeroForNonExistingKey) {
-  multimap::Options options;
+  Options options;
   options.create_if_missing = true;
-  multimap::Map map(directory, options);
+  Map map = Map::open(directory, options);
   ASSERT_EQ(map.remove("key"), 0);
 }
 
 TEST_F(MapTestFixture, DeleteReturnsNumValuesForExistingKey) {
-  multimap::Options options;
+  Options options;
   options.create_if_missing = true;
-  multimap::Map map(directory, options);
+  Map map = Map::open(directory, options);
   map.put("key", "1");
   map.put("key", "2");
   map.put("key", "3");
@@ -266,9 +249,9 @@ TEST_F(MapTestFixture, DeleteReturnsNumValuesForExistingKey) {
 }
 
 TEST_F(MapTestFixture, DeleteFirstDeletesOneMatch) {
-  multimap::Options options;
+  Options options;
   options.create_if_missing = true;
-  multimap::Map map(directory, options);
+  Map map = Map::open(directory, options);
 
   const std::size_t num_values = 1000;
   for (std::size_t i = 0; i != num_values / 2; ++i) {
@@ -277,20 +260,20 @@ TEST_F(MapTestFixture, DeleteFirstDeletesOneMatch) {
   }
 
   const auto is_500 =
-      [](const multimap::Bytes& value) { return value == std::to_string(500); };
+      [](const Bytes& value) { return value == std::to_string(500); };
   ASSERT_FALSE(map.removeFirst("key", is_500));
   ASSERT_EQ(map.get("key").available(), num_values);
 
   const auto is_250 =
-      [](const multimap::Bytes& value) { return value == std::to_string(250); };
+      [](const Bytes& value) { return value == std::to_string(250); };
   ASSERT_TRUE(map.removeFirst("key", is_250));
   ASSERT_EQ(map.get("key").available(), num_values - 1);
 }
 
 TEST_F(MapTestFixture, DeleteFirstEqualDeletesOneMatch) {
-  multimap::Options options;
+  Options options;
   options.create_if_missing = true;
-  multimap::Map map(directory, options);
+  Map map = Map::open(directory, options);
 
   const std::size_t num_values = 1000;
   for (std::size_t i = 0; i != num_values / 2; ++i) {
@@ -306,9 +289,9 @@ TEST_F(MapTestFixture, DeleteFirstEqualDeletesOneMatch) {
 }
 
 TEST_F(MapTestFixture, DeleteAllDeletesAllMatches) {
-  multimap::Options options;
+  Options options;
   options.create_if_missing = true;
-  multimap::Map map(directory, options);
+  Map map = Map::open(directory, options);
 
   const std::size_t num_values = 1000;
   for (std::size_t i = 0; i != num_values / 2; ++i) {
@@ -317,20 +300,20 @@ TEST_F(MapTestFixture, DeleteAllDeletesAllMatches) {
   }
 
   const auto is_500 =
-      [](const multimap::Bytes& value) { return value == std::to_string(500); };
+      [](const Bytes& value) { return value == std::to_string(500); };
   ASSERT_EQ(map.removeAll("key", is_500), 0);
   ASSERT_EQ(map.get("key").available(), num_values);
 
   const auto is_250 =
-      [](const multimap::Bytes& value) { return value == std::to_string(250); };
+      [](const Bytes& value) { return value == std::to_string(250); };
   ASSERT_EQ(map.removeAll("key", is_250), 2);
   ASSERT_EQ(map.get("key").available(), num_values - 2);
 }
 
 TEST_F(MapTestFixture, DeleteAllEqualDeletesAllMatches) {
-  multimap::Options options;
+  Options options;
   options.create_if_missing = true;
-  multimap::Map map(directory, options);
+  Map map = Map::open(directory, options);
 
   const std::size_t num_values = 1000;
   for (std::size_t i = 0; i != num_values / 2; ++i) {
@@ -346,9 +329,9 @@ TEST_F(MapTestFixture, DeleteAllEqualDeletesAllMatches) {
 }
 
 TEST_F(MapTestFixture, ReplaceFirstReplacesOneMatch) {
-  multimap::Options options;
+  Options options;
   options.create_if_missing = true;
-  multimap::Map map(directory, options);
+  Map map = Map::open(directory, options);
 
   const std::size_t num_values = 1000;
   for (std::size_t i = 0; i != num_values / 2; ++i) {
@@ -359,7 +342,7 @@ TEST_F(MapTestFixture, ReplaceFirstReplacesOneMatch) {
   ASSERT_FALSE(map.replaceFirst("key", NULL_FUNCTION));
   ASSERT_EQ(map.get("key").available(), num_values);
 
-  const auto map_250_to_2500 = [](const multimap::Bytes& value) {
+  const auto map_250_to_2500 = [](const Bytes& value) {
     return (value.toString() == "250") ? "2500" : "";
   };
   ASSERT_TRUE(map.replaceFirst("key", map_250_to_2500));
@@ -368,9 +351,9 @@ TEST_F(MapTestFixture, ReplaceFirstReplacesOneMatch) {
 }
 
 TEST_F(MapTestFixture, ReplaceFirstEqualReplacesOneMatch) {
-  multimap::Options options;
+  Options options;
   options.create_if_missing = true;
-  multimap::Map map(directory, options);
+  Map map = Map::open(directory, options);
 
   const std::size_t num_values = 1000;
   for (std::size_t i = 0; i != num_values / 2; ++i) {
@@ -387,9 +370,9 @@ TEST_F(MapTestFixture, ReplaceFirstEqualReplacesOneMatch) {
 }
 
 TEST_F(MapTestFixture, ReplaceAllReplacesAllMatches) {
-  multimap::Options options;
+  Options options;
   options.create_if_missing = true;
-  multimap::Map map(directory, options);
+  Map map = Map::open(directory, options);
 
   const std::size_t num_values = 1000;
   for (std::size_t i = 0; i != num_values / 2; ++i) {
@@ -400,7 +383,7 @@ TEST_F(MapTestFixture, ReplaceAllReplacesAllMatches) {
   ASSERT_EQ(map.replaceAll("key", NULL_FUNCTION), 0);
   ASSERT_EQ(map.get("key").available(), num_values);
 
-  const auto map_250_to_2500 = [](const multimap::Bytes& value) {
+  const auto map_250_to_2500 = [](const Bytes& value) {
     return (value.toString() == "250") ? "2500" : "";
   };
   ASSERT_EQ(map.replaceAll("key", map_250_to_2500), 2);
@@ -409,9 +392,9 @@ TEST_F(MapTestFixture, ReplaceAllReplacesAllMatches) {
 }
 
 TEST_F(MapTestFixture, ReplaceAllEqualReplacesAllMatches) {
-  multimap::Options options;
+  Options options;
   options.create_if_missing = true;
-  multimap::Map map(directory, options);
+  Map map = Map::open(directory, options);
 
   const std::size_t num_values = 1000;
   for (std::size_t i = 0; i != num_values / 2; ++i) {
@@ -428,9 +411,9 @@ TEST_F(MapTestFixture, ReplaceAllEqualReplacesAllMatches) {
 }
 
 TEST_F(MapTestFixture, IteratorWritesBackMutatedBlocks) {
-  multimap::Options options;
+  Options options;
   options.create_if_missing = true;
-  multimap::Map map(directory, options);
+  Map map = Map::open(directory, options);
 
   const std::size_t num_values = 100000;
   for (std::size_t i = 0; i != num_values; ++i) {
