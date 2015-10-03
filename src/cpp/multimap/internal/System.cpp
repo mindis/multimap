@@ -114,6 +114,23 @@ System::DirectoryLockGuard::DirectoryLockGuard(
   lock(directory, filename);
 }
 
+System::DirectoryLockGuard::DirectoryLockGuard(DirectoryLockGuard&& other)
+    : directory_(other.directory_), filename_(other.filename_) {
+  other.directory_.clear();
+  other.filename_.clear();
+}
+
+System::DirectoryLockGuard& System::DirectoryLockGuard::operator=(
+    DirectoryLockGuard&& other) {
+  if (&other != this) {
+    directory_ = other.directory_;
+    filename_ = other.filename_;
+    other.directory_.clear();
+    other.filename_.clear();
+  }
+  return *this;
+}
+
 System::DirectoryLockGuard::~DirectoryLockGuard() {
   if (!directory_.empty()) {
     mt::check(

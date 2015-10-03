@@ -66,6 +66,12 @@ struct System {
     DirectoryLockGuard(const boost::filesystem::path& path,
                        const std::string filename);
 
+    DirectoryLockGuard(const DirectoryLockGuard&) = delete;
+    DirectoryLockGuard& operator=(const DirectoryLockGuard&) = delete;
+
+    DirectoryLockGuard(DirectoryLockGuard&& other);
+    DirectoryLockGuard& operator=(DirectoryLockGuard&& other);
+
     ~DirectoryLockGuard();
 
     void lock(const boost::filesystem::path& path);
