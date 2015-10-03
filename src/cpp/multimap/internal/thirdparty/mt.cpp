@@ -32,6 +32,7 @@
 #include <boost/crc.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/filesystem/operations.hpp>
 
 namespace mt {
 
@@ -176,8 +177,12 @@ std::size_t nextPrime(std::size_t number) {
 }
 
 std::size_t crc32(const std::string& str) {
+  return crc32(str.data(), str.size());
+}
+
+std::size_t crc32(const char* data, std::size_t size) {
   boost::crc_32_type crc;
-  crc.process_bytes(str.data(), str.size());
+  crc.process_bytes(data, size);
   return crc.checksum();
 }
 
@@ -203,6 +208,16 @@ std::uint64_t fnv1aHash64(const void* buf, std::size_t len) {
             (hash << 8) + (hash << 40);
   }
   return hash;
+}
+
+Files::Bytes Files::readAllBytes(const boost::filesystem::path& filepath) {
+  std::ifstream ifs(filepath.string());
+  mt::check(ifs, "Cannot open '%s' for reading.", filepath.c_str());
+
+  Bytes bytes(boost::filesystem::file_size(filepath));
+  ifs.read(bytes.data(), bytes.size());
+  MT_ENSURE_EQ(static_cast<std::size_t>(ifs.gcount()), bytes.size());
+  return bytes;
 }
 
 AutoCloseFile::AutoCloseFile(std::FILE* file) : file_(file) {}

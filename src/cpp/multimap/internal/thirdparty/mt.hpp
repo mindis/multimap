@@ -24,10 +24,11 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <boost/filesystem/path.hpp>
 
 namespace mt {
 
-static const std::size_t VERSION = 20150923;
+static const std::size_t VERSION = 20151003;
 
 // COMMON
 // -----------------------------------------------------------------------------
@@ -52,6 +53,9 @@ constexpr std::size_t GiB(std::size_t gibibytes) { return gibibytes << 30; }
 std::size_t crc32(const std::string& str);
 // Computes and returns the 32-bit CRC checksum for `str`.
 
+std::size_t crc32(const char* data, std::size_t size);
+// Computes and returns the 32-bit CRC checksum for `[data, data + size)`.
+
 std::uint32_t fnv1aHash32(const void* buf, std::size_t len);
 // Computes and returns a 32-bit hash value of the given byte array.
 // Source: http://www.isthe.com/chongo/src/fnv/fnv.h
@@ -68,6 +72,12 @@ std::uint64_t fnv1aHash64(const void* buf, std::size_t len);
 
 // INPUT / OUTPUT
 // -----------------------------------------------------------------------------
+
+struct Files {
+  typedef std::vector<char> Bytes;
+
+  static Bytes readAllBytes(const boost::filesystem::path& filepath);
+};
 
 class AutoCloseFile {
  public:
