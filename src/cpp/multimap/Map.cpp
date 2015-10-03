@@ -62,9 +62,9 @@ Map::~Map() {
       stats.summarize(shard->close());
     }
     auto properties = stats.toProperties();
-    properties["map.major_version"] = std::to_string(VERSION_MAJOR);
-    properties["map.minor_version"] = std::to_string(VERSION_MINOR);
     properties["map.num_shards"] = std::to_string(shards_.size());
+    properties["map.version_major"] = std::to_string(VERSION_MAJOR);
+    properties["map.version_minor"] = std::to_string(VERSION_MINOR);
 
     const auto file = directory_lock_guard_.path() / NAME_OF_PROPERTIES_FILE;
     mt::writePropertiesToFile(properties, file.string());
@@ -88,9 +88,9 @@ Map Map::open(const boost::filesystem::path& directory,
               "A Multimap in '%s' does already exist.", abs_dir.c_str());
 
     const auto props = mt::readPropertiesFromFile(properties_file.string());
-    const auto major_version = std::stoul(props.at("map.major_version"));
-    const auto minor_version = std::stoul(props.at("map.minor_version"));
-    checkVersion(major_version, minor_version);
+    const auto version_major = std::stoul(props.at("map.version_major"));
+    const auto version_minor = std::stoul(props.at("map.version_minor"));
+    checkVersion(version_major, version_minor);
 
     map.shards_.resize(std::stoul(props.at("map.num_shards")));
 
@@ -198,9 +198,9 @@ std::map<std::string, std::string> Map::getProperties() const {
     stats.summarize(shard->getStats());
   }
   auto properties = stats.toProperties();
-  properties["map.major_version"] = std::to_string(VERSION_MAJOR);
-  properties["map.minor_version"] = std::to_string(VERSION_MINOR);
   properties["map.num_shards"] = std::to_string(shards_.size());
+  properties["map.version_major"] = std::to_string(VERSION_MAJOR);
+  properties["map.version_minor"] = std::to_string(VERSION_MINOR);
   return properties;
 }
 
@@ -345,9 +345,9 @@ void Map::optimize(const boost::filesystem::path& source,
   mt::check(map_exists, "No Multimap found in '%s'.", abs_source.c_str());
 
   const auto props = mt::readPropertiesFromFile(properties_file.string());
-  const auto major_version = std::stoul(props.at("map.major_version"));
-  const auto minor_version = std::stoul(props.at("map.minor_version"));
-  checkVersion(major_version, minor_version);
+  const auto version_major = std::stoul(props.at("map.version_major"));
+  const auto version_minor = std::stoul(props.at("map.version_minor"));
+  checkVersion(version_major, version_minor);
 
   Options new_options = options;
   new_options.error_if_exists = true;
