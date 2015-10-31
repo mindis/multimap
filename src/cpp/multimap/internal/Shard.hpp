@@ -23,9 +23,8 @@
 #include "multimap/internal/thirdparty/mt.hpp"
 #include "multimap/internal/Arena.hpp"
 #include "multimap/internal/Store.hpp"
-#include "multimap/internal/Iterator.hpp"
 #include "multimap/internal/Table.hpp"
-#include "multimap/Bytes.hpp"
+#include "multimap/Callables.hpp"
 
 namespace multimap {
 namespace internal {
@@ -36,9 +35,9 @@ class Shard {
     Store::Stats store;
     Table::Stats table;
 
-    Stats& summarize(const Stats& other);
+    Stats& combine(const Stats& other);
 
-    static Stats summarize(const Stats& a, const Stats& b);
+    static Stats combine(const Stats& a, const Stats& b);
 
     static Stats fromProperties(const mt::Properties& properties);
 
@@ -48,11 +47,11 @@ class Shard {
   typedef Iterator<true> ListIterator;
   typedef Iterator<false> MutableListIterator;
 
-  typedef List::BytesPredicate BytesPredicate;
-  typedef List::BytesProcedure BytesProcedure;
-  typedef std::function<std::string(const Bytes&)> BytesFunction;
-  typedef std::function<bool(const Bytes&, const Bytes&)> BytesCompare;
-  typedef std::function<void(const Bytes&, ListIterator&&)> EntryProcedure;
+//  typedef List::BytesPredicate BytesPredicate;
+//  typedef List::BytesProcedure BytesProcedure;
+//  typedef std::function<std::string(const Bytes&)> BytesFunction;
+//  typedef std::function<bool(const Bytes&, const Bytes&)> BytesCompare;
+//  typedef std::function<void(const Bytes&, ListIterator&&)> EntryProcedure;
 
   Shard() = default;
 
@@ -80,31 +79,31 @@ class Shard {
 
   std::size_t remove(const Bytes& key);
 
-  std::size_t removeAll(const Bytes& key, BytesPredicate predicate);
+  std::size_t removeAll(const Bytes& key, Callables::Predicate predicate);
 
   std::size_t removeAllEqual(const Bytes& key, const Bytes& value);
 
-  bool removeFirst(const Bytes& key, BytesPredicate predicate);
+  bool removeFirst(const Bytes& key, Callables::Predicate predicate);
 
   bool removeFirstEqual(const Bytes& key, const Bytes& value);
 
-  std::size_t replaceAll(const Bytes& key, BytesFunction function);
+  std::size_t replaceAll(const Bytes& key, Callables::Function function);
 
   std::size_t replaceAllEqual(const Bytes& key, const Bytes& old_value,
                               const Bytes& new_value);
 
-  bool replaceFirst(const Bytes& key, BytesFunction function);
+  bool replaceFirst(const Bytes& key, Callables::Function function);
 
   bool replaceFirstEqual(const Bytes& key, const Bytes& old_value,
                          const Bytes& new_value);
 
-  void forEachKey(BytesProcedure procedure) const;
+  void forEachKey(Callables::Procedure action) const;
 
-  void forEachValue(const Bytes& key, BytesProcedure procedure) const;
+  void forEachValue(const Bytes& key, Callables::Procedure action) const;
 
-  void forEachValue(const Bytes& key, BytesPredicate predicate) const;
+  void forEachValue(const Bytes& key, Callables::Predicate action) const;
 
-  void forEachEntry(EntryProcedure procedure) const;
+  void forEachEntry(Callables::Procedure2 action) const;
 
   std::size_t max_key_size() const;
 
@@ -115,10 +114,10 @@ class Shard {
  private:
   void initCallbacks();
 
-  std::size_t remove(const Bytes& key, BytesPredicate predicate,
+  std::size_t remove(const Bytes& key, Callables::Predicate predicate,
                      bool exit_on_first_success);
 
-  std::size_t replace(const Bytes& key, BytesFunction function,
+  std::size_t replace(const Bytes& key, Callables::Function function,
                       bool exit_on_first_success);
 
   Table table_;

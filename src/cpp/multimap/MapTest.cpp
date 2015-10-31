@@ -48,12 +48,11 @@ struct MapTestWithParam : public testing::TestWithParam<std::uint32_t> {
   boost::filesystem::path directory;
 };
 
-typedef Map::Callables MC;
-const MC::BytesPredicate TRUE_PREDICATE = [](const Bytes&) { return true; };
-const MC::BytesPredicate FALSE_PREDICATE = [](const Bytes&) { return false; };
-const MC::BytesProcedure NULL_PROCEDURE = [](const Bytes&) {};
-const MC::BytesFunction NULL_FUNCTION = [](const Bytes&) { return ""; };
-const MC::EntryProcedure NULL_ENTRY_PROCEDURE =
+const Callables::Predicate TRUE_PREDICATE = [](const Bytes&) { return true; };
+const Callables::Predicate FALSE_PREDICATE = [](const Bytes&) { return false; };
+const Callables::Procedure NULL_PROCEDURE = [](const Bytes&) {};
+const Callables::Function NULL_FUNCTION = [](const Bytes&) { return ""; };
+const Callables::Procedure2 NULL_PROCEDURE2 =
     [](const Bytes&, Map::ListIterator&&) {};
 
 TEST(MapTest, IsDefaultConstructible) {
@@ -79,7 +78,7 @@ TEST(MapTest, DefaultConstructedHasProperState) {
   ASSERT_THROW(Map().forEachKey(NULL_PROCEDURE), mt::AssertionError);
   ASSERT_THROW(Map().forEachValue(key, NULL_PROCEDURE), mt::AssertionError);
   ASSERT_THROW(Map().forEachValue(key, TRUE_PREDICATE), mt::AssertionError);
-  ASSERT_THROW(Map().forEachEntry(NULL_ENTRY_PROCEDURE), mt::AssertionError);
+  ASSERT_THROW(Map().forEachEntry(NULL_PROCEDURE2), mt::AssertionError);
   ASSERT_THROW(Map().getProperties(), mt::AssertionError);
 }
 
@@ -342,7 +341,7 @@ TEST_F(MapTestFixture, ReplaceFirstReplacesOneMatch) {
   ASSERT_FALSE(map.replaceFirst("key", NULL_FUNCTION));
   ASSERT_EQ(map.get("key").available(), num_values);
 
-  const auto map_250_to_2500 = [](const Bytes& value) {
+  const Callables::Function map_250_to_2500 = [](const Bytes& value) {
     return (value.toString() == "250") ? "2500" : "";
   };
   ASSERT_TRUE(map.replaceFirst("key", map_250_to_2500));
@@ -383,7 +382,7 @@ TEST_F(MapTestFixture, ReplaceAllReplacesAllMatches) {
   ASSERT_EQ(map.replaceAll("key", NULL_FUNCTION), 0);
   ASSERT_EQ(map.get("key").available(), num_values);
 
-  const auto map_250_to_2500 = [](const Bytes& value) {
+  const Callables::Function map_250_to_2500 = [](const Bytes& value) {
     return (value.toString() == "250") ? "2500" : "";
   };
   ASSERT_EQ(map.replaceAll("key", map_250_to_2500), 2);

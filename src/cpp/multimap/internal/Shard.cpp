@@ -18,7 +18,6 @@
 #include "multimap/internal/Shard.hpp"
 
 #include <boost/filesystem/operations.hpp>
-#include "multimap/internal/thirdparty/mt.hpp"
 
 namespace multimap {
 namespace internal {
@@ -28,16 +27,16 @@ namespace {
 const char* STORE_FILE_SUFFIX = ".store";
 const char* TABLE_FILE_SUFFIX = ".table";
 
-}  // namespace
+} // namespace
 
-Shard::Stats& Shard::Stats::summarize(const Stats& other) {
+Shard::Stats& Shard::Stats::combine(const Stats& other) {
   store.summarize(other.store);
   table.summarize(other.table);
   return *this;
 }
 
-Shard::Stats Shard::Stats::summarize(const Stats& a, const Stats& b) {
-  return Stats(a).summarize(b);
+Shard::Stats Shard::Stats::combine(const Stats& a, const Stats& b) {
+  return Stats(a).combine(b);
 }
 
 Shard::Stats Shard::Stats::fromProperties(const mt::Properties& properties) {
@@ -112,20 +111,20 @@ Shard::MutableListIterator Shard::getMutable(const Bytes& key) {
 
 bool Shard::contains(const Bytes& key) const {
   const auto list_lock = table_.getShared(key);
-  return list_lock.hasList() && !list_lock.clist()->empty();
+  return list_lock.hasList() && !list_lock.list()->empty();
 }
 
 std::size_t Shard::remove(const Bytes& key) {
   std::size_t num_removed = 0;
   auto list_lock = table_.getUnique(key);
   if (list_lock.hasList()) {
-    num_removed = list_lock.clist()->size();
+    num_removed = list_lock.list()->size();
     list_lock.list()->clear();
   }
   return num_removed;
 }
 
-std::size_t Shard::removeAll(const Bytes& key, BytesPredicate predicate) {
+std::size_t Shard::removeAll(const Bytes& key, Callables::Predicate predicate) {
   return remove(key, predicate, false);
 }
 
@@ -135,7 +134,7 @@ std::size_t Shard::removeAllEqual(const Bytes& key, const Bytes& value) {
   });
 }
 
-bool Shard::removeFirst(const Bytes& key, BytesPredicate predicate) {
+bool Shard::removeFirst(const Bytes& key, Callables::Predicate predicate) {
   return remove(key, predicate, true);
 }
 
@@ -145,7 +144,7 @@ bool Shard::removeFirstEqual(const Bytes& key, const Bytes& value) {
   });
 }
 
-std::size_t Shard::replaceAll(const Bytes& key, BytesFunction function) {
+std::size_t Shard::replaceAll(const Bytes& key, Callables::Function function) {
   return replace(key, function, false);
 }
 
@@ -156,7 +155,7 @@ std::size_t Shard::replaceAllEqual(const Bytes& key, const Bytes& old_value,
   });
 }
 
-bool Shard::replaceFirst(const Bytes& key, BytesFunction function) {
+bool Shard::replaceFirst(const Bytes& key, Callables::Function function) {
   return replace(key, function, true);
 }
 
@@ -168,31 +167,38 @@ bool Shard::replaceFirstEqual(const Bytes& key, const Bytes& old_value,
   });
 }
 
-void Shard::forEachKey(BytesProcedure procedure) const {
-  table_.forEachKey(procedure);
+void Shard::forEachKey(Callables::Procedure action) const {
+  table_.forEachKey(action);
 }
 
-void Shard::forEachValue(const Bytes& key, BytesProcedure procedure) const {
+void Shard::forEachValue(const Bytes& key, Callables::Procedure action) const {
   const auto list_lock = table_.getShared(key);
   if (list_lock.hasList()) {
-    list_lock.clist()->forEach(procedure, callbacks_.request_blocks);
+    auto iter = list_lock.list()->const_iterator(callbacks_.request_blocks);
+    while (iter.hasNext()) {
+      action(iter.next());
+    }
   }
 }
 
-void Shard::forEachValue(const Bytes& key, BytesPredicate predicate) const {
+void Shard::forEachValue(const Bytes& key, Callables::Predicate action) const {
   const auto list_lock = table_.getShared(key);
   if (list_lock.hasList()) {
-    list_lock.clist()->forEach(predicate, callbacks_.request_blocks);
+    auto iter = list_lock.list()->const_iterator(callbacks_.request_blocks);
+    while (iter.hasNext()) {
+      if (!action(iter.next())) {
+        break;
+      }
+    }
   }
 }
 
-void Shard::forEachEntry(EntryProcedure procedure) const {
+void Shard::forEachEntry(Callables::Procedure2 action) const {
   store_.adviseAccessPattern(Store::AccessPattern::SEQUENTIAL);
-  table_.forEachEntry(
-      [procedure, this](const Bytes& key, SharedListLock&& list_lock) {
-        procedure(
-            key, ListIterator(std::move(list_lock), callbacks_.request_blocks));
-      });
+  table_.forEachEntry([action, this](const Bytes& key,
+                                     SharedListLock&& list_lock) {
+    action(key, ListIterator(std::move(list_lock), callbacks_.request_blocks));
+  });
   store_.adviseAccessPattern(Store::AccessPattern::RANDOM);
 }
 
@@ -223,7 +229,8 @@ void Shard::initCallbacks() {
   // Thread-safe: yes.
   callbacks_.replace_blocks = [this](const std::vector<BlockWithId>& blocks) {
     for (const auto& block : blocks) {
-      if (block.ignore) continue;
+      if (block.ignore)
+        continue;
       store_.write(block.id, block);
     }
   };
@@ -234,13 +241,14 @@ void Shard::initCallbacks() {
     MT_REQUIRE_NOT_NULL(blocks);
 
     for (auto& block : *blocks) {
-      if (block.ignore) continue;
+      if (block.ignore)
+        continue;
       store_.read(block.id, &block, arena);
     }
   };
 }
 
-std::size_t Shard::remove(const Bytes& key, BytesPredicate predicate,
+std::size_t Shard::remove(const Bytes& key, Callables::Predicate predicate,
                           bool exit_on_first_success) {
   std::size_t num_removed = 0;
   auto iter = getMutable(key);
@@ -248,30 +256,36 @@ std::size_t Shard::remove(const Bytes& key, BytesPredicate predicate,
     if (predicate(iter.next())) {
       iter.remove();
       ++num_removed;
-      if (exit_on_first_success) break;
+      if (exit_on_first_success)
+        break;
     }
   }
   return num_removed;
 }
 
-std::size_t Shard::replace(const Bytes& key, BytesFunction function,
+std::size_t Shard::replace(const Bytes& key, Callables::Function function,
                            bool exit_on_first_success) {
-  std::vector<std::string> updated_values;
-  auto iter = getMutable(key);
-  while (iter.hasNext()) {
-    const auto updated_value = function(iter.next());
-    if (!updated_value.empty()) {
-      updated_values.push_back(std::move(updated_value));
-      iter.remove();
-      if (exit_on_first_success) break;
+  std::vector<std::string> replaced_values;
+  UniqueListLock list_lock = table_.getUnique(key);
+  if (list_lock.hasList()) {
+    auto iter = list_lock.list()->iterator(callbacks_.request_blocks,
+                                           callbacks_.replace_blocks);
+    while (iter.hasNext()) {
+      auto replaced_value = function(iter.next());
+      if (!replaced_value.empty()) {
+        replaced_values.push_back(std::move(replaced_value));
+        iter.remove();
+        if (exit_on_first_success) {
+          break;
+        }
+      }
+    }
+    for (const auto& value : replaced_values) {
+      list_lock.list()->add(value, callbacks_.new_block, callbacks_.commit_block);
     }
   }
-
-  for (const auto& value : updated_values) {
-    iter.list()->add(value, callbacks_.new_block, callbacks_.commit_block);
-  }
-  return updated_values.size();
+  return replaced_values.size();
 }
 
-}  // namespace internal
-}  // namespace multimap
+} // namespace internal
+} // namespace multimap

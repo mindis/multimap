@@ -47,19 +47,19 @@ void checkVersion(std::uint32_t client_major, std::uint32_t client_minor) {
 }
 
 internal::Shard& selectShard(
-    const std::vector<std::unique_ptr<internal::Shard>>& shards,
+    const std::vector<std::unique_ptr<internal::Shard> >& shards,
     const Bytes& key) {
   MT_REQUIRE_FALSE(shards.empty());
   return *shards[mt::fnv1aHash32(key.data(), key.size()) % shards.size()];
 }
 
-}  // namespace
+} // namespace
 
 Map::~Map() {
   if (!shards_.empty()) {
     internal::Shard::Stats stats;
     for (auto& shard : shards_) {
-      stats.summarize(shard->close());
+      stats.combine(shard->close());
     }
     auto properties = stats.toProperties();
     properties["map.num_shards"] = std::to_string(shards_.size());
@@ -130,8 +130,7 @@ std::size_t Map::remove(const Bytes& key) {
   return selectShard(shards_, key).remove(key);
 }
 
-std::size_t Map::removeAll(const Bytes& key,
-                           Callables::BytesPredicate predicate) {
+std::size_t Map::removeAll(const Bytes& key, Callables::Predicate predicate) {
   return selectShard(shards_, key).removeAll(key, predicate);
 }
 
@@ -139,7 +138,7 @@ std::size_t Map::removeAllEqual(const Bytes& key, const Bytes& value) {
   return selectShard(shards_, key).removeAllEqual(key, value);
 }
 
-bool Map::removeFirst(const Bytes& key, Callables::BytesPredicate predicate) {
+bool Map::removeFirst(const Bytes& key, Callables::Predicate predicate) {
   return selectShard(shards_, key).removeFirst(key, predicate);
 }
 
@@ -147,8 +146,7 @@ bool Map::removeFirstEqual(const Bytes& key, const Bytes& value) {
   return selectShard(shards_, key).removeFirstEqual(key, value);
 }
 
-std::size_t Map::replaceAll(const Bytes& key,
-                            Callables::BytesFunction function) {
+std::size_t Map::replaceAll(const Bytes& key, Callables::Function function) {
   return selectShard(shards_, key).replaceAll(key, function);
 }
 
@@ -157,7 +155,7 @@ std::size_t Map::replaceAllEqual(const Bytes& key, const Bytes& old_value,
   return selectShard(shards_, key).replaceAllEqual(key, old_value, new_value);
 }
 
-bool Map::replaceFirst(const Bytes& key, Callables::BytesFunction function) {
+bool Map::replaceFirst(const Bytes& key, Callables::Function function) {
   return selectShard(shards_, key).replaceFirst(key, function);
 }
 
@@ -166,27 +164,25 @@ bool Map::replaceFirstEqual(const Bytes& key, const Bytes& old_value,
   return selectShard(shards_, key).replaceFirstEqual(key, old_value, new_value);
 }
 
-void Map::forEachKey(Callables::BytesProcedure procedure) const {
+void Map::forEachKey(Callables::Procedure action) const {
   MT_REQUIRE_FALSE(shards_.empty());
   for (const auto& shard : shards_) {
-    shard->forEachKey(procedure);
+    shard->forEachKey(action);
   }
 }
 
-void Map::forEachValue(const Bytes& key,
-                       Callables::BytesProcedure procedure) const {
-  selectShard(shards_, key).forEachValue(key, procedure);
+void Map::forEachValue(const Bytes& key, Callables::Procedure action) const {
+  selectShard(shards_, key).forEachValue(key, action);
 }
 
-void Map::forEachValue(const Bytes& key,
-                       Callables::BytesPredicate predicate) const {
-  selectShard(shards_, key).forEachValue(key, predicate);
+void Map::forEachValue(const Bytes& key, Callables::Predicate action) const {
+  selectShard(shards_, key).forEachValue(key, action);
 }
 
-void Map::forEachEntry(Callables::EntryProcedure procedure) const {
+void Map::forEachEntry(Callables::Procedure2 action) const {
   MT_REQUIRE_FALSE(shards_.empty());
   for (const auto& shard : shards_) {
-    shard->forEachEntry(procedure);
+    shard->forEachEntry(action);
   }
 }
 
@@ -195,7 +191,7 @@ std::map<std::string, std::string> Map::getProperties() const {
 
   internal::Shard::Stats stats;
   for (const auto& shard : shards_) {
-    stats.summarize(shard->getStats());
+    stats.combine(shard->getStats());
   }
   auto properties = stats.toProperties();
   properties["map.num_shards"] = std::to_string(shards_.size());
@@ -269,7 +265,8 @@ void Map::importFromBase64(const boost::filesystem::path& target,
     boost::filesystem::directory_iterator end;
     boost::filesystem::directory_iterator iter(source);
     while (iter != end) {
-      if (is_hidden(iter->path())) continue;
+      if (is_hidden(iter->path()))
+        continue;
       import_file(iter->path());
       ++iter;
     }
@@ -280,12 +277,12 @@ void Map::importFromBase64(const boost::filesystem::path& target,
 
 void Map::exportToBase64(const boost::filesystem::path& source,
                          const boost::filesystem::path& target) {
-  Map::exportToBase64(source, target, Callables::BytesCompare());
+  Map::exportToBase64(source, target, Callables::Compare());
 }
 
 void Map::exportToBase64(const boost::filesystem::path& source,
                          const boost::filesystem::path& target,
-                         Callables::BytesCompare compare) {
+                         Callables::Compare compare) {
   Options options;
   options.error_if_exists = false;
   options.create_if_missing = false;
@@ -381,13 +378,14 @@ void Map::optimize(const boost::filesystem::path& source,
         }
       });
     } else {
-      shard.forEachEntry([&new_map](const Bytes& key, ListIterator&& iter) {
-        while (iter.hasNext()) {
-          new_map.put(key, iter.next());
-        }
-      });
+      shard.forEachEntry(
+          [&new_map](const Bytes& key, ListIterator&& iter) {
+            while (iter.hasNext()) {
+              new_map.put(key, iter.next());
+            }
+          });
     }
   }
 }
 
-}  // namespace multimap
+} // namespace multimap

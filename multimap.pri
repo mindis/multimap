@@ -20,7 +20,6 @@ HEADERS += \
     $$PWD/src/cpp/multimap/internal/Base64.hpp \
     $$PWD/src/cpp/multimap/internal/Block.hpp \
     $$PWD/src/cpp/multimap/internal/Callbacks.hpp \
-    $$PWD/src/cpp/multimap/internal/Iterator.hpp \
     $$PWD/src/cpp/multimap/internal/List.hpp \
     $$PWD/src/cpp/multimap/internal/ListLock.hpp \
     $$PWD/src/cpp/multimap/internal/Shard.hpp \
@@ -30,6 +29,8 @@ HEADERS += \
     $$PWD/src/cpp/multimap/internal/UintVector.hpp \
     $$PWD/src/cpp/multimap/internal/Varint.hpp \
     $$PWD/src/cpp/multimap/Bytes.hpp \
+    $$PWD/src/cpp/multimap/Callables.hpp \
+    $$PWD/src/cpp/multimap/Iterator.hpp \
     $$PWD/src/cpp/multimap/Map.hpp \
     $$PWD/src/cpp/multimap/Options.hpp
 
