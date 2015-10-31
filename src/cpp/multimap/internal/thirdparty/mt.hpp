@@ -211,7 +211,7 @@ AssertionError::AssertionError(const char* file, std::size_t line,
                                const char* expr, Lhs lhs_value, Rhs rhs_value,
                                Type type)
     : std::runtime_error(internal::makeErrorMessage(file, line, expr, lhs_value,
-                                                    rhs_value, type, 5)) {}
+                                                    rhs_value, type, 4)) {}
 
 }  // namespace mt
 
