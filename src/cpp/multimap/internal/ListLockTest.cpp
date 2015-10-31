@@ -31,12 +31,8 @@ TEST(ListLockTest, IsDefaultConstructible) {
 }
 
 TEST(ListLockTest, DefaultConstructedHasProperState) {
-  ASSERT_THAT(SharedListLock().clist(), IsNull());
-  ASSERT_THAT(UniqueListLock().clist(), IsNull());
-}
-
-TEST(ListLockTest, ConstructionWithNullArgumentsFails) {
-  ASSERT_DEATH(UniqueListLock(nullptr), "");
+  ASSERT_THAT(SharedListLock().list(), IsNull());
+  ASSERT_THAT(UniqueListLock().list(), IsNull());
 }
 
 TEST(ListLockTest, IsMoveConstructibleAndAssignable) {

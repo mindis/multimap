@@ -174,7 +174,7 @@ Table::Stats Table::close(CommitBlock commit_block_callback) {
   Stats stats;
   for (const auto& entry : map_) {
     const auto list = entry.second.get();
-    if (list->isLocked()) {
+    if (list->is_locked()) {
       System::log(__PRETTY_FUNCTION__)
           << "List is still locked, data is possibly lost. Key was "
           << entry.first.toString() << '\n';
@@ -223,7 +223,7 @@ Table::Stats Table::close(CommitBlock commit_block_callback) {
 bool Table::isOpen() const { return !filepath_.empty(); }
 
 SharedListLock Table::getShared(const Bytes& key) const {
-  const List* list = nullptr;
+  List* list = nullptr;
   {
     const boost::shared_lock<boost::shared_mutex> lock(mutex_);
     const auto iter = map_.find(key);
@@ -243,7 +243,7 @@ UniqueListLock Table::getUnique(const Bytes& key) const {
       list = iter->second.get();
     }
   }
-  return list ? UniqueListLock(list) : UniqueListLock();
+  return list ? UniqueListLock(*list) : UniqueListLock();
 }
 
 UniqueListLock Table::getUniqueOrCreate(const Bytes& key) {
@@ -268,14 +268,14 @@ UniqueListLock Table::getUniqueOrCreate(const Bytes& key) {
     const auto iter = emplace_result.first;
     list = iter->second.get();
   }
-  return UniqueListLock(list);
+  return UniqueListLock(*list);
 }
 
 void Table::forEachKey(BytesProcedure procedure) const {
   const boost::shared_lock<boost::shared_mutex> lock(mutex_);
   for (const auto& entry : map_) {
     SharedListLock lock(*entry.second);
-    if (!lock.clist()->empty()) {
+    if (!lock.list()->empty()) {
       procedure(entry.first);
     }
   }
@@ -285,7 +285,7 @@ void Table::forEachEntry(EntryProcedure procedure) const {
   const boost::shared_lock<boost::shared_mutex> lock(mutex_);
   for (const auto& entry : map_) {
     SharedListLock list_lock(*entry.second);
-    if (!list_lock.clist()->empty()) {
+    if (!list_lock.list()->empty()) {
       procedure(entry.first, std::move(list_lock));
     }
   }
@@ -294,7 +294,7 @@ void Table::forEachEntry(EntryProcedure procedure) const {
 Table::Stats Table::getStats() const {
   Stats stats;
   forEachEntry([&stats](const Bytes& key, SharedListLock&& list_lock) {
-    const auto list = list_lock.clist();
+    const auto list = list_lock.list();
     ++stats.num_keys;
     stats.num_values_put += list->chead().num_values_added;
     stats.num_values_removed += list->chead().num_values_removed;

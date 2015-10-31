@@ -18,7 +18,6 @@
 #ifndef MULTIMAP_INCLUDE_INTERNAL_LIST_LOCK_HPP
 #define MULTIMAP_INCLUDE_INTERNAL_LIST_LOCK_HPP
 
-#include <functional>
 #include "multimap/internal/List.hpp"
 
 namespace multimap {
@@ -33,8 +32,9 @@ class ListLock {
 
   ListLock(ListLock&& other) : list_(other.list_) { other.list_ = nullptr; }
 
-  explicit ListLock(List* list);
-  explicit ListLock(const List& list);
+  explicit ListLock(List& list): list_(&list) {
+    lock();
+  }
 
   ~ListLock() {
     if (list_) {
@@ -52,48 +52,45 @@ class ListLock {
 
   bool hasList() const { return list_ != nullptr; }
 
-  const List* clist() const { return list_; }
-
-  List* list();
+  List* list() const { return list_; }
 
  private:
-  void lock() { list_->lockShared(); }
+  void lock() { list_->lock_shared(); }
 
-  void unlock() { list_->unlockShared(); }
+  void unlock() { list_->unlock_shared(); }
 
-  typename std::conditional<IsShared, const List, List>::type* list_ = nullptr;
+  List* list_ = nullptr;
 };
 
 template <>
-inline List* ListLock<false>::list() {
-  return list_;
-}
-
-template <>
 inline void ListLock<false>::lock() {
-  list_->lockUnique();
+  list_->lock();
 }
 
 template <>
 inline void ListLock<false>::unlock() {
-  list_->unlockUnique();
+  list_->unlock();
 }
 
-template <>
-inline ListLock<false>::ListLock(List* list)
-    : list_(list) {
-  assert(list_);
-  lock();
-}
+//template <>
+//inline ListLock<false>::ListLock(List* list)
+//    : list_(list) {
+//  assert(list_);
+//  lock();
+//}
 
-template <>
-inline ListLock<true>::ListLock(const List& list)
-    : list_(&list) {
-  lock();
-}
+//template <>
+//inline ListLock<true>::ListLock(const List& list)
+//    : list_(&list) {
+//  lock();
+//}
 
 typedef ListLock<true> SharedListLock;
 typedef ListLock<false> UniqueListLock;
+
+// TODO Replace namespace boost with namespace std if available.
+typedef boost::shared_lock<List> SharedListLock2;
+typedef boost::unique_lock<List> UniqueListLock2;
 
 }  // namespace internal
 }  // namespace multimap
