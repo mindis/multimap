@@ -196,9 +196,6 @@ class List {
   typedef Iter<true> Iterator;
   typedef Iter<false> MutableIterator;
 
-  typedef std::function<bool(const Bytes&)> BytesPredicate;
-  typedef std::function<void(const Bytes&)> BytesProcedure;
-
   List() = default;
   List(const Head& head);
 
@@ -237,28 +234,27 @@ class List {
   Iterator const_iterator(
       const Callbacks::RequestBlocks& request_blocks_callback) const;
 
-  void forEach(const BytesProcedure& procedure,
-               const Callbacks::RequestBlocks& request_blocks_callback) const;
+//  void forEach(const Callables::Procedure& action,
+//               const Callbacks::RequestBlocks& request_blocks_callback) const;
 
-  // TODO procedure + predicate
-  void forEach(const BytesPredicate& predicate,
-               const Callbacks::RequestBlocks& request_blocks_callback) const;
+//  void forEach(const Callables::Predicate& action,
+//               const Callbacks::RequestBlocks& request_blocks_callback) const;
 
-  // Synchronization interface in tradition of std::mutex.
+  // Synchronization interface based on std::shared_mutex.
 
-  void lockShared() const;
+  void lock();
 
-  void lockUnique() const;
+  bool try_lock();
 
-  bool tryLockShared() const;
+  void unlock();
 
-  bool tryLockUnique() const;
+  void lock_shared();
 
-  void unlockShared() const;
+  bool try_lock_shared();
 
-  void unlockUnique() const;
+  void unlock_shared();
 
-  bool isLocked() const;
+  bool is_locked() const;
 
  private:
   void createMutexUnlocked() const;
