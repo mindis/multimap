@@ -20,7 +20,6 @@
 
 #include <memory>
 #include <vector>
-#include <boost/noncopyable.hpp>
 
 namespace multimap {
 namespace internal {
