@@ -152,7 +152,7 @@ JNIEXPORT jobject JNICALL
                                          jbyteArray jkey) {
   multimap::jni::BytesRaiiHelper key(env, jkey);
   auto iter = Cast(env, self)->get(key.get());
-  if (iter.num_values() != 0) {
+  if (iter.available() != 0) {
     const auto holder = multimap::jni::NewHolder(std::move(iter));
     return env->NewDirectByteBuffer(holder, sizeof holder);
   }
@@ -169,7 +169,7 @@ JNIEXPORT jobject JNICALL
                                                 jobject self, jbyteArray jkey) {
   multimap::jni::BytesRaiiHelper key(env, jkey);
   auto iter = Cast(env, self)->getMutable(key.get());
-  if (iter.num_values() != 0) {
+  if (iter.available() != 0) {
     const auto holder = multimap::jni::NewHolder(std::move(iter));
     return env->NewDirectByteBuffer(holder, sizeof holder);
   }
@@ -210,7 +210,7 @@ JNIEXPORT jlong JNICALL
                                                jobject self, jbyteArray jkey,
                                                jobject jpredicate) {
   multimap::jni::BytesRaiiHelper key(env, jkey);
-  const auto predicate = multimap::jni::makeBytesPredicate(env, jpredicate);
+  const auto predicate = multimap::jni::makePredicate(env, jpredicate);
   try {
     return Cast(env, self)->removeAll(key.get(), predicate);
   } catch (std::exception& error) {
@@ -247,7 +247,7 @@ JNIEXPORT jboolean JNICALL
                                                  jobject self, jbyteArray jkey,
                                                  jobject jpredicate) {
   multimap::jni::BytesRaiiHelper key(env, jkey);
-  const auto predicate = multimap::jni::makeBytesPredicate(env, jpredicate);
+  const auto predicate = multimap::jni::makePredicate(env, jpredicate);
   try {
     return Cast(env, self)->removeFirst(key.get(), predicate);
   } catch (std::exception& error) {
@@ -284,7 +284,7 @@ JNIEXPORT jlong JNICALL
                                                 jobject self, jbyteArray jkey,
                                                 jobject jfunction) {
   multimap::jni::BytesRaiiHelper key(env, jkey);
-  const auto function = multimap::jni::makeBytesFunction(env, jfunction);
+  const auto function = multimap::jni::makeFunction(env, jfunction);
   try {
     return Cast(env, self)->replaceAll(key.get(), function);
   } catch (std::exception& error) {
@@ -324,7 +324,7 @@ JNIEXPORT jboolean JNICALL
                                                   jobject self, jbyteArray jkey,
                                                   jobject jfunction) {
   multimap::jni::BytesRaiiHelper key(env, jkey);
-  const auto function = multimap::jni::makeBytesFunction(env, jfunction);
+  const auto function = multimap::jni::makeFunction(env, jfunction);
   try {
     return Cast(env, self)->replaceFirst(key.get(), function);
   } catch (std::exception& error) {
@@ -363,7 +363,7 @@ JNIEXPORT void JNICALL
     Java_io_multimap_Map_00024Native_forEachKey(JNIEnv* env, jclass,
                                                 jobject self,
                                                 jobject jprocedure) {
-  const auto procedure = multimap::jni::makeBytesProcedure(env, jprocedure);
+  const auto procedure = multimap::jni::makeProcedure(env, jprocedure);
   try {
     Cast(env, self)->forEachKey(procedure);
   } catch (std::exception& error) {
@@ -386,7 +386,7 @@ JNIEXPORT void JNICALL
     Java_io_multimap_Map_00024Native_forEachValue__Ljava_nio_ByteBuffer_2_3BLio_multimap_Callables_00024Procedure_2(
         JNIEnv* env, jclass, jobject self, jbyteArray jkey,
         jobject jprocedure) {
-  const auto procedure = multimap::jni::makeBytesProcedure(env, jprocedure);
+  const auto procedure = multimap::jni::makeProcedure(env, jprocedure);
   multimap::jni::BytesRaiiHelper key(env, jkey);
   try {
     Cast(env, self)->forEachValue(key.get(), procedure);
@@ -410,7 +410,7 @@ JNIEXPORT void JNICALL
     Java_io_multimap_Map_00024Native_forEachValue__Ljava_nio_ByteBuffer_2_3BLio_multimap_Callables_00024Predicate_2(
         JNIEnv* env, jclass, jobject self, jbyteArray jkey,
         jobject jpredicate) {
-  const auto predicate = multimap::jni::makeBytesPredicate(env, jpredicate);
+  const auto predicate = multimap::jni::makePredicate(env, jpredicate);
   multimap::jni::BytesRaiiHelper key(env, jkey);
   try {
     Cast(env, self)->forEachValue(key.get(), predicate);
@@ -478,7 +478,7 @@ JNIEXPORT void JNICALL
       options.block_size = 0;
     }
     if (jless_than != nullptr) {
-      options.compare_bytes = multimap::jni::makeBytesCompare(env, jless_than);
+      options.compare_bytes = multimap::jni::makeCompare(env, jless_than);
     }
 //    options.num_shards  // TODO
     multimap::Map::optimize(from, to, options);

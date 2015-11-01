@@ -48,6 +48,16 @@ public:
   Map() = default;
   // Creates a default instance which is not associated with a physical map.
 
+  Map(const boost::filesystem::path& directory, const Options& options);
+  // Opens the map located in directory. If the map does not exist and
+  // options.create_if_missing is set to true a new map will be created.
+  // Throws std::exception if:
+  //   * directory does not exist.
+  //   * directory does not contain a map and options.create_if_missing is
+  //     false.
+  //   * directory contains a map and options.error_if_exists is true.
+  //   * options.block_size is not a power of two.
+
   ~Map();
   // If associated with a physical map the destructor flushes all data to disk
   // and ensures that the map is stored in consistent state.
@@ -57,17 +67,6 @@ public:
 
   Map(Map&&) = default;
   Map& operator=(Map&&) = default;
-
-  static Map open(const boost::filesystem::path& directory,
-                  const Options& options);
-  // Opens the map located in directory. If the map does not exist and
-  // options.create_if_missing is set to true a new map will be created.
-  // Throws std::exception if:
-  //   * directory does not exist.
-  //   * directory does not contain a map and options.create_if_missing is
-  //     false.
-  //   * directory contains a map and options.error_if_exists is true.
-  //   * options.block_size is not a power of two.
 
   void put(const Bytes& key, const Bytes& value);
   // Appends value to the end of the list associated with key.

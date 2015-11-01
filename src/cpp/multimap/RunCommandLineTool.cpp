@@ -17,7 +17,7 @@
 
 #include <iostream>
 #include <boost/program_options.hpp>
-#include "multimap/internal/thirdparty/mt.hpp"
+#include "multimap/thirdparty/mt.hpp"
 #include "multimap/Map.hpp"
 
 const char* HELP     = "help";

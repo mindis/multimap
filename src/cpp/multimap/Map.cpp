@@ -55,6 +55,41 @@ internal::Shard& selectShard(
 
 } // namespace
 
+Map::Map(const boost::filesystem::path& directory, const Options& options) {
+  checkOptions(options);
+  const auto abs_dir = boost::filesystem::absolute(directory);
+  mt::check(boost::filesystem::is_directory(abs_dir),
+            "The path '%s' does not refer to a directory.", abs_dir.c_str());
+
+  directory_lock_guard_.lock(abs_dir, NAME_OF_LOCK_FILE);
+  const auto properties_file = abs_dir / NAME_OF_PROPERTIES_FILE;
+  const auto map_exists = boost::filesystem::is_regular_file(properties_file);
+
+  if (map_exists) {
+    mt::check(!options.error_if_exists,
+              "A Multimap in '%s' does already exist.", abs_dir.c_str());
+
+    const auto props = mt::readPropertiesFromFile(properties_file.string());
+    const auto version_major = std::stoul(props.at("map.version_major"));
+    const auto version_minor = std::stoul(props.at("map.version_minor"));
+    checkVersion(version_major, version_minor);
+
+    shards_.resize(std::stoul(props.at("map.num_shards")));
+
+  } else {
+    mt::check(options.create_if_missing, "No Multimap found in '%s'.",
+              abs_dir.c_str());
+
+    shards_.resize(mt::nextPrime(options.num_shards));
+  }
+
+  const auto prefix = abs_dir / FILE_PREFIX;
+  for (std::size_t i = 0; i != shards_.size(); ++i) {
+    const auto prefix_i = prefix.string() + '.' + std::to_string(i);
+    shards_[i].reset(new internal::Shard(prefix_i, options.block_size));
+  }
+}
+
 Map::~Map() {
   if (!shards_.empty()) {
     internal::Shard::Stats stats;
@@ -69,45 +104,6 @@ Map::~Map() {
     const auto file = directory_lock_guard_.path() / NAME_OF_PROPERTIES_FILE;
     mt::writePropertiesToFile(properties, file.string());
   }
-}
-
-Map Map::open(const boost::filesystem::path& directory,
-              const Options& options) {
-  checkOptions(options);
-  const auto abs_dir = boost::filesystem::absolute(directory);
-  mt::check(boost::filesystem::is_directory(abs_dir),
-            "The path '%s' does not refer to a directory.", abs_dir.c_str());
-
-  Map map;
-  map.directory_lock_guard_.lock(abs_dir, NAME_OF_LOCK_FILE);
-  const auto properties_file = abs_dir / NAME_OF_PROPERTIES_FILE;
-  const auto map_exists = boost::filesystem::is_regular_file(properties_file);
-
-  if (map_exists) {
-    mt::check(!options.error_if_exists,
-              "A Multimap in '%s' does already exist.", abs_dir.c_str());
-
-    const auto props = mt::readPropertiesFromFile(properties_file.string());
-    const auto version_major = std::stoul(props.at("map.version_major"));
-    const auto version_minor = std::stoul(props.at("map.version_minor"));
-    checkVersion(version_major, version_minor);
-
-    map.shards_.resize(std::stoul(props.at("map.num_shards")));
-
-  } else {
-    mt::check(options.create_if_missing, "No Multimap found in '%s'.",
-              abs_dir.c_str());
-
-    map.shards_.resize(mt::nextPrime(options.num_shards));
-  }
-
-  const auto prefix = abs_dir / FILE_PREFIX;
-  for (std::size_t i = 0; i != map.shards_.size(); ++i) {
-    const auto prefix_i = prefix.string() + '.' + std::to_string(i);
-    map.shards_[i].reset(new internal::Shard(prefix_i, options.block_size));
-  }
-
-  return map;
 }
 
 void Map::put(const Bytes& key, const Bytes& value) {
@@ -221,7 +217,7 @@ void Map::importFromBase64(const boost::filesystem::path& target,
 void Map::importFromBase64(const boost::filesystem::path& target,
                            const boost::filesystem::path& source,
                            const Options& options) {
-  Map map = Map::open(target, options);
+  Map map(target, options);
 
   const auto import_file = [&map](const boost::filesystem::path& filepath) {
     mt::check(boost::filesystem::is_regular_file(filepath),
@@ -286,7 +282,7 @@ void Map::exportToBase64(const boost::filesystem::path& source,
   Options options;
   options.error_if_exists = false;
   options.create_if_missing = false;
-  Map map = Map::open(source, options);
+  Map map(source, options);
 
   std::ofstream ofs(target.string());
   mt::check(ofs, "Could not create '%s'.", target.c_str());
@@ -357,7 +353,7 @@ void Map::optimize(const boost::filesystem::path& source,
     new_options.num_shards = old_num_shards;
   }
 
-  Map new_map = Map::open(target, new_options);
+  Map new_map(target, new_options);
   const auto prefix = abs_source / FILE_PREFIX;
   for (std::size_t i = 0; i != old_num_shards; ++i) {
     internal::Shard shard(prefix.string() + '.' + std::to_string(i));

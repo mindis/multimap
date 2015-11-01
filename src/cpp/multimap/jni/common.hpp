@@ -69,7 +69,7 @@ Holder<T>* NewHolder(T&& element) {
   return new Holder<T>(std::move(element));
 }
 
-inline Map::BytesProcedure makeBytesProcedure(JNIEnv* env, jobject jprocedure) {
+inline Callables::Procedure makeProcedure(JNIEnv* env, jobject jprocedure) {
   const auto cls = env->GetObjectClass(jprocedure);
   const auto mid = env->GetMethodID(cls, "call", "(Ljava/nio/ByteBuffer;)V");
   assert(mid != nullptr);
@@ -88,7 +88,7 @@ inline Map::BytesProcedure makeBytesProcedure(JNIEnv* env, jobject jprocedure) {
   };
 }
 
-inline Map::BytesPredicate makeBytesPredicate(JNIEnv* env, jobject jpredicate) {
+inline Callables::Predicate makePredicate(JNIEnv* env, jobject jpredicate) {
   const auto cls = env->GetObjectClass(jpredicate);
   const auto mid = env->GetMethodID(cls, "call", "(Ljava/nio/ByteBuffer;)Z");
   assert(mid != nullptr);
@@ -108,7 +108,7 @@ inline Map::BytesPredicate makeBytesPredicate(JNIEnv* env, jobject jpredicate) {
   };
 }
 
-inline Map::BytesFunction makeBytesFunction(JNIEnv* env, jobject jfunction) {
+inline Callables::Function makeFunction(JNIEnv* env, jobject jfunction) {
   const auto cls = env->GetObjectClass(jfunction);
   const auto mid = env->GetMethodID(cls, "call", "(Ljava/nio/ByteBuffer;)[B");
   assert(mid != nullptr);
@@ -130,7 +130,7 @@ inline Map::BytesFunction makeBytesFunction(JNIEnv* env, jobject jfunction) {
   };
 }
 
-inline Map::BytesCompare makeBytesCompare(JNIEnv* env, jobject jless_than) {
+inline Callables::Compare makeCompare(JNIEnv* env, jobject jless_than) {
   const auto cls = env->GetObjectClass(jless_than);
   const auto mid = env->GetMethodID(
       cls, "call", "(Ljava/nio/ByteBuffer;Ljava/nio/ByteBuffer;)Z");

@@ -52,7 +52,7 @@ const Callables::Predicate TRUE_PREDICATE = [](const Bytes&) { return true; };
 const Callables::Predicate FALSE_PREDICATE = [](const Bytes&) { return false; };
 const Callables::Procedure NULL_PROCEDURE = [](const Bytes&) {};
 const Callables::Function NULL_FUNCTION = [](const Bytes&) { return ""; };
-const Callables::GenericProcedure NULL_PROCEDURE2 =
+const Callables::Procedure2<Map::ListIterator> NULL_PROCEDURE2 =
     [](const Bytes&, Map::ListIterator&&) {};
 
 TEST(MapTest, IsDefaultConstructible) {
@@ -95,14 +95,14 @@ TEST(MapTest, IsMoveConstructibleOrAssignable) {
 TEST_F(MapTestFixture, OpenThrowsIfFilesAreMissing) {
   Options options;
   options.create_if_missing = false;
-  ASSERT_THROW(Map::open(directory, options), std::runtime_error);
+  ASSERT_THROW(Map(directory, options), std::runtime_error);
 }
 
 TEST_F(MapTestFixture, OpenDoesNotThrowIfCreateIsMissingIsTrue) {
   {
     Options options;
     options.create_if_missing = true;
-    Map::open(directory, options);
+    Map(directory, options);
   }
   ASSERT_FALSE(boost::filesystem::is_empty(directory));
 }
@@ -111,24 +111,24 @@ TEST_F(MapTestFixture, OpenThrowsIfMapExistsAndErrorIfExistsIsTrue) {
   {
     Options options;
     options.create_if_missing = true;
-    Map::open(directory, options);
+    Map(directory, options);
   }
   Options options;
   options.error_if_exists = true;
-  ASSERT_THROW(Map::open(directory, options), std::runtime_error);
+  ASSERT_THROW(Map(directory, options), std::runtime_error);
 }
 
 TEST_F(MapTestFixture, OpenThrowsIfBlockSizeIsNotPowerOfTwo) {
   Options options;
   options.create_if_missing = true;
   options.block_size = 100;
-  ASSERT_THROW(Map::open(directory, options), std::runtime_error);
+  ASSERT_THROW(Map(directory, options), std::runtime_error);
 }
 
 TEST_F(MapTestFixture, PutWithMaxKeySizeWorks) {
   Options options;
   options.create_if_missing = true;
-  Map map = Map::open(directory, options);
+  Map map(directory, options);
   std::string key(map.max_key_size(), 'k');
   ASSERT_NO_THROW(map.put(key, "value"));
 }
@@ -136,7 +136,7 @@ TEST_F(MapTestFixture, PutWithMaxKeySizeWorks) {
 TEST_F(MapTestFixture, PutWithTooLargeKeyThrows) {
   Options options;
   options.create_if_missing = true;
-  Map map = Map::open(directory, options);
+  Map map(directory, options);
   std::string key(map.max_key_size() + 1, 'k');
   ASSERT_THROW(map.put(key, "value"), std::runtime_error);
 }
@@ -144,7 +144,7 @@ TEST_F(MapTestFixture, PutWithTooLargeKeyThrows) {
 TEST_F(MapTestFixture, PutWithMaxValueSizeWorks) {
   Options options;
   options.create_if_missing = true;
-  Map map = Map::open(directory, options);
+  Map map(directory, options);
   std::string value(map.max_value_size(), 'v');
   ASSERT_NO_THROW(map.put("key", value));
 }
@@ -152,7 +152,7 @@ TEST_F(MapTestFixture, PutWithMaxValueSizeWorks) {
 TEST_F(MapTestFixture, PutWithTooLargeValueThrows) {
   Options options;
   options.create_if_missing = true;
-  Map map = Map::open(directory, options);
+  Map map(directory, options);
   std::string value(map.max_value_size() + 1, 'v');
   ASSERT_THROW(map.put("key", value), std::runtime_error);
 }
@@ -160,7 +160,7 @@ TEST_F(MapTestFixture, PutWithTooLargeValueThrows) {
 TEST_P(MapTestWithParam, PutThenGetWorks) {
   Options options;
   options.create_if_missing = true;
-  Map map = Map::open(directory, options);
+  Map map(directory, options);
   for (std::uint32_t k = 0; k != GetParam(); ++k) {
     for (std::uint32_t v = 0; v != GetParam(); ++v) {
       map.put(std::to_string(k), std::to_string(k + v * v));
@@ -180,7 +180,7 @@ TEST_P(MapTestWithParam, PutThenCloseThenOpenThenGetWorks) {
   {
     Options options;
     options.create_if_missing = true;
-    Map map = Map::open(directory, options);
+    Map map(directory, options);
     for (std::uint32_t k = 0; k != GetParam(); ++k) {
       for (std::uint32_t v = 0; v != GetParam(); ++v) {
         map.put(std::to_string(k), std::to_string(k + v * v));
@@ -188,7 +188,7 @@ TEST_P(MapTestWithParam, PutThenCloseThenOpenThenGetWorks) {
     }
   }
   {
-    Map map = Map::open(directory, Options());
+    Map map(directory, Options());
     for (std::uint32_t k = 0; k != GetParam(); ++k) {
       auto iter = map.get(std::to_string(k));
       ASSERT_THAT(iter.available(), Eq(GetParam()));
@@ -209,14 +209,14 @@ INSTANTIATE_TEST_CASE_P(Parameterized, MapTestWithParam,
 TEST_F(MapTestFixture, ContainsReturnsFalseForNonExistingKey) {
   Options options;
   options.create_if_missing = true;
-  Map map = Map::open(directory, options);
+  Map map(directory, options);
   ASSERT_FALSE(map.contains("key"));
 }
 
 TEST_F(MapTestFixture, ContainsReturnsTrueForExistingKey) {
   Options options;
   options.create_if_missing = true;
-  Map map = Map::open(directory, options);
+  Map map(directory, options);
   map.put("key", "value");
   ASSERT_TRUE(map.contains("key"));
 }
@@ -224,7 +224,7 @@ TEST_F(MapTestFixture, ContainsReturnsTrueForExistingKey) {
 TEST_F(MapTestFixture, ContainsReturnsFalseForDeletedKey) {
   Options options;
   options.create_if_missing = true;
-  Map map = Map::open(directory, options);
+  Map map(directory, options);
   map.put("key", "value");
   map.remove("key");
   ASSERT_FALSE(map.contains("key"));
@@ -233,14 +233,14 @@ TEST_F(MapTestFixture, ContainsReturnsFalseForDeletedKey) {
 TEST_F(MapTestFixture, DeleteReturnsZeroForNonExistingKey) {
   Options options;
   options.create_if_missing = true;
-  Map map = Map::open(directory, options);
+  Map map(directory, options);
   ASSERT_EQ(map.remove("key"), 0);
 }
 
 TEST_F(MapTestFixture, DeleteReturnsNumValuesForExistingKey) {
   Options options;
   options.create_if_missing = true;
-  Map map = Map::open(directory, options);
+  Map map(directory, options);
   map.put("key", "1");
   map.put("key", "2");
   map.put("key", "3");
@@ -250,7 +250,7 @@ TEST_F(MapTestFixture, DeleteReturnsNumValuesForExistingKey) {
 TEST_F(MapTestFixture, DeleteFirstDeletesOneMatch) {
   Options options;
   options.create_if_missing = true;
-  Map map = Map::open(directory, options);
+  Map map(directory, options);
 
   const std::size_t num_values = 1000;
   for (std::size_t i = 0; i != num_values / 2; ++i) {
@@ -272,7 +272,7 @@ TEST_F(MapTestFixture, DeleteFirstDeletesOneMatch) {
 TEST_F(MapTestFixture, DeleteFirstEqualDeletesOneMatch) {
   Options options;
   options.create_if_missing = true;
-  Map map = Map::open(directory, options);
+  Map map(directory, options);
 
   const std::size_t num_values = 1000;
   for (std::size_t i = 0; i != num_values / 2; ++i) {
@@ -290,7 +290,7 @@ TEST_F(MapTestFixture, DeleteFirstEqualDeletesOneMatch) {
 TEST_F(MapTestFixture, DeleteAllDeletesAllMatches) {
   Options options;
   options.create_if_missing = true;
-  Map map = Map::open(directory, options);
+  Map map(directory, options);
 
   const std::size_t num_values = 1000;
   for (std::size_t i = 0; i != num_values / 2; ++i) {
@@ -312,7 +312,7 @@ TEST_F(MapTestFixture, DeleteAllDeletesAllMatches) {
 TEST_F(MapTestFixture, DeleteAllEqualDeletesAllMatches) {
   Options options;
   options.create_if_missing = true;
-  Map map = Map::open(directory, options);
+  Map map(directory, options);
 
   const std::size_t num_values = 1000;
   for (std::size_t i = 0; i != num_values / 2; ++i) {
@@ -330,7 +330,7 @@ TEST_F(MapTestFixture, DeleteAllEqualDeletesAllMatches) {
 TEST_F(MapTestFixture, ReplaceFirstReplacesOneMatch) {
   Options options;
   options.create_if_missing = true;
-  Map map = Map::open(directory, options);
+  Map map(directory, options);
 
   const std::size_t num_values = 1000;
   for (std::size_t i = 0; i != num_values / 2; ++i) {
@@ -352,7 +352,7 @@ TEST_F(MapTestFixture, ReplaceFirstReplacesOneMatch) {
 TEST_F(MapTestFixture, ReplaceFirstEqualReplacesOneMatch) {
   Options options;
   options.create_if_missing = true;
-  Map map = Map::open(directory, options);
+  Map map(directory, options);
 
   const std::size_t num_values = 1000;
   for (std::size_t i = 0; i != num_values / 2; ++i) {
@@ -371,7 +371,7 @@ TEST_F(MapTestFixture, ReplaceFirstEqualReplacesOneMatch) {
 TEST_F(MapTestFixture, ReplaceAllReplacesAllMatches) {
   Options options;
   options.create_if_missing = true;
-  Map map = Map::open(directory, options);
+  Map map(directory, options);
 
   const std::size_t num_values = 1000;
   for (std::size_t i = 0; i != num_values / 2; ++i) {
@@ -393,7 +393,7 @@ TEST_F(MapTestFixture, ReplaceAllReplacesAllMatches) {
 TEST_F(MapTestFixture, ReplaceAllEqualReplacesAllMatches) {
   Options options;
   options.create_if_missing = true;
-  Map map = Map::open(directory, options);
+  Map map(directory, options);
 
   const std::size_t num_values = 1000;
   for (std::size_t i = 0; i != num_values / 2; ++i) {
@@ -412,7 +412,7 @@ TEST_F(MapTestFixture, ReplaceAllEqualReplacesAllMatches) {
 TEST_F(MapTestFixture, IteratorWritesBackMutatedBlocks) {
   Options options;
   options.create_if_missing = true;
-  Map map = Map::open(directory, options);
+  Map map(directory, options);
 
   const std::size_t num_values = 100000;
   for (std::size_t i = 0; i != num_values; ++i) {

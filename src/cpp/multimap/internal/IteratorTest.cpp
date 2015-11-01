@@ -27,8 +27,8 @@ namespace internal {
 using testing::Eq;
 using testing::Ne;
 
-typedef Iterator<false> Iter;
-typedef Iterator<true> ConstIter;
+typedef Iterator<UniqueListLock> UniqueListIterator;
+typedef Iterator<SharedListLock> SharedListIterator;
 
 struct IteratorTestFixture : testing::TestWithParam<std::uint32_t> {
   void SetUp() override {
@@ -38,7 +38,7 @@ struct IteratorTestFixture : testing::TestWithParam<std::uint32_t> {
 
     Options options;
     options.create_if_missing = true;
-    map = Map::open(directory, options);
+    map = Map(directory, options);
 
     key = "key";
     for (std::size_t i = 0; i != GetParam(); ++i) {
@@ -57,35 +57,35 @@ struct IteratorTestFixture : testing::TestWithParam<std::uint32_t> {
 };
 
 struct ConstIterTest : public IteratorTestFixture {
-  ConstIter getIterator() { return map.get(key); }
+  SharedListIterator getIterator() { return map.get(key); }
 };
 
 struct IterTest : public IteratorTestFixture {
-  Iter getIterator() { return map.getMutable(key); }
+  UniqueListIterator getIterator() { return map.getMutable(key); }
 };
 
 TEST(IterTest, IsDefaultConstructible) {
-  ASSERT_THAT(std::is_default_constructible<Iter>::value, Eq(true));
+  ASSERT_THAT(std::is_default_constructible<UniqueListIterator>::value, Eq(true));
 }
 
 TEST(IterTest, IsNotCopyConstructibleOrAssignable) {
-  ASSERT_THAT(std::is_copy_constructible<Iter>::value, Eq(false));
-  ASSERT_THAT(std::is_copy_assignable<Iter>::value, Eq(false));
+  ASSERT_THAT(std::is_copy_constructible<UniqueListIterator>::value, Eq(false));
+  ASSERT_THAT(std::is_copy_assignable<UniqueListIterator>::value, Eq(false));
 }
 
 TEST(IterTest, IsMoveConstructibleAndAssignable) {
-  ASSERT_THAT(std::is_move_constructible<Iter>::value, Eq(true));
-  ASSERT_THAT(std::is_move_assignable<Iter>::value, Eq(true));
+  ASSERT_THAT(std::is_move_constructible<UniqueListIterator>::value, Eq(true));
+  ASSERT_THAT(std::is_move_assignable<UniqueListIterator>::value, Eq(true));
 }
 
 TEST(IterTest, DefaultConstructedHasProperState) {
-  ASSERT_THAT(Iter().available(), Eq(0));
-  ASSERT_THAT(Iter().hasNext(), Eq(false));
-  ASSERT_THAT(Iter().available(), Eq(0));
+  ASSERT_THAT(UniqueListIterator().available(), Eq(0));
+  ASSERT_THAT(UniqueListIterator().hasNext(), Eq(false));
+  ASSERT_THAT(UniqueListIterator().available(), Eq(0));
 }
 
 TEST_P(IterTest, IterateAll) {
-  Iter iter = getIterator();
+  UniqueListIterator iter = getIterator();
   ASSERT_THAT(iter.available(), Eq(GetParam()));
   for (std::size_t i = 0; iter.hasNext(); ++i) {
     ASSERT_THAT(iter.available(), Eq(GetParam() - i));
@@ -96,7 +96,7 @@ TEST_P(IterTest, IterateAll) {
 }
 
 TEST_P(IterTest, IterateOnceAndRemoveEvery23thValue) {
-  Iter iter = getIterator();
+  UniqueListIterator iter = getIterator();
   std::size_t num_removed = 0;
   for (std::size_t i = 0; iter.hasNext(); ++i) {
     ASSERT_THAT(iter.next(), Eq(std::to_string(i)));
@@ -112,7 +112,7 @@ TEST_P(IterTest, IterateOnceAndRemoveEvery23thValue) {
 TEST_P(IterTest, IterateTwiceAndRemoveEvery23thValueIn1stRun) {
   std::size_t num_removed = 0;
   {
-    Iter iter = getIterator();
+    UniqueListIterator iter = getIterator();
     for (std::size_t i = 0; iter.hasNext(); ++i) {
       iter.next();
       if (i % 23 == 0) {
@@ -124,7 +124,7 @@ TEST_P(IterTest, IterateTwiceAndRemoveEvery23thValueIn1stRun) {
     ASSERT_THAT(iter.available(), Eq(0));
   }
   {
-    Iter iter = getIterator();
+    UniqueListIterator iter = getIterator();
     ASSERT_THAT(iter.available(), Eq(GetParam() - num_removed));
     for (std::size_t i = 0; iter.hasNext(); ++i) {
       if (i % 23 != 0) {
@@ -137,26 +137,26 @@ TEST_P(IterTest, IterateTwiceAndRemoveEvery23thValueIn1stRun) {
 }
 
 TEST(ConstIterTest, IsDefaultConstructible) {
-  ASSERT_THAT(std::is_default_constructible<ConstIter>::value, Eq(true));
+  ASSERT_THAT(std::is_default_constructible<SharedListIterator>::value, Eq(true));
 }
 
 TEST(ConstIterTest, IsNotCopyConstructibleOrAssignable) {
-  ASSERT_THAT(std::is_copy_constructible<ConstIter>::value, Eq(false));
-  ASSERT_THAT(std::is_copy_assignable<ConstIter>::value, Eq(false));
+  ASSERT_THAT(std::is_copy_constructible<SharedListIterator>::value, Eq(false));
+  ASSERT_THAT(std::is_copy_assignable<SharedListIterator>::value, Eq(false));
 }
 
 TEST(ConstIterTest, IsMoveConstructibleAndAssignable) {
-  ASSERT_THAT(std::is_move_constructible<ConstIter>::value, Eq(true));
-  ASSERT_THAT(std::is_move_assignable<ConstIter>::value, Eq(true));
+  ASSERT_THAT(std::is_move_constructible<SharedListIterator>::value, Eq(true));
+  ASSERT_THAT(std::is_move_assignable<SharedListIterator>::value, Eq(true));
 }
 
 TEST(ConstIterTest, DefaultConstructedHasProperState) {
-  ASSERT_THAT(Iter().hasNext(), Eq(false));
-  ASSERT_THAT(Iter().available(), Eq(0));
+  ASSERT_THAT(UniqueListIterator().hasNext(), Eq(false));
+  ASSERT_THAT(UniqueListIterator().available(), Eq(0));
 }
 
 TEST_P(ConstIterTest, IterateAll) {
-  ConstIter iter = getIterator();
+  SharedListIterator iter = getIterator();
   ASSERT_THAT(iter.available(), Eq(GetParam()));
   for (std::size_t i = 0; iter.hasNext(); ++i) {
     ASSERT_THAT(iter.available(), Eq(GetParam() - i));
