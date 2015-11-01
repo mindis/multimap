@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTIMAP_INCLUDE_INTERNAL_ITERATOR_HPP
-#define MULTIMAP_INCLUDE_INTERNAL_ITERATOR_HPP
+#ifndef MULTIMAP_INTERNAL_ITERATOR_HPP_INCLUDED
+#define MULTIMAP_INTERNAL_ITERATOR_HPP_INCLUDED
 
 #include <cstdint>
 #include "multimap/internal/Callbacks.hpp"
@@ -177,4 +177,4 @@ template <> inline void Iterator<UniqueListLock>::remove() {
 } // namespace internal
 } // namespace multimap
 
-#endif // MULTIMAP_INCLUDE_INTERNAL_ITERATOR_HPP
+#endif // MULTIMAP_INTERNAL_ITERATOR_HPP_INCLUDED

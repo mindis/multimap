@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTIMAP_INCLUDE_INTERNAL_UINT_VECTOR_HPP
-#define MULTIMAP_INCLUDE_INTERNAL_UINT_VECTOR_HPP
+#ifndef MULTIMAP_INTERNAL_UINT_VECTOR_HPP_INCLUDED
+#define MULTIMAP_INTERNAL_UINT_VECTOR_HPP_INCLUDED
 
 #include <cstdio>
 #include <cstdint>
@@ -70,4 +70,4 @@ static_assert(mt::hasExpectedSize<UintVector>(12, 16),
 }  // internal
 }  // multimap
 
-#endif  // MULTIMAP_INCLUDE_INTERNAL_UINT_VECTOR_HPP
+#endif  // MULTIMAP_INTERNAL_UINT_VECTOR_HPP_INCLUDED

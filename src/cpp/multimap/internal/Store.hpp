@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTIMAP_INCLUDE_INTERNAL_STORE_HPP
-#define MULTIMAP_INCLUDE_INTERNAL_STORE_HPP
+#ifndef MULTIMAP_INTERNAL_STORE_HPP_INCLUDED
+#define MULTIMAP_INTERNAL_STORE_HPP_INCLUDED
 
 #include <memory>
 #include <mutex>
@@ -130,4 +130,4 @@ class Store {
 }  // namespace internal
 }  // namespace multimap
 
-#endif  // MULTIMAP_INCLUDE_INTERNAL_STORE_HPP
+#endif  // MULTIMAP_INTERNAL_STORE_HPP_INCLUDED

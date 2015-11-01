@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTIMAP_INCLUDE_BYTES_HPP
-#define MULTIMAP_INCLUDE_BYTES_HPP
+#ifndef MULTIMAP_BYTES_HPP_INCLUDED
+#define MULTIMAP_BYTES_HPP_INCLUDED
 
 #include <algorithm>
 #include <cstring>
@@ -28,7 +28,7 @@ namespace multimap {
 
 // This class is a wrapper for raw byte data without ownership management.
 class Bytes {
- public:
+public:
   Bytes() : data_(""), size_(0) {}
   // Creates an instance that refers to an empty array.
   // Postconditions:
@@ -83,7 +83,7 @@ class Bytes {
   //   * data() != result.data()
   //   * size() == result.size()
 
- private:
+private:
   const char* data_;
   std::size_t size_;
 };
@@ -93,8 +93,9 @@ inline bool operator==(const Bytes& lhs, const Bytes& rhs) {
              ? std::memcmp(lhs.data(), rhs.data(), lhs.size()) == 0
              : false;
 }
-// Returns true if lhs and rhs contain the same number of bytes and which are
-// equal after byte-wise comparison. Returns false otherwise.
+// Compares two `Bytes` objects for equality (byte-wise comparison), not for
+// identity (pointer comparison). Returns `true` if the bytes in `lhs` and `rhs`
+// are equal, `false` otherwise.
 
 inline bool operator!=(const Bytes& lhs, const Bytes& rhs) {
   return !(lhs == rhs);
@@ -111,18 +112,17 @@ inline bool operator<(const Bytes& lhs, const Bytes& rhs) {
 // otherwise. If lhs and rhs do not wrap the same number of bytes, only the
 // first std::min(lhs.size(), rhs.size()) bytes will be compared.
 
-}  // namespace multimap
+} // namespace multimap
 
 namespace std {
 
-template <>
-struct hash< ::multimap::Bytes> {
+template <> struct hash< ::multimap::Bytes> {
   // struct hash<multimap::Bytes> yields "template argument 1 is invalid"!?
   size_t operator()(const ::multimap::Bytes& bytes) const {
     return mt::fnv1aHash64(bytes.data(), bytes.size());
   }
 };
 
-}  // namespace std
+} // namespace std
 
-#endif  // MULTIMAP_INCLUDE_BYTES_HPP
+#endif // MULTIMAP_BYTES_HPP_INCLUDED

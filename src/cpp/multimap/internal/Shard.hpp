@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTIMAP_INCLUDE_INTERNAL_SHARD_HPP
-#define MULTIMAP_INCLUDE_INTERNAL_SHARD_HPP
+#ifndef MULTIMAP_INTERNAL_SHARD_HPP_INCLUDED
+#define MULTIMAP_INTERNAL_SHARD_HPP_INCLUDED
 
 #include <functional>
 #include <boost/filesystem/path.hpp>
@@ -131,4 +131,4 @@ class Shard {
 }  // namespace internal
 }  // namespace multimap
 
-#endif  // MULTIMAP_INCLUDE_INTERNAL_SHARD_HPP
+#endif  // MULTIMAP_INTERNAL_SHARD_HPP_INCLUDED
