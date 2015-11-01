@@ -23,9 +23,9 @@
 #include <unordered_map>
 #include <boost/filesystem/path.hpp>
 #include <boost/thread/shared_mutex.hpp>
-#include "multimap/internal/thirdparty/mt.hpp"
 #include "multimap/internal/Arena.hpp"
 #include "multimap/internal/ListLock.hpp"
+#include "multimap/thirdparty/mt.hpp"
 
 namespace multimap {
 namespace internal {

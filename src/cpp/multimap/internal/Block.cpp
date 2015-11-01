@@ -21,7 +21,7 @@
 #include <cstring>
 #include <array>
 #include "multimap/internal/System.hpp"
-#include "multimap/internal/thirdparty/mt.hpp"
+#include "multimap/thirdparty/mt.hpp"
 
 namespace multimap {
 namespace internal {

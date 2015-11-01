@@ -23,10 +23,10 @@
 #include <functional>
 #include <mutex>
 #include <boost/thread/shared_mutex.hpp>
-#include "multimap/internal/thirdparty/mt.hpp"
 #include "multimap/internal/Arena.hpp"
 #include "multimap/internal/Callbacks.hpp"
 #include "multimap/internal/UintVector.hpp"
+#include "multimap/thirdparty/mt.hpp"
 
 namespace multimap {
 namespace internal {

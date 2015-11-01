@@ -27,7 +27,7 @@
 #include <iomanip>
 #include <iostream>
 #include <boost/filesystem/operations.hpp>
-#include "multimap/internal/thirdparty/mt.hpp"
+#include "multimap/thirdparty/mt.hpp"
 
 namespace multimap {
 namespace internal {

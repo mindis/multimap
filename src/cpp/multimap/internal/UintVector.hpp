@@ -22,7 +22,7 @@
 #include <cstdint>
 #include <memory>
 #include <vector>
-#include "multimap/internal/thirdparty/mt.hpp"
+#include "multimap/thirdparty/mt.hpp"
 #include "multimap/internal/Varint.hpp"
 
 namespace multimap {

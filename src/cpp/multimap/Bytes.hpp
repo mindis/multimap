@@ -22,7 +22,7 @@
 #include <cstring>
 #include <functional>
 #include <string>
-#include "multimap/internal/thirdparty/mt.hpp"
+#include "multimap/thirdparty/mt.hpp"
 
 namespace multimap {
 
