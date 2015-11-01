@@ -69,20 +69,6 @@ public:
 
   std::size_t available() const { return list_iter_.available(); }
 
-  //  bool findNext(Callables::Predicate predicate) {
-  //    while (hasNext()) {
-  //      if (predicate(next())) return true;
-  //    }
-  //    return false;
-  //  }
-
-  //  bool findNextEqual(const Bytes& value) {
-  //    while (hasNext()) {
-  //      if (next() == value) return true;
-  //    }
-  //    return false;
-  //  }
-
   bool hasNext() { return list_iter_.hasNext(); }
 
   Bytes next() { return list_iter_.next(); }
@@ -91,57 +77,6 @@ public:
 
   void remove();
   // Specialized only for ListLock == UniqueListLock.
-
-  //  void seekToFirst();
-  //  // Initializes the iterator to point to the first value, if any. This
-  //  process
-  //  // will trigger disk IO if necessary. The method can also be used to seek
-  //  // back to the beginning of the list at the end of an iteration.
-
-  //  void seekTo(const Bytes& target);
-  //  // Initializes the iterator to point to the first value in the list that
-  //  is
-  //  // equal to target, if any. This process will trigger disk IO if
-  //  necessary.
-
-  //  void seekTo(BytesPredicate predicate);
-  //  // Initializes the iterator to point to the first value for which
-  //  predicate
-  //  // yields true, if any. This process will trigger disk IO if necessary.
-
-  //  bool hasValue() const;
-  //  // Tells whether the iterator points to a value. If the result is true,
-  //  the
-  //  // iterator may be dereferenced via getValue().
-
-  //  Bytes getValue() const;
-  //  // Returns the current value. The returned Bytes object wraps a pointer to
-  //  // data that is managed by the iterator. Hence, this pointer is only valid
-  //  as
-  //  // long as the iterator does not move forward. Therefore, the value should
-  //  // only be used to immediately parse information or some user-defined
-  //  object
-  //  // out of it. If an independent deep copy is needed you can call
-  //  // Bytes::toString().
-  //  // Preconditions:
-  //  //   * hasValue() == true
-
-  //  void markAsDeleted();
-  //  // Marks the value the iterator currently points to as deleted.
-  //  // Preconditions:
-  //  //   * hasValue() == true
-  //  // Postconditions:
-  //  //   * hasValue() == false
-
-  //  void next();
-  //  // Moves the iterator to the next value, if any.
-
-  //  ListLock<IsConst> releaseListLock();
-
-  //  std::size_t num_values() const;
-  // Returns the total number of values to iterate. This number does not change
-  // when the iterator moves forward. The method may be called at any time,
-  // even if seekToFirst() or one of its friends have not been called.
 
 private:
   typename ListLock::ListIterator list_iter_;
