@@ -193,7 +193,7 @@ void Shard::forEachValue(const Bytes& key, Callables::Predicate action) const {
   }
 }
 
-void Shard::forEachEntry(Callables::Procedure2 action) const {
+void Shard::forEachEntry(Callables::Procedure2<ListIterator> action) const {
   store_.adviseAccessPattern(Store::AccessPattern::SEQUENTIAL);
   table_.forEachEntry([action, this](const Bytes& key,
                                      SharedListLock&& list_lock) {

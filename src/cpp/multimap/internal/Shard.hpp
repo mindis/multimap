@@ -21,6 +21,7 @@
 #include <functional>
 #include <boost/filesystem/path.hpp>
 #include "multimap/internal/thirdparty/mt.hpp"
+#include "multimap/internal/Iterator.hpp"
 #include "multimap/internal/Arena.hpp"
 #include "multimap/internal/Store.hpp"
 #include "multimap/internal/Table.hpp"
@@ -44,8 +45,8 @@ class Shard {
     mt::Properties toProperties() const;
   };
 
-  typedef Iterator<true> ListIterator;
-  typedef Iterator<false> MutableListIterator;
+  typedef Iterator<SharedListLock> ListIterator;
+  typedef Iterator<UniqueListLock> MutableListIterator;
 
 //  typedef List::BytesPredicate BytesPredicate;
 //  typedef List::BytesProcedure BytesProcedure;
@@ -103,7 +104,7 @@ class Shard {
 
   void forEachValue(const Bytes& key, Callables::Predicate action) const;
 
-  void forEachEntry(Callables::Procedure2 action) const;
+  void forEachEntry(Callables::Procedure2<ListIterator> action) const;
 
   std::size_t max_key_size() const;
 

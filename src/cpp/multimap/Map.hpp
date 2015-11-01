@@ -182,14 +182,14 @@ public:
   // an optimal order before iterating them. During the time of execution the
   // entire map is locked for read-only operations.
 
-  void forEachValue(const Bytes& key, Callables::Procedure procedure) const;
+  void forEachValue(const Bytes& key, Callables::Procedure action) const;
   // Applies procedure to each value in the list associated with key. This is a
   // shorthand for requesting a read-only iterator via Get(key) followed by an
   // application of procedure to each value obtained via
   // ConstListIter::GetValue(). This method will block until a reader lock for
   // the list in question can be acquired.
 
-  void forEachValue(const Bytes& key, Callables::Predicate predicate) const;
+  void forEachValue(const Bytes& key, Callables::Predicate action) const;
   // Applies predicate to each value in the list associated with key until
   // predicate yields false. This is a shorthand for requesting a read-only
   // iterator via Get(key) followed by an application of predicate to each
@@ -197,7 +197,7 @@ public:
   // This method will block until a reader lock for the list in question can be
   // acquired.
 
-  void forEachEntry(Callables::Procedure2 procedure) const;
+  void forEachEntry(Callables::Procedure2<ListIterator> action) const;
   // TODO Document this.
 
   std::map<std::string, std::string> getProperties() const;

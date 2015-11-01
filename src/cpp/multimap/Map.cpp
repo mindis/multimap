@@ -179,7 +179,7 @@ void Map::forEachValue(const Bytes& key, Callables::Predicate action) const {
   selectShard(shards_, key).forEachValue(key, action);
 }
 
-void Map::forEachEntry(Callables::Procedure2 action) const {
+void Map::forEachEntry(Callables::Procedure2<ListIterator> action) const {
   MT_REQUIRE_FALSE(shards_.empty());
   for (const auto& shard : shards_) {
     shard->forEachEntry(action);

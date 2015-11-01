@@ -20,7 +20,6 @@
 
 #include <functional>
 #include "multimap/Bytes.hpp"
-#include "multimap/Iterator.hpp"
 
 namespace multimap {
 
@@ -39,7 +38,8 @@ struct Callables {
   // can be used to collect information about the processed data, and thus
   // returning a result indirectly.
 
-  typedef std::function<void(const Bytes&, Iterator<true>&&)> Procedure2;
+  template <typename Iterator>
+  using Procedure2 = std::function<void(const Bytes&, Iterator&&)>;
 
   typedef std::function<std::string(const Bytes&)> Function;
   // Types implementing this interface can process a value and return a new

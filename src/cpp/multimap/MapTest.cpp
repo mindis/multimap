@@ -52,7 +52,7 @@ const Callables::Predicate TRUE_PREDICATE = [](const Bytes&) { return true; };
 const Callables::Predicate FALSE_PREDICATE = [](const Bytes&) { return false; };
 const Callables::Procedure NULL_PROCEDURE = [](const Bytes&) {};
 const Callables::Function NULL_FUNCTION = [](const Bytes&) { return ""; };
-const Callables::Procedure2 NULL_PROCEDURE2 =
+const Callables::GenericProcedure NULL_PROCEDURE2 =
     [](const Bytes&, Map::ListIterator&&) {};
 
 TEST(MapTest, IsDefaultConstructible) {
