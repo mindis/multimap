@@ -23,6 +23,7 @@
 #include <functional>
 #include <string>
 #include "multimap/thirdparty/mt.hpp"
+#include "multimap/thirdparty/xxhash.h"
 
 namespace multimap {
 
@@ -117,9 +118,10 @@ inline bool operator<(const Bytes& lhs, const Bytes& rhs) {
 namespace std {
 
 template <> struct hash< ::multimap::Bytes> {
-  // struct hash<multimap::Bytes> yields "template argument 1 is invalid"!?
   size_t operator()(const ::multimap::Bytes& bytes) const {
-    return mt::fnv1aHash64(bytes.data(), bytes.size());
+    return mt::is64BitSystem() ? XXH64(bytes.data(), bytes.size(), 0)
+                               : XXH32(bytes.data(), bytes.size(), 0);
+    // The compiler will optimize out branching here.
   }
 };
 
