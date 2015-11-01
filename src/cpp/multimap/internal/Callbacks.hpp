@@ -34,7 +34,7 @@ struct Callbacks {
 
   typedef std::function<void(const std::vector<BlockWithId>&)> ReplaceBlocks;
 
-  typedef std::function<void(std::vector<BlockWithId>*, Arena*)> RequestBlocks;
+  typedef std::function<void(std::vector<BlockWithId>&, Arena&)> RequestBlocks;
 
   NewBlock new_block;
   CommitBlock commit_block;

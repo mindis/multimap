@@ -225,18 +225,18 @@ void Map::importFromBase64(const boost::filesystem::path& target,
     std::ifstream ifs(filepath.string());
     mt::check(ifs, "Could not open '%s'.", filepath.c_str());
 
-    std::string key_as_base64;
-    std::string key_as_binary;
-    std::string value_as_base64;
-    std::string value_as_binary;
-    if (ifs >> key_as_base64) {
-      internal::Base64::decode(key_as_base64, &key_as_binary);
+    std::string from_base64_key;
+    std::string from_base64_value;
+    std::string to_binary_key;
+    std::string to_binary_value;
+    if (ifs >> from_base64_key) {
+      internal::Base64::decode(from_base64_key, to_binary_key);
       while (ifs) {
         switch (ifs.peek()) {
           case '\n':
           case '\r':
-            ifs >> key_as_base64;
-            internal::Base64::decode(key_as_base64, &key_as_binary);
+            ifs >> from_base64_key;
+            internal::Base64::decode(from_base64_key, to_binary_key);
             break;
           case '\f':
           case '\t':
@@ -245,9 +245,9 @@ void Map::importFromBase64(const boost::filesystem::path& target,
             ifs.ignore();
             break;
           default:
-            ifs >> value_as_base64;
-            internal::Base64::decode(value_as_base64, &value_as_binary);
-            map.put(key_as_binary, value_as_binary);
+            ifs >> from_base64_value;
+            internal::Base64::decode(from_base64_value, to_binary_value);
+            map.put(to_binary_key, to_binary_value);
         }
       }
     }
@@ -287,8 +287,8 @@ void Map::exportToBase64(const boost::filesystem::path& source,
   std::ofstream ofs(target.string());
   mt::check(ofs, "Could not create '%s'.", target.c_str());
 
-  std::string key_as_base64;
-  std::string value_as_base64;
+  std::string base64_key;
+  std::string base64_value;
   std::vector<std::string> sorted_values;
   if (compare) {
     map.forEachEntry([&](const Bytes& key, ListIterator&& iter) {
@@ -303,22 +303,22 @@ void Map::exportToBase64(const boost::filesystem::path& source,
       std::sort(sorted_values.begin(), sorted_values.end(), compare);
 
       // Write as Base64
-      internal::Base64::encode(key, &key_as_base64);
-      ofs << key_as_base64;
+      internal::Base64::encode(key, base64_key);
+      ofs << base64_key;
       for (const auto& value : sorted_values) {
-        internal::Base64::encode(value, &value_as_base64);
-        ofs << ' ' << value_as_base64;
+        internal::Base64::encode(value, base64_value);
+        ofs << ' ' << base64_value;
       }
       ofs << '\n';
     });
   } else {
     map.forEachEntry([&](const Bytes& key, ListIterator&& iter) {
       // Write as Base64
-      internal::Base64::encode(key, &key_as_base64);
-      ofs << key_as_base64;
+      internal::Base64::encode(key, base64_key);
+      ofs << base64_key;
       while (iter.hasNext()) {
-        internal::Base64::encode(iter.next(), &value_as_base64);
-        ofs << ' ' << value_as_base64;
+        internal::Base64::encode(iter.next(), base64_value);
+        ofs << ' ' << base64_value;
       }
       ofs << '\n';
     });

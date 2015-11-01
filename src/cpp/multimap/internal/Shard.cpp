@@ -237,13 +237,11 @@ void Shard::initCallbacks() {
 
   // Thread-safe: yes.
   callbacks_.request_blocks =
-      [this](std::vector<BlockWithId>* blocks, Arena* arena) {
-    MT_REQUIRE_NOT_NULL(blocks);
-
-    for (auto& block : *blocks) {
+      [this](std::vector<BlockWithId>& blocks, Arena& arena) {
+    for (auto& block : blocks) {
       if (block.ignore)
         continue;
-      store_.read(block.id, &block, arena);
+      store_.read(block.id, &block, &arena);
     }
   };
 }

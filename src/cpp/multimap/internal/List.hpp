@@ -162,7 +162,7 @@ class List {
             blocks_[i].id = block_ids_[offset_ + i];
           }
           if (!blocks_.empty()) {
-            request_blocks_callback_(&blocks_, &arena_);
+            request_blocks_callback_(blocks_, arena_);
             for (auto& block : blocks_) {
               block.ignore = true;  // For subsequent replace_blocks_callback_.
             }
