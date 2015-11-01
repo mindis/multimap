@@ -17,11 +17,7 @@
 
 #include "multimap/internal/Block.hpp"
 
-#include <cassert>
 #include <cstring>
-#include <array>
-#include "multimap/internal/System.hpp"
-#include "multimap/thirdparty/mt.hpp"
 
 namespace multimap {
 namespace internal {
@@ -40,11 +36,13 @@ std::uint32_t Block::max_value_size() const {
 }
 
 bool Block::add(const Bytes& value) {
-  assert(data_);
-  mt::check(value.size() <= max_value_size(),
-        "Block: Reject value because its size of %u bytes exceeds the allowed "
-        "maximum of %u bytes.",
-        value.size(), max_value_size());
+  MT_REQUIRE_NOT_NULL(data_);
+
+  mt::check(
+      value.size() <= max_value_size(),
+      "Block: Reject value because its size of %u bytes exceeds the allowed "
+      "maximum of %u bytes.",
+      value.size(), max_value_size());
   const std::int16_t value_size = value.size();
   const auto num_bytes_required = sizeof value_size + value_size;
   if (num_bytes_required > num_bytes_free()) {
@@ -61,11 +59,12 @@ bool Block::add(const Bytes& value) {
 }
 
 bool operator==(const Block& lhs, const Block& rhs) {
-  if (lhs.data() == rhs.data()) return true;
+  if (lhs.data() == rhs.data())
+    return true;
   return (lhs.size() == rhs.size())
              ? std::memcmp(lhs.data(), rhs.data(), lhs.size()) == 0
              : false;
 }
 
-}  // namespace internal
-}  // namespace multimap
+} // namespace internal
+} // namespace multimap

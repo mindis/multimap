@@ -18,7 +18,6 @@
 #ifndef MULTIMAP_INTERNAL_BLOCK_HPP_INCLUDED
 #define MULTIMAP_INTERNAL_BLOCK_HPP_INCLUDED
 
-#include <cassert>
 #include <functional>
 #include "multimap/Bytes.hpp"
 #include "multimap/thirdparty/mt.hpp"
@@ -45,7 +44,7 @@ namespace internal {
 // to preserve the put offset, the result of used() must be written in addition
 // to the actual block data.
 class Block {
- public:
+public:
   static const std::size_t SIZE_OF_VALUE_SIZE_FIELD = sizeof(std::int16_t);
 
   static std::size_t max_value_size(std::size_t block_size) {
@@ -53,9 +52,8 @@ class Block {
     return block_size - SIZE_OF_VALUE_SIZE_FIELD;
   }
 
-  template <bool IsConst>
-  class Iter {
-   public:
+  template <bool IsConst> class Iter {
+  public:
     typedef std::function<void()> HasChanged;
 
     typedef typename std::conditional<IsConst, const char, char>::type Char;
@@ -72,7 +70,9 @@ class Block {
     bool hasNext() {
       while (data_offset_ + SIZE_OF_VALUE_SIZE_FIELD < data_size_) {
         const auto value_size = size();
-        if (value_size == 0) return false;
+        if (value_size == 0) {
+          return false;
+        }
         if (deleted()) {
           data_offset_ += SIZE_OF_VALUE_SIZE_FIELD + value_size;
         } else {
@@ -110,7 +110,7 @@ class Block {
       return size & 0x7fff;
     }
 
-   private:
+  private:
     Char* tellGetAddress() const { return data_ + data_offset_; }
 
     bool deleted() const { return *tellGetAddress() & 0x80; }
@@ -122,8 +122,8 @@ class Block {
     HasChanged has_changed_callback_;
   };
 
-  typedef Iter<false> Iterator;
   typedef Iter<true> ConstIterator;
+  typedef Iter<false> Iterator;
 
   Block();
 
@@ -140,8 +140,9 @@ class Block {
   bool hasData() const { return data_ != nullptr; }
 
   void setData(void* data, std::uint32_t size) {
-    assert(data != nullptr);
-    assert(size != 0);
+    MT_ENSURE_NOT_NULL(data);
+    MT_ENSURE_NOT_ZERO(size);
+
     data_ = static_cast<char*>(data);
     size_ = size;
     position_ = 0;
@@ -175,7 +176,7 @@ class Block {
   // Returns true if the value could be written successfully.
   // Returns false if the block has not enough room to store the data.
 
- private:
+private:
   std::size_t num_bytes_free() const { return size_ - position_; }
 
   char* data_;
@@ -196,8 +197,7 @@ inline Block::Iter<false>::Iter(char* data, std::size_t size,
   MT_REQUIRE_TRUE(has_changed_callback);
 }
 
-template <>
-inline void Block::Iter<false>::markAsDeleted() {
+template <> inline void Block::Iter<false>::markAsDeleted() {
   char* prev_value_addr = data_ + data_offset_prev_;
   *prev_value_addr |= 0x80;
   if (has_changed_callback_) {
@@ -233,7 +233,7 @@ struct BlockWithId : Block {
   bool ignore = false;
 };
 
-}  // namespace internal
-}  // namespace multimap
+} // namespace internal
+} // namespace multimap
 
-#endif  // MULTIMAP_INTERNAL_BLOCK_HPP_INCLUDED
+#endif // MULTIMAP_INTERNAL_BLOCK_HPP_INCLUDED

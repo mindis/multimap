@@ -37,7 +37,7 @@ using testing::IsNull;
 using testing::NotNull;
 
 typedef Block::Iterator ListIter;
-typedef Block::ConstIterator ListConstIter;
+typedef Block::Iterator ListConstIter;
 
 class BlockTestParam : public testing::TestWithParam<std::uint32_t> {};
 
