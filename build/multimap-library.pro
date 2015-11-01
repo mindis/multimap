@@ -18,10 +18,10 @@ unix {
     multimap_internal.files += ../src/cpp/multimap/internal/*.hpp
     INSTALLS += multimap_internal
 
-    multimap_internal_thirdparty.path = /usr/include/multimap/internal/thirdparty
-    multimap_internal_thirdparty.files += ../src/cpp/multimap/internal/thirdparty/*.h
-    multimap_internal_thirdparty.files += ../src/cpp/multimap/internal/thirdparty/*.hpp
-    INSTALLS += multimap_internal_thirdparty
+    multimap_thirdparty.path = /usr/include/multimap/thirdparty
+    multimap_thirdparty.files += ../src/cpp/multimap/thirdparty/*.h
+    multimap_thirdparty.files += ../src/cpp/multimap/thirdparty/*.hpp
+    INSTALLS += multimap_thirdparty
 
     target.path = /usr/lib
     INSTALLS += target
