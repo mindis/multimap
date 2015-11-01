@@ -88,7 +88,7 @@ TEST_P(ListTestWithParam, AddValuesAndIterateTwice) {
   List list;
   for (std::size_t i = 0; i != GetParam(); ++i) {
     const auto value = std::to_string(i);
-    list.add(value, new_block_callback, commit_block_callback);
+    list.append(value, new_block_callback, commit_block_callback);
     ASSERT_THAT(list.head().num_values_removed, Eq(0));
     ASSERT_THAT(list.head().num_values_added, Eq(i + 1));
   }

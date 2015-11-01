@@ -40,9 +40,9 @@ void List::Head::writeToFile(std::FILE* file) const {
 
 List::List(const Head& head) : head_(head) {}
 
-void List::add(const Bytes& value,
-               const Callbacks::NewBlock& new_block_callback,
-               const Callbacks::CommitBlock& commit_block_callback) {
+void List::append(const Bytes& value,
+                  const Callbacks::NewBlock& new_block_callback,
+                  const Callbacks::CommitBlock& commit_block_callback) {
   if (!block_.hasData()) {
     block_ = new_block_callback();
   }
@@ -56,7 +56,8 @@ void List::add(const Bytes& value,
 }
 
 void List::flush(const Callbacks::CommitBlock& commit_block_callback) {
-  if (block_.empty()) return;
+  if (block_.empty())
+    return;
   head_.block_ids.add(commit_block_callback(block_));
   block_.clear();
 }
@@ -72,26 +73,6 @@ List::Iterator List::const_iterator(
     const Callbacks::RequestBlocks& request_blocks_callback) const {
   return Iterator(head_, block_, request_blocks_callback);
 }
-
-//void List::forEach(
-//    const Callables::Procedure& action,
-//    const Callbacks::RequestBlocks& request_blocks_callback) const {
-//  auto iter = const_iterator(request_blocks_callback);
-//  while (iter.hasNext()) {
-//    action(iter.next());
-//  }
-//}
-
-//void List::forEach(
-//    const Callables::Predicate& action,
-//    const Callbacks::RequestBlocks& request_blocks_callback) const {
-//  auto iter = const_iterator(request_blocks_callback);
-//  while (iter.hasNext()) {
-//    if (!action(iter.next())) {
-//      break;
-//    }
-//  }
-//}
 
 void List::lock() {
   {
@@ -131,7 +112,7 @@ void List::lock_shared() {
   mutex_->lock_shared();
 }
 
-bool List::try_lock_shared(){
+bool List::try_lock_shared() {
   const std::lock_guard<std::mutex> lock(mutex_allocation_protector);
   createMutexUnlocked();
   const auto locked = mutex_->try_lock_shared();
@@ -167,5 +148,5 @@ void List::deleteMutexUnlocked() const {
   mutex_.reset();
 }
 
-}  // namespace internal
-}  // namespace multimap
+} // namespace internal
+} // namespace multimap

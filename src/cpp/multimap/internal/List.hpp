@@ -18,7 +18,7 @@
 #ifndef MULTIMAP_INTERNAL_LIST_HPP_INCLUDED
 #define MULTIMAP_INTERNAL_LIST_HPP_INCLUDED
 
-#include <unistd.h>  // For sysconf
+#include <unistd.h> // For sysconf
 #include <cstdio>
 #include <functional>
 #include <mutex>
@@ -34,7 +34,7 @@ namespace internal {
 class List {
   static std::mutex mutex_allocation_protector;
 
- public:
+public:
   struct Head {
     std::uint32_t num_values_added = 0;
     std::uint32_t num_values_removed = 0;
@@ -53,9 +53,8 @@ class List {
   static_assert(mt::hasExpectedSize<Head>(20, 24),
                 "class Head does not have expected size");
 
-  template <bool IsConst>
-  class Iter {
-   public:
+  template <bool IsConst> class Iter {
+  public:
     Iter() : head_(nullptr), last_block_(nullptr) {}
 
     Iter(const Head& head, const Block& last_block,
@@ -105,7 +104,7 @@ class List {
     void remove();
     // Specialized only for Iter<false>.
 
-   private:
+  private:
     bool hasNextBlock() const {
       return block_cache_.hasNext() || (last_block_ && !stats_.last_block_read);
     }
@@ -121,7 +120,7 @@ class List {
     }
 
     class BlockCache {
-     public:
+    public:
       BlockCache() = default;
 
       BlockCache(std::vector<std::uint32_t>&& block_ids,
@@ -144,7 +143,7 @@ class List {
       Block::Iter<IsConst> next();
       // Specialized for Iter<true> and Iter<false>.
 
-     private:
+    private:
       void writeBackMutatedBlocks();
       // Specialized only for Iter<false>.
 
@@ -164,7 +163,7 @@ class List {
           if (!blocks_.empty()) {
             request_blocks_callback_(blocks_, arena_);
             for (auto& block : blocks_) {
-              block.ignore = true;  // For subsequent replace_blocks_callback_.
+              block.ignore = true; // For subsequent replace_blocks_callback_.
             }
           }
         }
@@ -205,8 +204,8 @@ class List {
   List(const List&) = delete;
   List& operator=(const List&) = delete;
 
-  void add(const Bytes& value, const Callbacks::NewBlock& new_block_callback,
-           const Callbacks::CommitBlock& commit_block_callback);
+  void append(const Bytes& value, const Callbacks::NewBlock& new_block_callback,
+              const Callbacks::CommitBlock& commit_block_callback);
 
   void flush(const Callbacks::CommitBlock& commit_block_callback);
   // Requires: not isLocked()
@@ -234,12 +233,6 @@ class List {
   Iterator const_iterator(
       const Callbacks::RequestBlocks& request_blocks_callback) const;
 
-//  void forEach(const Callables::Procedure& action,
-//               const Callbacks::RequestBlocks& request_blocks_callback) const;
-
-//  void forEach(const Callables::Predicate& action,
-//               const Callbacks::RequestBlocks& request_blocks_callback) const;
-
   // Synchronization interface based on std::shared_mutex.
 
   void lock();
@@ -256,7 +249,7 @@ class List {
 
   bool is_locked() const;
 
- private:
+private:
   void createMutexUnlocked() const;
   void deleteMutexUnlocked() const;
 
@@ -301,16 +294,13 @@ inline void List::Iter<false>::BlockCache::writeBackMutatedBlocks() {
 }
 // Needs to be specialized before any usage.
 
-template <>
-inline List::Iter<true>::BlockCache::~BlockCache() {}
+template <> inline List::Iter<true>::BlockCache::~BlockCache() {}
 
-template <>
-inline List::Iter<false>::BlockCache::~BlockCache() {
+template <> inline List::Iter<false>::BlockCache::~BlockCache() {
   writeBackMutatedBlocks();
 }
 
-template <>
-inline Block::Iter<true> List::Iter<true>::BlockCache::next() {
+template <> inline Block::Iter<true> List::Iter<true>::BlockCache::next() {
   MT_REQUIRE_TRUE(hasNext());
 
   if (index_ == blocks_.size()) {
@@ -321,8 +311,7 @@ inline Block::Iter<true> List::Iter<true>::BlockCache::next() {
   return blocks_[index_++].const_iterator();
 }
 
-template <>
-inline Block::Iter<false> List::Iter<false>::BlockCache::next() {
+template <> inline Block::Iter<false> List::Iter<false>::BlockCache::next() {
   MT_REQUIRE_TRUE(hasNext());
 
   if (index_ == blocks_.size()) {
@@ -355,23 +344,20 @@ inline List::Iter<false>::Iter(
   MT_REQUIRE_NOT_NULL(last_block);
 }
 
-template <>
-inline List::Iter<true>::~Iter() {}
+template <> inline List::Iter<true>::~Iter() {}
 
-template <>
-inline List::Iter<false>::~Iter() {
+template <> inline List::Iter<false>::~Iter() {
   if (head_) {
     head_->num_values_removed += stats_.num_values_removed;
   }
 }
 
-template <>
-inline void List::Iter<false>::remove() {
+template <> inline void List::Iter<false>::remove() {
   block_iter_.markAsDeleted();
   ++stats_.num_values_removed;
 }
 
-}  // namespace internal
-}  // namespace multimap
+} // namespace internal
+} // namespace multimap
 
-#endif  // MULTIMAP_INTERNAL_LIST_HPP_INCLUDED
+#endif // MULTIMAP_INTERNAL_LIST_HPP_INCLUDED

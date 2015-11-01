@@ -96,7 +96,7 @@ Shard::Stats Shard::close() {
 }
 
 void Shard::put(const Bytes& key, const Bytes& value) {
-  table_.getUniqueOrCreate(key).list()->add(value, callbacks_.new_block,
+  table_.getUniqueOrCreate(key).list()->append(value, callbacks_.new_block,
                                             callbacks_.commit_block);
 }
 
@@ -279,7 +279,7 @@ std::size_t Shard::replace(const Bytes& key, Callables::Function function,
       }
     }
     for (const auto& value : replaced_values) {
-      list_lock.list()->add(value, callbacks_.new_block, callbacks_.commit_block);
+      list_lock.list()->append(value, callbacks_.new_block, callbacks_.commit_block);
     }
   }
   return replaced_values.size();
