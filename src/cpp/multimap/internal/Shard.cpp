@@ -55,34 +55,23 @@ mt::Properties Shard::Stats::toProperties() const {
   return properties;
 }
 
-Shard::~Shard() {
-  if (isOpen()) {
-    close();
-  }
-}
-
-Shard::Shard(const boost::filesystem::path& prefix) { open(prefix); }
+Shard::Shard(const boost::filesystem::path& prefix) : Shard(prefix, 0) {}
 
 Shard::Shard(const boost::filesystem::path& prefix, std::size_t block_size) {
-  open(prefix, block_size);
-}
-
-void Shard::open(const boost::filesystem::path& prefix) { open(prefix, 0); }
-
-void Shard::open(const boost::filesystem::path& prefix,
-                 std::size_t block_size) {
-  MT_REQUIRE_FALSE(isOpen());
-
   store_.open(prefix.string() + STORE_FILE_SUFFIX, block_size);
   table_.open(prefix.string() + TABLE_FILE_SUFFIX);
   // TODO Check if arena_(large_chunk_size) makes any difference.
   prefix_ = prefix;
   initCallbacks();
 
-  MT_REQUIRE_TRUE(isOpen());
+  MT_ENSURE_TRUE(isOpen());
 }
 
-bool Shard::isOpen() const { return table_.isOpen(); }
+Shard::~Shard() {
+  if (isOpen()) {
+    close();
+  }
+}
 
 Shard::Stats Shard::close() {
   MT_REQUIRE_TRUE(isOpen());
@@ -97,7 +86,7 @@ Shard::Stats Shard::close() {
 
 void Shard::put(const Bytes& key, const Bytes& value) {
   table_.getUniqueOrCreate(key).list()->append(value, callbacks_.new_block,
-                                            callbacks_.commit_block);
+                                               callbacks_.commit_block);
 }
 
 Shard::ListIterator Shard::get(const Bytes& key) const {
@@ -215,6 +204,8 @@ Shard::Stats Shard::getStats() const {
   return stats;
 }
 
+bool Shard::isOpen() const { return table_.isOpen(); }
+
 void Shard::initCallbacks() {
   // Thread-safe: yes.  // TODO Check this.
   callbacks_.new_block = [this]() {
@@ -279,7 +270,8 @@ std::size_t Shard::replace(const Bytes& key, Callables::Function function,
       }
     }
     for (const auto& value : replaced_values) {
-      list_lock.list()->append(value, callbacks_.new_block, callbacks_.commit_block);
+      list_lock.list()->append(value, callbacks_.new_block,
+                               callbacks_.commit_block);
     }
   }
   return replaced_values.size();

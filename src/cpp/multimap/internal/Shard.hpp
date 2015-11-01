@@ -31,7 +31,7 @@ namespace multimap {
 namespace internal {
 
 class Shard {
- public:
+public:
   struct Stats {
     Store::Stats store;
     Table::Stats table;
@@ -48,25 +48,13 @@ class Shard {
   typedef Iterator<SharedListLock> ListIterator;
   typedef Iterator<UniqueListLock> MutableListIterator;
 
-//  typedef List::BytesPredicate BytesPredicate;
-//  typedef List::BytesProcedure BytesProcedure;
-//  typedef std::function<std::string(const Bytes&)> BytesFunction;
-//  typedef std::function<bool(const Bytes&, const Bytes&)> BytesCompare;
-//  typedef std::function<void(const Bytes&, ListIterator&&)> EntryProcedure;
-
   Shard() = default;
-
-  ~Shard();
 
   Shard(const boost::filesystem::path& prefix);
 
   Shard(const boost::filesystem::path& prefix, std::size_t block_size);
 
-  void open(const boost::filesystem::path& prefix);
-
-  void open(const boost::filesystem::path& prefix, std::size_t block_size);
-
-  bool isOpen() const;
+  ~Shard();
 
   Stats close();
 
@@ -112,7 +100,8 @@ class Shard {
 
   Stats getStats() const;
 
- private:
+private:
+  bool isOpen() const;
   void initCallbacks();
 
   std::size_t remove(const Bytes& key, Callables::Predicate predicate,
@@ -128,7 +117,7 @@ class Shard {
   boost::filesystem::path prefix_;
 };
 
-}  // namespace internal
-}  // namespace multimap
+} // namespace internal
+} // namespace multimap
 
-#endif  // MULTIMAP_INTERNAL_SHARD_HPP_INCLUDED
+#endif // MULTIMAP_INTERNAL_SHARD_HPP_INCLUDED
