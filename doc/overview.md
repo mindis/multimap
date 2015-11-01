@@ -26,7 +26,7 @@ For example, consider a key set of one million English words, each word five cha
 
 ## Choosing the block size
 
-Although, it is possible that a single value covers an entire block, this setup is far from optimal and should be avoided. Instead, the block size should be as large as possible to provide room for several values. In general, this leads to better performance since more data can be carried at once. However, there is a tradeoff. If the block size is large and your key set is also large, you will run out of memory. Try to make estimates similar to the example above. Typical block sizes are 128, 256, 512, 1024, and so on (yes, it must be a power of two).
+Although it is possible that a single value covers an entire block, this setup is far from optimal and should be avoided. Instead, the block size should be as large as possible to provide room for several values. In general, this leads to better performance since more data can be carried at once. However, there is a tradeoff. If the block size is large and your key set is also large, you will run out of memory. Try to make estimates similar to the example above. Typical block sizes are 128, 256, 512, 1024, and so on (yes, it must be a power of two).
 
 Certainly, this design favours small values sizes, but this is intended. Multimap originated from an [inverted index](https://en.wikipedia.org/wiki/Inverted_index) implementation where the main focus is on storing integers that represent things like document ids and word counts. Multimap is not suitable and was not designed to store large binary objects.
 
@@ -53,7 +53,7 @@ Key-value pairs can be imported from or exported to Base64-encoded text files us
 
 Example:
 
-```text
+```sh
 key1 value1
 key2 value2 value3
 key1 value4
@@ -63,7 +63,7 @@ key2 value9
 
 is equivalent to:
 
-```text
+```sh
 key1 value1 value4
 key2 value2 value3 value9
 key3 value5 value6 value7 value8
@@ -71,7 +71,7 @@ key3 value5 value6 value7 value8
 
 is equivalent to:
 
-```text
+```sh
 key1 value1
 key1 value4
 key2 value2
@@ -95,12 +95,6 @@ Optional:
 * **Sorting**. All lists can be sorted applying a user-defined `multimap::Callables::Compare` function.
 * **Block size**. The new optimized map can be given a different and maybe more suitable block size.
 
-## Using as 1:1 key-value store
+## Using as 1:1 store
 
 Multimap can be used as a 1:1 key-value store as well, although other libraries may be better suited for this purpose. As always, you should pick the library that best fits your needs, both with respect to features and performance. Finally, when using Multimap as a 1:1 key-value store, you should set the block size as small as possible to waste as little space as possible, because each block will only contain just one value. Also keep in mind that the block size defines the maximum size of a value.
-
-<!--
-## Benchmarks
-## Set Operations
--->
-

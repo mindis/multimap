@@ -174,4 +174,3 @@ const std::size_t num_replaced = map.ReplaceAllEqual(key, old_value, new_value);
 // After: key -> (0, 1, 45, 67, 89, 42, 42)
 // num_replaced == 2
 ```
-

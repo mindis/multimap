@@ -1,4 +1,4 @@
-## `class Bytes`
+## class Bytes
 
 ```cpp
 #include <multimap/Bytes.hpp>
@@ -117,7 +117,7 @@ Returns `true` if the bytes wrapped by `lhs` and `rhs` are not equal after byte-
 
 Returns `true` if `lhs` is less than `rhs` according to `std::memcmp`, and `false` otherwise. If `lhs` and `rhs` do not wrap the same number of bytes, only the first `std::min(lhs.size(), rhs.size())` bytes will be compared.
 
-## `class Callables`
+## class Callables
 
 ```cpp
 #include <multimap/Callables.hpp>
@@ -157,7 +157,7 @@ Types implementing this interface can process a value and return a new one. Func
 
 Types implementing this interface can process two values and return a boolean. Such functions determine the less than order of the given values according to the [Compare](http://en.cppreference.com/w/cpp/concept/Compare) concept.
 
-## `class Iterator<bool>`
+## class Iterator<bool>
 
 ```cpp
 #include <multimap/Iterator.hpp>
@@ -248,7 +248,7 @@ Postconditions:
 
 Moves the iterator to the next value, if any.
 
-## `class Map`
+## class Map
 
 ```cpp
 #include <multimap/Map.hpp>
@@ -640,7 +640,7 @@ Throws `std::exception` if:
 * the map in `directory` is locked.
 * `file` cannot be created.
 
-## `class Options`
+## class Options
 
 ```cpp
 #include <multimap/Options.hpp>
@@ -679,4 +679,3 @@ Default: `false`
 Determines if the map should be opened in write-only mode. This will enable some optimizations for putting a large number of values, but will disable the ability to retrieve values. Users normally should leave this parameter alone.
 
 Default: `false`
-

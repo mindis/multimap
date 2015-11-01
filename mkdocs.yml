@@ -1,33 +1,16 @@
-# Project information
 site_name: Multimap
-repo_url: https://bitbucket.org/mtrenkmann/multimap
-site_description: 1:n key-value store for C++ and Java
-site_author: Martin Trenkmann
-copyright: Copyright © 2015 <a href="mailto:martin@multimap.io">Martin Trenkmann</a>
-google_analytics: null
-remote_branch: null
-remote_name: null
-
-# Documentation layout
+theme_dir: docs/theme
 pages:
-  - Home: index.md
-  - Overview: overview.md
-  - Tutorial:
-    - 'for C++ Developers': 'cpptutorial.md'
-    - 'for Java Developers': 'javatutorial.md'
+  - Home: 'index.md'
+  - Overview: 'overview.md'
+  - Tutorials:
+    - 'For C++ Developers': 'cpptutorial.md'
+    - 'For Java Developers': 'javatutorial.md'
   - Reference:
-    - 'for C++ Developers': 'cppreference.md'
-    - 'for Java Developers': 'javareference.md'
-  - Download: download.md
-
-# Build directories
-theme: yeti
-theme_dir: doc/theme
-docs_dir: doc
-extra_css: ['https://fonts.googleapis.com/css?family=Faster+One|Inconsolata', multimap.css]
-
-# Others
-include_next_prev: false
-extra:
-  twitter_url: https://twitter.com/multimapio
-
+    - 'For C++ Developers': 'cppreference.md'
+    - 'For Java Developers': 'javareference.md'
+  - Downloads:
+    - 'Release 0.3': 'downloadv03.md'
+    - 'Release 0.2': 'downloadv02.md'
+    - 'Release 0.1': 'downloadv01.md'
+    - 'Changelog': 'changelog.md'
