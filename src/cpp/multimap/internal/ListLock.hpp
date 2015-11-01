@@ -23,30 +23,73 @@
 namespace multimap {
 namespace internal {
 
-// ListLock is a wrapper for class List that provides an RAII-style
-// locking/unlocking mechanism similar to std::lock_guard.
-template <bool IsShared>
-class ListLock {
- public:
-  ListLock() = default;
+// Wrapper for class List that provides RAII-like locking for shared ownership.
+class SharedListLock {
+public:
+  typedef List::Iter<true> ListIterator;
 
-  ListLock(ListLock&& other) : list_(other.list_) { other.list_ = nullptr; }
+  SharedListLock() = default;
 
-  explicit ListLock(List& list): list_(&list) {
-    lock();
-  }
+  explicit SharedListLock(List& list) : list_(&list) { list_->lock_shared(); }
 
-  ~ListLock() {
+  ~SharedListLock() {
     if (list_) {
-      unlock();
+      list_->unlock_shared();
     }
   }
 
-  ListLock& operator=(ListLock&& other) {
-    if (&other != this) {
-      list_ = other.list_;
-      other.list_ = nullptr;
+  SharedListLock(const SharedListLock&) = delete;
+  SharedListLock& operator=(const SharedListLock&) = delete;
+
+  SharedListLock(SharedListLock&& other) : list_(other.list_) {
+    other.list_ = nullptr;
+  }
+
+  SharedListLock& operator=(SharedListLock&& other) {
+    if (list_) {
+      list_->unlock_shared();
     }
+    list_ = other.list_;
+    other.list_ = nullptr;
+    return *this;
+  }
+
+  bool hasList() const { return list_ != nullptr; }
+
+  const List* list() const { return list_; }
+
+private:
+  List* list_ = nullptr;
+};
+
+// Wrapper for class List that provides RAII-like locking for unique ownership.
+class UniqueListLock {
+public:
+  typedef List::Iter<false> ListIterator;
+
+  UniqueListLock() = default;
+
+  explicit UniqueListLock(List& list) : list_(&list) { list_->lock(); }
+
+  ~UniqueListLock() {
+    if (list_) {
+      list_->unlock();
+    }
+  }
+
+  UniqueListLock(const UniqueListLock&) = delete;
+  UniqueListLock& operator=(const UniqueListLock&) = delete;
+
+  UniqueListLock(UniqueListLock&& other) : list_(other.list_) {
+    other.list_ = nullptr;
+  }
+
+  UniqueListLock& operator=(UniqueListLock&& other) {
+    if (list_) {
+      list_->unlock_shared();
+    }
+    list_ = other.list_;
+    other.list_ = nullptr;
     return *this;
   }
 
@@ -54,45 +97,11 @@ class ListLock {
 
   List* list() const { return list_; }
 
- private:
-  void lock() { list_->lock_shared(); }
-
-  void unlock() { list_->unlock_shared(); }
-
+private:
   List* list_ = nullptr;
 };
 
-template <>
-inline void ListLock<false>::lock() {
-  list_->lock();
-}
+} // namespace internal
+} // namespace multimap
 
-template <>
-inline void ListLock<false>::unlock() {
-  list_->unlock();
-}
-
-//template <>
-//inline ListLock<false>::ListLock(List* list)
-//    : list_(list) {
-//  assert(list_);
-//  lock();
-//}
-
-//template <>
-//inline ListLock<true>::ListLock(const List& list)
-//    : list_(&list) {
-//  lock();
-//}
-
-typedef ListLock<true> SharedListLock;
-typedef ListLock<false> UniqueListLock;
-
-// TODO Replace namespace boost with namespace std if available.
-typedef boost::shared_lock<List> SharedListLock2;
-typedef boost::unique_lock<List> UniqueListLock2;
-
-}  // namespace internal
-}  // namespace multimap
-
-#endif  // MULTIMAP_INCLUDE_INTERNAL_LIST_LOCK_HPP
+#endif // MULTIMAP_INCLUDE_INTERNAL_LIST_LOCK_HPP
