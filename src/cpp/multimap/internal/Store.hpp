@@ -30,7 +30,7 @@ namespace multimap {
 namespace internal {
 
 class Store {
- public:
+public:
   struct Stats {
     std::uint64_t block_size = 0;
     std::uint64_t num_blocks = 0;
@@ -38,9 +38,9 @@ class Store {
     double load_factor_max = 0;
     double load_factor_avg = 0;
 
-    Stats& summarize(const Stats& other);
+    Stats& combine(const Stats& other);
 
-    static Stats summarize(const Stats& a, const Stats& b);
+    static Stats combine(const Stats& a, const Stats& b);
 
     static Stats fromProperties(const mt::Properties& properties);
 
@@ -65,10 +65,10 @@ class Store {
 
   Store() = default;
 
-  ~Store();
-
   Store(const boost::filesystem::path& filepath, std::size_t block_size,
         std::size_t buffer_size = DEFAULT_BUFFER_SIZE);
+
+  ~Store();
 
   void open(const boost::filesystem::path& filepath, std::size_t block_size,
             std::size_t buffer_size = DEFAULT_BUFFER_SIZE);
@@ -94,7 +94,7 @@ class Store {
   std::size_t block_size() const;
   // Thread-safe: yes.
 
- private:
+private:
   char* getAddressOf(std::uint32_t id) const;
   // Thread-safe: no.
 
@@ -127,7 +127,7 @@ class Store {
   int fd_ = -1;
 };
 
-}  // namespace internal
-}  // namespace multimap
+} // namespace internal
+} // namespace multimap
 
-#endif  // MULTIMAP_INTERNAL_STORE_HPP_INCLUDED
+#endif // MULTIMAP_INTERNAL_STORE_HPP_INCLUDED

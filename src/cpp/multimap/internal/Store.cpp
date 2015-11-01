@@ -56,9 +56,9 @@ void writeStatsToTail(const Store::Stats& stats, int fd) {
   MT_ASSERT_EQ(static_cast<std::size_t>(status), sizeof stats);
 }
 
-}  // namespace
+} // namespace
 
-Store::Stats& Store::Stats::summarize(const Stats& other) {
+Store::Stats& Store::Stats::combine(const Stats& other) {
   MT_REQUIRE_LE(load_factor_min, 1.0);
   MT_REQUIRE_LE(load_factor_max, 1.0);
   MT_REQUIRE_LE(load_factor_avg, 1.0);
@@ -82,8 +82,8 @@ Store::Stats& Store::Stats::summarize(const Stats& other) {
   return *this;
 }
 
-Store::Stats Store::Stats::summarize(const Stats& a, const Stats& b) {
-  return Stats(a).summarize(b);
+Store::Stats Store::Stats::combine(const Stats& a, const Stats& b) {
+  return Stats(a).combine(b);
 }
 
 Store::Stats Store::Stats::fromProperties(const mt::Properties& properties) {
@@ -301,5 +301,5 @@ char* Store::getAddressOf(std::uint32_t id) const {
   }
 }
 
-}  // namespace internal
-}  // namespace multimap
+} // namespace internal
+} // namespace multimap

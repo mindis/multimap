@@ -30,7 +30,7 @@ const char* TABLE_FILE_SUFFIX = ".table";
 } // namespace
 
 Shard::Stats& Shard::Stats::combine(const Stats& other) {
-  store.summarize(other.store);
+  store.combine(other.store);
   table.summarize(other.table);
   return *this;
 }
