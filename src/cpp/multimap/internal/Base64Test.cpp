@@ -54,94 +54,94 @@ const std::string kTestStringF_Base64 =
 TEST(Base64Test, EncodeZeroBytesReturnsEmptyString) {
   Bytes binary;
   std::string base64;
-  Base64::encode(binary, &base64);
+  Base64::encode(binary, base64);
   ASSERT_TRUE(base64.empty());
 
   base64 = "nonempty";
-  Base64::encode(binary, &base64);
+  Base64::encode(binary, base64);
   ASSERT_TRUE(base64.empty());
 }
 
 TEST(Base64Test, EncodeTestStringA) {
   std::string base64;
-  Base64::encode(kTestStringA_Binary, &base64);
+  Base64::encode(kTestStringA_Binary, base64);
   ASSERT_EQ(base64, kTestStringA_Base64);
 }
 
 TEST(Base64Test, EncodeTestStringB) {
   std::string base64;
-  Base64::encode(kTestStringB_Binary, &base64);
+  Base64::encode(kTestStringB_Binary, base64);
   ASSERT_EQ(base64, kTestStringB_Base64);
 }
 
 TEST(Base64Test, EncodeTestStringC) {
   std::string base64;
-  Base64::encode(kTestStringC_Binary, &base64);
+  Base64::encode(kTestStringC_Binary, base64);
   ASSERT_EQ(base64, kTestStringC_Base64);
 }
 
 TEST(Base64Test, EncodeTestStringD) {
   std::string base64;
-  Base64::encode(kTestStringD_Binary, &base64);
+  Base64::encode(kTestStringD_Binary, base64);
   ASSERT_EQ(base64, kTestStringD_Base64);
 }
 
 TEST(Base64Test, EncodeTestStringE) {
   std::string base64;
-  Base64::encode(kTestStringE_Binary, &base64);
+  Base64::encode(kTestStringE_Binary, base64);
   ASSERT_EQ(base64, kTestStringE_Base64);
 }
 
 TEST(Base64Test, EncodeTestStringF) {
   std::string base64;
-  Base64::encode(kTestStringF_Binary, &base64);
+  Base64::encode(kTestStringF_Binary, base64);
   ASSERT_EQ(base64, kTestStringF_Base64);
 }
 
 TEST(Base64Test, DecodeEmptyStringReturnsZeroBytes) {
   std::string base64;
   std::string binary;
-  Base64::decode(base64, &binary);
+  Base64::decode(base64, binary);
   ASSERT_TRUE(binary.empty());
 
   binary = "\x12\x34\x56";
-  Base64::decode(base64, &binary);
+  Base64::decode(base64, binary);
   ASSERT_TRUE(binary.empty());
 }
 
 TEST(Base64Test, DecodeTestStringA) {
   std::string binary;
-  Base64::decode(kTestStringA_Base64, &binary);
+  Base64::decode(kTestStringA_Base64, binary);
   ASSERT_EQ(binary, kTestStringA_Binary);
 }
 
 TEST(Base64Test, DecodeTestStringB) {
   std::string binary;
-  Base64::decode(kTestStringB_Base64, &binary);
+  Base64::decode(kTestStringB_Base64, binary);
   ASSERT_EQ(binary, kTestStringB_Binary);
 }
 
 TEST(Base64Test, DecodeTestStringC) {
   std::string binary;
-  Base64::decode(kTestStringC_Base64, &binary);
+  Base64::decode(kTestStringC_Base64, binary);
   ASSERT_EQ(binary, kTestStringC_Binary);
 }
 
 TEST(Base64Test, DecodeTestStringD) {
   std::string binary;
-  Base64::decode(kTestStringD_Base64, &binary);
+  Base64::decode(kTestStringD_Base64, binary);
   ASSERT_EQ(binary, kTestStringD_Binary);
 }
 
 TEST(Base64Test, DecodeTestStringE) {
   std::string binary;
-  Base64::decode(kTestStringE_Base64, &binary);
+  Base64::decode(kTestStringE_Base64, binary);
   ASSERT_EQ(binary, kTestStringE_Binary);
 }
 
 TEST(Base64Test, DecodeTestStringF) {
   std::string binary;
-  Base64::decode(kTestStringF_Base64, &binary);
+  Base64::decode(kTestStringF_Base64, binary);
   ASSERT_EQ(binary, kTestStringF_Binary);
 }
 

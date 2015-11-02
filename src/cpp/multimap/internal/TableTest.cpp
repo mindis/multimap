@@ -55,9 +55,9 @@ TEST_F(TableTestFixture, DefaultConstructedHasProperState) {
   ASSERT_THAT(Table().getUniqueOrCreate(key1).list(), NotNull());
 
   std::vector<std::string> keys;
-  Table::BytesProcedure procedure =
+  Callables::Procedure action =
       [&keys](const Bytes& key) { keys.push_back(key.toString()); };
-  Table().forEachKey(procedure);
+  Table().forEachKey(action);
   ASSERT_TRUE(keys.empty());
 }
 
@@ -214,11 +214,11 @@ TEST_F(TableTestFixture, ForEachKeyIgnoresEmptyLists) {
   const auto list_lock3 = table.getUniqueOrCreate(key3);
 
   std::vector<std::string> keys;
-  Table::BytesProcedure procedure =
+  Callables::Procedure action =
       [&keys](const Bytes& key) { keys.push_back(key.toString()); };
-  Table().forEachKey(procedure);
+  Table().forEachKey(action);
   ASSERT_TRUE(keys.empty());
 }
 
-}  // namespace internal
-}  // namespace multimap
+} // namespace internal
+} // namespace multimap

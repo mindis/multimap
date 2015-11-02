@@ -95,14 +95,12 @@ TEST_P(ListTestWithParam, AddValuesAndIterateTwice) {
   ASSERT_THAT(list.size(), Eq(GetParam()));
 
   const auto request_blocks_callback =
-      [&store](std::vector<BlockWithId>* blocks, Arena* arena) {
-    assert(blocks);
-    for (auto& block : *blocks) {
+      [&store](std::vector<BlockWithId>& blocks, Arena& arena) {
+    for (auto& block : blocks) {
       assert(block.id < store.size());
       if (!block.hasData()) {
-        assert(arena);
         const auto block_size = store[block.id].size();
-        block.setData(arena->allocate(block_size), block_size);
+        block.setData(arena.allocate(block_size), block_size);
       }
       std::memcpy(block.data(), store[block.id].data(), block.size());
     }
@@ -260,5 +258,5 @@ TEST(ListTest, TryLockSharedDoesNotFailIfAlreadyLockedShared) {
   thread.join();
 }
 
-}  // namespace internal
-}  // namespace multimap
+} // namespace internal
+} // namespace multimap

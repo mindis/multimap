@@ -101,17 +101,17 @@ TEST(BlockTest, DefaultConstructedHasProperState) {
 }
 
 TEST(BlockTest, ConstructedWithNullDataDies) {
-  ASSERT_DEATH(Block(nullptr, 1), "");
+  ASSERT_THROW(Block(nullptr, 1), mt::AssertionError);
 }
 
-TEST(BlockTest, ConstructedWithNullSizeDies) {
+TEST(BlockTest, ConstructedWithZeroSizeDies) {
   char data[0];
-  ASSERT_DEATH(Block(data, sizeof data), "");
+  ASSERT_THROW(Block(data, sizeof data), mt::AssertionError);
 }
 
 TEST(BlockTest, AddToDefaultConstructedDies) {
   Block block;
-  ASSERT_DEATH(block.add(Bytes()), "");
+  ASSERT_THROW(block.add(Bytes()), mt::AssertionError);
 }
 
 TEST(BlockTest, AddMaxValueToEmptyBlockWorks) {
