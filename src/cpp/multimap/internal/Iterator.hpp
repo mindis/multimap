@@ -109,6 +109,9 @@ template <> inline void Iterator<UniqueListLock>::remove() {
   list_iter_.remove();
 }
 
+typedef Iterator<SharedListLock> SharedListIterator;
+typedef Iterator<UniqueListLock> UniqueListIterator;
+
 } // namespace internal
 } // namespace multimap
 
