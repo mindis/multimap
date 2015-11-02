@@ -58,7 +58,7 @@ void writeStatsToTail(const Table::Stats& stats, std::FILE* file) {
 
 }  // namespace
 
-Table::Stats& Table::Stats::summarize(const Stats& other) {
+Table::Stats& Table::Stats::combine(const Stats& other) {
   num_values_put += other.num_values_put;
   num_values_removed += other.num_values_removed;
   num_values_unowned += other.num_values_unowned;
@@ -81,8 +81,8 @@ Table::Stats& Table::Stats::summarize(const Stats& other) {
   return *this;
 }
 
-Table::Stats Table::Stats::summarize(const Stats& a, const Stats& b) {
-  return Stats(a).summarize(b);
+Table::Stats Table::Stats::combine(const Stats& a, const Stats& b) {
+  return Stats(a).combine(b);
 }
 
 Table::Stats Table::Stats::fromProperties(const mt::Properties& properties) {
@@ -271,22 +271,22 @@ UniqueListLock Table::getUniqueOrCreate(const Bytes& key) {
   return UniqueListLock(*list);
 }
 
-void Table::forEachKey(BytesProcedure procedure) const {
+void Table::forEachKey(Callables::Procedure action) const {
   const boost::shared_lock<boost::shared_mutex> lock(mutex_);
   for (const auto& entry : map_) {
     SharedListLock lock(*entry.second);
     if (!lock.list()->empty()) {
-      procedure(entry.first);
+      action(entry.first);
     }
   }
 }
 
-void Table::forEachEntry(EntryProcedure procedure) const {
+void Table::forEachEntry(EntryProcedure action) const {
   const boost::shared_lock<boost::shared_mutex> lock(mutex_);
   for (const auto& entry : map_) {
     SharedListLock list_lock(*entry.second);
     if (!list_lock.list()->empty()) {
-      procedure(entry.first, std::move(list_lock));
+      action(entry.first, std::move(list_lock));
     }
   }
 }

@@ -24,8 +24,10 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/thread/shared_mutex.hpp>
 #include "multimap/internal/Arena.hpp"
+#include "multimap/internal/Iterator.hpp"
 #include "multimap/internal/ListLock.hpp"
 #include "multimap/thirdparty/mt.hpp"
+#include "multimap/Callables.hpp"
 
 namespace multimap {
 namespace internal {
@@ -44,9 +46,9 @@ class Table {
     std::uint64_t list_size_max = 0;
     std::uint64_t list_size_avg = 0;
 
-    Stats& summarize(const Stats& other);
+    Stats& combine(const Stats& other);
 
-    static Stats summarize(const Stats& a, const Stats& b);
+    static Stats combine(const Stats& a, const Stats& b);
 
     static Stats fromProperties(const mt::Properties& properties);
 
@@ -65,7 +67,7 @@ class Table {
                 "Table::Stats does not have expected size");
   // Use __attribute__((packed)) if 32- and 64-bit size differ.
 
-  typedef std::function<void(const Bytes&)> BytesProcedure;
+//  typedef std::function<void(const Bytes&)> BytesProcedure;
 
   typedef std::function<void(const Bytes&, SharedListLock&&)> EntryProcedure;
 
@@ -89,9 +91,9 @@ class Table {
 
   UniqueListLock getUniqueOrCreate(const Bytes& key);
 
-  void forEachKey(BytesProcedure procedure) const;
+  void forEachKey(Callables::Procedure action) const;
 
-  void forEachEntry(EntryProcedure procedure) const;
+  void forEachEntry(EntryProcedure action) const;
 
   Stats getStats() const;
   // Returns various statistics about the table.

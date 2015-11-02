@@ -31,7 +31,7 @@ const char* TABLE_FILE_SUFFIX = ".table";
 
 Shard::Stats& Shard::Stats::combine(const Stats& other) {
   store.combine(other.store);
-  table.summarize(other.table);
+  table.combine(other.table);
   return *this;
 }
 
