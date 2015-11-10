@@ -15,13 +15,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include <unistd.h>
-#include <array>
-#include <algorithm>
-#include <cstring>
 #include <type_traits>
 #include <boost/filesystem/operations.hpp>
-#include "gmock/gmock.h"
+#include <gmock/gmock.h>
 #include "multimap/internal/Block.hpp"
 #include "multimap/internal/Generator.hpp"
 #include "multimap/internal/System.hpp"
@@ -30,13 +26,7 @@ namespace multimap {
 namespace internal {
 
 using testing::Eq;
-using testing::Ne;
-using testing::Gt;
-using testing::Le;
 using testing::IsNull;
-using testing::NotNull;
-
-//class ReadOnlyBlockParam : public testing::TestWithParam<std::uint32_t> {};
 
 TEST(ReadOnlyBlockTest, IsDefaultConstructible) {
   ASSERT_TRUE(std::is_default_constructible<ReadOnlyBlock>::value);
@@ -62,6 +52,15 @@ TEST(ReadOnlyBlockTest, DefaultConstructedHasProperState) {
 
 TEST(ReadOnlyBlockTest, ConstructedWithNullDataThrows) {
   ASSERT_THROW(ReadOnlyBlock(nullptr, 1), mt::AssertionError);
+}
+
+TEST(ReadOnlyBlockTest, ConstructedWithDataHasProperState) {
+  char buf[512];
+  ASSERT_THAT(ReadOnlyBlock(buf, sizeof buf).hasData(), Eq(true));
+  ASSERT_THAT(ReadOnlyBlock(buf, sizeof buf).data(), Eq(buf));
+  ASSERT_THAT(ReadOnlyBlock(buf, sizeof buf).size(), Eq(sizeof buf));
+  ASSERT_THAT(ReadOnlyBlock(buf, sizeof buf).offset(), Eq(0));
+  ASSERT_THAT(ReadOnlyBlock(buf, sizeof buf).remaining(), Eq(sizeof buf));
 }
 
 TEST(ReadWriteBlockTest, IsDefaultConstructible) {
@@ -90,103 +89,135 @@ TEST(ReadWriteBlockTest, ConstructedWithNullDataThrows) {
   ASSERT_THROW(ReadWriteBlock(nullptr, 1), mt::AssertionError);
 }
 
+TEST(ReadWriteBlockTest, ConstructedWithDataHasProperState) {
+  char buf[512];
+  ASSERT_THAT(ReadWriteBlock(buf, sizeof buf).hasData(), Eq(true));
+  ASSERT_THAT(ReadWriteBlock(buf, sizeof buf).data(), Eq(buf));
+  ASSERT_THAT(ReadWriteBlock(buf, sizeof buf).size(), Eq(sizeof buf));
+  ASSERT_THAT(ReadWriteBlock(buf, sizeof buf).offset(), Eq(0));
+  ASSERT_THAT(ReadWriteBlock(buf, sizeof buf).remaining(), Eq(sizeof buf));
+}
 
+TEST(ReadWriteBlockTest, WriteToDefaultConstructedThrows) {
+  ASSERT_THROW(ReadWriteBlock().writeData("x", 1), mt::AssertionError);
+}
 
+TEST(ReadWriteBlockTest, WriteValuesSmallerThanBlockSize) {
+  char buf[512];
+  ReadWriteBlock block(buf, sizeof buf);
 
+  std::string value = "123";
+  while (true) {
+    const auto remaining = block.remaining();
+    const auto nbytes = block.writeData(value.data(), value.size());
+    if (remaining < value.size()) {
+      ASSERT_EQ(nbytes, remaining);
+      ASSERT_EQ(block.remaining(), 0);
+      ASSERT_EQ(block.offset(), block.size());
+      break;
+    } else {
+      ASSERT_EQ(nbytes, value.size());
+    }
+  }
+}
 
-//TEST(BlockTest, AddToDefaultConstructedDies) {
-//  Block block;
-//  ASSERT_THROW(block.add(Bytes()), mt::AssertionError);
-//}
+TEST(ReadWriteBlockTest, WriteValuesLargerThanBlockSize) {
+  char buf[512];
+  ReadWriteBlock block(buf, sizeof buf);
 
-//TEST(BlockTest, AddTooLargeValueToEmptyBlockThrows) {
-//  char buf[512];
-//  Block block(buf, sizeof buf);
-//  std::string value(block.max_value_size() + 1, '\0');
-//  ASSERT_THROW(block.add(value), std::runtime_error);
-//}
+  std::string value(600, 'x');
+  auto nbytes = block.writeData(value.data(), value.size());
+  ASSERT_EQ(nbytes, block.size());
+  ASSERT_EQ(block.remaining(), 0);
+  ASSERT_EQ(block.offset(), block.size());
 
-// TODO Remove duplication
-//TEST(BlockTest, AddValuesAndIterateAll) {
-//  const auto num_values = 100;
-//  const auto value_size = 23;
-//  const auto block_size =
-//      (Block::SIZE_OF_VALUE_SIZE_FIELD + value_size) * num_values;
-//  char block_data[block_size];
-//  Block block(block_data, block_size);
-//  auto generator = SequenceGenerator::create();
-//  for (auto i = 0; i != num_values; ++i) {
-//    ASSERT_TRUE(block.add(generator->generate(value_size)));
-//  }
-//  ASSERT_FALSE(block.add(generator->generate(value_size)));
+  nbytes = block.writeData(value.data(), value.size());
+  ASSERT_EQ(nbytes, 0);
+  ASSERT_EQ(block.remaining(), 0);
+  ASSERT_EQ(block.offset(), block.size());
 
-//  generator->reset();
-//  auto iter = block.iterator();
-//  for (auto i = 0; i != num_values; ++i) {
-//    ASSERT_TRUE(iter.hasNext());
-//    ASSERT_THAT(iter.next(), Eq(generator->generate(value_size)));
-//  }
-//  ASSERT_FALSE(iter.hasNext());
-//}
+  block.rewind();
+  nbytes = block.writeData(value.data(), value.size());
+  ASSERT_EQ(nbytes, block.size());
+  ASSERT_EQ(block.remaining(), 0);
+  ASSERT_EQ(block.offset(), block.size());
+}
 
-//TEST_P(BlockTestParam, AddValuesAndIterateAll) {
-//  const auto num_values = 100;
-//  const auto value_size = GetParam();
-//  const auto block_size =
-//      (Block::SIZE_OF_VALUE_SIZE_FIELD + value_size) * num_values;
-//  char block_data[block_size];
-//  Block block(block_data, block_size);
-//  auto generator = SequenceGenerator::create();
-//  for (auto i = 0; i != num_values; ++i) {
-//    ASSERT_TRUE(block.add(generator->generate(value_size)));
-//  }
-//  ASSERT_FALSE(block.add(generator->generate(value_size)));
+TEST(ReadWriteBlockTest, WriteValuesAndIterateOnce) {
+  char buf[512];
+  ReadWriteBlock block(buf, sizeof buf);
 
-//  generator->reset();
-//  auto iter = block.iterator();
-//  for (auto i = 0; i != num_values; ++i) {
-//    ASSERT_TRUE(iter.hasNext());
-//    ASSERT_THAT(iter.next(), Eq(generator->generate(value_size)));
-//  }
-//  ASSERT_FALSE(iter.hasNext());
-//}
+  std::size_t num_values = 0;
+  SequenceGenerator gen;
+  while (true) {
+    const auto value = gen.next();
+    const bool flag = num_values % 2;
+    auto nbytes = block.writeSizeWithFlag(value.size(), flag);
+    if (nbytes != 0) {
+      nbytes = block.writeData(value.data(), value.size());
+      if (nbytes == value.size()) {
+        ++num_values;
+        continue;
+      }
+    }
+    break;
+  }
+  ASSERT_GT(num_values, 0);
 
-//TEST_P(BlockTestParam, AddValuesAndDeleteEvery2ndWhileIterating) {
-//  const auto num_values = 100;
-//  const auto value_size = GetParam();
-//  const auto block_size =
-//      (Block::SIZE_OF_VALUE_SIZE_FIELD + value_size) * num_values;
-//  char block_data[block_size];
-//  Block block(block_data, block_size);
-//  auto generator = SequenceGenerator::create();
-//  for (auto i = 0; i != num_values; ++i) {
-//    ASSERT_TRUE(block.add(generator->generate(value_size)));
-//  }
+  gen.reset();
+  block.rewind();
 
-//  auto iter = block.iterator();
-//  for (auto i = 0; i != num_values; ++i) {
-//    ASSERT_TRUE(iter.hasNext());
-//    iter.next();
-//    if (i % 2 == 0) {
-//      iter.markAsDeleted();
-//    }
-//  }
-//  ASSERT_FALSE(iter.hasNext());
+  bool flag;
+  std::uint32_t size;
+  for (std::size_t i = 0; i != num_values; ++i) {
+    const auto expected = gen.next();
+    block.readSizeWithFlag(&size, &flag);
+    ASSERT_EQ(size, expected.size());
+    ASSERT_EQ(flag, i % 2);
+    std::vector<char> actual(size);
+    block.readData(actual.data(), size);
+    ASSERT_EQ(std::string(actual.data(), actual.size()), expected);
+  }
+}
 
-//  generator->reset();
-//  iter = block.iterator();
-//  for (auto i = 0; i != num_values; ++i) {
-//    const auto expected_value = generator->generate(value_size);
-//    if (i % 2 != 0) {
-//      ASSERT_TRUE(iter.hasNext());
-//      ASSERT_THAT(iter.next(), Eq(expected_value));
-//    }
-//  }
-//  ASSERT_FALSE(iter.hasNext());
-//}
+TEST(ReadWriteBlockTest, WriteValuesAndFlipFlags) {
+  char buf[512];
+  ReadWriteBlock block(buf, sizeof buf);
 
-//INSTANTIATE_TEST_CASE_P(Parameterized, ReadOnlyBlockParam,
-//                        testing::Values(100, 10000));
+  std::size_t num_values = 0;
+  SequenceGenerator gen;
+  while (true) {
+    const auto value = gen.next();
+    const bool flag = num_values % 2;
+    const std::size_t offset = block.offset();
+    auto nbytes = block.writeSizeWithFlag(value.size(), flag);
+    if (nbytes != 0) {
+      nbytes = block.writeData(value.data(), value.size());
+      if (nbytes == value.size()) {
+        block.writeFlagAt(!flag, offset);
+        ++num_values;
+        continue;
+      }
+    }
+    break;
+  }
+  ASSERT_GT(num_values, 0);
 
-}  // namespace internal
-}  // namespace multimap
+  gen.reset();
+  block.rewind();
+
+  bool flag;
+  std::uint32_t size;
+  for (std::size_t i = 0; i != num_values; ++i) {
+    const auto expected = gen.next();
+    block.readSizeWithFlag(&size, &flag);
+    ASSERT_EQ(size, expected.size());
+    ASSERT_EQ(flag, !(i % 2));
+    std::vector<char> actual(size);
+    block.readData(actual.data(), size);
+    ASSERT_EQ(std::string(actual.data(), actual.size()), expected);
+  }
+}
+
+} // namespace internal
+} // namespace multimap

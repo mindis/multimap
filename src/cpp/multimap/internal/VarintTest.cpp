@@ -17,7 +17,7 @@
 
 #include <cstring>
 #include <type_traits>
-#include "gmock/gmock.h"
+#include <gmock/gmock.h>
 #include "multimap/internal/Varint.hpp"
 #include "multimap/thirdparty/mt.hpp"
 

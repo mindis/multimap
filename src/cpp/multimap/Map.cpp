@@ -28,7 +28,7 @@ namespace multimap {
 
 namespace {
 
-const std::string FILE_PREFIX = "multimap.s";
+const std::string FILE_PREFIX = "multimap";
 const std::string NAME_OF_LOCK_FILE = FILE_PREFIX + ".lock";
 const std::string NAME_OF_PROPERTIES_FILE = FILE_PREFIX + ".properties";
 

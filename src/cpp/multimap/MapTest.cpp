@@ -24,30 +24,6 @@ namespace multimap {
 
 using testing::Eq;
 
-struct MapTestFixture : public testing::Test {
-  void SetUp() override {
-    directory = "/tmp/multimap-MapTestFixture";
-    boost::filesystem::remove_all(directory);
-    assert(boost::filesystem::create_directory(directory));
-  }
-
-  void TearDown() override { assert(boost::filesystem::remove_all(directory)); }
-
-  boost::filesystem::path directory;
-};
-
-struct MapTestWithParam : public testing::TestWithParam<std::uint32_t> {
-  void SetUp() override {
-    directory = "/tmp/multimap-MapTestFixture";
-    boost::filesystem::remove_all(directory);
-    assert(boost::filesystem::create_directory(directory));
-  }
-
-  void TearDown() override { assert(boost::filesystem::remove_all(directory)); }
-
-  boost::filesystem::path directory;
-};
-
 const Callables::Predicate TRUE_PREDICATE = [](const Bytes&) { return true; };
 const Callables::Predicate FALSE_PREDICATE = [](const Bytes&) { return false; };
 const Callables::Procedure NULL_PROCEDURE = [](const Bytes&) {};
@@ -56,7 +32,7 @@ const Callables::Procedure2<Map::ListIterator> NULL_PROCEDURE2 =
     [](const Bytes&, Map::ListIterator&&) {};
 
 TEST(MapTest, IsDefaultConstructible) {
-  ASSERT_THAT(std::is_default_constructible<Map>::value, Eq(true));
+  ASSERT_TRUE(std::is_default_constructible<Map>::value);
 }
 
 TEST(MapTest, DefaultConstructedHasProperState) {
@@ -83,22 +59,34 @@ TEST(MapTest, DefaultConstructedHasProperState) {
 }
 
 TEST(MapTest, IsNotCopyConstructibleOrAssignable) {
-  ASSERT_THAT(std::is_copy_constructible<Map>::value, Eq(false));
-  ASSERT_THAT(std::is_copy_assignable<Map>::value, Eq(false));
+  ASSERT_FALSE(std::is_copy_constructible<Map>::value);
+  ASSERT_FALSE(std::is_copy_assignable<Map>::value);
 }
 
 TEST(MapTest, IsMoveConstructibleOrAssignable) {
-  ASSERT_THAT(std::is_move_constructible<Map>::value, Eq(true));
-  ASSERT_THAT(std::is_move_assignable<Map>::value, Eq(true));
+  ASSERT_TRUE(std::is_move_constructible<Map>::value);
+  ASSERT_TRUE(std::is_move_assignable<Map>::value);
 }
 
-TEST_F(MapTestFixture, OpenThrowsIfFilesAreMissing) {
+struct MapTestFixture : public testing::Test {
+  void SetUp() override {
+    directory = "/tmp/multimap.MapTestFixture";
+    boost::filesystem::remove_all(directory);
+    assert(boost::filesystem::create_directory(directory));
+  }
+
+  void TearDown() override { assert(boost::filesystem::remove_all(directory)); }
+
+  boost::filesystem::path directory;
+};
+
+TEST_F(MapTestFixture, ConstructorThrowsIfFilesAreMissing) {
   Options options;
   options.create_if_missing = false;
   ASSERT_THROW(Map(directory, options), std::runtime_error);
 }
 
-TEST_F(MapTestFixture, OpenDoesNotThrowIfCreateIsMissingIsTrue) {
+TEST_F(MapTestFixture, ConstructorDoesNotThrowIfCreateIsMissingIsTrue) {
   {
     Options options;
     options.create_if_missing = true;
@@ -107,7 +95,7 @@ TEST_F(MapTestFixture, OpenDoesNotThrowIfCreateIsMissingIsTrue) {
   ASSERT_FALSE(boost::filesystem::is_empty(directory));
 }
 
-TEST_F(MapTestFixture, OpenThrowsIfMapExistsAndErrorIfExistsIsTrue) {
+TEST_F(MapTestFixture, ConstructorThrowsIfMapExistsAndErrorIfExistsIsTrue) {
   {
     Options options;
     options.create_if_missing = true;
@@ -118,14 +106,14 @@ TEST_F(MapTestFixture, OpenThrowsIfMapExistsAndErrorIfExistsIsTrue) {
   ASSERT_THROW(Map(directory, options), std::runtime_error);
 }
 
-TEST_F(MapTestFixture, OpenThrowsIfBlockSizeIsNotPowerOfTwo) {
+TEST_F(MapTestFixture, ConstructorThrowsIfBlockSizeIsNotPowerOfTwo) {
   Options options;
   options.create_if_missing = true;
   options.block_size = 100;
   ASSERT_THROW(Map(directory, options), std::runtime_error);
 }
 
-TEST_F(MapTestFixture, PutWithMaxKeySizeWorks) {
+TEST_F(MapTestFixture, PutValueWithMaxKeySize) {
   Options options;
   options.create_if_missing = true;
   Map map(directory, options);
@@ -133,7 +121,7 @@ TEST_F(MapTestFixture, PutWithMaxKeySizeWorks) {
   ASSERT_NO_THROW(map.put(key, "value"));
 }
 
-TEST_F(MapTestFixture, PutWithTooLargeKeyThrows) {
+TEST_F(MapTestFixture, PutValueWithTooLargeKeyThrows) {
   Options options;
   options.create_if_missing = true;
   Map map(directory, options);
@@ -141,7 +129,7 @@ TEST_F(MapTestFixture, PutWithTooLargeKeyThrows) {
   ASSERT_THROW(map.put(key, "value"), std::runtime_error);
 }
 
-TEST_F(MapTestFixture, PutWithMaxValueSizeWorks) {
+TEST_F(MapTestFixture, PutValueWithMaxValueSize) {
   Options options;
   options.create_if_missing = true;
   Map map(directory, options);
@@ -149,7 +137,7 @@ TEST_F(MapTestFixture, PutWithMaxValueSizeWorks) {
   ASSERT_NO_THROW(map.put("key", value));
 }
 
-TEST_F(MapTestFixture, PutWithTooLargeValueThrows) {
+TEST_F(MapTestFixture, PutValueWithTooLargeValueThrows) {
   Options options;
   options.create_if_missing = true;
   Map map(directory, options);
@@ -157,7 +145,19 @@ TEST_F(MapTestFixture, PutWithTooLargeValueThrows) {
   ASSERT_THROW(map.put("key", value), std::runtime_error);
 }
 
-TEST_P(MapTestWithParam, PutThenGetWorks) {
+struct MapTestWithParam : public testing::TestWithParam<std::uint32_t> {
+  void SetUp() override {
+    directory = "/tmp/multimap.MapTestWithParam";
+    boost::filesystem::remove_all(directory);
+    assert(boost::filesystem::create_directory(directory));
+  }
+
+  void TearDown() override { assert(boost::filesystem::remove_all(directory)); }
+
+  boost::filesystem::path directory;
+};
+
+TEST_P(MapTestWithParam, PutThenGet) {
   Options options;
   options.create_if_missing = true;
   Map map(directory, options);
@@ -170,13 +170,13 @@ TEST_P(MapTestWithParam, PutThenGetWorks) {
     auto iter = map.get(std::to_string(k));
     ASSERT_THAT(iter.available(), Eq(GetParam()));
     for (std::uint32_t v = 0; iter.hasNext(); ++v) {
-      ASSERT_THAT(iter.next().toString(), Eq(std::to_string(k + v * v)));
+      ASSERT_EQ(iter.next().toString(), std::to_string(k + v * v));
     }
-    ASSERT_THAT(iter.available(), Eq(0));
+    ASSERT_EQ(iter.available(), 0);
   }
 }
 
-TEST_P(MapTestWithParam, PutThenCloseThenOpenThenGetWorks) {
+TEST_P(MapTestWithParam, PutThenCloseThenOpenThenGet) {
   {
     Options options;
     options.create_if_missing = true;
@@ -191,11 +191,11 @@ TEST_P(MapTestWithParam, PutThenCloseThenOpenThenGetWorks) {
     Map map(directory, Options());
     for (std::uint32_t k = 0; k != GetParam(); ++k) {
       auto iter = map.get(std::to_string(k));
-      ASSERT_THAT(iter.available(), Eq(GetParam()));
+      ASSERT_EQ(iter.available(), GetParam());
       for (std::uint32_t v = 0; iter.hasNext(); ++v) {
-        ASSERT_THAT(iter.next().toString(), Eq(std::to_string(k + v * v)));
+        ASSERT_EQ(iter.next().toString(), std::to_string(k + v * v));
       }
-      ASSERT_THAT(iter.available(), Eq(0));
+      ASSERT_EQ(iter.available(), 0);
     }
   }
 }
@@ -204,7 +204,7 @@ INSTANTIATE_TEST_CASE_P(Parameterized, MapTestWithParam,
                         testing::Values(0, 1, 2, 10, 100, 1000));
 
 // INSTANTIATE_TEST_CASE_P(ParameterizedLongRunning, MapTestWithParam,
-//                        testing::Values(10000, 100000, 1000000));
+//                         testing::Values(10000, 100000));
 
 TEST_F(MapTestFixture, ContainsReturnsFalseForNonExistingKey) {
   Options options;
@@ -442,4 +442,4 @@ TEST_F(MapTestFixture, IteratorWritesBackMutatedBlocks) {
   }
 }
 
-}  // namespace multimap
+} // namespace multimap

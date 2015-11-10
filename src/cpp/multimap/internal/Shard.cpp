@@ -220,7 +220,6 @@ std::size_t Shard::replace(const Bytes& key, Callables::Function function,
   std::vector<std::string> replaced_values;
   auto list_lock = table_.getUnique(key);
   if (list_lock.hasList()) {
-    // TODO iter.remove should not compile.
     auto iter = list_lock.list()->iterator(&store_);
     while (iter.hasNext()) {
       auto replaced_value = function(iter.next());

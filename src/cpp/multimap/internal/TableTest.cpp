@@ -15,23 +15,13 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include <limits>
-#include <sstream>
 #include <thread>
 #include <type_traits>
-#include <boost/filesystem/operations.hpp>
-#include "gmock/gmock.h"
+#include <gmock/gmock.h>
 #include "multimap/internal/Table.hpp"
-#include "multimap/internal/System.hpp"
 
 namespace multimap {
 namespace internal {
-
-using testing::Eq;
-using testing::IsNull;
-using testing::NotNull;
-using testing::ElementsAre;
-using testing::ElementsAreArray;
 
 struct TableTestFixture : public testing::Test {
   void SetUp() override {
@@ -46,13 +36,13 @@ struct TableTestFixture : public testing::Test {
 };
 
 TEST_F(TableTestFixture, IsDefaultConstructible) {
-  ASSERT_THAT(std::is_default_constructible<Table>::value, Eq(true));
+  ASSERT_TRUE(std::is_default_constructible<Table>::value);
 }
 
 TEST_F(TableTestFixture, DefaultConstructedHasProperState) {
-  ASSERT_THAT(Table().getShared(key1).list(), IsNull());
-  ASSERT_THAT(Table().getUnique(key1).list(), IsNull());
-  ASSERT_THAT(Table().getUniqueOrCreate(key1).list(), NotNull());
+  ASSERT_EQ(Table().getShared(key1).list(), nullptr);
+  ASSERT_EQ(Table().getUnique(key1).list(), nullptr);
+  ASSERT_NE(Table().getUniqueOrCreate(key1).list(), nullptr);
 
   std::vector<std::string> keys;
   Callables::Procedure action =
@@ -62,33 +52,33 @@ TEST_F(TableTestFixture, DefaultConstructedHasProperState) {
 }
 
 TEST_F(TableTestFixture, IsNotCopyConstructibleOrAssignable) {
-  ASSERT_THAT(std::is_copy_constructible<Table>::value, Eq(false));
-  ASSERT_THAT(std::is_copy_assignable<Table>::value, Eq(false));
+  ASSERT_FALSE(std::is_copy_constructible<Table>::value);
+  ASSERT_FALSE(std::is_copy_assignable<Table>::value);
 }
 
 TEST_F(TableTestFixture, IsNotMoveConstructibleOrAssignable) {
-  ASSERT_THAT(std::is_move_constructible<Table>::value, Eq(false));
-  ASSERT_THAT(std::is_move_assignable<Table>::value, Eq(false));
+  ASSERT_FALSE(std::is_move_constructible<Table>::value);
+  ASSERT_FALSE(std::is_move_assignable<Table>::value);
 }
 
 TEST_F(TableTestFixture, GetUniqueOrCreateInsertsNewKey) {
   Table table;
   table.getUniqueOrCreate(key1);
-  ASSERT_THAT(table.getShared(key1).list(), NotNull());
-  ASSERT_THAT(table.getUnique(key1).list(), NotNull());
+  ASSERT_NE(table.getShared(key1).list(), nullptr);
+  ASSERT_NE(table.getUnique(key1).list(), nullptr);
 
   table.getUniqueOrCreate(key2);
-  ASSERT_THAT(table.getShared(key2).list(), NotNull());
-  ASSERT_THAT(table.getUnique(key2).list(), NotNull());
+  ASSERT_NE(table.getShared(key2).list(), nullptr);
+  ASSERT_NE(table.getUnique(key2).list(), nullptr);
 }
 
 TEST_F(TableTestFixture, InsertKeyThenGetSharedTwice) {
   Table table;
   table.getUniqueOrCreate(key1);
   const auto lock1 = table.getShared(key1);
-  ASSERT_THAT(lock1.list(), NotNull());
+  ASSERT_NE(lock1.list(), nullptr);
   const auto lock2 = table.getShared(key1);
-  ASSERT_THAT(lock2.list(), NotNull());
+  ASSERT_NE(lock2.list(), nullptr);
 }
 
 TEST_F(TableTestFixture, InsertKeyThenGetUniqueTwice) {
@@ -97,7 +87,7 @@ TEST_F(TableTestFixture, InsertKeyThenGetUniqueTwice) {
   bool other_thread_got_unique_lock = false;
   {
     const auto lock = table.getUnique(key1);
-    ASSERT_THAT(lock.list(), NotNull());
+    ASSERT_NE(lock.list(), nullptr);
     // We don't have GetUnique(key, wait_for_some_time)
     // so we start a new thread that tries to acquire the lock.
     std::thread thread([&] {
@@ -106,10 +96,10 @@ TEST_F(TableTestFixture, InsertKeyThenGetUniqueTwice) {
     });
     thread.detach();
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    ASSERT_THAT(other_thread_got_unique_lock, Eq(false));
+    ASSERT_FALSE(other_thread_got_unique_lock);
   }
   std::this_thread::sleep_for(std::chrono::milliseconds(10));
-  ASSERT_THAT(other_thread_got_unique_lock, Eq(true));
+  ASSERT_TRUE(other_thread_got_unique_lock);
 }
 
 TEST_F(TableTestFixture, InsertKeyThenGetSharedAndGetUnique) {
@@ -118,7 +108,7 @@ TEST_F(TableTestFixture, InsertKeyThenGetSharedAndGetUnique) {
   bool other_thread_gots_unique_lock = false;
   {
     const auto list_lock = table.getShared(key1);
-    ASSERT_THAT(list_lock.list(), NotNull());
+    ASSERT_NE(list_lock.list(), nullptr);
     // We don't have GetUnique(key, wait_for_some_time)
     // so we start a new thread that tries to acquire the lock.
     std::thread thread([&] {
@@ -127,10 +117,10 @@ TEST_F(TableTestFixture, InsertKeyThenGetSharedAndGetUnique) {
     });
     thread.detach();
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    ASSERT_THAT(other_thread_gots_unique_lock, Eq(false));
+    ASSERT_FALSE(other_thread_gots_unique_lock);
   }
   std::this_thread::sleep_for(std::chrono::milliseconds(10));
-  ASSERT_THAT(other_thread_gots_unique_lock, Eq(true));
+  ASSERT_TRUE(other_thread_gots_unique_lock);
 }
 
 TEST_F(TableTestFixture, InsertKeyThenGetUniqueAndGetShared) {
@@ -139,7 +129,7 @@ TEST_F(TableTestFixture, InsertKeyThenGetUniqueAndGetShared) {
   bool other_thread_gots_shared_lock = false;
   {
     const auto list_lock = table.getUnique(key1);
-    ASSERT_THAT(list_lock.list(), NotNull());
+    ASSERT_NE(list_lock.list(), nullptr);
     // We don't have GetShared(key, wait_for_some_time)
     // so we start a new thread that tries to acquire the lock.
     std::thread thread([&] {
@@ -148,10 +138,10 @@ TEST_F(TableTestFixture, InsertKeyThenGetUniqueAndGetShared) {
     });
     thread.detach();
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    ASSERT_THAT(other_thread_gots_shared_lock, Eq(false));
+    ASSERT_FALSE(other_thread_gots_shared_lock);
   }
   std::this_thread::sleep_for(std::chrono::milliseconds(10));
-  ASSERT_THAT(other_thread_gots_shared_lock, Eq(true));
+  ASSERT_TRUE(other_thread_gots_shared_lock);
 }
 
 TEST_F(TableTestFixture, InsertKeysThenGetAllShared) {
@@ -161,7 +151,7 @@ TEST_F(TableTestFixture, InsertKeysThenGetAllShared) {
   bool other_thread_gots_shared_lock = false;
 
   const auto list_lock = table.getShared(key1);
-  ASSERT_THAT(list_lock.list(), NotNull());
+  ASSERT_NE(list_lock.list(), nullptr);
   // We don't have GetShared(key, wait_for_some_time)
   // so we start a new thread that tries to acquire the lock.
   std::thread thread([&] {
@@ -170,7 +160,7 @@ TEST_F(TableTestFixture, InsertKeysThenGetAllShared) {
   });
   thread.detach();
   std::this_thread::sleep_for(std::chrono::milliseconds(10));
-  ASSERT_THAT(other_thread_gots_shared_lock, Eq(true));
+  ASSERT_TRUE(other_thread_gots_shared_lock);
 }
 
 TEST_F(TableTestFixture, InsertKeysThenGetAllUnique) {
@@ -180,7 +170,7 @@ TEST_F(TableTestFixture, InsertKeysThenGetAllUnique) {
   bool other_thread_gots_unique_lock = false;
 
   const auto list_lock = table.getUnique(key1);
-  ASSERT_THAT(list_lock.list(), NotNull());
+  ASSERT_NE(list_lock.list(), nullptr);
   // We don't have GetUnique(key, wait_for_some_time)
   // so we start a new thread that tries to acquire the lock.
   std::thread thread([&] {
@@ -189,7 +179,7 @@ TEST_F(TableTestFixture, InsertKeysThenGetAllUnique) {
   });
   thread.detach();
   std::this_thread::sleep_for(std::chrono::milliseconds(10));
-  ASSERT_THAT(other_thread_gots_unique_lock, Eq(true));
+  ASSERT_TRUE(other_thread_gots_unique_lock);
 }
 
 TEST_F(TableTestFixture, InsertAndDeleteKeys) {
@@ -197,14 +187,14 @@ TEST_F(TableTestFixture, InsertAndDeleteKeys) {
   table.getUniqueOrCreate(key1);
   table.getUniqueOrCreate(key2);
 
-  ASSERT_THAT(table.getShared(key1).list(), NotNull());
-  ASSERT_THAT(table.getUnique(key1).list(), NotNull());
+  ASSERT_NE(table.getShared(key1).list(), nullptr);
+  ASSERT_NE(table.getUnique(key1).list(), nullptr);
 
-  ASSERT_THAT(table.getShared(key2).list(), NotNull());
-  ASSERT_THAT(table.getUnique(key2).list(), NotNull());
+  ASSERT_NE(table.getShared(key2).list(), nullptr);
+  ASSERT_NE(table.getUnique(key2).list(), nullptr);
 
-  ASSERT_THAT(table.getShared(key3).list(), IsNull());
-  ASSERT_THAT(table.getUnique(key3).list(), IsNull());
+  ASSERT_EQ(table.getShared(key3).list(), nullptr);
+  ASSERT_EQ(table.getUnique(key3).list(), nullptr);
 }
 
 TEST_F(TableTestFixture, ForEachKeyIgnoresEmptyLists) {

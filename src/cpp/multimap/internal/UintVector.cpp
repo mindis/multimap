@@ -29,13 +29,11 @@ namespace {
 std::size_t readUint32(const char* source, std::uint32_t* target) {
   std::memcpy(target, source, sizeof *target);
   return sizeof *target;
-  // TODO Endianess.
 }
 
 std::size_t writeUint32(std::uint32_t source, char* target) {
   std::memcpy(target, &source, sizeof source);
   return sizeof source;
-  // TODO Endianess.
 }
 
 } // namespace

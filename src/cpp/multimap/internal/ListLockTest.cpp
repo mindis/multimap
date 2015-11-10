@@ -16,39 +16,36 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <type_traits>
-#include "gmock/gmock.h"
+#include <gmock/gmock.h>
 #include "multimap/internal/ListLock.hpp"
 
 namespace multimap {
 namespace internal {
 
-using testing::Eq;
-using testing::IsNull;
-
 TEST(ListLockTest, IsDefaultConstructible) {
-  ASSERT_THAT(std::is_default_constructible<SharedListLock>::value, Eq(true));
-  ASSERT_THAT(std::is_default_constructible<UniqueListLock>::value, Eq(true));
+  ASSERT_TRUE(std::is_default_constructible<SharedListLock>::value);
+  ASSERT_TRUE(std::is_default_constructible<UniqueListLock>::value);
 }
 
 TEST(ListLockTest, DefaultConstructedHasProperState) {
-  ASSERT_THAT(SharedListLock().list(), IsNull());
-  ASSERT_THAT(UniqueListLock().list(), IsNull());
+  ASSERT_EQ(SharedListLock().list(), nullptr);
+  ASSERT_EQ(UniqueListLock().list(), nullptr);
 }
 
 TEST(ListLockTest, IsMoveConstructibleAndAssignable) {
-  ASSERT_THAT(std::is_move_constructible<SharedListLock>::value, Eq(true));
-  ASSERT_THAT(std::is_move_assignable<SharedListLock>::value, Eq(true));
+  ASSERT_TRUE(std::is_move_constructible<SharedListLock>::value);
+  ASSERT_TRUE(std::is_move_assignable<SharedListLock>::value);
 
-  ASSERT_THAT(std::is_move_constructible<UniqueListLock>::value, Eq(true));
-  ASSERT_THAT(std::is_move_assignable<UniqueListLock>::value, Eq(true));
+  ASSERT_TRUE(std::is_move_constructible<UniqueListLock>::value);
+  ASSERT_TRUE(std::is_move_assignable<UniqueListLock>::value);
 }
 
 TEST(ListLockTest, IsNotCopyConstructibleOrAssignable) {
-  ASSERT_THAT(std::is_copy_constructible<SharedListLock>::value, Eq(false));
-  ASSERT_THAT(std::is_copy_assignable<SharedListLock>::value, Eq(false));
+  ASSERT_FALSE(std::is_copy_constructible<SharedListLock>::value);
+  ASSERT_FALSE(std::is_copy_assignable<SharedListLock>::value);
 
-  ASSERT_THAT(std::is_copy_constructible<UniqueListLock>::value, Eq(false));
-  ASSERT_THAT(std::is_copy_assignable<UniqueListLock>::value, Eq(false));
+  ASSERT_FALSE(std::is_copy_constructible<UniqueListLock>::value);
+  ASSERT_FALSE(std::is_copy_assignable<UniqueListLock>::value);
 }
 
 }  // namespace internal

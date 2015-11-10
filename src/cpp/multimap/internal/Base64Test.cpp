@@ -16,35 +16,35 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <string>
-#include "gmock/gmock.h"
+#include <gmock/gmock.h>
 #include "multimap/internal/Base64.hpp"
 
 namespace multimap {
 namespace internal {
 
 // https://en.wikipedia.org/wiki/Base64
-const std::string kTestStringA_Binary = "any carnal pleasure.";
-const std::string kTestStringA_Base64 = "YW55IGNhcm5hbCBwbGVhc3VyZS4=";
+const std::string TEST_STRING_A_BINARY = "any carnal pleasure.";
+const std::string TEST_STRING_A_BASE64 = "YW55IGNhcm5hbCBwbGVhc3VyZS4=";
 
-const std::string kTestStringB_Binary = "any carnal pleasure";
-const std::string kTestStringB_Base64 = "YW55IGNhcm5hbCBwbGVhc3VyZQ==";
+const std::string TEST_STRING_B_BINARY = "any carnal pleasure";
+const std::string TEST_STRING_B_BASE64 = "YW55IGNhcm5hbCBwbGVhc3VyZQ==";
 
-const std::string kTestStringC_Binary = "any carnal pleasur";
-const std::string kTestStringC_Base64 = "YW55IGNhcm5hbCBwbGVhc3Vy";
+const std::string TEST_STRING_C_BINARY = "any carnal pleasur";
+const std::string TEST_STRING_C_BASE64 = "YW55IGNhcm5hbCBwbGVhc3Vy";
 
-const std::string kTestStringD_Binary = "any carnal pleasu";
-const std::string kTestStringD_Base64 = "YW55IGNhcm5hbCBwbGVhc3U=";
+const std::string TEST_STRING_D_BINARY = "any carnal pleasu";
+const std::string TEST_STRING_D_BASE64 = "YW55IGNhcm5hbCBwbGVhc3U=";
 
-const std::string kTestStringE_Binary = "any carnal pleas";
-const std::string kTestStringE_Base64 = "YW55IGNhcm5hbCBwbGVhcw==";
+const std::string TEST_STRING_E_BINARY = "any carnal pleas";
+const std::string TEST_STRING_E_BASE64 = "YW55IGNhcm5hbCBwbGVhcw==";
 
-const std::string kTestStringF_Binary =
+const std::string TEST_STRING_F_BINARY =
     "Man is distinguished, not only by his reason, but by this singular "
     "passion from other animals, which is a lust of the mind, that by a "
     "perseverance of delight in the continued and indefatigable generation of "
     "knowledge, exceeds the short vehemence of any carnal pleasure.";
 
-const std::string kTestStringF_Base64 =
+const std::string TEST_STRING_F_BASE64 =
     "TWFuIGlzIGRpc3Rpbmd1aXNoZWQsIG5vdCBvbmx5IGJ5IGhpcyByZWFzb24sIGJ1dCBieSB0aG"
     "lzIHNpbmd1bGFyIHBhc3Npb24gZnJvbSBvdGhlciBhbmltYWxzLCB3aGljaCBpcyBhIGx1c3Qg"
     "b2YgdGhlIG1pbmQsIHRoYXQgYnkgYSBwZXJzZXZlcmFuY2Ugb2YgZGVsaWdodCBpbiB0aGUgY2"
@@ -64,38 +64,38 @@ TEST(Base64Test, EncodeZeroBytesReturnsEmptyString) {
 
 TEST(Base64Test, EncodeTestStringA) {
   std::string base64;
-  Base64::encode(kTestStringA_Binary, base64);
-  ASSERT_EQ(base64, kTestStringA_Base64);
+  Base64::encode(TEST_STRING_A_BINARY, base64);
+  ASSERT_EQ(base64, TEST_STRING_A_BASE64);
 }
 
 TEST(Base64Test, EncodeTestStringB) {
   std::string base64;
-  Base64::encode(kTestStringB_Binary, base64);
-  ASSERT_EQ(base64, kTestStringB_Base64);
+  Base64::encode(TEST_STRING_B_BINARY, base64);
+  ASSERT_EQ(base64, TEST_STRING_B_BASE64);
 }
 
 TEST(Base64Test, EncodeTestStringC) {
   std::string base64;
-  Base64::encode(kTestStringC_Binary, base64);
-  ASSERT_EQ(base64, kTestStringC_Base64);
+  Base64::encode(TEST_STRING_C_BINARY, base64);
+  ASSERT_EQ(base64, TEST_STRING_C_BASE64);
 }
 
 TEST(Base64Test, EncodeTestStringD) {
   std::string base64;
-  Base64::encode(kTestStringD_Binary, base64);
-  ASSERT_EQ(base64, kTestStringD_Base64);
+  Base64::encode(TEST_STRING_D_BINARY, base64);
+  ASSERT_EQ(base64, TEST_STRING_D_BASE64);
 }
 
 TEST(Base64Test, EncodeTestStringE) {
   std::string base64;
-  Base64::encode(kTestStringE_Binary, base64);
-  ASSERT_EQ(base64, kTestStringE_Base64);
+  Base64::encode(TEST_STRING_E_BINARY, base64);
+  ASSERT_EQ(base64, TEST_STRING_E_BASE64);
 }
 
 TEST(Base64Test, EncodeTestStringF) {
   std::string base64;
-  Base64::encode(kTestStringF_Binary, base64);
-  ASSERT_EQ(base64, kTestStringF_Base64);
+  Base64::encode(TEST_STRING_F_BINARY, base64);
+  ASSERT_EQ(base64, TEST_STRING_F_BASE64);
 }
 
 TEST(Base64Test, DecodeEmptyStringReturnsZeroBytes) {
@@ -111,39 +111,39 @@ TEST(Base64Test, DecodeEmptyStringReturnsZeroBytes) {
 
 TEST(Base64Test, DecodeTestStringA) {
   std::string binary;
-  Base64::decode(kTestStringA_Base64, binary);
-  ASSERT_EQ(binary, kTestStringA_Binary);
+  Base64::decode(TEST_STRING_A_BASE64, binary);
+  ASSERT_EQ(binary, TEST_STRING_A_BINARY);
 }
 
 TEST(Base64Test, DecodeTestStringB) {
   std::string binary;
-  Base64::decode(kTestStringB_Base64, binary);
-  ASSERT_EQ(binary, kTestStringB_Binary);
+  Base64::decode(TEST_STRING_B_BASE64, binary);
+  ASSERT_EQ(binary, TEST_STRING_B_BINARY);
 }
 
 TEST(Base64Test, DecodeTestStringC) {
   std::string binary;
-  Base64::decode(kTestStringC_Base64, binary);
-  ASSERT_EQ(binary, kTestStringC_Binary);
+  Base64::decode(TEST_STRING_C_BASE64, binary);
+  ASSERT_EQ(binary, TEST_STRING_C_BINARY);
 }
 
 TEST(Base64Test, DecodeTestStringD) {
   std::string binary;
-  Base64::decode(kTestStringD_Base64, binary);
-  ASSERT_EQ(binary, kTestStringD_Binary);
+  Base64::decode(TEST_STRING_D_BASE64, binary);
+  ASSERT_EQ(binary, TEST_STRING_D_BINARY);
 }
 
 TEST(Base64Test, DecodeTestStringE) {
   std::string binary;
-  Base64::decode(kTestStringE_Base64, binary);
-  ASSERT_EQ(binary, kTestStringE_Binary);
+  Base64::decode(TEST_STRING_E_BASE64, binary);
+  ASSERT_EQ(binary, TEST_STRING_E_BINARY);
 }
 
 TEST(Base64Test, DecodeTestStringF) {
   std::string binary;
-  Base64::decode(kTestStringF_Base64, binary);
-  ASSERT_EQ(binary, kTestStringF_Binary);
+  Base64::decode(TEST_STRING_F_BASE64, binary);
+  ASSERT_EQ(binary, TEST_STRING_F_BINARY);
 }
 
-}  // namespace internal
-}  // namespace multimap
+} // namespace internal
+} // namespace multimap

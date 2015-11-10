@@ -22,38 +22,38 @@
 namespace multimap {
 namespace internal {
 
-using testing::Eq;
 using testing::ElementsAreArray;
 
-struct UintVectorTestParam : public testing::TestWithParam<std::uint32_t> {};
-
 TEST(UintVectorTest, IsDefaultConstructible) {
-  ASSERT_THAT(std::is_default_constructible<UintVector>::value, Eq(true));
+  ASSERT_TRUE(std::is_default_constructible<UintVector>::value);
 }
 
 TEST(UintVectorTest, DefaultConstructedHasProperState) {
-  ASSERT_THAT(UintVector().unpack().empty(), Eq(true));
-  ASSERT_THAT(UintVector().empty(), Eq(true));
+  ASSERT_TRUE(UintVector().unpack().empty());
+  ASSERT_TRUE(UintVector().empty());
 }
 
 TEST(UintVectorTest, IsCopyConstructibleAndAssignable) {
-  ASSERT_THAT(std::is_copy_constructible<UintVector>::value, Eq(true));
-  ASSERT_THAT(std::is_copy_assignable<UintVector>::value, Eq(true));
+  ASSERT_TRUE(std::is_copy_constructible<UintVector>::value);
+  ASSERT_TRUE(std::is_copy_assignable<UintVector>::value);
 }
 
 TEST(UintVectorTest, IsMoveConstructibleAndAssignable) {
-  ASSERT_THAT(std::is_move_constructible<UintVector>::value, Eq(true));
-  ASSERT_THAT(std::is_move_assignable<UintVector>::value, Eq(true));
+  ASSERT_TRUE(std::is_move_constructible<UintVector>::value);
+  ASSERT_TRUE(std::is_move_assignable<UintVector>::value);
 }
 
-TEST_P(UintVectorTestParam, AddValueAndUnpack) {
+struct UintVectorTestWithParam : public testing::TestWithParam<std::uint32_t> {
+};
+
+TEST_P(UintVectorTestWithParam, AddValueAndUnpack) {
   UintVector vector;
   vector.add(GetParam());
-  ASSERT_THAT(vector.unpack().size(), Eq(1));
-  ASSERT_THAT(vector.unpack().front(), Eq(GetParam()));
+  ASSERT_EQ(vector.unpack().size(), 1);
+  ASSERT_EQ(vector.unpack().front(), GetParam());
 }
 
-INSTANTIATE_TEST_CASE_P(Parameterized, UintVectorTestParam,
+INSTANTIATE_TEST_CASE_P(Parameterized, UintVectorTestWithParam,
                         testing::Values(0, 1, 10, 1000, 10000000,
                                         Varint::Limits::N4_MAX_UINT));
 

@@ -214,14 +214,14 @@ TEST(ListTest, TryLockSharedSucceedsIfAlreadyLockedShared) {
 
 struct ListTestIteration : testing::TestWithParam<std::uint32_t> {
   void SetUp() override {
-    directory = "/tmp/multimap.ListTestWithParam";
+    directory = "/tmp/multimap.ListTestIteration";
     boost::filesystem::remove_all(directory);
     assert(boost::filesystem::create_directory(directory));
     store = new Store(directory / "store", block_size);
   }
 
   void TearDown() override {
-    delete store; // Calls destructor.
+    delete store; // Destructor flushes all data to disk.
     assert(boost::filesystem::remove_all(directory));
   }
 

@@ -16,7 +16,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <type_traits>
-#include "gmock/gmock.h"
+#include <gmock/gmock.h>
 #include "multimap/internal/System.hpp"
 
 namespace multimap {
@@ -36,5 +36,5 @@ TEST(DirectoryLockGuardTest, IsMoveConstructibleAndAssignable) {
   ASSERT_TRUE(std::is_move_assignable<System::DirectoryLockGuard>::value);
 }
 
-}  // namespace internal
-}  // namespace multimap
+} // namespace internal
+} // namespace multimap

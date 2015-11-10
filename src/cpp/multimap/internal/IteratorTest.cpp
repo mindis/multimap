@@ -17,7 +17,7 @@
 
 #include <type_traits>
 #include <boost/filesystem/operations.hpp>
-#include "gmock/gmock.h"
+#include <gmock/gmock.h>
 #include "multimap/internal/System.hpp"
 #include "multimap/Map.hpp"
 
@@ -29,7 +29,7 @@ using testing::Ne;
 
 struct IteratorTestFixture : testing::TestWithParam<std::uint32_t> {
   void SetUp() override {
-    directory = "/tmp/multimap-IteratorTestFixture";
+    directory = "/tmp/multimap.IteratorTestFixture";
     boost::filesystem::remove_all(directory);
     assert(boost::filesystem::create_directory(directory));
 
@@ -168,15 +168,7 @@ TEST_P(UniqueListIteratorTest, IterateTwiceAndRemoveEvery23thValueIn1stRun) {
 }
 
 INSTANTIATE_TEST_CASE_P(Parameterized, UniqueListIteratorTest,
-                        testing::Values(0, 1, 2, 10, 100, 1000, 10000));
-
-// TODO Micro-benchmark this.
-// INSTANTIATE_TEST_CASE_P(ParameterizedLongRunning, IterTest,
-//                        testing::Values(100000, 1000000));
-
-// TODO Micro-benchmark this.
-// INSTANTIATE_TEST_CASE_P(ParameterizedLongRunning, ConstIterTest,
-//                        testing::Values(100000, 1000000));
+                        testing::Values(0, 1, 2, 10, 100, 1000, 1000000));
 
 } // namespace internal
 } // namespace multimap
