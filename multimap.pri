@@ -3,9 +3,13 @@
 CONFIG -= qt
 DEFINES -= QT_WEBKIT
 
+QMAKE_CFLAGS_RELEASE -= -O1
+QMAKE_CFLAGS_RELEASE -= -O2
+QMAKE_CFLAGS_RELEASE *= -O3
+QMAKE_CXXFLAGS_RELEASE -= -O1
+QMAKE_CXXFLAGS_RELEASE -= -O2
+QMAKE_CXXFLAGS_RELEASE *= -O3
 QMAKE_CXXFLAGS += -std=c++11
-QMAKE_CXXFLAGS += -march=native
-# https://wiki.gentoo.org/wiki/GCC_optimization
 
 QMAKE_LFLAGS += -rdynamic
 # Needed for GNU backtrace
@@ -17,7 +21,6 @@ HEADERS += \
     $$PWD/src/cpp/multimap/internal/Arena.hpp \
     $$PWD/src/cpp/multimap/internal/Base64.hpp \
     $$PWD/src/cpp/multimap/internal/Block.hpp \
-    $$PWD/src/cpp/multimap/internal/Callbacks.hpp \
     $$PWD/src/cpp/multimap/internal/Iterator.hpp \
     $$PWD/src/cpp/multimap/internal/List.hpp \
     $$PWD/src/cpp/multimap/internal/ListLock.hpp \
@@ -37,7 +40,6 @@ HEADERS += \
 SOURCES += \
     $$PWD/src/cpp/multimap/internal/Arena.cpp \
     $$PWD/src/cpp/multimap/internal/Base64.cpp \
-    $$PWD/src/cpp/multimap/internal/Block.cpp \
     $$PWD/src/cpp/multimap/internal/List.cpp \
     $$PWD/src/cpp/multimap/internal/Shard.cpp \
     $$PWD/src/cpp/multimap/internal/Store.cpp \

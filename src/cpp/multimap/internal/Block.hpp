@@ -18,220 +18,246 @@
 #ifndef MULTIMAP_INTERNAL_BLOCK_HPP_INCLUDED
 #define MULTIMAP_INTERNAL_BLOCK_HPP_INCLUDED
 
+#include <algorithm>
 #include <functional>
-#include "multimap/Bytes.hpp"
+#include "multimap/internal/Arena.hpp"
+#include "multimap/internal/Varint.hpp"
 #include "multimap/thirdparty/mt.hpp"
 
 namespace multimap {
 namespace internal {
 
-//  1                                   block_size
-// +-----------------------+-----+---------+------+
-// |        value 1        | ... | value n | free |
-// +-----------------------+-----+---------+------+
-// |                       |
-// |1       1 2   16 17    |
-// +---------+------+------+
-// | deleted | size | data |
-// +---------+------+------+
-
-// Note: When the raw data of a block obtained via data() and size() is written
-// to disk the current put offset obtained via used() is not stored. Therefore,
-// when the block is read back into memory its content can only be read via
-// forward interation. In particular, because the former put offset is unknown
-// then, it is not possible to add new values to the end of the block. Doing so
-// would override the content at the beginning of the block. If a client needs
-// to preserve the put offset, the result of used() must be written in addition
-// to the actual block data.
-class Block {
+template <bool IsReadOnly> class BasicBlock {
 public:
-  static const std::size_t SIZE_OF_VALUE_SIZE_FIELD = sizeof(std::int16_t);
+  BasicBlock() = default;
 
-  static std::size_t max_value_size(std::size_t block_size) {
-    MT_REQUIRE_GT(block_size, SIZE_OF_VALUE_SIZE_FIELD);
-    return block_size - SIZE_OF_VALUE_SIZE_FIELD;
+  BasicBlock(char* data, std::size_t size) : data_(data), size_(size) {
+    MT_REQUIRE_NOT_NULL(data_);
   }
 
-  template <bool IsConst> class Iter {
-  public:
-    typedef std::function<void()> HasChanged;
+  BasicBlock(BasicBlock&&) = default;
+  BasicBlock& operator=(BasicBlock&&) = default;
 
-    typedef typename std::conditional<IsConst, const char, char>::type Char;
-
-    Iter() = default;
-
-    Iter(Char* data, std::size_t size) : data_(data), data_size_(size) {
-      MT_REQUIRE_NOT_NULL(data);
-    }
-
-    Iter(char* data, std::size_t size, HasChanged has_changed_callback);
-    // Specialized for Iter<false>.
-
-    bool hasNext() {
-      while (data_offset_ + SIZE_OF_VALUE_SIZE_FIELD < data_size_) {
-        const auto value_size = size();
-        if (value_size == 0) {
-          return false;
-        }
-        if (deleted()) {
-          data_offset_ += SIZE_OF_VALUE_SIZE_FIELD + value_size;
-        } else {
-          return true;
-        }
-      }
-      return false;
-    }
-
-    Bytes next() {
-      const auto value = peekNext();
-      data_offset_prev_ = data_offset_;
-      data_offset_ += SIZE_OF_VALUE_SIZE_FIELD;
-      data_offset_ += value.size();
-      return value;
-    }
-
-    Bytes peekNext() const { return Bytes(data(), size()); }
-
-    void markAsDeleted();
-    // Specialized for Iter<false>.
-
-    void toFront() {
-      data_size_ = 0;
-      data_offset_ = 0;
-      data_offset_prev_ = 0;
-    }
-
-    Char* data() const { return tellGetAddress() + SIZE_OF_VALUE_SIZE_FIELD; }
-
-    std::size_t size() const {
-      std::int16_t size = 0;
-      size += tellGetAddress()[0] << 8;
-      size += tellGetAddress()[1];
-      return size & 0x7fff;
-    }
-
-  private:
-    Char* tellGetAddress() const { return data_ + data_offset_; }
-
-    bool deleted() const { return *tellGetAddress() & 0x80; }
-
-    Char* data_ = nullptr;
-    std::uint32_t data_size_ = 0;
-    std::uint32_t data_offset_ = 0;
-    std::uint32_t data_offset_prev_ = 0;
-    HasChanged has_changed_callback_;
-  };
-
-  typedef Iter<true> ConstIterator;
-  typedef Iter<false> Iterator;
-
-  Block();
-
-  Block(void* data, std::uint32_t size);
-
-  char* data() { return data_; }
-
-  const char* data() const { return data_; }
-
-  std::uint32_t size() const { return size_; }
-
-  std::uint32_t position() const { return position_; }
+  BasicBlock getView() const {
+    return hasData() ? BasicBlock(data_, size_) : BasicBlock();
+  }
+  // Returns a shallow copy of the block whose offset is set to zero.
 
   bool hasData() const { return data_ != nullptr; }
 
-  void setData(void* data, std::uint32_t size) {
-    MT_ENSURE_NOT_NULL(data);
-    MT_ENSURE_NOT_ZERO(size);
+  const char* data() const { return data_; }
 
-    data_ = static_cast<char*>(data);
-    size_ = size;
-    position_ = 0;
-    std::memset(data_, 0, size_);
+  std::size_t size() const { return size_; }
+
+  std::size_t offset() const { return offset_; }
+
+  std::size_t remaining() const { return size_ - offset_; }
+
+  void rewind() { offset_ = 0; }
+
+  std::size_t readData(char* target, std::size_t size) {
+    MT_REQUIRE_NOT_NULL(data_);
+    const auto nbytes = std::min(size, remaining());
+    std::memcpy(target, current(), nbytes);
+    offset_ += nbytes;
+    return nbytes;
+  }
+  // Copies up to `size` bytes into the buffer pointed to by `target`.
+  // Returns the number of bytes actually copied which may be less than `size`.
+  // Returns 0 if nothing could be extracted.
+
+  std::size_t readSizeWithFlag(std::uint32_t* size, bool* flag) {
+    MT_REQUIRE_NOT_NULL(data_);
+    const auto nbytes =
+        Varint::readUintWithFlag(current(), remaining(), size, flag);
+    offset_ += nbytes;
+    return nbytes;
+  }
+  // Reads a 32-bit unsigned integer and a boolean flag from the stream.
+  // Returns the number of bytes copied.
+  // Returns 0 if nothing could be extracted.
+
+  // ---------------------------------------------------------------------------
+  // The following interface is only enabled if IsReadOnly is true.
+
+  MT_ENABLE_IF(IsReadOnly)
+  BasicBlock(const char* data, std::size_t size) : data_(data), size_(size) {
+    MT_REQUIRE_NOT_NULL(data_);
   }
 
-  void clear() {
-    if (hasData()) {
-      std::memset(data_, 0, size_);
-      position_ = 0;
-    }
+  // ---------------------------------------------------------------------------
+  // The following interface is only enabled if IsReadOnly is false.
+
+  MT_ENABLE_IF(!IsReadOnly)
+  char* data() { return data_; }
+
+  MT_ENABLE_IF(!IsReadOnly)
+  std::size_t writeData(const char* data, std::size_t size) {
+    MT_REQUIRE_NOT_NULL(data_);
+    const auto nbytes = std::min(size, remaining());
+    std::memcpy(current(), data, nbytes);
+    offset_ += nbytes;
+    return nbytes;
   }
 
-  bool empty() const { return position_ == 0; }
+  MT_ENABLE_IF(!IsReadOnly)
+  std::size_t writeSizeWithFlag(std::uint32_t size, bool flag) {
+    MT_REQUIRE_NOT_NULL(data_);
+    const auto nbytes =
+        Varint::writeUintWithFlag(size, flag, current(), remaining());
+    offset_ += nbytes;
+    return nbytes;
+  }
 
-  double load_factor() const;
-
-  std::uint32_t max_value_size() const;
-  // Returns the maximum size of a value to be put when the block is empty.
-
-  Iterator iterator();
-
-  Iterator iterator(Iterator::HasChanged has_changed_callback);
-
-  ConstIterator iterator() const;
-
-  ConstIterator const_iterator() const;
-
-  bool add(const Bytes& value);
-  // Writes a copy of value's data into the block.
-  // Returns true if the value could be written successfully.
-  // Returns false if the block has not enough room to store the data.
+  bool writeFlagAt(bool flag, std::size_t offset) {
+    MT_REQUIRE_NOT_NULL(data_);
+    return offset < size_
+               ? Varint::writeFlag(flag, data_ + offset, size_ - offset)
+               : false;
+  }
 
 private:
-  std::size_t num_bytes_free() const { return size_ - position_; }
+  typedef typename std::conditional<IsReadOnly, const char, char>::type Char;
 
-  char* data_;
-  std::uint32_t size_;
-  std::uint32_t position_;
+  Char* current() const { return data_ + offset_; }
+
+  Char* data_ = nullptr;
+  std::uint32_t size_ = 0;
+  std::uint32_t offset_ = 0;
 };
 
-static_assert(mt::hasExpectedSize<Block>(12, 16),
-              "class Block does not have expected size");
+template <bool IsReadOnly>
+struct ExtendedBasicBlock : public BasicBlock<IsReadOnly> {
 
-template <>
-inline Block::Iter<false>::Iter(char* data, std::size_t size,
-                                HasChanged has_changed_callback)
-    : data_(data),
-      data_size_(size),
-      has_changed_callback_(has_changed_callback) {
-  MT_REQUIRE_NOT_NULL(data);
-  MT_REQUIRE_TRUE(has_changed_callback);
-}
+  typedef BasicBlock<IsReadOnly> Base;
 
-template <> inline void Block::Iter<false>::markAsDeleted() {
-  char* prev_value_addr = data_ + data_offset_prev_;
-  *prev_value_addr |= 0x80;
-  if (has_changed_callback_) {
-    has_changed_callback_();
-  }
-}
+  ExtendedBasicBlock() = default;
 
-inline Block::Iterator Block::iterator() {
-  // We do not use this->position_ to indicate the end of data, because
-  // this member is always zero when the block is read from disk.
-  return hasData() ? Iterator(data_, size_) : Iterator();
-}
+  ExtendedBasicBlock(ExtendedBasicBlock&&) = default;
+  ExtendedBasicBlock& operator=(ExtendedBasicBlock&&) = default;
 
-inline Block::Iterator Block::iterator(
-    Iterator::HasChanged has_changed_callback) {
-  // We do not use this->position_ to indicate the end of data, because
-  // this member is always zero when the block is read from disk.
-  return hasData() ? Iterator(data_, size_, has_changed_callback) : Iterator();
-}
+  ExtendedBasicBlock(const BasicBlock<IsReadOnly>& base) : Base(base) {}
 
-inline Block::ConstIterator Block::iterator() const { return const_iterator(); }
+  ExtendedBasicBlock(char* data, std::size_t size) : Base(data, size) {}
 
-inline Block::ConstIterator Block::const_iterator() const {
-  // We do not use this->position_ to indicate the end of data, because
-  // this member is always zero when the block is read from disk.
-  return hasData() ? ConstIterator(data_, size_) : ConstIterator();
-}
+  ExtendedBasicBlock(char* data, std::size_t size, std::uint32_t id)
+      : Base(data, size), id(id) {}
 
-bool operator==(const Block& lhs, const Block& rhs);
+  MT_ENABLE_IF(IsReadOnly)
+  ExtendedBasicBlock(const char* data, std::size_t size) : Base(data, size) {}
 
-struct BlockWithId : Block {
+  MT_ENABLE_IF(IsReadOnly)
+  ExtendedBasicBlock(const char* data, std::size_t size, std::uint32_t id)
+      : Base(data, size), id(id) {}
+
   std::uint32_t id = -1;
   bool ignore = false;
 };
+
+// -----------------------------------------------------------------------------
+// Typedefs
+
+typedef BasicBlock<true> ReadOnlyBlock;
+typedef BasicBlock<false> ReadWriteBlock;
+
+typedef ExtendedBasicBlock<true> ExtendedReadOnlyBlock;
+typedef ExtendedBasicBlock<false> ExtendedReadWriteBlock;
+
+static_assert(mt::hasExpectedSize<ReadOnlyBlock>(12, 16),
+              "class ReadOnlyBlock does not have expected size");
+
+static_assert(mt::hasExpectedSize<ExtendedReadOnlyBlock>(20, 24),
+              "class ReadOnlyBlock does not have expected size");
+
+// class Block2 {
+// public:
+//  Block2() = default;
+
+//  Block2(std::size_t size, Arena& arena);
+
+//  const char* data() const { return data_; }
+//  // Returns a read-only pointer to the wrapped data.
+
+//  std::size_t size() const { return size_; }
+//  // Returns the number of bytes wrapped.
+
+//  bool empty() const { return size_ == 0; }
+//  // Returns true if the number of bytes wrapped is zero, and false otherwise.
+
+//  void resize(std::size_t size, Arena& arena) {
+//    data_ = arena.allocate(size);
+//    size_ = size;
+//  }
+
+//  void clear() { offset_ = 0; }
+
+//  void copyFrom(const char* cstr) { copyFrom(cstr, std::strlen(cstr)); }
+
+//  void copyFrom(const std::string& str) { copyFrom(str.data(), str.size()); }
+
+//  void copyFrom(const void* data, std::size_t size) {
+//    MT_REQUIRE_NOT_NULL(data);
+//    MT_REQUIRE_EQ(size, size_);
+//    std::memcpy(data_, data, size);
+//  }
+
+//  void copyTo(void* target) const { std::memcpy(target, data_, size_); }
+
+//  std::size_t numBytesFree() const { return size_ - offset_; }
+
+//  std::size_t numBytesUsed() const { return offset_; }
+
+//  struct Meta {
+
+//    Meta() = default;
+
+//    Meta(std::uint32_t size) : size(size) {}
+
+//    Meta(std::uint32_t size, bool removed) : size(size), removed(removed) {}
+
+//    std::uint32_t size = 0;
+//    bool removed = false;
+//  };
+
+//  // Preconditions:
+//  //  * `meta.size` is less than or equal to `Varint32::MAX_VALUE_WITH_FLAG`.
+//  bool writeMeta(const Meta& meta) {
+//    const auto required = Varint32::numBytesRequired(meta.size, meta.removed);
+//    MT_ASSERT_NE(required, -1);
+//    if (static_cast<std::size_t>(required) <= numBytesFree()) {
+//      const auto bytes_written =
+//          Varint32::writeUint(meta.size, meta.removed, data_ + offset_);
+//      MT_ASSERT_NE(bytes_written, -1);
+//      offset_ += bytes_written;
+//      return true;
+//    }
+//    return false;
+//  }
+
+//  bool writeData(const char* data, std::size_t size) {
+//    if (size <= numBytesFree()) {
+//      std::memcpy(data_ + offset_, data, size);
+//      offset_ += size;
+//      return true;
+//    }
+//    return false;
+//  }
+
+// private:
+//  char* data_ = nullptr;
+//  std::uint32_t size_ = 0;
+//  std::uint32_t offset_ = 0;
+//};
+
+// struct ExtendedBlock : Block2 {
+
+//  ExtendedBlock(const Block2& base) : Block2(base) {}
+
+//  ExtendedBlock() : Block2(base) {}
+
+//  std::uint32_t id = -1;
+//  bool ignore = false;
+//};
 
 } // namespace internal
 } // namespace multimap

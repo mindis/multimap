@@ -25,6 +25,8 @@ namespace multimap {
 namespace internal {
 
 class Arena {
+  // This class is not thread-safe by design and needs external locking.
+
  public:
   static const std::size_t DEFAULT_CHUNK_SIZE = 4096;
 
@@ -34,10 +36,15 @@ class Arena {
   Arena& operator=(Arena&&) = default;
 
   char* allocate(std::size_t num_bytes);
-  // Thread-safe: no.
 
   std::size_t allocated() const { return allocated_; }
-  // Thread-safe: no.
+
+  void deallocateAll() {
+    chunks_.clear();
+    blobs_.clear();
+    allocated_ = 0;
+    offset_ = 0;
+  }
 
  private:
   std::vector<std::unique_ptr<char[]>> chunks_;

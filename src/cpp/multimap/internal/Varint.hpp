@@ -24,26 +24,50 @@ namespace multimap {
 namespace internal {
 
 struct Varint {
-  typedef unsigned char uchar;
 
-  static std::size_t readUint32(const uchar* source, std::uint32_t* target);
+  struct Limits {
 
-  static std::size_t writeUint32(std::uint32_t source, uchar* target);
-  // Requires: target has room for at least 4 bytes.
+    static const std::uint32_t N1_MIN_UINT;
+    static const std::uint32_t N1_MIN_UINT_WITH_FLAG;
+    static const std::uint32_t N1_MAX_UINT;
+    static const std::uint32_t N1_MAX_UINT_WITH_FLAG;
 
-  static constexpr std::uint32_t min_value_1_byte() { return 0; }
-  static constexpr std::uint32_t max_value_1_byte() { return (1 << 6) - 1; }
-  static constexpr std::uint32_t min_value_2_bytes() { return (1 << 6); }
-  static constexpr std::uint32_t max_value_2_bytes() { return (1 << 14) - 1; }
-  static constexpr std::uint32_t min_value_3_bytes() { return (1 << 14); }
-  static constexpr std::uint32_t max_value_3_bytes() { return (1 << 22) - 1; }
-  static constexpr std::uint32_t min_value_4_bytes() { return (1 << 22); }
-  static constexpr std::uint32_t max_value_4_bytes() { return (1 << 30) - 1; }
+    static const std::uint32_t N2_MIN_UINT;
+    static const std::uint32_t N2_MIN_UINT_WITH_FLAG;
+    static const std::uint32_t N2_MAX_UINT;
+    static const std::uint32_t N2_MAX_UINT_WITH_FLAG;
+
+    static const std::uint32_t N3_MIN_UINT;
+    static const std::uint32_t N3_MIN_UINT_WITH_FLAG;
+    static const std::uint32_t N3_MAX_UINT;
+    static const std::uint32_t N3_MAX_UINT_WITH_FLAG;
+
+    static const std::uint32_t N4_MIN_UINT;
+    static const std::uint32_t N4_MIN_UINT_WITH_FLAG;
+    static const std::uint32_t N4_MAX_UINT;
+    static const std::uint32_t N4_MAX_UINT_WITH_FLAG;
+
+    Limits() = delete;
+  };
+
+  static std::size_t readUint(const char* buffer, std::size_t size,
+                              std::uint32_t* value);
+
+  static std::size_t readUintWithFlag(const char* buffer, std::size_t size,
+                                      std::uint32_t* value, bool* flag);
+
+  static std::size_t writeUint(std::uint32_t value, char* buffer,
+                               std::size_t size);
+
+  static std::size_t writeUintWithFlag(std::uint32_t value, bool flag,
+                                       char* buffer, std::size_t size);
+
+  static bool writeFlag(bool flag, char* buffer, std::size_t size);
 
   Varint() = delete;
 };
 
-}  // namespace internal
-}  // namespace multimap
+} // namespace internal
+} // namespace multimap
 
-#endif  // MULTIMAP_INTERNAL_VARINT_HPP_INCLUDED
+#endif // MULTIMAP_INTERNAL_VARINT_HPP_INCLUDED

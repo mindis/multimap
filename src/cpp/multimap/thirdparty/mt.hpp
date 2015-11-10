@@ -25,15 +25,16 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <type_traits>
 #include <vector>
 #include <boost/filesystem/path.hpp>
 
 namespace mt {
 
-static const std::size_t VERSION = 20151101;
+static const std::size_t VERSION = 20151104;
 
-// COMMON
 // -----------------------------------------------------------------------------
+// COMMON
 
 bool isPrime(std::size_t number);
 // Returns `true` if `number` is prime, `false` otherwise.
@@ -49,8 +50,8 @@ constexpr std::size_t MiB(std::size_t mebibytes) { return mebibytes << 20; }
 constexpr std::size_t GiB(std::size_t gibibytes) { return gibibytes << 30; }
 // Converts a number in gibibytes to the equivalent number in bytes.
 
-// HASHING
 // -----------------------------------------------------------------------------
+// HASHING
 
 std::size_t crc32(const std::string& str);
 // Computes and returns the 32-bit CRC checksum for `str`.
@@ -72,8 +73,8 @@ std::uint64_t fnv1aHash64(const void* buf, std::size_t len);
 //  * Parameter hashval removed, internally set to FNV1A_64_INIT.
 //  * More C++ like coding style.
 
-// ERROR HANDLING
 // -----------------------------------------------------------------------------
+// ERROR HANDLING
 
 void throwRuntimeError(const char* message);
 
@@ -90,10 +91,13 @@ void printStackTrace(std::size_t skip_head = 3);
 struct Messages {
   static constexpr auto COULD_NOT_OPEN = "Could not open '%s' for reading.";
   static constexpr auto COULD_NOT_CREATE = "Could not create '%s' for writing.";
+  static constexpr auto NOT_A_REGULAR_FILE = "'%s' is not a regular file.";
+  static constexpr auto NOT_A_DIRECTORY = "'%s' is not a directory.";
+  static constexpr auto FATAL_ERROR = "Fatal error.";
 };
 
-// INPUT / OUTPUT
 // -----------------------------------------------------------------------------
+// INPUT / OUTPUT
 
 template <typename Container>
 std::insert_iterator<Container> inserter(Container& container) {
@@ -153,8 +157,8 @@ private:
   std::FILE* file_ = nullptr;
 };
 
-// CONFIGURATION
 // -----------------------------------------------------------------------------
+// CONFIGURATION
 
 typedef std::map<std::string, std::string> Properties;
 
@@ -163,8 +167,8 @@ Properties readPropertiesFromFile(const std::string& filepath);
 void writePropertiesToFile(const Properties& properties,
                            const std::string& filepath);
 
-// TYPE TRAITS
 // -----------------------------------------------------------------------------
+// TYPE TRAITS
 
 constexpr bool is32BitSystem() { return sizeof(void*) == 4; }
 
@@ -176,13 +180,79 @@ constexpr bool hasExpectedSize(std::size_t size_on_32_bit_system,
   return sizeof(T) ==
          (is32BitSystem() ? size_on_32_bit_system : size_on_64_bit_system);
 }
+// Checks at compile time if sizeof(T) has some expected value.
+//
+//   static_assert(mt::hasExpectedSize<Type>(40, 48)::value,
+//                 "class Type does not have expected size");
 
-// Usage:
-// static_assert(mt::hasExpectedSize<Type>(40, 48)::value,
-//               "class Type does not have expected size");
+#define MT_ENABLE_IF(condition)                                                \
+  template <bool __MT_B = condition,                                           \
+            typename std::enable_if<__MT_B>::type* = nullptr>
+// Enables a method of a class template if a boolean parameter is true.
+//
+//   template <bool IsMutable> struct Foo {
+//
+//     MT_ENABLE_IF(IsMutable) void mutate() { ... }
+//
+//     // Foo<true>().mutate();
+//     // Compiles fine.
+//     //
+//     // Foo<false>().mutate();
+//     // Error: no matching function for call to `Foo<false>::mutate()'.
+//   };
 
-// CONTRACT-BASED PROGRAMMING
+#define MT_ENABLE_IF_SAME(generic_type, concrete_type)                         \
+  template <typename __MT_T = generic_type,                                    \
+            typename std::enable_if<                                           \
+                std::is_same<__MT_T, concrete_type>::value>::type* = nullptr>
+// Enables a method of a class template for some concrete type argument.
+//
+//   struct Unique {};
+//   struct Shared {};
+//
+//   template <typename Policy> struct Bar {
+//
+//     MT_ENABLE_IF_SAME(Policy, Unique) void mutate() { ... }
+//
+//     // Bar<Unique>().mutate();
+//     // Compiles fine.
+//
+//     // Bar<Shared>().mutate();
+//     // Error: no matching function for call to `Bar<Shared>::mutate()'.
+//   };
+
+// The purpose of MT_ENABLE_IF and MT_ENABLE_IF_SAME could also have been
+// implemented via template specialization.  In this case the implementation
+// of mutate() would be given only for a concrete template argument in a full
+// specialized method definition.  There would be no implementation for the
+// default case.
+//
+//   template <typename Policy> struct Bar {
+//
+//     void mutate();  // Just a declaration.
+//   };
+//
+//   template <> inline void Bar<Unique>::mutate() { ... }
+//
+// However, when trying to compile code that calls mutate() on an instantiation
+// for which no implementation is given (the default case) the linker (!) will
+// complain:
+//
+//   undefined reference to `Bar<Shared>::mutate()'
+//
+// That means, for the compiler the class Bar<Shared> actually has a mutate()
+// method, it's only the implementation which is missing.  Although it prevents
+// the code to compile, which is what we want, the semantic is a different one.
+// Instead, we want the class Bar<Shared> to have no mutate() method at all.
+//
+// The macros enable the desired behavior by making use of the SFINAE
+// (Substitution Failure Is Not An Error) technique.  Now the compiler (!) will
+// complain:
+//
+//   no matching function for call to `Bar<Shared>::mutate()'
+
 // -----------------------------------------------------------------------------
+// CONTRACT-BASED PROGRAMMING
 
 class AssertionError : public std::runtime_error {
 public:

@@ -28,7 +28,7 @@ namespace multimap {
 
 namespace {
 
-const std::string FILE_PREFIX = "multimap";
+const std::string FILE_PREFIX = "multimap.s";
 const std::string NAME_OF_LOCK_FILE = FILE_PREFIX + ".lock";
 const std::string NAME_OF_PROPERTIES_FILE = FILE_PREFIX + ".properties";
 
@@ -54,6 +54,14 @@ internal::Shard& selectShard(
 }
 
 } // namespace
+
+std::size_t Map::Limits::max_key_size() {
+  return internal::Shard::Limits::max_key_size();
+}
+
+std::size_t Map::Limits::max_value_size() {
+  return internal::Shard::Limits::max_value_size();
+}
 
 Map::Map(const boost::filesystem::path& directory, const Options& options) {
   checkOptions(options);
@@ -194,16 +202,6 @@ std::map<std::string, std::string> Map::getProperties() const {
   properties["map.version_major"] = std::to_string(VERSION_MAJOR);
   properties["map.version_minor"] = std::to_string(VERSION_MINOR);
   return properties;
-}
-
-std::size_t Map::max_key_size() const {
-  MT_REQUIRE_FALSE(shards_.empty());
-  return shards_.front()->max_key_size();
-}
-
-std::size_t Map::max_value_size() const {
-  MT_REQUIRE_FALSE(shards_.empty());
-  return shards_.front()->max_value_size();
 }
 
 void Map::importFromBase64(const boost::filesystem::path& target,
@@ -374,12 +372,11 @@ void Map::optimize(const boost::filesystem::path& source,
         }
       });
     } else {
-      shard.forEachEntry(
-          [&new_map](const Bytes& key, ListIterator&& iter) {
-            while (iter.hasNext()) {
-              new_map.put(key, iter.next());
-            }
-          });
+      shard.forEachEntry([&new_map](const Bytes& key, ListIterator&& iter) {
+        while (iter.hasNext()) {
+          new_map.put(key, iter.next());
+        }
+      });
     }
   }
 }

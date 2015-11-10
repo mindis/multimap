@@ -29,8 +29,8 @@ namespace multimap {
 namespace internal {
 
 class UintVector {
- public:
-  UintVector();
+public:
+  UintVector() = default;
 
   UintVector(const UintVector& other);
 
@@ -42,32 +42,32 @@ class UintVector {
 
   std::vector<std::uint32_t> unpack() const;
 
-  void add(std::uint32_t value);
+  bool add(std::uint32_t value);
 
-  bool empty() const { return put_offset_ == 0; }
+  bool empty() const { return offset_ == 0; }
 
   void clear() {
     data_.reset();
-    end_offset_ = 0;
-    put_offset_ = 0;
+    offset_ = 0;
+    size_ = 0;
   }
 
-  static constexpr std::uint32_t max_value() {
-    return Varint::max_value_4_bytes();
-  }
-
- private:
+private:
   void allocateMoreIfFull();
 
-  std::unique_ptr<Varint::uchar[]> data_;
-  std::uint32_t end_offset_;
-  std::uint32_t put_offset_;
+  char* current() const { return data_.get() + offset_; }
+
+  std::size_t remaining() const { return size_ - offset_; }
+
+  std::unique_ptr<char[]> data_;
+  std::uint32_t offset_ = 0;
+  std::uint32_t size_ = 0;
 };
 
 static_assert(mt::hasExpectedSize<UintVector>(12, 16),
               "class UintVector does not have expected size");
 
-}  // internal
-}  // multimap
+} // namespace internal
+} // namespace multimap
 
-#endif  // MULTIMAP_INTERNAL_UINT_VECTOR_HPP_INCLUDED
+#endif // MULTIMAP_INTERNAL_UINT_VECTOR_HPP_INCLUDED

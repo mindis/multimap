@@ -22,7 +22,61 @@
 namespace multimap {
 namespace internal {
 
-std::mutex List::mutex_allocation_protector;
+namespace {
+
+std::mutex list_mutex_allocation_mutex;
+
+class MutexPool {
+  // This singleton is not thread-safe by design and needs external locking.
+
+public:
+  typedef List::MutexPoolSetup::Mutex Mutex;
+
+  static MutexPool& instance() {
+    static MutexPool instance;
+    return instance;
+  }
+
+  std::unique_ptr<Mutex> getMutex() {
+    std::unique_ptr<Mutex> result;
+    if (!mutexes_.empty()) {
+      result = std::move(mutexes_.back());
+      mutexes_.pop_back();
+    }
+    return result;
+  }
+
+  void putMutex(std::unique_ptr<Mutex>&& mutex) {
+    if (mutex && mutexes_.size() < maximum_size_) {
+      mutexes_.push_back(std::move(mutex));
+    }
+  }
+
+  std::size_t getDefaultSize() { return 1024; }
+
+  std::size_t getCurrentSize() { return mutexes_.size(); }
+
+  std::size_t getMaximumSize() { return maximum_size_; }
+
+  void setMaximumSize(std::size_t size) {
+    maximum_size_ = size;
+    if (maximum_size_ < mutexes_.size()) {
+      mutexes_.resize(size);
+    } else {
+      while (mutexes_.size() < maximum_size_) {
+        mutexes_.emplace_back(new Mutex());
+      }
+    }
+  }
+
+private:
+  MutexPool() { setMaximumSize(getDefaultSize()); }
+
+  std::vector<std::unique_ptr<Mutex> > mutexes_;
+  std::size_t maximum_size_;
+};
+
+} // namespace
 
 List::Head List::Head::readFromFile(std::FILE* file) {
   Head head;
@@ -40,51 +94,74 @@ void List::Head::writeToFile(std::FILE* file) const {
 
 List::List(const Head& head) : head_(head) {}
 
-void List::append(const Bytes& value,
-                  const Callbacks::NewBlock& new_block_callback,
-                  const Callbacks::CommitBlock& commit_block_callback) {
+void List::add(const Bytes& value, Arena* arena, Store* store) {
   if (!block_.hasData()) {
-    block_ = new_block_callback();
+    const auto block_size = store->getBlockSize();
+    char* data = arena->allocate(block_size);
+    block_ = ReadWriteBlock(data, block_size);
   }
-  auto ok = block_.add(value);
-  if (!ok) {
-    flush(commit_block_callback);
-    ok = block_.add(value);
-    assert(ok);
+
+  // Write value's metadata.
+  auto nbytes = block_.writeSizeWithFlag(value.size(), false);
+  if (nbytes == 0) {
+    flush(store);
+    nbytes = block_.writeSizeWithFlag(value.size(), false);
+    MT_ASSERT_NOT_ZERO(nbytes);
   }
+
+  // Write value's data.
+  nbytes = block_.writeData(value.data(), value.size());
+  if (nbytes < value.size()) {
+    flush(store);
+
+    // The value does not fit into the local block as a whole.
+    // Write the remaining bytes which cover entire blocks directly
+    // to the block file.  Write the rest into the local block.
+
+    std::vector<ExtendedReadOnlyBlock> blocks;
+    const auto block_size = block_.size();
+    const char* tail_data = value.data() + nbytes;
+    std::size_t remaining = value.size() - nbytes;
+    while (remaining >= block_size) {
+      blocks.emplace_back(tail_data, block_size);
+      tail_data += block_size;
+      remaining -= block_size;
+    }
+    if (!blocks.empty()) {
+      store->put(blocks);
+      for (const auto& block : blocks) {
+        head_.block_ids.add(block.id);
+      }
+    }
+    if (remaining != 0) {
+      nbytes = block_.writeData(tail_data, remaining);
+      MT_ASSERT_EQ(nbytes, remaining);
+    }
+  }
+
   ++head_.num_values_added;
 }
 
-void List::flush(const Callbacks::CommitBlock& commit_block_callback) {
-  if (block_.empty())
-    return;
-  head_.block_ids.add(commit_block_callback(block_));
-  block_.clear();
-}
-
-List::MutableIterator List::iterator(
-    const Callbacks::RequestBlocks& request_blocks_callback,
-    const Callbacks::ReplaceBlocks& replace_blocks_callback) {
-  return MutableIterator(&head_, &block_, request_blocks_callback,
-                         replace_blocks_callback);
-}
-
-List::Iterator List::const_iterator(
-    const Callbacks::RequestBlocks& request_blocks_callback) const {
-  return Iterator(head_, block_, request_blocks_callback);
+void List::flush(Store* store) {
+  if (block_.hasData()) {
+    head_.block_ids.add(store->put(block_));
+    block_.rewind();
+  }
 }
 
 void List::lock() {
   {
-    const std::lock_guard<std::mutex> lock(mutex_allocation_protector);
+    std::lock_guard<std::mutex> lock(list_mutex_allocation_mutex);
     createMutexUnlocked();
     ++mutex_use_count_;
   }
+  // `list_mutex_allocation_mutex` is unlocked here to avoid a deadlock,
+  // because the following mutex acquisition might block.
   mutex_->lock();
 }
 
 bool List::try_lock() {
-  const std::lock_guard<std::mutex> lock(mutex_allocation_protector);
+  std::lock_guard<std::mutex> lock(list_mutex_allocation_mutex);
   createMutexUnlocked();
   const auto locked = mutex_->try_lock();
   if (locked) {
@@ -94,8 +171,8 @@ bool List::try_lock() {
 }
 
 void List::unlock() {
-  const std::lock_guard<std::mutex> lock(mutex_allocation_protector);
-  assert(mutex_use_count_ > 0);
+  std::lock_guard<std::mutex> lock(list_mutex_allocation_mutex);
+  MT_REQUIRE_NOT_ZERO(mutex_use_count_);
   mutex_->unlock();
   --mutex_use_count_;
   if (mutex_use_count_ == 0) {
@@ -105,15 +182,17 @@ void List::unlock() {
 
 void List::lock_shared() {
   {
-    const std::lock_guard<std::mutex> lock(mutex_allocation_protector);
+    std::lock_guard<std::mutex> lock(list_mutex_allocation_mutex);
     createMutexUnlocked();
     ++mutex_use_count_;
   }
+  // `list_mutex_allocation_mutex` is unlocked here to avoid a deadlock,
+  // because the following mutex acquisition might block.
   mutex_->lock_shared();
 }
 
 bool List::try_lock_shared() {
-  const std::lock_guard<std::mutex> lock(mutex_allocation_protector);
+  std::lock_guard<std::mutex> lock(list_mutex_allocation_mutex);
   createMutexUnlocked();
   const auto locked = mutex_->try_lock_shared();
   if (locked) {
@@ -123,8 +202,8 @@ bool List::try_lock_shared() {
 }
 
 void List::unlock_shared() {
-  const std::lock_guard<std::mutex> lock(mutex_allocation_protector);
-  assert(mutex_use_count_ > 0);
+  std::lock_guard<std::mutex> lock(list_mutex_allocation_mutex);
+  MT_REQUIRE_NOT_ZERO(mutex_use_count_);
   mutex_->unlock_shared();
   --mutex_use_count_;
   if (mutex_use_count_ == 0) {
@@ -133,19 +212,39 @@ void List::unlock_shared() {
 }
 
 bool List::is_locked() const {
-  const std::lock_guard<std::mutex> lock(mutex_allocation_protector);
+  std::lock_guard<std::mutex> lock(list_mutex_allocation_mutex);
   return mutex_use_count_ != 0;
 }
 
 void List::createMutexUnlocked() const {
   if (!mutex_) {
-    mutex_.reset(new Mutex());
+    mutex_ = MutexPool::instance().getMutex();
+    if (!mutex_) {
+      mutex_.reset(new MutexPool::Mutex());
+    }
   }
 }
 
 void List::deleteMutexUnlocked() const {
-  assert(mutex_use_count_ == 0);
+  MT_REQUIRE_IS_ZERO(mutex_use_count_);
+  MutexPool::instance().putMutex(std::move(mutex_));
   mutex_.reset();
+}
+
+std::size_t List::MutexPoolSetup::getCurrentSize() {
+  return MutexPool::instance().getCurrentSize();
+}
+
+std::size_t List::MutexPoolSetup::getDefaultSize() {
+  return MutexPool::instance().getDefaultSize();
+}
+
+std::size_t List::MutexPoolSetup::getMaximumSize() {
+  return MutexPool::instance().getMaximumSize();
+}
+
+void List::MutexPoolSetup::setMaximumSize(std::size_t size) {
+  return MutexPool::instance().setMaximumSize(size);
 }
 
 } // namespace internal

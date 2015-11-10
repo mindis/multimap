@@ -28,6 +28,8 @@
 namespace multimap {
 namespace internal {
 
+// Move into MT library.
+
 struct System {
   static std::pair<boost::filesystem::path, int> getTempfile();
 

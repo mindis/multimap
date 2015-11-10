@@ -32,9 +32,14 @@ namespace internal {
 
 class Shard {
 public:
+  struct Limits {
+    static std::size_t max_key_size();
+    static std::size_t max_value_size();
+  };
+
   struct Stats {
-    Store::Stats store;
     Table::Stats table;
+    Store::Stats store;
 
     Stats& combine(const Stats& other);
 
@@ -94,15 +99,10 @@ public:
 
   void forEachEntry(Callables::Procedure2<ListIterator> action) const;
 
-  std::size_t max_key_size() const;
-
-  std::size_t max_value_size() const;
-
   Stats getStats() const;
 
 private:
   bool isOpen() const;
-  void initCallbacks();
 
   std::size_t remove(const Bytes& key, Callables::Predicate predicate,
                      bool exit_on_first_success);
@@ -110,10 +110,9 @@ private:
   std::size_t replace(const Bytes& key, Callables::Function function,
                       bool exit_on_first_success);
 
+  Arena arena_;
   Table table_;
   Store store_;
-  Arena arena_;
-  Callbacks callbacks_;
   boost::filesystem::path prefix_;
 };
 

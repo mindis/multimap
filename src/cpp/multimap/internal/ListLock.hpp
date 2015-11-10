@@ -26,7 +26,7 @@ namespace internal {
 // Wrapper for class List that provides RAII-like locking for shared ownership.
 class SharedListLock {
 public:
-  typedef List::Iter<true> ListIterator;
+  typedef List::Iter<false> ListIterator;
 
   SharedListLock() = default;
 
@@ -65,7 +65,7 @@ private:
 // Wrapper for class List that provides RAII-like locking for unique ownership.
 class UniqueListLock {
 public:
-  typedef List::Iter<false> ListIterator;
+  typedef List::Iter<true> ListIterator;
 
   UniqueListLock() = default;
 

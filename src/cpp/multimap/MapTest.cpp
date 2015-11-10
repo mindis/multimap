@@ -17,7 +17,7 @@
 
 #include <type_traits>
 #include <boost/filesystem/operations.hpp>
-#include "gmock/gmock.h"
+#include <gmock/gmock.h>
 #include "multimap/Map.hpp"
 
 namespace multimap {
@@ -129,7 +129,7 @@ TEST_F(MapTestFixture, PutWithMaxKeySizeWorks) {
   Options options;
   options.create_if_missing = true;
   Map map(directory, options);
-  std::string key(map.max_key_size(), 'k');
+  std::string key(Map::Limits::max_key_size(), 'k');
   ASSERT_NO_THROW(map.put(key, "value"));
 }
 
@@ -137,7 +137,7 @@ TEST_F(MapTestFixture, PutWithTooLargeKeyThrows) {
   Options options;
   options.create_if_missing = true;
   Map map(directory, options);
-  std::string key(map.max_key_size() + 1, 'k');
+  std::string key(Map::Limits::max_key_size() + 1, 'k');
   ASSERT_THROW(map.put(key, "value"), std::runtime_error);
 }
 
@@ -145,7 +145,7 @@ TEST_F(MapTestFixture, PutWithMaxValueSizeWorks) {
   Options options;
   options.create_if_missing = true;
   Map map(directory, options);
-  std::string value(map.max_value_size(), 'v');
+  std::string value(Map::Limits::max_value_size(), 'v');
   ASSERT_NO_THROW(map.put("key", value));
 }
 
@@ -153,7 +153,7 @@ TEST_F(MapTestFixture, PutWithTooLargeValueThrows) {
   Options options;
   options.create_if_missing = true;
   Map map(directory, options);
-  std::string value(map.max_value_size() + 1, 'v');
+  std::string value(Map::Limits::max_value_size() + 1, 'v');
   ASSERT_THROW(map.put("key", value), std::runtime_error);
 }
 

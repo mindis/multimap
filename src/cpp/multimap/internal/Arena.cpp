@@ -22,29 +22,34 @@
 namespace multimap {
 namespace internal {
 
-Arena::Arena(std::size_t chunk_size) {
-  MT_REQUIRE_NOT_ZERO(chunk_size);
-  MT_REQUIRE_TRUE(mt::isPowerOfTwo(chunk_size));
-  chunk_size_ = chunk_size;
-  offset_ = chunk_size;  // First request will trigger allocation.
+Arena::Arena(std::size_t chunk_size) : chunk_size_(chunk_size) {
+  MT_REQUIRE_TRUE(mt::isPowerOfTwo(chunk_size_));
+  MT_REQUIRE_NOT_ZERO(chunk_size_);
 }
 
 char* Arena::allocate(std::size_t num_bytes) {
   MT_REQUIRE_NOT_ZERO(num_bytes);
 
-  const auto num_bytes_free = chunk_size_ - offset_;
-  if (num_bytes > num_bytes_free) {
-    if (num_bytes > chunk_size_) {
-      blobs_.emplace_back(new char[num_bytes]);
-      allocated_ += num_bytes;
-      return blobs_.back().get();
+  char* result;
+  if (num_bytes <= chunk_size_) {
+    if (chunks_.empty()) {
+      chunks_.emplace_back(new char[chunk_size_]);
+      offset_ = 0;
     }
-    chunks_.emplace_back(new char[chunk_size_]);
-    offset_ = 0;
+    const auto num_bytes_free = chunk_size_ - offset_;
+    if (num_bytes > num_bytes_free) {
+      chunks_.emplace_back(new char[chunk_size_]);
+      offset_ = 0;
+    }
+    result = chunks_.back().get() + offset_;
+    offset_ += num_bytes;
+
+  } else {
+    blobs_.emplace_back(new char[num_bytes]);
+    result = blobs_.back().get();
   }
-  const auto result = chunks_.back().get() + offset_;
+
   allocated_ += num_bytes;
-  offset_ += num_bytes;
   return result;
 }
 

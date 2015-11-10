@@ -19,7 +19,7 @@
 #define MULTIMAP_INTERNAL_ITERATOR_HPP_INCLUDED
 
 #include <cstdint>
-#include "multimap/internal/Callbacks.hpp"
+#include "multimap/internal/Store.hpp"
 #include "multimap/internal/ListLock.hpp"
 
 namespace multimap {
@@ -55,14 +55,9 @@ template <typename ListLock> class Iterator {
 public:
   Iterator() = default;
 
-  Iterator(ListLock&& list_lock,
-           const Callbacks::RequestBlocks& request_blocks_callback);
-  // Specialized only for ListLock == SharedListLock.
+  Iterator(ListLock&& list_lock, const Store& store);
 
-  Iterator(ListLock&& list_lock,
-           const Callbacks::RequestBlocks& request_blocks_callback,
-           const Callbacks::ReplaceBlocks& replace_blocks_callback);
-  // Specialized only for ListLock == UniqueListLock.
+  Iterator(ListLock&& list_lock, Store* store);
 
   Iterator(Iterator&&) = default;
   Iterator& operator=(Iterator&&) = default;
@@ -76,7 +71,7 @@ public:
   Bytes peekNext() const { return list_iter_.peekNext(); }
 
   void remove();
-  // Specialized only for ListLock == UniqueListLock.
+  // Enabled if ListLock is UniqueListLock.
 
 private:
   typename ListLock::ListIterator list_iter_;
@@ -84,24 +79,20 @@ private:
 };
 
 template <>
-inline Iterator<SharedListLock>::Iterator(
-    SharedListLock&& list_lock,
-    const Callbacks::RequestBlocks& request_blocks_callback)
+inline Iterator<SharedListLock>::Iterator(SharedListLock&& list_lock,
+                                          const Store& store)
     : list_lock_(std::move(list_lock)) {
   if (list_lock_.hasList()) {
-    list_iter_ = list_lock_.list()->const_iterator(request_blocks_callback);
+    list_iter_ = SharedListLock::ListIterator(*list_lock_.list(), store);
   }
 }
 
 template <>
-inline Iterator<UniqueListLock>::Iterator(
-    UniqueListLock&& list_lock,
-    const Callbacks::RequestBlocks& request_blocks_callback,
-    const Callbacks::ReplaceBlocks& replace_blocks_callback)
+inline Iterator<UniqueListLock>::Iterator(UniqueListLock&& list_lock,
+                                          Store* store)
     : list_lock_(std::move(list_lock)) {
   if (list_lock_.hasList()) {
-    list_iter_ = list_lock_.list()->iterator(request_blocks_callback,
-                                             replace_blocks_callback);
+    list_iter_ = UniqueListLock::ListIterator(list_lock_.list(), store);
   }
 }
 

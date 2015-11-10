@@ -35,6 +35,13 @@ static const std::size_t VERSION_MINOR = 3;
 // with a list of values.
 class Map {
 public:
+  struct Limits {
+    // Provides static methods to request upper bounds.
+
+    static std::size_t max_key_size();
+    static std::size_t max_value_size();
+  };
+
   typedef internal::Shard::ListIterator ListIterator;
   // An iterator type to iterate a immutable list. All operations declared in
   // the class template Iterator<bool> that can mutate the underlying list are

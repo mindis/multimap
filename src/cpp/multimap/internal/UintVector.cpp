@@ -26,51 +26,51 @@ namespace internal {
 
 namespace {
 
-std::size_t readUint32(const Varint::uchar* source, std::uint32_t* target) {
+std::size_t readUint32(const char* source, std::uint32_t* target) {
   std::memcpy(target, source, sizeof *target);
   return sizeof *target;
+  // TODO Endianess.
 }
 
-std::size_t writeUint32(std::uint32_t source, Varint::uchar* target) {
+std::size_t writeUint32(std::uint32_t source, char* target) {
   std::memcpy(target, &source, sizeof source);
   return sizeof source;
+  // TODO Endianess.
 }
 
-}  // namespace
-
-UintVector::UintVector() : end_offset_(0), put_offset_(0) {}
+} // namespace
 
 UintVector::UintVector(const UintVector& other)
-    : end_offset_(other.end_offset_), put_offset_(other.put_offset_) {
+    : offset_(other.offset_), size_(other.size_) {
   if (other.data_) {
-    data_.reset(new Varint::uchar[end_offset_]);
-    std::memcpy(data_.get(), other.data_.get(), end_offset_);
+    data_.reset(new char[size_]);
+    std::memcpy(data_.get(), other.data_.get(), size_);
   }
 }
 
 UintVector& UintVector::operator=(const UintVector& other) {
   if (&other != this) {
-    end_offset_ = other.end_offset_;
-    put_offset_ = other.put_offset_;
-    data_.reset(new Varint::uchar[end_offset_]);
-    std::memcpy(data_.get(), other.data_.get(), end_offset_);
+    size_ = other.size_;
+    offset_ = other.offset_;
+    data_.reset(new char[size_]);
+    std::memcpy(data_.get(), other.data_.get(), size_);
   }
   return *this;
 }
 
 UintVector UintVector::readFromStream(std::FILE* stream) {
   UintVector vector;
-  System::read(stream, &vector.put_offset_, sizeof vector.put_offset_);
-  vector.data_.reset(new Varint::uchar[vector.put_offset_]);
-  System::read(stream, vector.data_.get(), vector.put_offset_);
-  vector.end_offset_ = vector.put_offset_;
+  System::read(stream, &vector.offset_, sizeof vector.offset_);
+  vector.data_.reset(new char[vector.offset_]);
+  System::read(stream, vector.data_.get(), vector.offset_);
+  vector.size_ = vector.offset_;
   return vector;
 }
 
 void UintVector::writeToStream(std::FILE* stream) const {
   assert(!empty());
-  System::write(stream, &put_offset_, sizeof put_offset_);
-  System::write(stream, data_.get(), put_offset_);
+  System::write(stream, &offset_, sizeof offset_);
+  System::write(stream, data_.get(), offset_);
 }
 
 std::vector<std::uint32_t> UintVector::unpack() const {
@@ -78,10 +78,13 @@ std::vector<std::uint32_t> UintVector::unpack() const {
   if (!empty()) {
     std::uint32_t delta = 0;
     std::uint32_t value = 0;
-    std::uint32_t get_offset = 0;
-    const auto last_value_offset = put_offset_ - sizeof value;
-    while (get_offset != last_value_offset) {
-      get_offset += Varint::readUint32(data_.get() + get_offset, &delta);
+    std::uint32_t nbytes = 0;
+    std::uint32_t offset = 0;
+    std::uint32_t remaining = offset_ - sizeof value;
+    while (remaining > 0) {
+      nbytes = Varint::readUint(data_.get() + offset, remaining, &delta);
+      offset += nbytes;
+      remaining -= nbytes;
       values.push_back(value + delta);
       value = values.back();
     }
@@ -89,34 +92,40 @@ std::vector<std::uint32_t> UintVector::unpack() const {
   return values;
 }
 
-void UintVector::add(std::uint32_t value) {
-  assert(value <= max_value());
+bool UintVector::add(std::uint32_t value) {
   allocateMoreIfFull();
   if (empty()) {
-    put_offset_ += Varint::writeUint32(value, data_.get());
-    put_offset_ += writeUint32(value, data_.get() + put_offset_);
+    if (value <= Varint::Limits::N4_MAX_UINT) {
+      offset_ += Varint::writeUint(value, current(), size_);
+      offset_ += writeUint32(value, current());
+      return true;
+    }
   } else {
     std::uint32_t prev_value;
-    put_offset_ -= sizeof prev_value;
-    readUint32(data_.get() + put_offset_, &prev_value);
-    assert(prev_value < value);
+    offset_ -= sizeof prev_value;
+    readUint32(current(), &prev_value);
+    MT_ASSERT_LT(prev_value, value);
     const std::uint32_t delta = value - prev_value;
-    put_offset_ += Varint::writeUint32(delta, data_.get() + put_offset_);
-    put_offset_ += writeUint32(value, data_.get() + put_offset_);
+    if (delta <= Varint::Limits::N4_MAX_UINT) {
+      offset_ += Varint::writeUint(delta, current(), remaining());
+      offset_ += writeUint32(value, current());
+      return true;
+    }
   }
+  return false;
 }
 
 void UintVector::allocateMoreIfFull() {
   const auto required_size = sizeof(std::uint32_t) * 2;
-  if (end_offset_ - put_offset_ < required_size) {
-    const std::size_t new_end_offset = end_offset_ * 1.5;
+  if (size_ - offset_ < required_size) {
+    const std::size_t new_end_offset = size_ * 1.5;
     const auto new_size = std::max(new_end_offset, required_size);
-    std::unique_ptr<Varint::uchar[]> new_data(new Varint::uchar[new_size]);
-    std::memcpy(new_data.get(), data_.get(), put_offset_);
+    std::unique_ptr<char[]> new_data(new char[new_size]);
+    std::memcpy(new_data.get(), data_.get(), offset_);
     data_ = std::move(new_data);
-    end_offset_ = new_size;
+    size_ = new_size;
   }
 }
 
-}  // namespace internal
-}  // namespace multimap
+} // namespace internal
+} // namespace multimap

@@ -15,166 +15,551 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#include <cstring>
 #include <type_traits>
 #include "gmock/gmock.h"
 #include "multimap/internal/Varint.hpp"
+#include "multimap/thirdparty/mt.hpp"
 
 namespace multimap {
 namespace internal {
+
+struct VarintTestFixture : public testing::Test {
+  void SetUp() override {
+    std::memset(b32, 0, sizeof b32);
+    std::memset(b4, 0, sizeof b4);
+  }
+
+  std::uint32_t value;
+  bool flag;
+
+  char b32[32];
+  char b4[4];
+};
 
 TEST(VarintTest, IsNotDefaultConstructible) {
   ASSERT_FALSE(std::is_default_constructible<Varint>::value);
 }
 
-TEST(VarintTest, WriteValueToNullPtrAndDie) {
-  ASSERT_DEATH(Varint::writeUint32(0, nullptr), "");
+TEST_F(VarintTestFixture, WriteValueToNullPtrThrows) {
+  ASSERT_THROW(Varint::writeUint(value, nullptr, 1), mt::AssertionError);
 }
 
-TEST(VarintTest, WriteMinValueEncodedInOneByte) {
-  Varint::uchar buf[4];
-  ASSERT_EQ(Varint::writeUint32(Varint::min_value_1_byte(), buf), 1);
+TEST_F(VarintTestFixture, WriteN1MinValueReturnsOne) {
+  ASSERT_EQ(Varint::writeUint(Varint::Limits::N1_MIN_UINT, b4, sizeof b4), 1);
 }
 
-TEST(VarintTest, WriteMaxValueEncodedInOneByte) {
-  Varint::uchar buf[4];
-  ASSERT_EQ(Varint::writeUint32(Varint::max_value_1_byte(), buf), 1);
+TEST_F(VarintTestFixture, WriteN1MaxValueReturnsOne) {
+  ASSERT_EQ(Varint::writeUint(Varint::Limits::N1_MAX_UINT, b4, sizeof b4), 1);
 }
 
-TEST(VarintTest, WriteMinValueEncodedInTwoBytes) {
-  Varint::uchar buf[4];
-  ASSERT_EQ(Varint::writeUint32(Varint::min_value_2_bytes(), buf), 2);
+TEST_F(VarintTestFixture, WriteN2MinValueReturnsTwo) {
+  ASSERT_EQ(Varint::writeUint(Varint::Limits::N2_MIN_UINT, b4, sizeof b4), 2);
 }
 
-TEST(VarintTest, WriteMaxValueEncodedInTwoBytes) {
-  Varint::uchar buf[4];
-  ASSERT_EQ(Varint::writeUint32(Varint::max_value_2_bytes(), buf), 2);
+TEST_F(VarintTestFixture, WriteN2MaxValueReturnsTwo) {
+  ASSERT_EQ(Varint::writeUint(Varint::Limits::N2_MAX_UINT, b4, sizeof b4), 2);
 }
 
-TEST(VarintTest, WriteMinValueEncodedInThreeBytes) {
-  Varint::uchar buf[4];
-  ASSERT_EQ(Varint::writeUint32(Varint::min_value_3_bytes(), buf), 3);
+TEST_F(VarintTestFixture, WriteN3MinValueReturnsThree) {
+  ASSERT_EQ(Varint::writeUint(Varint::Limits::N3_MIN_UINT, b4, sizeof b4), 3);
 }
 
-TEST(VarintTest, WriteMaxValueEncodedInThreeBytes) {
-  Varint::uchar buf[4];
-  ASSERT_EQ(Varint::writeUint32(Varint::max_value_3_bytes(), buf), 3);
+TEST_F(VarintTestFixture, WriteN3MaxValueReturnsThree) {
+  ASSERT_EQ(Varint::writeUint(Varint::Limits::N3_MAX_UINT, b4, sizeof b4), 3);
 }
 
-TEST(VarintTest, WriteMinValueEncodedInFourBytes) {
-  Varint::uchar buf[4];
-  ASSERT_EQ(Varint::writeUint32(Varint::min_value_4_bytes(), buf), 4);
+TEST_F(VarintTestFixture, WriteN4MinValueReturnsFour) {
+  ASSERT_EQ(Varint::writeUint(Varint::Limits::N4_MIN_UINT, b4, sizeof b4), 4);
 }
 
-TEST(VarintTest, WriteMaxValueEncodedInFourBytes) {
-  Varint::uchar buf[4];
-  ASSERT_EQ(Varint::writeUint32(Varint::max_value_4_bytes(), buf), 4);
+TEST_F(VarintTestFixture, WriteN4MaxValueReturnsFour) {
+  ASSERT_EQ(Varint::writeUint(Varint::Limits::N4_MAX_UINT, b4, sizeof b4), 4);
 }
 
-TEST(VarintTest, WriteTooBigValueAndThrow) {
-  Varint::uchar buf[4];
-  ASSERT_ANY_THROW(Varint::writeUint32(Varint::max_value_4_bytes() + 1, buf));
+TEST_F(VarintTestFixture, WriteTooBigValueReturnsZero) {
+  ASSERT_EQ(Varint::writeUint(Varint::Limits::N4_MAX_UINT + 1, b4, sizeof b4),
+            0);
 }
 
-TEST(VarintTest, ReadValueFromNullPtrAndDie) {
-  std::uint32_t target;
-  ASSERT_DEATH(Varint::readUint32(nullptr, &target), "");
+TEST_F(VarintTestFixture, WriteN1MinValueWithTrueFlagReturnsOne) {
+  ASSERT_EQ(Varint::writeUintWithFlag(Varint::Limits::N1_MIN_UINT_WITH_FLAG,
+                                      true, b4, sizeof b4),
+            1);
 }
 
-TEST(VarintTest, ReadValueIntoNullPtrAndDie) {
-  Varint::uchar buf[4];
-  ASSERT_DEATH(Varint::readUint32(buf, nullptr), "");
+TEST_F(VarintTestFixture, WriteN1MaxValueWithTrueFlagReturnsOne) {
+  ASSERT_EQ(Varint::writeUintWithFlag(Varint::Limits::N1_MAX_UINT_WITH_FLAG,
+                                      true, b4, sizeof b4),
+            1);
 }
 
-TEST(VarintTest, ReadMinValueEncodedInOneByte) {
-  Varint::uchar buf[4];
-  Varint::writeUint32(Varint::min_value_1_byte(), buf);
-  std::uint32_t target;
-  ASSERT_EQ(Varint::readUint32(buf, &target), 1);
-  ASSERT_EQ(target, Varint::min_value_1_byte());
+TEST_F(VarintTestFixture, WriteN2MinValueWithTrueFlagReturnsTwo) {
+  ASSERT_EQ(Varint::writeUintWithFlag(Varint::Limits::N2_MIN_UINT_WITH_FLAG,
+                                      true, b4, sizeof b4),
+            2);
 }
 
-TEST(VarintTest, ReadMaxValueEncodedInOneByte) {
-  Varint::uchar buf[4];
-  Varint::writeUint32(Varint::max_value_1_byte(), buf);
-  std::uint32_t target;
-  ASSERT_EQ(Varint::readUint32(buf, &target), 1);
-  ASSERT_EQ(target, Varint::max_value_1_byte());
+TEST_F(VarintTestFixture, WriteN2MaxValueWithTrueFlagReturnsTwo) {
+  ASSERT_EQ(Varint::writeUintWithFlag(Varint::Limits::N2_MAX_UINT_WITH_FLAG,
+                                      true, b4, sizeof b4),
+            2);
 }
 
-TEST(VarintTest, ReadMinValueEncodedInTwoBytes) {
-  Varint::uchar buf[4];
-  Varint::writeUint32(Varint::min_value_2_bytes(), buf);
-  std::uint32_t target;
-  ASSERT_EQ(Varint::readUint32(buf, &target), 2);
-  ASSERT_EQ(target, Varint::min_value_2_bytes());
+TEST_F(VarintTestFixture, WriteN3MinValueWithTrueFlagReturnsThree) {
+  ASSERT_EQ(Varint::writeUintWithFlag(Varint::Limits::N3_MIN_UINT_WITH_FLAG,
+                                      true, b4, sizeof b4),
+            3);
 }
 
-TEST(VarintTest, ReadMaxValueEncodedInTwoBytes) {
-  Varint::uchar buf[4];
-  Varint::writeUint32(Varint::max_value_2_bytes(), buf);
-  std::uint32_t target;
-  ASSERT_EQ(Varint::readUint32(buf, &target), 2);
-  ASSERT_EQ(target, Varint::max_value_2_bytes());
+TEST_F(VarintTestFixture, WriteN3MaxValueWithTrueFlagReturnsThree) {
+  ASSERT_EQ(Varint::writeUintWithFlag(Varint::Limits::N3_MAX_UINT_WITH_FLAG,
+                                      true, b4, sizeof b4),
+            3);
 }
 
-TEST(VarintTest, ReadMinValueEncodedInThreeBytes) {
-  Varint::uchar buf[4];
-  Varint::writeUint32(Varint::min_value_3_bytes(), buf);
-  std::uint32_t target;
-  ASSERT_EQ(Varint::readUint32(buf, &target), 3);
-  ASSERT_EQ(target, Varint::min_value_3_bytes());
+TEST_F(VarintTestFixture, WriteN4MinValueWithTrueFlagReturnsFour) {
+  ASSERT_EQ(Varint::writeUintWithFlag(Varint::Limits::N4_MIN_UINT_WITH_FLAG,
+                                      true, b4, sizeof b4),
+            4);
 }
 
-TEST(VarintTest, ReadMaxValueEncodedInThreeBytes) {
-  Varint::uchar buf[4];
-  Varint::writeUint32(Varint::max_value_3_bytes(), buf);
-  std::uint32_t target;
-  ASSERT_EQ(Varint::readUint32(buf, &target), 3);
-  ASSERT_EQ(target, Varint::max_value_3_bytes());
+TEST_F(VarintTestFixture, WriteN4MaxValueWithTrueFlagReturnsFour) {
+  ASSERT_EQ(Varint::writeUintWithFlag(Varint::Limits::N4_MAX_UINT_WITH_FLAG,
+                                      true, b4, sizeof b4),
+            4);
 }
 
-TEST(VarintTest, ReadMinValueEncodedInFourBytes) {
-  Varint::uchar buf[4];
-  Varint::writeUint32(Varint::min_value_4_bytes(), buf);
-  std::uint32_t target;
-  ASSERT_EQ(Varint::readUint32(buf, &target), 4);
-  ASSERT_EQ(target, Varint::min_value_4_bytes());
+TEST_F(VarintTestFixture, WriteTooBigValueWithTrueFlagReturnsZero) {
+  ASSERT_EQ(Varint::writeUintWithFlag(Varint::Limits::N4_MAX_UINT_WITH_FLAG + 1,
+                                      true, b4, sizeof b4),
+            0);
 }
 
-TEST(VarintTest, ReadMaxValueEncodedInFourBytes) {
-  Varint::uchar buf[4];
-  Varint::writeUint32(Varint::max_value_4_bytes(), buf);
-  std::uint32_t target;
-  ASSERT_EQ(Varint::readUint32(buf, &target), 4);
-  ASSERT_EQ(target, Varint::max_value_4_bytes());
+TEST_F(VarintTestFixture, WriteN1MinValueWithFalseFlagReturnsOne) {
+  ASSERT_EQ(Varint::writeUintWithFlag(Varint::Limits::N1_MIN_UINT_WITH_FLAG,
+                                      false, b4, sizeof b4),
+            1);
 }
 
-TEST(VarintTest, WriteAndReadSomeValuesOfDifferentSize) {
+TEST_F(VarintTestFixture, WriteN1MaxValueWithFalseFlagReturnsOne) {
+  ASSERT_EQ(Varint::writeUintWithFlag(Varint::Limits::N1_MAX_UINT_WITH_FLAG,
+                                      false, b4, sizeof b4),
+            1);
+}
+
+TEST_F(VarintTestFixture, WriteN2MinValueWithFalseFlagReturnsTwo) {
+  ASSERT_EQ(Varint::writeUintWithFlag(Varint::Limits::N2_MIN_UINT_WITH_FLAG,
+                                      false, b4, sizeof b4),
+            2);
+}
+
+TEST_F(VarintTestFixture, WriteN2MaxValueWithFalseFlagReturnsTwo) {
+  ASSERT_EQ(Varint::writeUintWithFlag(Varint::Limits::N2_MAX_UINT_WITH_FLAG,
+                                      false, b4, sizeof b4),
+            2);
+}
+
+TEST_F(VarintTestFixture, WriteN3MinValueWithFalseFlagReturnsThree) {
+  ASSERT_EQ(Varint::writeUintWithFlag(Varint::Limits::N3_MIN_UINT_WITH_FLAG,
+                                      false, b4, sizeof b4),
+            3);
+}
+
+TEST_F(VarintTestFixture, WriteN3MaxValueWithFalseFlagReturnsThree) {
+  ASSERT_EQ(Varint::writeUintWithFlag(Varint::Limits::N3_MAX_UINT_WITH_FLAG,
+                                      false, b4, sizeof b4),
+            3);
+}
+
+TEST_F(VarintTestFixture, WriteN4MinValueWithFalseFlagReturnsFour) {
+  ASSERT_EQ(Varint::writeUintWithFlag(Varint::Limits::N4_MIN_UINT_WITH_FLAG,
+                                      false, b4, sizeof b4),
+            4);
+}
+
+TEST_F(VarintTestFixture, WriteN4MaxValueWithFalseFlagReturnsFour) {
+  ASSERT_EQ(Varint::writeUintWithFlag(Varint::Limits::N4_MAX_UINT_WITH_FLAG,
+                                      false, b4, sizeof b4),
+            4);
+}
+
+TEST_F(VarintTestFixture, WriteTooBigValueWithFalseFlagReturnsZero) {
+  ASSERT_EQ(Varint::writeUintWithFlag(Varint::Limits::N4_MAX_UINT_WITH_FLAG + 1,
+                                      false, b4, sizeof b4),
+            0);
+}
+
+TEST_F(VarintTestFixture, ReadValueFromNullPtrThrows) {
+  ASSERT_THROW(Varint::readUint(nullptr, sizeof b4, &value),
+               mt::AssertionError);
+}
+
+TEST_F(VarintTestFixture, ReadValueIntoNullPtrThrows) {
+  ASSERT_THROW(Varint::readUint(b4, sizeof b4, nullptr), mt::AssertionError);
+}
+
+TEST_F(VarintTestFixture, ReadN1MinValue) {
+  Varint::writeUint(Varint::Limits::N1_MIN_UINT, b4, sizeof b4);
+  ASSERT_EQ(Varint::readUint(b4, sizeof b4, &value), 1);
+  ASSERT_EQ(value, Varint::Limits::N1_MIN_UINT);
+}
+
+TEST_F(VarintTestFixture, ReadN1MaxValue) {
+  Varint::writeUint(Varint::Limits::N1_MAX_UINT, b4, sizeof b4);
+  ASSERT_EQ(Varint::readUint(b4, sizeof b4, &value), 1);
+  ASSERT_EQ(value, Varint::Limits::N1_MAX_UINT);
+}
+
+TEST_F(VarintTestFixture, ReadN2MinValue) {
+  Varint::writeUint(Varint::Limits::N2_MIN_UINT, b4, sizeof b4);
+  ASSERT_EQ(Varint::readUint(b4, sizeof b4, &value), 2);
+  ASSERT_EQ(value, Varint::Limits::N2_MIN_UINT);
+}
+
+TEST_F(VarintTestFixture, ReadN2MaxValue) {
+  Varint::writeUint(Varint::Limits::N2_MAX_UINT, b4, sizeof b4);
+  ASSERT_EQ(Varint::readUint(b4, sizeof b4, &value), 2);
+  ASSERT_EQ(value, Varint::Limits::N2_MAX_UINT);
+}
+
+TEST_F(VarintTestFixture, ReadN3MinValue) {
+  Varint::writeUint(Varint::Limits::N3_MIN_UINT, b4, sizeof b4);
+  ASSERT_EQ(Varint::readUint(b4, sizeof b4, &value), 3);
+  ASSERT_EQ(value, Varint::Limits::N3_MIN_UINT);
+}
+
+TEST_F(VarintTestFixture, ReadN3MaxValue) {
+  Varint::writeUint(Varint::Limits::N3_MAX_UINT, b4, sizeof b4);
+  ASSERT_EQ(Varint::readUint(b4, sizeof b4, &value), 3);
+  ASSERT_EQ(value, Varint::Limits::N3_MAX_UINT);
+}
+
+TEST_F(VarintTestFixture, ReadN4MinValue) {
+  Varint::writeUint(Varint::Limits::N4_MIN_UINT, b4, sizeof b4);
+  ASSERT_EQ(Varint::readUint(b4, sizeof b4, &value), 4);
+  ASSERT_EQ(value, Varint::Limits::N4_MIN_UINT);
+}
+
+TEST_F(VarintTestFixture, ReadN4MaxValue) {
+  Varint::writeUint(Varint::Limits::N4_MAX_UINT, b4, sizeof b4);
+  ASSERT_EQ(Varint::readUint(b4, sizeof b4, &value), 4);
+  ASSERT_EQ(value, Varint::Limits::N4_MAX_UINT);
+}
+
+TEST_F(VarintTestFixture, ReadValueWithFlagFromNullPtrThrows) {
+  ASSERT_THROW(Varint::readUintWithFlag(nullptr, sizeof b4, &value, &flag),
+               mt::AssertionError);
+}
+
+TEST_F(VarintTestFixture, ReadValueWithFlagIntoNullValueThrows) {
+  ASSERT_THROW(Varint::readUintWithFlag(b4, sizeof b4, nullptr, &flag),
+               mt::AssertionError);
+}
+
+TEST_F(VarintTestFixture, ReadValueWithFlagIntoNullFlagThrows) {
+  ASSERT_THROW(Varint::readUintWithFlag(b4, sizeof b4, &value, nullptr),
+               mt::AssertionError);
+}
+
+TEST_F(VarintTestFixture, ReadN1MinValueWithTrueFlag) {
+  flag = false;
+  Varint::writeUintWithFlag(Varint::Limits::N1_MIN_UINT_WITH_FLAG, true, b4,
+                            sizeof b4);
+  ASSERT_EQ(Varint::readUintWithFlag(b4, sizeof b4, &value, &flag), 1);
+  ASSERT_EQ(value, Varint::Limits::N1_MIN_UINT_WITH_FLAG);
+  ASSERT_EQ(flag, true);
+}
+
+TEST_F(VarintTestFixture, ReadN1MaxValueWithTrueFlag) {
+  flag = false;
+  Varint::writeUintWithFlag(Varint::Limits::N1_MAX_UINT_WITH_FLAG, true, b4,
+                            sizeof b4);
+  ASSERT_EQ(Varint::readUintWithFlag(b4, sizeof b4, &value, &flag), 1);
+  ASSERT_EQ(value, Varint::Limits::N1_MAX_UINT_WITH_FLAG);
+  ASSERT_EQ(flag, true);
+}
+
+TEST_F(VarintTestFixture, ReadN2MinValueWithTrueFlag) {
+  flag = false;
+  Varint::writeUintWithFlag(Varint::Limits::N2_MIN_UINT_WITH_FLAG, true, b4,
+                            sizeof b4);
+  ASSERT_EQ(Varint::readUintWithFlag(b4, sizeof b4, &value, &flag), 2);
+  ASSERT_EQ(value, Varint::Limits::N2_MIN_UINT_WITH_FLAG);
+  ASSERT_EQ(flag, true);
+}
+
+TEST_F(VarintTestFixture, ReadN2MaxValueWithTrueFlag) {
+  flag = false;
+  Varint::writeUintWithFlag(Varint::Limits::N2_MAX_UINT_WITH_FLAG, true, b4,
+                            sizeof b4);
+  ASSERT_EQ(Varint::readUintWithFlag(b4, sizeof b4, &value, &flag), 2);
+  ASSERT_EQ(value, Varint::Limits::N2_MAX_UINT_WITH_FLAG);
+  ASSERT_EQ(flag, true);
+}
+
+TEST_F(VarintTestFixture, ReadN3MinValueWithTrueFlag) {
+  flag = false;
+  Varint::writeUintWithFlag(Varint::Limits::N3_MIN_UINT_WITH_FLAG, true, b4,
+                            sizeof b4);
+  ASSERT_EQ(Varint::readUintWithFlag(b4, sizeof b4, &value, &flag), 3);
+  ASSERT_EQ(value, Varint::Limits::N3_MIN_UINT_WITH_FLAG);
+  ASSERT_EQ(flag, true);
+}
+
+TEST_F(VarintTestFixture, ReadN3MaxValueWithTrueFlag) {
+  flag = false;
+  Varint::writeUintWithFlag(Varint::Limits::N3_MAX_UINT_WITH_FLAG, true, b4,
+                            sizeof b4);
+  ASSERT_EQ(Varint::readUintWithFlag(b4, sizeof b4, &value, &flag), 3);
+  ASSERT_EQ(value, Varint::Limits::N3_MAX_UINT_WITH_FLAG);
+  ASSERT_EQ(flag, true);
+}
+
+TEST_F(VarintTestFixture, ReadN4MinValueWithTrueFlag) {
+  flag = false;
+  Varint::writeUintWithFlag(Varint::Limits::N4_MIN_UINT_WITH_FLAG, true, b4,
+                            sizeof b4);
+  ASSERT_EQ(Varint::readUintWithFlag(b4, sizeof b4, &value, &flag), 4);
+  ASSERT_EQ(value, Varint::Limits::N4_MIN_UINT_WITH_FLAG);
+  ASSERT_EQ(flag, true);
+}
+
+TEST_F(VarintTestFixture, ReadN4MaxValueWithTrueFlag) {
+  flag = false;
+  Varint::writeUintWithFlag(Varint::Limits::N4_MAX_UINT_WITH_FLAG, true, b4,
+                            sizeof b4);
+  ASSERT_EQ(Varint::readUintWithFlag(b4, sizeof b4, &value, &flag), 4);
+  ASSERT_EQ(value, Varint::Limits::N4_MAX_UINT_WITH_FLAG);
+  ASSERT_EQ(flag, true);
+}
+
+TEST_F(VarintTestFixture, ReadN1MinValueWithFalseFlag) {
+  flag = true;
+  Varint::writeUintWithFlag(Varint::Limits::N1_MIN_UINT_WITH_FLAG, false, b4,
+                            sizeof b4);
+  ASSERT_EQ(Varint::readUintWithFlag(b4, sizeof b4, &value, &flag), 1);
+  ASSERT_EQ(value, Varint::Limits::N1_MIN_UINT_WITH_FLAG);
+  ASSERT_EQ(flag, false);
+}
+
+TEST_F(VarintTestFixture, ReadN1MaxValueWithFalseFlag) {
+  flag = true;
+  Varint::writeUintWithFlag(Varint::Limits::N1_MAX_UINT_WITH_FLAG, false, b4,
+                            sizeof b4);
+  ASSERT_EQ(Varint::readUintWithFlag(b4, sizeof b4, &value, &flag), 1);
+  ASSERT_EQ(value, Varint::Limits::N1_MAX_UINT_WITH_FLAG);
+  ASSERT_EQ(flag, false);
+}
+
+TEST_F(VarintTestFixture, ReadN2MinValueWithFalseFlag) {
+  flag = true;
+  Varint::writeUintWithFlag(Varint::Limits::N2_MIN_UINT_WITH_FLAG, false, b4,
+                            sizeof b4);
+  ASSERT_EQ(Varint::readUintWithFlag(b4, sizeof b4, &value, &flag), 2);
+  ASSERT_EQ(value, Varint::Limits::N2_MIN_UINT_WITH_FLAG);
+  ASSERT_EQ(flag, false);
+}
+
+TEST_F(VarintTestFixture, ReadN2MaxValueWithFalseFlag) {
+  flag = true;
+  Varint::writeUintWithFlag(Varint::Limits::N2_MAX_UINT_WITH_FLAG, false, b4,
+                            sizeof b4);
+  ASSERT_EQ(Varint::readUintWithFlag(b4, sizeof b4, &value, &flag), 2);
+  ASSERT_EQ(value, Varint::Limits::N2_MAX_UINT_WITH_FLAG);
+  ASSERT_EQ(flag, false);
+}
+
+TEST_F(VarintTestFixture, ReadN3MinValueWithFalseFlag) {
+  flag = true;
+  Varint::writeUintWithFlag(Varint::Limits::N3_MIN_UINT_WITH_FLAG, false, b4,
+                            sizeof b4);
+  ASSERT_EQ(Varint::readUintWithFlag(b4, sizeof b4, &value, &flag), 3);
+  ASSERT_EQ(value, Varint::Limits::N3_MIN_UINT_WITH_FLAG);
+  ASSERT_EQ(flag, false);
+}
+
+TEST_F(VarintTestFixture, ReadN3MaxValueWithFalseFlag) {
+  flag = true;
+  Varint::writeUintWithFlag(Varint::Limits::N3_MAX_UINT_WITH_FLAG, false, b4,
+                            sizeof b4);
+  ASSERT_EQ(Varint::readUintWithFlag(b4, sizeof b4, &value, &flag), 3);
+  ASSERT_EQ(value, Varint::Limits::N3_MAX_UINT_WITH_FLAG);
+  ASSERT_EQ(flag, false);
+}
+
+TEST_F(VarintTestFixture, ReadN4MinValueWithFalseFlag) {
+  flag = true;
+  Varint::writeUintWithFlag(Varint::Limits::N4_MIN_UINT_WITH_FLAG, false, b4,
+                            sizeof b4);
+  ASSERT_EQ(Varint::readUintWithFlag(b4, sizeof b4, &value, &flag), 4);
+  ASSERT_EQ(value, Varint::Limits::N4_MIN_UINT_WITH_FLAG);
+  ASSERT_EQ(flag, false);
+}
+
+TEST_F(VarintTestFixture, ReadN4MaxValueWithFalseFlag) {
+  flag = true;
+  Varint::writeUintWithFlag(Varint::Limits::N4_MAX_UINT_WITH_FLAG, false, b4,
+                            sizeof b4);
+  ASSERT_EQ(Varint::readUintWithFlag(b4, sizeof b4, &value, &flag), 4);
+  ASSERT_EQ(value, Varint::Limits::N4_MAX_UINT_WITH_FLAG);
+  ASSERT_EQ(flag, false);
+}
+
+TEST_F(VarintTestFixture, WriteAndReadSomeValues) {
   std::uint32_t values[] = {
-      (Varint::max_value_1_byte() - Varint::min_value_1_byte()) / 2,
-      (Varint::max_value_2_bytes() - Varint::min_value_2_bytes()) / 2,
-      (Varint::max_value_3_bytes() - Varint::min_value_3_bytes()) / 2,
-      (Varint::max_value_4_bytes() - Varint::min_value_4_bytes()) / 2};
-  Varint::uchar buf[32];
-  auto pos = buf;
-  pos += Varint::writeUint32(values[0], pos);
-  pos += Varint::writeUint32(values[1], pos);
-  pos += Varint::writeUint32(values[2], pos);
-  pos += Varint::writeUint32(values[3], pos);
-  ASSERT_EQ(std::distance(buf, pos), 10);
+    (Varint::Limits::N1_MAX_UINT - Varint::Limits::N1_MIN_UINT) / 2,
+    (Varint::Limits::N2_MAX_UINT - Varint::Limits::N2_MIN_UINT) / 2,
+    (Varint::Limits::N3_MAX_UINT - Varint::Limits::N3_MIN_UINT) / 2,
+    (Varint::Limits::N4_MAX_UINT - Varint::Limits::N4_MIN_UINT) / 2
+  };
+  auto p = b32;
+  p += Varint::writeUint(values[0], p, sizeof b32 - (p - b32));
+  p += Varint::writeUint(values[1], p, sizeof b32 - (p - b32));
+  p += Varint::writeUint(values[2], p, sizeof b32 - (p - b32));
+  p += Varint::writeUint(values[3], p, sizeof b32 - (p - b32));
+  ASSERT_EQ(p - b32, 10);
 
-  pos = buf;
-  std::uint32_t target;
-  pos += Varint::readUint32(pos, &target);
-  ASSERT_EQ(target, values[0]);
-  pos += Varint::readUint32(pos, &target);
-  ASSERT_EQ(target, values[1]);
-  pos += Varint::readUint32(pos, &target);
-  ASSERT_EQ(target, values[2]);
-  pos += Varint::readUint32(pos, &target);
-  ASSERT_EQ(target, values[3]);
-  ASSERT_EQ(std::distance(buf, pos), 10);
+  p = b32;
+  p += Varint::readUint(p, sizeof b32 - (p - b32), &value);
+  ASSERT_EQ(value, values[0]);
+  p += Varint::readUint(p, sizeof b32 - (p - b32), &value);
+  ASSERT_EQ(value, values[1]);
+  p += Varint::readUint(p, sizeof b32 - (p - b32), &value);
+  ASSERT_EQ(value, values[2]);
+  p += Varint::readUint(p, sizeof b32 - (p - b32), &value);
+  ASSERT_EQ(value, values[3]);
+  ASSERT_EQ(p - b32, 10);
 }
 
-}  // namespace internal
-}  // namespace multimap
+TEST_F(VarintTestFixture, WriteAndReadSomeValuesWithTrueFlags) {
+  std::uint32_t values[] = {(Varint::Limits::N1_MAX_UINT_WITH_FLAG -
+                             Varint::Limits::N1_MIN_UINT_WITH_FLAG) /
+                                2,
+                            (Varint::Limits::N2_MAX_UINT_WITH_FLAG -
+                             Varint::Limits::N2_MIN_UINT_WITH_FLAG) /
+                                2,
+                            (Varint::Limits::N3_MAX_UINT_WITH_FLAG -
+                             Varint::Limits::N3_MIN_UINT_WITH_FLAG) /
+                                2,
+                            (Varint::Limits::N4_MAX_UINT_WITH_FLAG -
+                             Varint::Limits::N4_MIN_UINT_WITH_FLAG) /
+                                2 };
+  auto p = b32;
+  p += Varint::writeUintWithFlag(values[0], true, p, sizeof b32 - (p - b32));
+  p += Varint::writeUintWithFlag(values[1], true, p, sizeof b32 - (p - b32));
+  p += Varint::writeUintWithFlag(values[2], true, p, sizeof b32 - (p - b32));
+  p += Varint::writeUintWithFlag(values[3], true, p, sizeof b32 - (p - b32));
+  ASSERT_EQ(p - b32, 10);
+
+  p = b32;
+  flag = false;
+  p += Varint::readUintWithFlag(p, sizeof b32 - (p - b32), &value, &flag);
+  ASSERT_EQ(value, values[0]);
+  ASSERT_EQ(flag, true);
+
+  flag = false;
+  p += Varint::readUintWithFlag(p, sizeof b32 - (p - b32), &value, &flag);
+  ASSERT_EQ(value, values[1]);
+  ASSERT_EQ(flag, true);
+
+  flag = false;
+  p += Varint::readUintWithFlag(p, sizeof b32 - (p - b32), &value, &flag);
+  ASSERT_EQ(value, values[2]);
+  ASSERT_EQ(flag, true);
+
+  flag = false;
+  p += Varint::readUintWithFlag(p, sizeof b32 - (p - b32), &value, &flag);
+  ASSERT_EQ(value, values[3]);
+  ASSERT_EQ(flag, true);
+
+  ASSERT_EQ(p - b32, 10);
+}
+
+TEST_F(VarintTestFixture, WriteAndReadSomeValuesWithFalseFlags) {
+  std::uint32_t values[] = {(Varint::Limits::N1_MAX_UINT_WITH_FLAG -
+                             Varint::Limits::N1_MIN_UINT_WITH_FLAG) /
+                                2,
+                            (Varint::Limits::N2_MAX_UINT_WITH_FLAG -
+                             Varint::Limits::N2_MIN_UINT_WITH_FLAG) /
+                                2,
+                            (Varint::Limits::N3_MAX_UINT_WITH_FLAG -
+                             Varint::Limits::N3_MIN_UINT_WITH_FLAG) /
+                                2,
+                            (Varint::Limits::N4_MAX_UINT_WITH_FLAG -
+                             Varint::Limits::N4_MIN_UINT_WITH_FLAG) /
+                                2 };
+  auto p = b32;
+  p += Varint::writeUintWithFlag(values[0], false, p, sizeof b32 - (p - b32));
+  p += Varint::writeUintWithFlag(values[1], false, p, sizeof b32 - (p - b32));
+  p += Varint::writeUintWithFlag(values[2], false, p, sizeof b32 - (p - b32));
+  p += Varint::writeUintWithFlag(values[3], false, p, sizeof b32 - (p - b32));
+  ASSERT_EQ(p - b32, 10);
+
+  p = b32;
+  flag = true;
+  p += Varint::readUintWithFlag(p, sizeof b32 - (p - b32), &value, &flag);
+  ASSERT_EQ(value, values[0]);
+  ASSERT_EQ(flag, false);
+
+  flag = true;
+  p += Varint::readUintWithFlag(p, sizeof b32 - (p - b32), &value, &flag);
+  ASSERT_EQ(value, values[1]);
+  ASSERT_EQ(flag, false);
+
+  flag = true;
+  p += Varint::readUintWithFlag(p, sizeof b32 - (p - b32), &value, &flag);
+  ASSERT_EQ(value, values[2]);
+  ASSERT_EQ(flag, false);
+
+  flag = true;
+  p += Varint::readUintWithFlag(p, sizeof b32 - (p - b32), &value, &flag);
+  ASSERT_EQ(value, values[3]);
+  ASSERT_EQ(flag, false);
+
+  ASSERT_EQ(p - b32, 10);
+}
+
+TEST_F(VarintTestFixture, WriteAndReadSomeValuesWithTrueAndFalseFlags) {
+  std::uint32_t values[] = {(Varint::Limits::N1_MAX_UINT_WITH_FLAG -
+                             Varint::Limits::N1_MIN_UINT_WITH_FLAG) /
+                                2,
+                            (Varint::Limits::N2_MAX_UINT_WITH_FLAG -
+                             Varint::Limits::N2_MIN_UINT_WITH_FLAG) /
+                                2,
+                            (Varint::Limits::N3_MAX_UINT_WITH_FLAG -
+                             Varint::Limits::N3_MIN_UINT_WITH_FLAG) /
+                                2,
+                            (Varint::Limits::N4_MAX_UINT_WITH_FLAG -
+                             Varint::Limits::N4_MIN_UINT_WITH_FLAG) /
+                                2 };
+  auto p = b32;
+  p += Varint::writeUintWithFlag(values[0], true, p, sizeof b32 - (p - b32));
+  p += Varint::writeUintWithFlag(values[1], false, p, sizeof b32 - (p - b32));
+  p += Varint::writeUintWithFlag(values[2], true, p, sizeof b32 - (p - b32));
+  p += Varint::writeUintWithFlag(values[3], false, p, sizeof b32 - (p - b32));
+  ASSERT_EQ(p - b32, 10);
+
+  p = b32;
+  flag = false;
+  p += Varint::readUintWithFlag(p, sizeof b32 - (p - b32), &value, &flag);
+  ASSERT_EQ(value, values[0]);
+  ASSERT_EQ(flag, true);
+
+  p += Varint::readUintWithFlag(p, sizeof b32 - (p - b32), &value, &flag);
+  ASSERT_EQ(value, values[1]);
+  ASSERT_EQ(flag, false);
+
+  p += Varint::readUintWithFlag(p, sizeof b32 - (p - b32), &value, &flag);
+  ASSERT_EQ(value, values[2]);
+  ASSERT_EQ(flag, true);
+
+  p += Varint::readUintWithFlag(p, sizeof b32 - (p - b32), &value, &flag);
+  ASSERT_EQ(value, values[3]);
+  ASSERT_EQ(flag, false);
+
+  ASSERT_EQ(p - b32, 10);
+}
+
+} // namespace internal
+} // namespace multimap

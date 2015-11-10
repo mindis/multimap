@@ -28,10 +28,10 @@ namespace internal {
 
 class Generator {
  public:
-  virtual std::string generate() = 0;
+  virtual std::string next() = 0;
 
   std::string generate(std::size_t len) {
-    auto value = this->generate();
+    auto value = this->next();
     if (value.size() < len) {
       value.append(len - value.size(), 'x');
     } else if (value.size() > len) {
@@ -49,15 +49,7 @@ class RandomGenerator : public Generator {
 
   RandomGenerator(std::size_t num_unique) : num_unique_(num_unique) {}
 
-  static std::unique_ptr<Generator> create() {
-    return std::unique_ptr<Generator>(new RandomGenerator());
-  }
-
-  static std::unique_ptr<Generator> create(std::size_t num_unique) {
-    return std::unique_ptr<Generator>(new RandomGenerator(num_unique));
-  }
-
-  std::string generate() override {
+  std::string next() override {
     return std::to_string(distribution_(random_engine_) % num_unique_);
   }
 
@@ -77,15 +69,7 @@ class SequenceGenerator : public Generator {
 
   SequenceGenerator(std::size_t start) : start_(start), state_(start) {}
 
-  static std::unique_ptr<Generator> create() {
-    return std::unique_ptr<Generator>(new SequenceGenerator());
-  }
-
-  static std::unique_ptr<Generator> create(std::size_t start) {
-    return std::unique_ptr<Generator>(new SequenceGenerator(start));
-  }
-
-  std::string generate() override { return std::to_string(state_++); }
+  std::string next() override { return std::to_string(state_++); }
 
   void reset() override { state_ = start_; }
 

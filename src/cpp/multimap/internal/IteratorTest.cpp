@@ -27,9 +27,6 @@ namespace internal {
 using testing::Eq;
 using testing::Ne;
 
-typedef Iterator<UniqueListLock> UniqueListIterator;
-typedef Iterator<SharedListLock> SharedListIterator;
-
 struct IteratorTestFixture : testing::TestWithParam<std::uint32_t> {
   void SetUp() override {
     directory = "/tmp/multimap-IteratorTestFixture";
@@ -47,7 +44,7 @@ struct IteratorTestFixture : testing::TestWithParam<std::uint32_t> {
   }
 
   void TearDown() override {
-    map = Map();  // We need the d'tor call here.
+    map = Map(); // We need the d'tor call here.
     assert(boost::filesystem::remove_all(directory));
   }
 
@@ -56,35 +53,69 @@ struct IteratorTestFixture : testing::TestWithParam<std::uint32_t> {
   boost::filesystem::path directory;
 };
 
-struct ConstIterTest : public IteratorTestFixture {
+struct SharedIteratorTest : public IteratorTestFixture {
   SharedListIterator getIterator() { return map.get(key); }
 };
 
-struct IterTest : public IteratorTestFixture {
+TEST(SharedIteratorTest, IsDefaultConstructible) {
+  ASSERT_TRUE(std::is_default_constructible<SharedListIterator>::value);
+}
+
+TEST(SharedIteratorTest, IsNotCopyConstructibleOrAssignable) {
+  ASSERT_FALSE(std::is_copy_constructible<SharedListIterator>::value);
+  ASSERT_FALSE(std::is_copy_assignable<SharedListIterator>::value);
+}
+
+TEST(SharedIteratorTest, IsMoveConstructibleAndAssignable) {
+  ASSERT_TRUE(std::is_move_constructible<SharedListIterator>::value);
+  ASSERT_TRUE(std::is_move_assignable<SharedListIterator>::value);
+}
+
+TEST(SharedIteratorTest, DefaultConstructedHasProperState) {
+  ASSERT_THAT(UniqueListIterator().available(), Eq(0));
+  ASSERT_THAT(UniqueListIterator().hasNext(), Eq(false));
+  // Calling `next()` or `peekNext()` or `remove()` is undefined behavior.
+}
+
+TEST_P(SharedIteratorTest, Iterate) {
+  SharedListIterator iter = getIterator();
+  ASSERT_THAT(iter.available(), Eq(GetParam()));
+  for (std::size_t i = 0; iter.hasNext(); ++i) {
+    ASSERT_THAT(iter.available(), Eq(GetParam() - i));
+    ASSERT_THAT(iter.next(), Eq(std::to_string(i)));
+  }
+  ASSERT_THAT(iter.hasNext(), Eq(false));
+  ASSERT_THAT(iter.available(), Eq(0));
+}
+
+INSTANTIATE_TEST_CASE_P(Parameterized, SharedIteratorTest,
+                        testing::Values(0, 1, 2, 10, 100, 1000, 10000));
+
+struct UniqueListIteratorTest : public IteratorTestFixture {
   UniqueListIterator getIterator() { return map.getMutable(key); }
 };
 
-TEST(IterTest, IsDefaultConstructible) {
-  ASSERT_THAT(std::is_default_constructible<UniqueListIterator>::value, Eq(true));
+TEST(UniqueListIteratorTest, IsDefaultConstructible) {
+  ASSERT_TRUE(std::is_default_constructible<UniqueListIterator>::value);
 }
 
-TEST(IterTest, IsNotCopyConstructibleOrAssignable) {
-  ASSERT_THAT(std::is_copy_constructible<UniqueListIterator>::value, Eq(false));
-  ASSERT_THAT(std::is_copy_assignable<UniqueListIterator>::value, Eq(false));
+TEST(UniqueListIteratorTest, IsNotCopyConstructibleOrAssignable) {
+  ASSERT_FALSE(std::is_copy_constructible<UniqueListIterator>::value);
+  ASSERT_FALSE(std::is_copy_assignable<UniqueListIterator>::value);
 }
 
-TEST(IterTest, IsMoveConstructibleAndAssignable) {
-  ASSERT_THAT(std::is_move_constructible<UniqueListIterator>::value, Eq(true));
-  ASSERT_THAT(std::is_move_assignable<UniqueListIterator>::value, Eq(true));
+TEST(UniqueListIteratorTest, IsMoveConstructibleAndAssignable) {
+  ASSERT_TRUE(std::is_move_constructible<UniqueListIterator>::value);
+  ASSERT_TRUE(std::is_move_assignable<UniqueListIterator>::value);
 }
 
-TEST(IterTest, DefaultConstructedHasProperState) {
+TEST(UniqueListIteratorTest, DefaultConstructedHasProperState) {
   ASSERT_THAT(UniqueListIterator().available(), Eq(0));
   ASSERT_THAT(UniqueListIterator().hasNext(), Eq(false));
-  ASSERT_THAT(UniqueListIterator().available(), Eq(0));
+  // Calling `next()` or `peekNext()` or `remove()` is undefined behavior.
 }
 
-TEST_P(IterTest, IterateAll) {
+TEST_P(UniqueListIteratorTest, Iterate) {
   UniqueListIterator iter = getIterator();
   ASSERT_THAT(iter.available(), Eq(GetParam()));
   for (std::size_t i = 0; iter.hasNext(); ++i) {
@@ -95,7 +126,7 @@ TEST_P(IterTest, IterateAll) {
   ASSERT_THAT(iter.available(), Eq(0));
 }
 
-TEST_P(IterTest, IterateOnceAndRemoveEvery23thValue) {
+TEST_P(UniqueListIteratorTest, IterateOnceAndRemoveEvery23thValue) {
   UniqueListIterator iter = getIterator();
   std::size_t num_removed = 0;
   for (std::size_t i = 0; iter.hasNext(); ++i) {
@@ -109,7 +140,7 @@ TEST_P(IterTest, IterateOnceAndRemoveEvery23thValue) {
   ASSERT_THAT(iter.available(), Eq(0));
 }
 
-TEST_P(IterTest, IterateTwiceAndRemoveEvery23thValueIn1stRun) {
+TEST_P(UniqueListIteratorTest, IterateTwiceAndRemoveEvery23thValueIn1stRun) {
   std::size_t num_removed = 0;
   {
     UniqueListIterator iter = getIterator();
@@ -136,40 +167,7 @@ TEST_P(IterTest, IterateTwiceAndRemoveEvery23thValueIn1stRun) {
   }
 }
 
-TEST(ConstIterTest, IsDefaultConstructible) {
-  ASSERT_THAT(std::is_default_constructible<SharedListIterator>::value, Eq(true));
-}
-
-TEST(ConstIterTest, IsNotCopyConstructibleOrAssignable) {
-  ASSERT_THAT(std::is_copy_constructible<SharedListIterator>::value, Eq(false));
-  ASSERT_THAT(std::is_copy_assignable<SharedListIterator>::value, Eq(false));
-}
-
-TEST(ConstIterTest, IsMoveConstructibleAndAssignable) {
-  ASSERT_THAT(std::is_move_constructible<SharedListIterator>::value, Eq(true));
-  ASSERT_THAT(std::is_move_assignable<SharedListIterator>::value, Eq(true));
-}
-
-TEST(ConstIterTest, DefaultConstructedHasProperState) {
-  ASSERT_THAT(UniqueListIterator().hasNext(), Eq(false));
-  ASSERT_THAT(UniqueListIterator().available(), Eq(0));
-}
-
-TEST_P(ConstIterTest, IterateAll) {
-  SharedListIterator iter = getIterator();
-  ASSERT_THAT(iter.available(), Eq(GetParam()));
-  for (std::size_t i = 0; iter.hasNext(); ++i) {
-    ASSERT_THAT(iter.available(), Eq(GetParam() - i));
-    ASSERT_THAT(iter.next(), Eq(std::to_string(i)));
-  }
-  ASSERT_THAT(iter.hasNext(), Eq(false));
-  ASSERT_THAT(iter.available(), Eq(0));
-}
-
-INSTANTIATE_TEST_CASE_P(Parameterized, IterTest,
-                        testing::Values(0, 1, 2, 10, 100, 1000, 10000));
-
-INSTANTIATE_TEST_CASE_P(Parameterized, ConstIterTest,
+INSTANTIATE_TEST_CASE_P(Parameterized, UniqueListIteratorTest,
                         testing::Values(0, 1, 2, 10, 100, 1000, 10000));
 
 // TODO Micro-benchmark this.
@@ -180,5 +178,5 @@ INSTANTIATE_TEST_CASE_P(Parameterized, ConstIterTest,
 // INSTANTIATE_TEST_CASE_P(ParameterizedLongRunning, ConstIterTest,
 //                        testing::Values(100000, 1000000));
 
-}  // namespace internal
-}  // namespace multimap
+} // namespace internal
+} // namespace multimap

@@ -29,6 +29,14 @@ const char* TABLE_FILE_SUFFIX = ".table";
 
 } // namespace
 
+std::size_t Shard::Limits::max_key_size() {
+  return Table::Limits::max_key_size();
+}
+
+std::size_t Shard::Limits::max_value_size() {
+  return Store::Limits::max_value_size();
+}
+
 Shard::Stats& Shard::Stats::combine(const Stats& other) {
   store.combine(other.store);
   table.combine(other.table);
@@ -57,12 +65,12 @@ mt::Properties Shard::Stats::toProperties() const {
 
 Shard::Shard(const boost::filesystem::path& prefix) : Shard(prefix, 0) {}
 
-Shard::Shard(const boost::filesystem::path& prefix, std::size_t block_size) {
-  store_.open(prefix.string() + STORE_FILE_SUFFIX, block_size);
+Shard::Shard(const boost::filesystem::path& prefix, std::size_t block_size)
+    : store_(prefix.string() + STORE_FILE_SUFFIX, block_size) {
+  //  store_.open(prefix.string() + STORE_FILE_SUFFIX, block_size);
   table_.open(prefix.string() + TABLE_FILE_SUFFIX);
   // TODO Check if arena_(large_chunk_size) makes any difference.
   prefix_ = prefix;
-  initCallbacks();
 
   MT_ENSURE_TRUE(isOpen());
 }
@@ -77,7 +85,7 @@ Shard::Stats Shard::close() {
   MT_REQUIRE_TRUE(isOpen());
 
   Stats stats;
-  stats.table = table_.close(callbacks_.commit_block);
+  stats.table = table_.close(&store_);
   stats.store = store_.getStats();
 
   MT_ENSURE_FALSE(isOpen());
@@ -85,17 +93,15 @@ Shard::Stats Shard::close() {
 }
 
 void Shard::put(const Bytes& key, const Bytes& value) {
-  table_.getUniqueOrCreate(key).list()->append(value, callbacks_.new_block,
-                                               callbacks_.commit_block);
+  table_.getUniqueOrCreate(key).list()->add(value, &arena_, &store_);
 }
 
 Shard::ListIterator Shard::get(const Bytes& key) const {
-  return ListIterator(table_.getShared(key), callbacks_.request_blocks);
+  return ListIterator(table_.getShared(key), store_);
 }
 
 Shard::MutableListIterator Shard::getMutable(const Bytes& key) {
-  return MutableListIterator(table_.getUnique(key), callbacks_.request_blocks,
-                             callbacks_.replace_blocks);
+  return MutableListIterator(table_.getUnique(key), &store_);
 }
 
 bool Shard::contains(const Bytes& key) const {
@@ -161,40 +167,28 @@ void Shard::forEachKey(Callables::Procedure action) const {
 }
 
 void Shard::forEachValue(const Bytes& key, Callables::Procedure action) const {
-  const auto list_lock = table_.getShared(key);
-  if (list_lock.hasList()) {
-    auto iter = list_lock.list()->const_iterator(callbacks_.request_blocks);
-    while (iter.hasNext()) {
-      action(iter.next());
-    }
+  auto iter = SharedListIterator(table_.getShared(key), store_);
+  while (iter.hasNext()) {
+    action(iter.next());
   }
 }
 
 void Shard::forEachValue(const Bytes& key, Callables::Predicate action) const {
-  const auto list_lock = table_.getShared(key);
-  if (list_lock.hasList()) {
-    auto iter = list_lock.list()->const_iterator(callbacks_.request_blocks);
-    while (iter.hasNext()) {
-      if (!action(iter.next())) {
-        break;
-      }
+  auto iter = SharedListIterator(table_.getShared(key), store_);
+  while (iter.hasNext()) {
+    if (!action(iter.next())) {
+      break;
     }
   }
 }
 
 void Shard::forEachEntry(Callables::Procedure2<ListIterator> action) const {
   store_.adviseAccessPattern(Store::AccessPattern::SEQUENTIAL);
-  table_.forEachEntry([action, this](const Bytes& key,
-                                     SharedListLock&& list_lock) {
-    action(key, ListIterator(std::move(list_lock), callbacks_.request_blocks));
-  });
+  table_.forEachEntry(
+      [action, this](const Bytes& key, SharedListLock&& list_lock) {
+        action(key, ListIterator(std::move(list_lock), store_));
+      });
   store_.adviseAccessPattern(Store::AccessPattern::RANDOM);
-}
-
-std::size_t Shard::max_key_size() const { return table_.max_key_size(); }
-
-std::size_t Shard::max_value_size() const {
-  return Block::max_value_size(store_.block_size());
 }
 
 Shard::Stats Shard::getStats() const {
@@ -205,37 +199,6 @@ Shard::Stats Shard::getStats() const {
 }
 
 bool Shard::isOpen() const { return table_.isOpen(); }
-
-void Shard::initCallbacks() {
-  // Thread-safe: yes.  // TODO Check this.
-  callbacks_.new_block = [this]() {
-    const auto block_size = store_.block_size();
-    return Block(arena_.allocate(block_size), block_size);
-  };
-
-  // Thread-safe: yes.
-  callbacks_.commit_block =
-      [this](const Block& block) { return store_.append(block); };
-
-  // Thread-safe: yes.
-  callbacks_.replace_blocks = [this](const std::vector<BlockWithId>& blocks) {
-    for (const auto& block : blocks) {
-      if (block.ignore)
-        continue;
-      store_.write(block.id, block);
-    }
-  };
-
-  // Thread-safe: yes.
-  callbacks_.request_blocks =
-      [this](std::vector<BlockWithId>& blocks, Arena& arena) {
-    for (auto& block : blocks) {
-      if (block.ignore)
-        continue;
-      store_.read(block.id, &block, &arena);
-    }
-  };
-}
 
 std::size_t Shard::remove(const Bytes& key, Callables::Predicate predicate,
                           bool exit_on_first_success) {
@@ -255,10 +218,10 @@ std::size_t Shard::remove(const Bytes& key, Callables::Predicate predicate,
 std::size_t Shard::replace(const Bytes& key, Callables::Function function,
                            bool exit_on_first_success) {
   std::vector<std::string> replaced_values;
-  UniqueListLock list_lock = table_.getUnique(key);
+  auto list_lock = table_.getUnique(key);
   if (list_lock.hasList()) {
-    auto iter = list_lock.list()->iterator(callbacks_.request_blocks,
-                                           callbacks_.replace_blocks);
+    // TODO iter.remove should not compile.
+    auto iter = list_lock.list()->iterator(&store_);
     while (iter.hasNext()) {
       auto replaced_value = function(iter.next());
       if (!replaced_value.empty()) {
@@ -270,8 +233,7 @@ std::size_t Shard::replace(const Bytes& key, Callables::Function function,
       }
     }
     for (const auto& value : replaced_values) {
-      list_lock.list()->append(value, callbacks_.new_block,
-                               callbacks_.commit_block);
+      list_lock.list()->add(value, &arena_, &store_);
     }
   }
   return replaced_values.size();

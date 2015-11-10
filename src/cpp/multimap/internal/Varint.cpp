@@ -17,69 +17,218 @@
 
 #include "multimap/internal/Varint.hpp"
 
-#include <cassert>
+#include "multimap/thirdparty/mt.hpp"
 
 namespace multimap {
 namespace internal {
 
-std::size_t Varint::readUint32(const uchar* source, std::uint32_t* target) {
-  assert(source != nullptr);
-  assert(target != nullptr);
-  const auto length = *source & 0xC0;  // 11000000
-  switch (length) {
-    case 0x00:  // 00000000
-      *target = *source;
-      return 1;
-    case 0x40:  // 01000000
-      *target = (source[0] & 0x3F) << 8;
-      *target += source[1];
-      return 2;
-    case 0x80:  // 10000000
-      *target = (source[0] & 0x3F) << 16;
-      *target += source[1] << 8;
-      *target += source[2];
-      return 3;
-    case 0xC0:  // 11000000
-      *target = (source[0] & 0x3F) << 24;
-      *target += source[1] << 16;
-      *target += source[2] << 8;
-      *target += source[3];
-      return 4;
-    default:
-      assert(false);
+const std::uint32_t Varint::Limits::N1_MIN_UINT = 0;
+const std::uint32_t Varint::Limits::N1_MIN_UINT_WITH_FLAG = 0;
+const std::uint32_t Varint::Limits::N1_MAX_UINT = (1 << 6) - 1;
+const std::uint32_t Varint::Limits::N1_MAX_UINT_WITH_FLAG = (1 << 5) - 1;
+
+const std::uint32_t Varint::Limits::N2_MIN_UINT = (1 << 6);
+const std::uint32_t Varint::Limits::N2_MIN_UINT_WITH_FLAG = (1 << 5);
+const std::uint32_t Varint::Limits::N2_MAX_UINT = (1 << 14) - 1;
+const std::uint32_t Varint::Limits::N2_MAX_UINT_WITH_FLAG = (1 << 13) - 1;
+
+const std::uint32_t Varint::Limits::N3_MIN_UINT = (1 << 14);
+const std::uint32_t Varint::Limits::N3_MIN_UINT_WITH_FLAG = (1 << 13);
+const std::uint32_t Varint::Limits::N3_MAX_UINT = (1 << 22) - 1;
+const std::uint32_t Varint::Limits::N3_MAX_UINT_WITH_FLAG = (1 << 21) - 1;
+
+const std::uint32_t Varint::Limits::N4_MIN_UINT = (1 << 22);
+const std::uint32_t Varint::Limits::N4_MIN_UINT_WITH_FLAG = (1 << 21);
+const std::uint32_t Varint::Limits::N4_MAX_UINT = (1 << 30) - 1;
+const std::uint32_t Varint::Limits::N4_MAX_UINT_WITH_FLAG = (1 << 29) - 1;
+
+std::size_t Varint::readUint(const char* buffer, std::size_t size,
+                             std::uint32_t* value) {
+  MT_REQUIRE_NOT_NULL(buffer);
+  MT_REQUIRE_NOT_NULL(value);
+
+  if (size > 0) {
+    const std::uint8_t* ptr = reinterpret_cast<const std::uint8_t*>(buffer);
+    const int length = (ptr[0] & 0xC0); // 11000000
+    switch (length) {
+      case 0x00: // 00000000
+        *value = ptr[0];
+        return 1;
+      case 0x40: // 01000000
+        if (size < 2) {
+          break;
+        }
+        *value = (ptr[0] & 0x3F) << 8;
+        *value += ptr[1];
+        return 2;
+      case 0x80: // 10000000
+        if (size < 3) {
+          break;
+        }
+        *value = (ptr[0] & 0x3F) << 16;
+        *value += ptr[1] << 8;
+        *value += ptr[2];
+        return 3;
+      case 0xC0: // 11000000
+        if (size < 4) {
+          break;
+        }
+        *value = (ptr[0] & 0x3F) << 24;
+        *value += ptr[1] << 16;
+        *value += ptr[2] << 8;
+        *value += ptr[3];
+        return 4;
+      default:
+        mt::throwRuntimeError(mt::Messages::FATAL_ERROR);
+    }
   }
+  return 0;
 }
 
-std::size_t Varint::writeUint32(std::uint32_t source, uchar* target) {
-  assert(target != nullptr);
-  if (source < 0x00000040) {  // 00000000 00000000 00000000 01000000
-    target[0] = static_cast<uchar>(source);
+std::size_t Varint::readUintWithFlag(const char* buffer, std::size_t size,
+                                     std::uint32_t* value, bool* flag) {
+  MT_REQUIRE_NOT_NULL(buffer);
+  MT_REQUIRE_NOT_NULL(value);
+  MT_REQUIRE_NOT_NULL(flag);
+
+  if (size > 0) {
+    const std::uint8_t* ptr = reinterpret_cast<const std::uint8_t*>(buffer);
+    *flag = (ptr[0] & 0x80);            // 10000000
+    const int length = (ptr[0] & 0x60); // 01100000
+    switch (length) {
+      case 0x00: // 00000000
+        *value = (ptr[0] & 0x1F);
+        return 1;
+      case 0x20: // 00100000
+        if (size < 2) {
+          break;
+        }
+        *value = (ptr[0] & 0x1F) << 8;
+        *value += ptr[1];
+        return 2;
+      case 0x40: // 01000000
+        if (size < 3) {
+          break;
+        }
+        *value = (ptr[0] & 0x1F) << 16;
+        *value += ptr[1] << 8;
+        *value += ptr[2];
+        return 3;
+      case 0x60: // 01100000
+        if (size < 4) {
+          break;
+        }
+        *value = (ptr[0] & 0x1F) << 24;
+        *value += ptr[1] << 16;
+        *value += ptr[2] << 8;
+        *value += ptr[3];
+        return 4;
+      default:
+        mt::throwRuntimeError(mt::Messages::FATAL_ERROR);
+    }
+  }
+  return 0;
+}
+
+std::size_t Varint::writeUint(std::uint32_t value, char* buffer,
+                              std::size_t size) {
+  MT_REQUIRE_NOT_NULL(buffer);
+
+  std::uint8_t* ptr = reinterpret_cast<std::uint8_t*>(buffer);
+  if (value < 0x00000040) { // 00000000 00000000 00000000 01000000
+    if (size < 1) {
+      goto too_few_bytes;
+    }
+    ptr[0] = value;
     return 1;
   }
-  if (source < 0x00004000) {  // 00000000 00000000 01000000 00000000
-    source |= 0x00004000;     // 00000000 00000000 01000000 00000000
-    target[0] = static_cast<uchar>(source >> 8);
-    target[1] = static_cast<uchar>(source);
+  if (value < 0x00004000) { // 00000000 00000000 01000000 00000000
+    if (size < 2) {
+      goto too_few_bytes;
+    }
+    ptr[0] = (value >> 8) | 0x40;
+    ptr[1] = (value);
     return 2;
   }
-  if (source < 0x00400000) {  // 00000000 01000000 00000000 00000000
-    source |= 0x00800000;     // 00000000 10000000 00000000 00000000
-    target[0] = static_cast<uchar>(source >> 16);
-    target[1] = static_cast<uchar>(source >> 8);
-    target[2] = static_cast<uchar>(source);
+  if (value < 0x00400000) { // 00000000 01000000 00000000 00000000
+    if (size < 3) {
+      goto too_few_bytes;
+    }
+    ptr[0] = (value >> 16) | 0x80;
+    ptr[1] = (value >> 8);
+    ptr[2] = (value);
     return 3;
   }
-  if (source < 0x40000000) {  // 01000000 00000000 00000000 00000000
-    source |= 0xC0000000;     // 11000000 00000000 00000000 00000000
-    target[0] = static_cast<uchar>(source >> 24);
-    target[1] = static_cast<uchar>(source >> 16);
-    target[2] = static_cast<uchar>(source >> 8);
-    target[3] = static_cast<uchar>(source);
+  if (value < 0x40000000) { // 01000000 00000000 00000000 00000000
+    if (size < 4) {
+      goto too_few_bytes;
+    }
+    ptr[0] = (value >> 24) | 0xC0;
+    ptr[1] = (value >> 16);
+    ptr[2] = (value >> 8);
+    ptr[3] = (value);
     return 4;
   }
-  throw("Varint::writeUint32 source is out of range");
-  return 0;  // To suppress "no return value" warning.
+too_few_bytes:
+  return 0;
 }
 
-}  // namespace internal
-}  // namespace multimap
+std::size_t Varint::writeUintWithFlag(std::uint32_t value, bool flag,
+                                      char* buffer, std::size_t size) {
+  MT_REQUIRE_NOT_NULL(buffer);
+
+  std::uint8_t* ptr = reinterpret_cast<std::uint8_t*>(buffer);
+  if (value < 0x00000020) { // 00000000 00000000 00000000 00100000
+    if (size < 1) {
+      goto too_few_bytes;
+    }
+    ptr[0] = value | (flag ? 0x80 : 0x00);
+    return 1;
+  }
+  if (value < 0x00002000) { // 00000000 00000000 00100000 00000000
+    if (size < 2) {
+      goto too_few_bytes;
+    }
+    ptr[0] = (value >> 8) | (flag ? 0xA0 : 0x20);
+    ptr[1] = (value);
+    return 2;
+  }
+  if (value < 0x00200000) { // 00000000 00100000 00000000 00000000
+    if (size < 3) {
+      goto too_few_bytes;
+    }
+    ptr[0] = (value >> 16) | (flag ? 0xC0 : 0x40);
+    ptr[1] = (value >> 8);
+    ptr[2] = (value);
+    return 3;
+  }
+  if (value < 0x20000000) { // 00100000 00000000 00000000 00000000
+    if (size < 4) {
+      goto too_few_bytes;
+    }
+    ptr[0] = (value >> 24) | (flag ? 0xE0 : 0x60);
+    ptr[1] = (value >> 16);
+    ptr[2] = (value >> 8);
+    ptr[3] = (value);
+    return 4;
+  }
+too_few_bytes:
+  return 0;
+}
+
+bool Varint::writeFlag(bool flag, char* buffer, std::size_t size) {
+  MT_REQUIRE_NOT_NULL(buffer);
+
+  if (size > 0) {
+    if (flag) {
+      *reinterpret_cast<std::uint8_t*>(buffer) |= 0x80;
+    } else {
+      *reinterpret_cast<std::uint8_t*>(buffer) &= 0x7F;
+    }
+    return true;
+  }
+  return false;
+}
+
+} // namespace internal
+} // namespace multimap

@@ -17,6 +17,7 @@
 
 #include "multimap/internal/Table.hpp"
 
+#include <limits>
 #include <boost/filesystem/operations.hpp>
 #include "multimap/internal/System.hpp"
 
@@ -28,7 +29,7 @@ namespace {
 typedef std::pair<Bytes, List::Head> Entry;
 
 Entry readEntryFromFile(std::FILE* file, Arena* arena) {
-  std::uint16_t key_size;
+  std::int32_t key_size;
   System::read(file, &key_size, sizeof key_size);
   const auto key_data = arena->allocate(key_size);
   System::read(file, key_data, key_size);
@@ -37,10 +38,12 @@ Entry readEntryFromFile(std::FILE* file, Arena* arena) {
 }
 
 void writeEntryToFile(const Entry& entry, std::FILE* file) {
-  assert(entry.first.size() <= std::numeric_limits<std::uint16_t>::max());
-  const std::uint16_t key_size = entry.first.size();
+  const auto& key = entry.first;
+  MT_REQUIRE_LE(key.size(), Table::Limits::max_key_size());
+
+  const std::int32_t key_size = key.size();
   System::write(file, &key_size, sizeof key_size);
-  System::write(file, entry.first.data(), key_size);
+  System::write(file, key.data(), key.size());
   entry.second.writeToFile(file);
 }
 
@@ -56,7 +59,11 @@ void writeStatsToTail(const Table::Stats& stats, std::FILE* file) {
   System::write(file, &stats, sizeof stats);
 }
 
-}  // namespace
+} // namespace
+
+std::size_t Table::Limits::max_key_size() {
+  return std::numeric_limits<std::int32_t>::max();
+}
 
 Table::Stats& Table::Stats::combine(const Stats& other) {
   num_values_put += other.num_values_put;
@@ -66,15 +73,13 @@ Table::Stats& Table::Stats::combine(const Stats& other) {
     key_size_min = std::min(key_size_min, other.key_size_min);
     key_size_max = std::max(key_size_max, other.key_size_max);
     const double total_keys = num_keys + other.num_keys;
-    key_size_avg =
-        ((num_keys / total_keys) * key_size_avg) +
-        ((other.num_keys / total_keys) * other.key_size_avg);
+    key_size_avg = ((num_keys / total_keys) * key_size_avg) +
+                   ((other.num_keys / total_keys) * other.key_size_avg);
     // new_avg = (weight * avg'old) + (weight'other * avg'other)
     list_size_min = std::min(list_size_min, other.list_size_min);
     list_size_max = std::max(list_size_max, other.list_size_max);
-    list_size_avg =
-        ((num_keys / total_keys) * list_size_avg) +
-        ((other.num_keys / total_keys) * other.list_size_avg);
+    list_size_avg = ((num_keys / total_keys) * list_size_avg) +
+                    ((other.num_keys / total_keys) * other.list_size_avg);
     // new_avg = (weight * avg'old) + (weight'other * avg'other)
     num_keys += other.num_keys;
   }
@@ -158,7 +163,7 @@ void Table::open(const boost::filesystem::path& filepath) {
   MT_ENSURE_TRUE(isOpen());
 }
 
-Table::Stats Table::close(CommitBlock commit_block_callback) {
+Table::Stats Table::close(Store* store) {
   MT_REQUIRE_TRUE(isOpen());
 
   const auto old_filepath = filepath_.string() + ".old";
@@ -181,24 +186,24 @@ Table::Stats Table::close(CommitBlock commit_block_callback) {
     }
     // We do not skip or even throw if a list is still locked to prevent data
     // loss. However, this causes a race which could let the program crash...
-    list->flush(commit_block_callback);
+    list->flush(store);
     if (list->empty()) {
-      stats.num_values_unowned += list->chead().num_values_removed;
+      stats.num_values_unowned += list->head().num_values_removed;
       // An existing list that is empty consists only of removed values.
       // Because such lists are skipped on closing these values have no owner
       // anymore, i.e. no reference pointing to them, but they still exist
       // physically in the data file, i.e. the store.
     } else {
       ++stats.num_keys;
-      stats.num_values_put += list->chead().num_values_added;
-      stats.num_values_removed += list->chead().num_values_removed;
+      stats.num_values_put += list->head().num_values_added;
+      stats.num_values_removed += list->head().num_values_removed;
       stats.key_size_avg += entry.first.size();
       stats.key_size_max = std::max(stats.key_size_max, entry.first.size());
       stats.key_size_min = std::min(stats.key_size_min, entry.first.size());
       stats.list_size_avg += list->size();
       stats.list_size_max = std::max(stats.list_size_max, list->size());
       stats.list_size_min = std::min(stats.list_size_min, list->size());
-      writeEntryToFile(Entry(entry.first, list->chead()), file.get());
+      writeEntryToFile(Entry(entry.first, list->head()), file.get());
     }
   }
 
@@ -225,7 +230,7 @@ bool Table::isOpen() const { return !filepath_.empty(); }
 SharedListLock Table::getShared(const Bytes& key) const {
   List* list = nullptr;
   {
-    const boost::shared_lock<boost::shared_mutex> lock(mutex_);
+    boost::shared_lock<boost::shared_mutex> lock(mutex_);
     const auto iter = map_.find(key);
     if (iter != map_.end()) {
       list = iter->second.get();
@@ -237,7 +242,7 @@ SharedListLock Table::getShared(const Bytes& key) const {
 UniqueListLock Table::getUnique(const Bytes& key) const {
   List* list = nullptr;
   {
-    const boost::shared_lock<boost::shared_mutex> lock(mutex_);
+    boost::shared_lock<boost::shared_mutex> lock(mutex_);
     const auto iter = map_.find(key);
     if (iter != map_.end()) {
       list = iter->second.get();
@@ -247,15 +252,12 @@ UniqueListLock Table::getUnique(const Bytes& key) const {
 }
 
 UniqueListLock Table::getUniqueOrCreate(const Bytes& key) {
-  mt::check(
-      key.size() <= max_key_size(),
-      "Reject key because its size of %u bytes exceeds the allowed maximum "
-      "of %u bytes.",
-      key.size(), max_key_size());
+  mt::check(key.size() <= Limits::max_key_size(),
+            "Reject key because it's too large.");
 
   List* list = nullptr;
   {
-    const std::lock_guard<boost::shared_mutex> lock(mutex_);
+    std::lock_guard<boost::shared_mutex> lock(mutex_);
     const auto emplace_result = map_.emplace(key, std::unique_ptr<List>());
     if (emplace_result.second) {
       // Overrides the inserted key with a new deep copy.
@@ -272,7 +274,7 @@ UniqueListLock Table::getUniqueOrCreate(const Bytes& key) {
 }
 
 void Table::forEachKey(Callables::Procedure action) const {
-  const boost::shared_lock<boost::shared_mutex> lock(mutex_);
+  boost::shared_lock<boost::shared_mutex> lock(mutex_);
   for (const auto& entry : map_) {
     SharedListLock lock(*entry.second);
     if (!lock.list()->empty()) {
@@ -282,7 +284,7 @@ void Table::forEachKey(Callables::Procedure action) const {
 }
 
 void Table::forEachEntry(EntryProcedure action) const {
-  const boost::shared_lock<boost::shared_mutex> lock(mutex_);
+  boost::shared_lock<boost::shared_mutex> lock(mutex_);
   for (const auto& entry : map_) {
     SharedListLock list_lock(*entry.second);
     if (!list_lock.list()->empty()) {
@@ -296,8 +298,8 @@ Table::Stats Table::getStats() const {
   forEachEntry([&stats](const Bytes& key, SharedListLock&& list_lock) {
     const auto list = list_lock.list();
     ++stats.num_keys;
-    stats.num_values_put += list->chead().num_values_added;
-    stats.num_values_removed += list->chead().num_values_removed;
+    stats.num_values_put += list->head().num_values_added;
+    stats.num_values_removed += list->head().num_values_removed;
     stats.key_size_min = std::min(stats.key_size_min, key.size());
     stats.key_size_max = std::max(stats.key_size_max, key.size());
     stats.key_size_avg += key.size();
@@ -313,5 +315,5 @@ Table::Stats Table::getStats() const {
   return stats;
 }
 
-}  // namespace internal
-}  // namespace multimap
+} // namespace internal
+} // namespace multimap

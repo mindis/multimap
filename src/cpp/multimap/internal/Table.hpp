@@ -24,7 +24,6 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/thread/shared_mutex.hpp>
 #include "multimap/internal/Arena.hpp"
-#include "multimap/internal/Iterator.hpp"
 #include "multimap/internal/ListLock.hpp"
 #include "multimap/thirdparty/mt.hpp"
 #include "multimap/Callables.hpp"
@@ -33,7 +32,11 @@ namespace multimap {
 namespace internal {
 
 class Table {
- public:
+public:
+  struct Limits {
+    static std::size_t max_key_size();
+  };
+
   struct Stats {
     std::uint64_t num_keys = 0;
     std::uint64_t num_values_put = 0;
@@ -67,11 +70,7 @@ class Table {
                 "Table::Stats does not have expected size");
   // Use __attribute__((packed)) if 32- and 64-bit size differ.
 
-//  typedef std::function<void(const Bytes&)> BytesProcedure;
-
   typedef std::function<void(const Bytes&, SharedListLock&&)> EntryProcedure;
-
-  typedef std::function<std::uint32_t(const Block&)> CommitBlock;
 
   Table() = default;
 
@@ -81,7 +80,7 @@ class Table {
 
   void open(const boost::filesystem::path& filepath);
 
-  Stats close(CommitBlock commit_block_callback);
+  Stats close(Store* store);
 
   bool isOpen() const;
 
@@ -99,12 +98,8 @@ class Table {
   // Returns various statistics about the table.
   // The data is collected upon request and triggers a full table scan.
 
-  static constexpr std::size_t max_key_size() {
-    return std::numeric_limits<std::uint16_t>::max();
-  }
-
- private:
-  typedef std::unordered_map<Bytes, std::unique_ptr<List>> Hashtable;
+private:
+  typedef std::unordered_map<Bytes, std::unique_ptr<List> > Hashtable;
 
   mutable boost::shared_mutex mutex_;
   Hashtable map_;
@@ -113,7 +108,7 @@ class Table {
   boost::filesystem::path filepath_;
 };
 
-}  // namespace internal
-}  // namespace multimap
+} // namespace internal
+} // namespace multimap
 
-#endif  // MULTIMAP_INTERNAL_TABLE_HPP_INCLUDED
+#endif // MULTIMAP_INTERNAL_TABLE_HPP_INCLUDED
