@@ -16,38 +16,31 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <type_traits>
-#include <boost/filesystem/operations.hpp>
 #include <gmock/gmock.h>
 #include "multimap/internal/Block.hpp"
 #include "multimap/internal/Generator.hpp"
-#include "multimap/internal/System.hpp"
 
 namespace multimap {
 namespace internal {
 
-using testing::Eq;
-using testing::IsNull;
+// -----------------------------------------------------------------------------
+// class BasicBlock
 
 TEST(ReadOnlyBlockTest, IsDefaultConstructible) {
   ASSERT_TRUE(std::is_default_constructible<ReadOnlyBlock>::value);
 }
 
-TEST(ReadOnlyBlockTest, IsNotCopyConstructibleOrAssignable) {
-  ASSERT_FALSE(std::is_copy_constructible<ReadOnlyBlock>::value);
-  ASSERT_FALSE(std::is_copy_assignable<ReadOnlyBlock>::value);
-}
-
-TEST(ReadOnlyBlockTest, IsMoveConstructibleAndAssignable) {
-  ASSERT_TRUE(std::is_move_constructible<ReadOnlyBlock>::value);
-  ASSERT_TRUE(std::is_move_assignable<ReadOnlyBlock>::value);
+TEST(ReadOnlyBlockTest, IsCopyConstructibleAndAssignable) {
+  ASSERT_TRUE(std::is_copy_constructible<ReadOnlyBlock>::value);
+  ASSERT_TRUE(std::is_copy_assignable<ReadOnlyBlock>::value);
 }
 
 TEST(ReadOnlyBlockTest, DefaultConstructedHasProperState) {
-  ASSERT_THAT(ReadOnlyBlock().hasData(), Eq(false));
-  ASSERT_THAT(ReadOnlyBlock().data(), IsNull());
-  ASSERT_THAT(ReadOnlyBlock().size(), Eq(0));
-  ASSERT_THAT(ReadOnlyBlock().offset(), Eq(0));
-  ASSERT_THAT(ReadOnlyBlock().remaining(), Eq(0));
+  ASSERT_FALSE(ReadOnlyBlock().hasData());
+  ASSERT_EQ(ReadOnlyBlock().data(), nullptr);
+  ASSERT_EQ(ReadOnlyBlock().size(), 0);
+  ASSERT_EQ(ReadOnlyBlock().offset(), 0);
+  ASSERT_EQ(ReadOnlyBlock().remaining(), 0);
 }
 
 TEST(ReadOnlyBlockTest, ConstructedWithNullDataThrows) {
@@ -56,33 +49,28 @@ TEST(ReadOnlyBlockTest, ConstructedWithNullDataThrows) {
 
 TEST(ReadOnlyBlockTest, ConstructedWithDataHasProperState) {
   char buf[512];
-  ASSERT_THAT(ReadOnlyBlock(buf, sizeof buf).hasData(), Eq(true));
-  ASSERT_THAT(ReadOnlyBlock(buf, sizeof buf).data(), Eq(buf));
-  ASSERT_THAT(ReadOnlyBlock(buf, sizeof buf).size(), Eq(sizeof buf));
-  ASSERT_THAT(ReadOnlyBlock(buf, sizeof buf).offset(), Eq(0));
-  ASSERT_THAT(ReadOnlyBlock(buf, sizeof buf).remaining(), Eq(sizeof buf));
+  ASSERT_TRUE(ReadOnlyBlock(buf, sizeof buf).hasData());
+  ASSERT_EQ(ReadOnlyBlock(buf, sizeof buf).data(), buf);
+  ASSERT_EQ(ReadOnlyBlock(buf, sizeof buf).size(), sizeof buf);
+  ASSERT_EQ(ReadOnlyBlock(buf, sizeof buf).offset(), 0);
+  ASSERT_EQ(ReadOnlyBlock(buf, sizeof buf).remaining(), sizeof buf);
 }
 
 TEST(ReadWriteBlockTest, IsDefaultConstructible) {
   ASSERT_TRUE(std::is_default_constructible<ReadWriteBlock>::value);
 }
 
-TEST(ReadWriteBlockTest, IsNotCopyConstructibleOrAssignable) {
-  ASSERT_FALSE(std::is_copy_constructible<ReadWriteBlock>::value);
-  ASSERT_FALSE(std::is_copy_assignable<ReadWriteBlock>::value);
-}
-
-TEST(ReadWriteBlockTest, IsMoveConstructibleAndAssignable) {
-  ASSERT_TRUE(std::is_move_constructible<ReadWriteBlock>::value);
-  ASSERT_TRUE(std::is_move_assignable<ReadWriteBlock>::value);
+TEST(ReadWriteBlockTest, IsCopyConstructibleAndAssignable) {
+  ASSERT_TRUE(std::is_copy_constructible<ReadWriteBlock>::value);
+  ASSERT_TRUE(std::is_copy_assignable<ReadWriteBlock>::value);
 }
 
 TEST(ReadWriteBlockTest, DefaultConstructedHasProperState) {
-  ASSERT_THAT(ReadWriteBlock().hasData(), Eq(false));
-  ASSERT_THAT(ReadWriteBlock().data(), IsNull());
-  ASSERT_THAT(ReadWriteBlock().size(), Eq(0));
-  ASSERT_THAT(ReadWriteBlock().offset(), Eq(0));
-  ASSERT_THAT(ReadWriteBlock().remaining(), Eq(0));
+  ASSERT_FALSE(ReadWriteBlock().hasData());
+  ASSERT_EQ(ReadWriteBlock().data(), nullptr);
+  ASSERT_EQ(ReadWriteBlock().size(), 0);
+  ASSERT_EQ(ReadWriteBlock().offset(), 0);
+  ASSERT_EQ(ReadWriteBlock().remaining(), 0);
 }
 
 TEST(ReadWriteBlockTest, ConstructedWithNullDataThrows) {
@@ -91,11 +79,11 @@ TEST(ReadWriteBlockTest, ConstructedWithNullDataThrows) {
 
 TEST(ReadWriteBlockTest, ConstructedWithDataHasProperState) {
   char buf[512];
-  ASSERT_THAT(ReadWriteBlock(buf, sizeof buf).hasData(), Eq(true));
-  ASSERT_THAT(ReadWriteBlock(buf, sizeof buf).data(), Eq(buf));
-  ASSERT_THAT(ReadWriteBlock(buf, sizeof buf).size(), Eq(sizeof buf));
-  ASSERT_THAT(ReadWriteBlock(buf, sizeof buf).offset(), Eq(0));
-  ASSERT_THAT(ReadWriteBlock(buf, sizeof buf).remaining(), Eq(sizeof buf));
+  ASSERT_TRUE(ReadWriteBlock(buf, sizeof buf).hasData());
+  ASSERT_EQ(ReadWriteBlock(buf, sizeof buf).data(), buf);
+  ASSERT_EQ(ReadWriteBlock(buf, sizeof buf).size(), sizeof buf);
+  ASSERT_EQ(ReadWriteBlock(buf, sizeof buf).offset(), 0);
+  ASSERT_EQ(ReadWriteBlock(buf, sizeof buf).remaining(), sizeof buf);
 }
 
 TEST(ReadWriteBlockTest, WriteToDefaultConstructedThrows) {
@@ -217,6 +205,37 @@ TEST(ReadWriteBlockTest, WriteValuesAndFlipFlags) {
     block.readData(actual.data(), size);
     ASSERT_EQ(std::string(actual.data(), actual.size()), expected);
   }
+}
+
+// -----------------------------------------------------------------------------
+// class ExtendedBasicBlock
+
+TEST(ExtendedReadOnlyBlockTest, IsDefaultConstructible) {
+  ASSERT_TRUE(std::is_default_constructible<ExtendedReadOnlyBlock>::value);
+}
+
+TEST(ExtendedReadOnlyBlockTest, IsCopyConstructibleAndAssignable) {
+  ASSERT_TRUE(std::is_copy_constructible<ExtendedReadOnlyBlock>::value);
+  ASSERT_TRUE(std::is_copy_assignable<ExtendedReadOnlyBlock>::value);
+}
+
+TEST(ExtendedReadOnlyBlockTest, DefaultConstructedHasProperState) {
+  ASSERT_EQ(ExtendedReadOnlyBlock().id, -1);
+  ASSERT_FALSE(ExtendedReadOnlyBlock().ignore);
+}
+
+TEST(ExtendedReadWriteBlockTest, IsDefaultConstructible) {
+  ASSERT_TRUE(std::is_default_constructible<ExtendedReadWriteBlock>::value);
+}
+
+TEST(ExtendedReadWriteBlockTest, IsCopyConstructibleAndAssignable) {
+  ASSERT_TRUE(std::is_copy_constructible<ExtendedReadWriteBlock>::value);
+  ASSERT_TRUE(std::is_copy_assignable<ExtendedReadWriteBlock>::value);
+}
+
+TEST(ExtendedReadWriteBlockTest, DefaultConstructedHasProperState) {
+  ASSERT_EQ(ExtendedReadWriteBlock().id, -1);
+  ASSERT_FALSE(ExtendedReadWriteBlock().ignore);
 }
 
 } // namespace internal
