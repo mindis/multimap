@@ -28,15 +28,17 @@ namespace multimap {
 namespace internal {
 
 template <bool IsReadOnly> class BasicBlock {
+  // This class wraps raw memory that is either writable or read-only.
+  // The memory is neither owned nor deleted by objects of this class,
+  // so ownership management must be implemented externally.
+  // Objects of this class are copyable.
+
 public:
   BasicBlock() = default;
 
   BasicBlock(char* data, std::size_t size) : data_(data), size_(size) {
     MT_REQUIRE_NOT_NULL(data_);
   }
-
-  BasicBlock(BasicBlock&&) = default;
-  BasicBlock& operator=(BasicBlock&&) = default;
 
   BasicBlock getView() const {
     return hasData() ? BasicBlock(data_, size_) : BasicBlock();
@@ -128,13 +130,12 @@ private:
 
 template <bool IsReadOnly>
 struct ExtendedBasicBlock : public BasicBlock<IsReadOnly> {
+  // This type extends `BasicBlock` with an `id` and `ignore` field.
+  // As with the base class, objects of this type are copyable.
 
   typedef BasicBlock<IsReadOnly> Base;
 
   ExtendedBasicBlock() = default;
-
-  ExtendedBasicBlock(ExtendedBasicBlock&&) = default;
-  ExtendedBasicBlock& operator=(ExtendedBasicBlock&&) = default;
 
   ExtendedBasicBlock(const BasicBlock<IsReadOnly>& base) : Base(base) {}
 
@@ -168,96 +169,6 @@ static_assert(mt::hasExpectedSize<ReadOnlyBlock>(12, 16),
 
 static_assert(mt::hasExpectedSize<ExtendedReadOnlyBlock>(20, 24),
               "class ReadOnlyBlock does not have expected size");
-
-// class Block2 {
-// public:
-//  Block2() = default;
-
-//  Block2(std::size_t size, Arena& arena);
-
-//  const char* data() const { return data_; }
-//  // Returns a read-only pointer to the wrapped data.
-
-//  std::size_t size() const { return size_; }
-//  // Returns the number of bytes wrapped.
-
-//  bool empty() const { return size_ == 0; }
-//  // Returns true if the number of bytes wrapped is zero, and false otherwise.
-
-//  void resize(std::size_t size, Arena& arena) {
-//    data_ = arena.allocate(size);
-//    size_ = size;
-//  }
-
-//  void clear() { offset_ = 0; }
-
-//  void copyFrom(const char* cstr) { copyFrom(cstr, std::strlen(cstr)); }
-
-//  void copyFrom(const std::string& str) { copyFrom(str.data(), str.size()); }
-
-//  void copyFrom(const void* data, std::size_t size) {
-//    MT_REQUIRE_NOT_NULL(data);
-//    MT_REQUIRE_EQ(size, size_);
-//    std::memcpy(data_, data, size);
-//  }
-
-//  void copyTo(void* target) const { std::memcpy(target, data_, size_); }
-
-//  std::size_t numBytesFree() const { return size_ - offset_; }
-
-//  std::size_t numBytesUsed() const { return offset_; }
-
-//  struct Meta {
-
-//    Meta() = default;
-
-//    Meta(std::uint32_t size) : size(size) {}
-
-//    Meta(std::uint32_t size, bool removed) : size(size), removed(removed) {}
-
-//    std::uint32_t size = 0;
-//    bool removed = false;
-//  };
-
-//  // Preconditions:
-//  //  * `meta.size` is less than or equal to `Varint32::MAX_VALUE_WITH_FLAG`.
-//  bool writeMeta(const Meta& meta) {
-//    const auto required = Varint32::numBytesRequired(meta.size, meta.removed);
-//    MT_ASSERT_NE(required, -1);
-//    if (static_cast<std::size_t>(required) <= numBytesFree()) {
-//      const auto bytes_written =
-//          Varint32::writeUint(meta.size, meta.removed, data_ + offset_);
-//      MT_ASSERT_NE(bytes_written, -1);
-//      offset_ += bytes_written;
-//      return true;
-//    }
-//    return false;
-//  }
-
-//  bool writeData(const char* data, std::size_t size) {
-//    if (size <= numBytesFree()) {
-//      std::memcpy(data_ + offset_, data, size);
-//      offset_ += size;
-//      return true;
-//    }
-//    return false;
-//  }
-
-// private:
-//  char* data_ = nullptr;
-//  std::uint32_t size_ = 0;
-//  std::uint32_t offset_ = 0;
-//};
-
-// struct ExtendedBlock : Block2 {
-
-//  ExtendedBlock(const Block2& base) : Block2(base) {}
-
-//  ExtendedBlock() : Block2(base) {}
-
-//  std::uint32_t id = -1;
-//  bool ignore = false;
-//};
 
 } // namespace internal
 } // namespace multimap
