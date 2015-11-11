@@ -18,8 +18,6 @@
 #ifndef MULTIMAP_INTERNAL_LIST_HPP_INCLUDED
 #define MULTIMAP_INTERNAL_LIST_HPP_INCLUDED
 
-#include <unistd.h> // For sysconf
-#include <cstdio>
 #include <functional>
 #include <mutex>
 #include <vector>
@@ -34,6 +32,13 @@ namespace multimap {
 namespace internal {
 
 class List {
+  // This class is designed for minimal memory footprint since
+  // there will be an instance for each key put into Multimap.
+  // The following patterns were applied:
+  //
+  //  * `List::mutex_` is allocated only on demand.
+  //  * Dependency injection, e.g. for `List::add()`.
+
 public:
   struct Head {
     std::uint32_t num_values_added = 0;
@@ -321,13 +326,12 @@ public:
 
   bool is_locked() const;
 
-  struct MutexPoolSetup {
-    typedef boost::shared_mutex Mutex;
+  struct MutexPoolConfig {
     static std::size_t getDefaultSize();
     static std::size_t getCurrentSize();
     static std::size_t getMaximumSize();
     static void setMaximumSize(std::size_t size);
-    MutexPoolSetup() = delete;
+    MutexPoolConfig() = delete;
   };
 
 private:
@@ -337,11 +341,15 @@ private:
   Head head_;
   ReadWriteBlock block_;
 
-  mutable std::uint32_t mutex_use_count_ = 0;
-  mutable std::unique_ptr<MutexPoolSetup::Mutex> mutex_;
+  struct RefCountedMutex : public boost::shared_mutex {
+    std::uint32_t refcount = 0;
+  };
+  // `std::unique_ptr` requires type definition.
+  mutable std::unique_ptr<RefCountedMutex> mutex_;
+  friend class MutexPool;
 };
 
-static_assert(mt::hasExpectedSize<List>(40, 56),
+static_assert(mt::hasExpectedSize<List>(40, 48),
               "class List does not have expected size");
 
 template <> inline void List::Iter<true>::Stream::writeBackMutatedBlocks() {

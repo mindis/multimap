@@ -26,11 +26,13 @@ namespace {
 
 std::mutex list_mutex_allocation_mutex;
 
+} // namespace
+
 class MutexPool {
   // This singleton is not thread-safe by design and needs external locking.
 
 public:
-  typedef List::MutexPoolSetup::Mutex Mutex;
+  typedef List::RefCountedMutex Mutex;
 
   static MutexPool& instance() {
     static MutexPool instance;
@@ -75,8 +77,6 @@ private:
   std::vector<std::unique_ptr<Mutex> > mutexes_;
   std::size_t maximum_size_;
 };
-
-} // namespace
 
 List::Head List::Head::readFromFile(std::FILE* file) {
   Head head;
@@ -153,7 +153,7 @@ void List::lock() {
   {
     std::lock_guard<std::mutex> lock(list_mutex_allocation_mutex);
     createMutexUnlocked();
-    ++mutex_use_count_;
+    ++mutex_->refcount;
   }
   // `list_mutex_allocation_mutex` is unlocked here to avoid a deadlock,
   // because the following mutex acquisition might block.
@@ -165,17 +165,19 @@ bool List::try_lock() {
   createMutexUnlocked();
   const auto locked = mutex_->try_lock();
   if (locked) {
-    ++mutex_use_count_;
+    ++mutex_->refcount;
   }
+  // We do not need to delete the mutex if `try_lock` fails,
+  // because this means that `mutex_->refcount` is not zero.
   return locked;
 }
 
 void List::unlock() {
   std::lock_guard<std::mutex> lock(list_mutex_allocation_mutex);
-  MT_REQUIRE_NOT_ZERO(mutex_use_count_);
+  MT_REQUIRE_NOT_ZERO(mutex_->refcount);
   mutex_->unlock();
-  --mutex_use_count_;
-  if (mutex_use_count_ == 0) {
+  --mutex_->refcount;
+  if (mutex_->refcount == 0) {
     deleteMutexUnlocked();
   }
 }
@@ -184,7 +186,7 @@ void List::lock_shared() {
   {
     std::lock_guard<std::mutex> lock(list_mutex_allocation_mutex);
     createMutexUnlocked();
-    ++mutex_use_count_;
+    ++mutex_->refcount;
   }
   // `list_mutex_allocation_mutex` is unlocked here to avoid a deadlock,
   // because the following mutex acquisition might block.
@@ -196,24 +198,26 @@ bool List::try_lock_shared() {
   createMutexUnlocked();
   const auto locked = mutex_->try_lock_shared();
   if (locked) {
-    ++mutex_use_count_;
+    ++mutex_->refcount;
   }
+  // We do not need to delete the mutex if `try_lock` fails,
+  // because this means that `mutex_->refcount` is not zero.
   return locked;
 }
 
 void List::unlock_shared() {
   std::lock_guard<std::mutex> lock(list_mutex_allocation_mutex);
-  MT_REQUIRE_NOT_ZERO(mutex_use_count_);
+  MT_REQUIRE_NOT_ZERO(mutex_->refcount);
   mutex_->unlock_shared();
-  --mutex_use_count_;
-  if (mutex_use_count_ == 0) {
+  --mutex_->refcount;
+  if (mutex_->refcount == 0) {
     deleteMutexUnlocked();
   }
 }
 
 bool List::is_locked() const {
   std::lock_guard<std::mutex> lock(list_mutex_allocation_mutex);
-  return mutex_use_count_ != 0;
+  return mutex_.get();
 }
 
 void List::createMutexUnlocked() const {
@@ -226,24 +230,24 @@ void List::createMutexUnlocked() const {
 }
 
 void List::deleteMutexUnlocked() const {
-  MT_REQUIRE_IS_ZERO(mutex_use_count_);
+  MT_REQUIRE_IS_ZERO(mutex_->refcount);
   MutexPool::instance().putMutex(std::move(mutex_));
   mutex_.reset();
 }
 
-std::size_t List::MutexPoolSetup::getCurrentSize() {
+std::size_t List::MutexPoolConfig::getCurrentSize() {
   return MutexPool::instance().getCurrentSize();
 }
 
-std::size_t List::MutexPoolSetup::getDefaultSize() {
+std::size_t List::MutexPoolConfig::getDefaultSize() {
   return MutexPool::instance().getDefaultSize();
 }
 
-std::size_t List::MutexPoolSetup::getMaximumSize() {
+std::size_t List::MutexPoolConfig::getMaximumSize() {
   return MutexPool::instance().getMaximumSize();
 }
 
-void List::MutexPoolSetup::setMaximumSize(std::size_t size) {
+void List::MutexPoolConfig::setMaximumSize(std::size_t size) {
   return MutexPool::instance().setMaximumSize(size);
 }
 
