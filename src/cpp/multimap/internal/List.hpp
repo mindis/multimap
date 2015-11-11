@@ -179,7 +179,7 @@ public:
           }
           store_->get(blocks);
           for (auto& block : blocks) {
-            blocks_.push_back(std::move(block));
+            blocks_.push_back(block);
             blocks_.back().ignore = true;
             // Triggers that the block is not written back to the
             // store when `writeBackMutatedBlocks()` is called.
