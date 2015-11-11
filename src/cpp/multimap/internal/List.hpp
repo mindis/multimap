@@ -36,8 +36,8 @@ class List {
   // there will be an instance for each key put into Multimap.
   // The following patterns were applied:
   //
-  //  * `List::mutex_` is allocated only on demand.
   //  * Dependency injection, e.g. for `List::add()`.
+  //  * `List::mutex_` is allocated only on demand.
 
 public:
   struct Head {
