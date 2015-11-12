@@ -405,8 +405,7 @@ public:
     return *this;
   }
 
-  bool isNull() const { return list_ == nullptr; }
-  // TODO Replace `isNull()` by `Maybe<T>`.
+  operator bool() const { return list_ != nullptr; }
 
   const List::Head& head() const { return list_->head(); }
 
@@ -435,7 +434,7 @@ public:
   SharedListIterator() = default;
 
   SharedListIterator(SharedList&& list) : list_(std::move(list)) {
-    if (!list_.isNull()) {
+    if (list_) {
       iter_ = list_.list_->iterator(*list_.store_);
     }
   }
@@ -494,8 +493,7 @@ public:
     return *this;
   }
 
-  bool isNull() const { return list_ == nullptr; }
-  // TODO Replace `isNull()` by `Maybe<T>`.
+  operator bool() const { return list_ != nullptr; }
 
   const List::Head& head() const { return list_->head(); }
 
@@ -529,7 +527,7 @@ public:
   UniqueListIterator() = default;
 
   UniqueListIterator(UniqueList&& list) : list_(std::move(list)) {
-    if (!list_.isNull()) {
+    if (list_) {
       iter_ = list_.list_->iterator(list_.store_);
     }
   }

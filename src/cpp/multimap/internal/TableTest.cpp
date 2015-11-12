@@ -50,9 +50,9 @@ TEST_F(TableTestFixture, IsNotMoveConstructibleOrAssignable) {
 }
 
 TEST_F(TableTestFixture, DefaultConstructedHasProperState) {
-  ASSERT_TRUE(Table().getShared(key1).isNull());
-  ASSERT_TRUE(Table().getUnique(key1).isNull());
-  ASSERT_FALSE(Table().getUniqueOrCreate(key1).isNull());
+  ASSERT_FALSE(Table().getShared(key1));
+  ASSERT_FALSE(Table().getUnique(key1));
+  ASSERT_TRUE(Table().getUniqueOrCreate(key1));
 
   std::vector<std::string> keys;
   Callables::Procedure action =
@@ -64,21 +64,21 @@ TEST_F(TableTestFixture, DefaultConstructedHasProperState) {
 TEST_F(TableTestFixture, GetUniqueOrCreateInsertsNewKey) {
   Table table;
   table.getUniqueOrCreate(key1);
-  ASSERT_FALSE(table.getShared(key1).isNull());
-  ASSERT_FALSE(table.getUnique(key1).isNull());
+  ASSERT_TRUE(table.getShared(key1));
+  ASSERT_TRUE(table.getUnique(key1));
 
   table.getUniqueOrCreate(key2);
-  ASSERT_FALSE(table.getShared(key2).isNull());
-  ASSERT_FALSE(table.getUnique(key2).isNull());
+  ASSERT_TRUE(table.getShared(key2));
+  ASSERT_TRUE(table.getUnique(key2));
 }
 
 TEST_F(TableTestFixture, InsertKeyThenGetSharedTwice) {
   Table table;
   table.getUniqueOrCreate(key1);
   const auto list1 = table.getShared(key1);
-  ASSERT_FALSE(list1.isNull());
+  ASSERT_TRUE(list1);
   const auto list2 = table.getShared(key1);
-  ASSERT_FALSE(list2.isNull());
+  ASSERT_TRUE(list2);
 }
 
 TEST_F(TableTestFixture, InsertKeyThenGetUniqueTwice) {
@@ -87,7 +87,7 @@ TEST_F(TableTestFixture, InsertKeyThenGetUniqueTwice) {
   bool other_thread_got_unique_list = false;
   {
     const auto list = table.getUnique(key1);
-    ASSERT_FALSE(list.isNull());
+    ASSERT_TRUE(list);
     // We don't have `getUnique(key, wait_for_some_time)` yet,
     // so we start a new thread that tries to acquire the lock.
     std::thread thread([&] {
@@ -108,7 +108,7 @@ TEST_F(TableTestFixture, InsertKeyThenGetSharedAndGetUnique) {
   bool other_thread_gots_unique_list = false;
   {
     const auto list = table.getShared(key1);
-    ASSERT_FALSE(list.isNull());
+    ASSERT_TRUE(list);
     // We don't have GetUnique(key, wait_for_some_time)
     // so we start a new thread that tries to acquire the lock.
     std::thread thread([&] {
@@ -129,7 +129,7 @@ TEST_F(TableTestFixture, InsertKeyThenGetUniqueAndGetShared) {
   bool other_thread_gots_shared_list = false;
   {
     const auto list = table.getUnique(key1);
-    ASSERT_FALSE(list.isNull());
+    ASSERT_TRUE(list);
     // We don't have GetShared(key, wait_for_some_time)
     // so we start a new thread that tries to acquire the lock.
     std::thread thread([&] {
@@ -151,7 +151,7 @@ TEST_F(TableTestFixture, InsertKeysThenGetAllShared) {
   bool other_thread_gots_shared_list = false;
 
   const auto list = table.getShared(key1);
-  ASSERT_FALSE(list.isNull());
+  ASSERT_TRUE(list);
   // We don't have GetShared(key, wait_for_some_time)
   // so we start a new thread that tries to acquire the lock.
   std::thread thread([&] {
@@ -170,7 +170,7 @@ TEST_F(TableTestFixture, InsertKeysThenGetAllUnique) {
   bool other_thread_gots_unique_list = false;
 
   const auto list = table.getUnique(key1);
-  ASSERT_FALSE(list.isNull());
+  ASSERT_TRUE(list);
   // We don't have GetUnique(key, wait_for_some_time)
   // so we start a new thread that tries to acquire the lock.
   std::thread thread([&] {
@@ -187,14 +187,14 @@ TEST_F(TableTestFixture, InsertAndDeleteKeys) {
   table.getUniqueOrCreate(key1);
   table.getUniqueOrCreate(key2);
 
-  ASSERT_FALSE(table.getShared(key1).isNull());
-  ASSERT_FALSE(table.getUnique(key1).isNull());
+  ASSERT_TRUE(table.getShared(key1));
+  ASSERT_TRUE(table.getUnique(key1));
 
-  ASSERT_FALSE(table.getShared(key2).isNull());
-  ASSERT_FALSE(table.getUnique(key2).isNull());
+  ASSERT_TRUE(table.getShared(key2));
+  ASSERT_TRUE(table.getUnique(key2));
 
-  ASSERT_TRUE(table.getShared(key3).isNull());
-  ASSERT_TRUE(table.getUnique(key3).isNull());
+  ASSERT_FALSE(table.getShared(key3));
+  ASSERT_FALSE(table.getUnique(key3));
 }
 
 TEST_F(TableTestFixture, ForEachKeyIgnoresEmptyLists) {

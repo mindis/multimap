@@ -363,7 +363,7 @@ TEST(SharedListTest, IsMoveConstructibleAndAssignable) {
 }
 
 TEST(SharedListTest, DefaultConstructedHasProperState) {
-  ASSERT_TRUE(SharedList().isNull());
+  ASSERT_FALSE(SharedList());
 }
 
 // -----------------------------------------------------------------------------
@@ -384,7 +384,7 @@ TEST(UniqueListTest, IsMoveConstructibleAndAssignable) {
 }
 
 TEST(UniqueListTest, DefaultConstructedHasProperState) {
-  ASSERT_TRUE(UniqueList().isNull());
+  ASSERT_FALSE(UniqueList());
 }
 
 // -----------------------------------------------------------------------------

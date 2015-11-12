@@ -82,13 +82,17 @@ UniqueListIterator Shard::getUnique(const Bytes& key) {
 }
 
 bool Shard::contains(const Bytes& key) const {
-  const auto list = table_->getShared(key);
-  return list.isNull() ? false : !list.empty();
+  if (auto list = table_->getShared(key)) {
+    return list.size() != 0;
+  }
+  return false;
 }
 
 std::size_t Shard::remove(const Bytes& key) {
-  auto list = table_->getUnique(key);
-  return list.isNull() ? 0 : list.clear();
+  if (auto list = table_->getUnique(key)) {
+    return list.clear();
+  }
+  return 0;
 }
 
 std::size_t Shard::removeAll(const Bytes& key, Callables::Predicate predicate) {
