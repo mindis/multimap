@@ -288,23 +288,27 @@ public:
 
   explicit List(const Head& head);
 
-  List(List&&) = delete;
-  List& operator=(List&&) = delete;
+  List(List&&) = default;
+  List& operator=(List&&) = default;
 
-  List(const List&) = delete;
-  List& operator=(const List&) = delete;
+  //  List(const List&) = delete;
+  //  List& operator=(const List&) = delete;
 
   void add(const Bytes& value, Store* store, Arena* arena);
 
   void flush(Store* store);
-
-  void clear() { head_ = Head(); }
 
   const Head& head() const { return head_; }
 
   std::size_t size() const { return head_.num_values_not_removed(); }
 
   bool empty() const { return size() == 0; }
+
+  std::size_t clear() {
+    const auto num = size();
+    head_ = Head();
+    return num;
+  }
 
   Iterator iterator(const Store& store) const { return Iterator(*this, store); }
 
@@ -355,6 +359,16 @@ private:
 static_assert(mt::hasExpectedSize<List>(40, 48),
               "class List does not have expected size");
 
+inline bool operator==(const List::Head& lhs, const List::Head& rhs) {
+  return (lhs.block_ids == rhs.block_ids) &&
+         (lhs.num_values_added == rhs.num_values_added) &&
+         (lhs.num_values_removed == rhs.num_values_removed);
+}
+
+inline bool operator!=(const List::Head& lhs, const List::Head& rhs) {
+  return !(lhs == rhs);
+}
+
 template <> inline void List::Iter<true>::Stream::writeBackMutatedBlocks() {
   if (store_) {
     store_->replace(blocks_);
@@ -362,39 +376,43 @@ template <> inline void List::Iter<true>::Stream::writeBackMutatedBlocks() {
 }
 
 // -----------------------------------------------------------------------------
-// class SharedListPointer
+// class SharedList
 
-class SharedListPointer {
+class SharedList {
 public:
-  SharedListPointer() = default;
+  SharedList() = default;
 
-  explicit SharedListPointer(const List* list) : list_(list) {
+  SharedList(const List& list, const Store& store)
+      : list_(&list), store_(&store) {
     list_->lock_shared();
   }
 
-  SharedListPointer(SharedListPointer&& other) : list_(other.release()) {}
+  SharedList(SharedList&& other)
+      : list_(other.release()), store_(other.store_) {}
 
-  ~SharedListPointer() {
+  ~SharedList() {
     if (list_) {
       list_->unlock_shared();
     }
   }
 
-  SharedListPointer& operator=(SharedListPointer&& other) {
+  SharedList& operator=(SharedList&& other) {
     if (list_) {
       list_->unlock_shared();
     }
     list_ = other.release();
+    store_ = other.store_;
     return *this;
   }
 
-  const List& operator*() const { return *list_; }
+  bool isNull() const { return list_ == nullptr; }
+  // TODO Replace `isNull()` by `Maybe<T>`.
 
-  const List* operator->() const { return list_; }
+  const List::Head& head() const { return list_->head(); }
 
-  const List* get() const { return list_; }
+  std::size_t size() const { return list_->size(); }
 
-  explicit operator bool() const { return list_; }
+  bool empty() const { return list_->empty(); }
 
 private:
   const List* release() {
@@ -404,40 +422,90 @@ private:
   }
 
   const List* list_ = nullptr;
+  const Store* store_ = nullptr;
+
+  friend class SharedListIterator;
 };
 
 // -----------------------------------------------------------------------------
-// class UniqueListPointer
+// class SharedListIterator
 
-class UniqueListPointer {
+class SharedListIterator {
 public:
-  UniqueListPointer() = default;
+  SharedListIterator() = default;
 
-  explicit UniqueListPointer(List* list) : list_(list) { list_->lock(); }
+  SharedListIterator(SharedList&& list) : list_(std::move(list)) {
+    if (!list_.isNull()) {
+      iter_ = list_.list_->iterator(*list_.store_);
+    }
+  }
 
-  UniqueListPointer(UniqueListPointer&& other) : list_(other.release()) {}
+  SharedListIterator(SharedListIterator&&) = default;
+  SharedListIterator& operator=(SharedListIterator&&) = default;
 
-  ~UniqueListPointer() {
+  SharedList release() {
+    auto list = std::move(list_);
+    iter_ = List::Iterator();
+    list_ = SharedList();
+    return list;
+  }
+
+  std::size_t available() const { return iter_.available(); }
+
+  bool hasNext() { return iter_.hasNext(); }
+
+  Bytes next() { return iter_.next(); }
+
+  Bytes peekNext() { return iter_.peekNext(); }
+
+private:
+  List::Iterator iter_;
+  SharedList list_;
+};
+
+// -----------------------------------------------------------------------------
+// class UniqueList
+
+class UniqueList {
+public:
+  UniqueList() = default;
+
+  UniqueList(List* list, Store* store, Arena* arena)
+      : list_(list), store_(store), arena_(arena) {
+    list_->lock();
+  }
+
+  UniqueList(UniqueList&& other)
+      : list_(other.release()), store_(other.store_), arena_(other.arena_) {}
+
+  ~UniqueList() {
     if (list_) {
       list_->unlock();
     }
   }
 
-  UniqueListPointer& operator=(UniqueListPointer&& other) {
+  UniqueList& operator=(UniqueList&& other) {
     if (list_) {
       list_->unlock();
     }
     list_ = other.release();
+    store_ = other.store_;
+    arena_ = other.arena_;
     return *this;
   }
 
-  List& operator*() const { return *list_; }
+  bool isNull() const { return list_ == nullptr; }
+  // TODO Replace `isNull()` by `Maybe<T>`.
 
-  List* operator->() const { return list_; }
+  const List::Head& head() const { return list_->head(); }
 
-  List* get() const { return list_; }
+  std::size_t size() const { return list_->size(); }
 
-  explicit operator bool() const { return list_; }
+  bool empty() const { return list_->empty(); }
+
+  void add(const Bytes& value) { list_->add(value, store_, arena_); }
+
+  std::size_t clear() { return list_->clear(); }
 
 private:
   List* release() {
@@ -447,6 +515,48 @@ private:
   }
 
   List* list_ = nullptr;
+  Store* store_ = nullptr;
+  Arena* arena_ = nullptr;
+
+  friend class UniqueListIterator;
+};
+
+// -----------------------------------------------------------------------------
+// class UniqueListIterator
+
+class UniqueListIterator {
+public:
+  UniqueListIterator() = default;
+
+  UniqueListIterator(UniqueList&& list) : list_(std::move(list)) {
+    if (!list_.isNull()) {
+      iter_ = list_.list_->iterator(list_.store_);
+    }
+  }
+
+  UniqueListIterator(UniqueListIterator&&) = default;
+  UniqueListIterator& operator=(UniqueListIterator&&) = default;
+
+  UniqueList release() {
+    auto list = std::move(list_);
+    iter_ = List::MutableIterator();
+    list_ = UniqueList();
+    return list;
+  }
+
+  std::size_t available() const { return iter_.available(); }
+
+  bool hasNext() { return iter_.hasNext(); }
+
+  Bytes next() { return iter_.next(); }
+
+  Bytes peekNext() { return iter_.peekNext(); }
+
+  void remove() { iter_.remove(); }
+
+private:
+  List::MutableIterator iter_;
+  UniqueList list_;
 };
 
 } // namespace internal

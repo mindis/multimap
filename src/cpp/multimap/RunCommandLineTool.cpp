@@ -77,9 +77,13 @@ void runOptimizeCommand(const po::variables_map& arguments) {
   multimap::Options options;
   if (arguments.count(BS)) {
     options.block_size = arguments[BS].as<std::size_t>();
+  } else {
+    options.block_size = 0; // Use same block_size as SOURCE.
   }
   if (arguments.count(NSHARDS)) {
     options.num_shards = arguments[NSHARDS].as<std::size_t>();
+  } else {
+    options.num_shards = 0; // Use same num_shards as SOURCE.
   }
 
   multimap::Map::optimize(arguments[SOURCE].as<std::string>(),

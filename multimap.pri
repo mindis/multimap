@@ -21,7 +21,6 @@ HEADERS += \
     $$PWD/src/cpp/multimap/internal/Arena.hpp \
     $$PWD/src/cpp/multimap/internal/Base64.hpp \
     $$PWD/src/cpp/multimap/internal/Block.hpp \
-    $$PWD/src/cpp/multimap/internal/Iterator.hpp \
     $$PWD/src/cpp/multimap/internal/List.hpp \
     $$PWD/src/cpp/multimap/internal/Shard.hpp \
     $$PWD/src/cpp/multimap/internal/Store.hpp \

@@ -98,10 +98,10 @@ public:
   // will block until the lock is released.
 
   bool contains(const Bytes& key) const;
-  // Returns true if the list associated with key contains at least one value,
-  // returns false otherwise. If the key does not exist the list is considered
-  // to be empty. If a non-empty list is currently locked, the method will
-  // block until the lock is released.
+    // Returns true if the list associated with key contains at least one value,
+    // returns false otherwise. If the key does not exist the list is considered
+    // to be empty. If a non-empty list is currently locked, the method will
+    // block until the lock is released.
 
   std::size_t remove(const Bytes& key);
   // Deletes all values for key by clearing the associated list. This method

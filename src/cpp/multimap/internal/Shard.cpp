@@ -22,13 +22,6 @@
 namespace multimap {
 namespace internal {
 
-namespace {
-
-const char* STORE_FILE_SUFFIX = ".store";
-const char* TABLE_FILE_SUFFIX = ".table";
-
-} // namespace
-
 std::size_t Shard::Limits::max_key_size() {
   return Table::Limits::max_key_size();
 }
@@ -63,60 +56,39 @@ mt::Properties Shard::Stats::toProperties() const {
   return properties;
 }
 
-Shard::Shard(const boost::filesystem::path& prefix) : Shard(prefix, 0) {}
-
-Shard::Shard(const boost::filesystem::path& prefix, std::size_t block_size)
-    : store_(prefix.string() + STORE_FILE_SUFFIX, block_size) {
+Shard::Shard(const boost::filesystem::path& prefix, const Options& options) {
   //  store_.open(prefix.string() + STORE_FILE_SUFFIX, block_size);
-  table_.open(prefix.string() + TABLE_FILE_SUFFIX);
+//  table_.open(prefix.string() + TABLE_FILE_SUFFIX);
+  Table::Options table_opts;
+  table_opts.block_size = options.block_size;
+  table_opts.buffer_size = options.buffer_size;
+  table_opts.create_if_missing = options.create_if_missing;
+  table_opts.error_if_exists = options.error_if_exists;
+  table_.reset(new Table(prefix, table_opts));
   // TODO Check if arena_(large_chunk_size) makes any difference.
   prefix_ = prefix;
-
-  MT_ENSURE_TRUE(isOpen());
-}
-
-Shard::~Shard() {
-  if (isOpen()) {
-    close();
-  }
-}
-
-Shard::Stats Shard::close() {
-  MT_REQUIRE_TRUE(isOpen());
-
-  Stats stats;
-  stats.table = table_.close(&store_);
-  stats.store = store_.getStats();
-
-  MT_ENSURE_FALSE(isOpen());
-  return stats;
 }
 
 void Shard::put(const Bytes& key, const Bytes& value) {
-  table_.getUniqueOrCreate(key)->add(value, &store_, &arena_);
+  table_->getUniqueOrCreate(key).add(value);
 }
 
 SharedListIterator Shard::getShared(const Bytes& key) const {
-  return SharedListIterator(table_.getShared(key), store_);
+  return SharedListIterator(table_->getShared(key));
 }
 
 UniqueListIterator Shard::getUnique(const Bytes& key) {
-  return UniqueListIterator(table_.getUnique(key), &store_);
+  return UniqueListIterator(table_->getUnique(key));
 }
 
 bool Shard::contains(const Bytes& key) const {
-  const auto list = table_.getShared(key);
-  return list ? !list->empty() : false;
+  const auto list = table_->getShared(key);
+  return list.isNull() ? false : !list.empty();
 }
 
 std::size_t Shard::remove(const Bytes& key) {
-  std::size_t num_removed = 0;
-  auto list = table_.getUnique(key);
-  if (list) {
-    num_removed = list->size();
-    list->clear();
-  }
-  return num_removed;
+  auto list = table_->getUnique(key);
+  return list.isNull() ? 0 : list.clear();
 }
 
 std::size_t Shard::removeAll(const Bytes& key, Callables::Predicate predicate) {
@@ -163,18 +135,18 @@ bool Shard::replaceFirstEqual(const Bytes& key, const Bytes& old_value,
 }
 
 void Shard::forEachKey(Callables::Procedure action) const {
-  table_.forEachKey(action);
+  table_->forEachKey(action);
 }
 
 void Shard::forEachValue(const Bytes& key, Callables::Procedure action) const {
-  auto iter = SharedListIterator(table_.getShared(key), store_);
+  auto iter = SharedListIterator(table_->getShared(key));
   while (iter.hasNext()) {
     action(iter.next());
   }
 }
 
 void Shard::forEachValue(const Bytes& key, Callables::Predicate action) const {
-  auto iter = SharedListIterator(table_.getShared(key), store_);
+  auto iter = SharedListIterator(table_->getShared(key));
   while (iter.hasNext()) {
     if (!action(iter.next())) {
       break;
@@ -183,22 +155,17 @@ void Shard::forEachValue(const Bytes& key, Callables::Predicate action) const {
 }
 
 void Shard::forEachEntry(Callables::Procedure2 action) const {
-  store_.adviseAccessPattern(Store::AccessPattern::SEQUENTIAL);
-  table_.forEachEntry(
-      [action, this](const Bytes& key, SharedListPointer&& list) {
-        action(key, SharedListIterator(std::move(list), store_));
-      });
-  store_.adviseAccessPattern(Store::AccessPattern::RANDOM);
+  table_->forEachEntry([action, this](const Bytes& key, SharedList&& list) {
+    action(key, SharedListIterator(std::move(list)));
+  });
 }
 
 Shard::Stats Shard::getStats() const {
   Stats stats;
-  stats.store = store_.getStats();
-  stats.table = table_.getStats();
+//  stats.store = store_.getStats();
+  stats.table = table_->getStats();
   return stats;
 }
-
-bool Shard::isOpen() const { return table_.isOpen(); }
 
 std::size_t Shard::remove(const Bytes& key, Callables::Predicate predicate,
                           bool exit_on_first_success) {
@@ -218,22 +185,20 @@ std::size_t Shard::remove(const Bytes& key, Callables::Predicate predicate,
 std::size_t Shard::replace(const Bytes& key, Callables::Function function,
                            bool exit_on_first_success) {
   std::vector<std::string> replaced_values;
-  auto list = table_.getUnique(key);
-  if (list) {
-    auto iter = list->iterator(&store_);
-    while (iter.hasNext()) {
-      auto replaced_value = function(iter.next());
-      if (!replaced_value.empty()) {
-        replaced_values.push_back(std::move(replaced_value));
-        iter.remove();
-        if (exit_on_first_success) {
-          break;
-        }
+  UniqueListIterator iter = table_->getUnique(key);
+  while (iter.hasNext()) {
+    auto replaced_value = function(iter.next());
+    if (!replaced_value.empty()) {
+      replaced_values.push_back(std::move(replaced_value));
+      iter.remove();
+      if (exit_on_first_success) {
+        break;
       }
     }
-    for (const auto& value : replaced_values) {
-      list->add(value, &store_, &arena_);
-    }
+  }
+  auto list = iter.release();
+  for (const auto& value : replaced_values) {
+    list.add(value);
   }
   return replaced_values.size();
 }

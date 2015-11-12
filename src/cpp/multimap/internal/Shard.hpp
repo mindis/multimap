@@ -21,7 +21,6 @@
 #include <functional>
 #include <boost/filesystem/path.hpp>
 #include "multimap/internal/Arena.hpp"
-#include "multimap/internal/Iterator.hpp"
 #include "multimap/internal/Store.hpp"
 #include "multimap/internal/Table.hpp"
 #include "multimap/thirdparty/mt.hpp"
@@ -35,6 +34,13 @@ public:
   struct Limits {
     static std::size_t max_key_size();
     static std::size_t max_value_size();
+  };
+
+  struct Options {
+    std::size_t block_size = 512;
+    std::size_t buffer_size = mt::MiB(1);
+    bool create_if_missing = false;
+    bool error_if_exists = false;
   };
 
   struct Stats {
@@ -52,13 +58,7 @@ public:
 
   Shard() = default;
 
-  Shard(const boost::filesystem::path& prefix);
-
-  Shard(const boost::filesystem::path& prefix, std::size_t block_size);
-
-  ~Shard();
-
-  Stats close();
+  Shard(const boost::filesystem::path& prefix, const Options& options);
 
   void put(const Bytes& key, const Bytes& value);
 
@@ -96,20 +96,18 @@ public:
 
   void forEachEntry(Callables::Procedure2 action) const;
 
+  std::size_t getBlockSize() const { return table_->getBlockSize(); }
+
   Stats getStats() const;
 
 private:
-  bool isOpen() const;
-
   std::size_t remove(const Bytes& key, Callables::Predicate predicate,
                      bool exit_on_first_success);
 
   std::size_t replace(const Bytes& key, Callables::Function function,
                       bool exit_on_first_success);
 
-  Arena arena_;
-  Table table_;
-  Store store_;
+  std::unique_ptr<Table> table_;
   boost::filesystem::path prefix_;
 };
 

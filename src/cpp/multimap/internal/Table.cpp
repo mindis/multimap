@@ -26,6 +26,9 @@ namespace internal {
 
 namespace {
 
+const char* STORE_FILE_SUFFIX = ".store";
+const char* TABLE_FILE_SUFFIX = ".table";
+
 typedef std::pair<Bytes, List::Head> Entry;
 
 Entry readEntryFromFile(std::FILE* file, Arena* arena) {
@@ -136,19 +139,14 @@ mt::Properties Table::Stats::toProperties(const std::string& prefix) const {
   return properties;
 }
 
-Table::~Table() {
-  MT_ASSERT_FALSE(isOpen());
-  // Not closing a table manually via close() is a clear error,
-  // because then the table isn't flushed and data is definitely lost.
-}
+Table::Table(const boost::filesystem::path& prefix, const Options& options) {
+  const auto table_filepath = prefix.string() + TABLE_FILE_SUFFIX;
+  const auto store_filepath = prefix.string() + STORE_FILE_SUFFIX;
 
-Table::Table(const boost::filesystem::path& filepath) { open(filepath); }
+  if (boost::filesystem::is_regular_file(table_filepath)) {
+    mt::check(!options.error_if_exists, "Already exists");
 
-void Table::open(const boost::filesystem::path& filepath) {
-  MT_REQUIRE_FALSE(isOpen());
-
-  if (boost::filesystem::is_regular_file(filepath)) {
-    const mt::AutoCloseFile file(std::fopen(filepath.c_str(), "r"));
+    const mt::AutoCloseFile file(std::fopen(table_filepath.c_str(), "r"));
     MT_ASSERT_NOT_NULL(file.get());
 
     old_stats_ = readStatsFromTail(file.get());
@@ -157,77 +155,81 @@ void Table::open(const boost::filesystem::path& filepath) {
       const auto entry = readEntryFromFile(file.get(), &arena_);
       map_[entry.first].reset(new List(entry.second));
     }
+  } else if (options.create_if_missing) {
+    // Nothing to do here.
+  } else {
+    mt::throwRuntimeError2("Does not exist '%s'", table_filepath.c_str());
   }
-  filepath_ = filepath;
 
-  MT_ENSURE_TRUE(isOpen());
+  Store::Options store_opts;
+  store_opts.block_size = options.block_size;
+  store_opts.buffer_size = options.buffer_size;
+  store_opts.create_if_missing = options.create_if_missing;
+  store_opts.error_if_exists = options.error_if_exists;
+  store_.reset(new Store(store_filepath, store_opts));
+  prefix_ = prefix;
 }
 
-Table::Stats Table::close(Store* store) {
-  MT_REQUIRE_TRUE(isOpen());
-
-  const auto old_filepath = filepath_.string() + ".old";
-  if (boost::filesystem::is_regular_file(filepath_)) {
-    boost::filesystem::rename(filepath_, old_filepath);
-  }
-
-  const mt::AutoCloseFile file(std::fopen(filepath_.c_str(), "w"));
-  assert(file.get());
-  const auto status = std::setvbuf(file.get(), nullptr, _IOFBF, mt::MiB(10));
-  assert(status == 0);
-
-  Stats stats;
-  for (const auto& entry : map_) {
-    const auto list = entry.second.get();
-    if (list->is_locked()) {
-      System::log(__PRETTY_FUNCTION__)
-          << "List is still locked, data is possibly lost. Key was "
-          << entry.first.toString() << '\n';
+Table::~Table() {
+  if (!prefix_.empty()) {
+    const auto filepath = prefix_.string() + TABLE_FILE_SUFFIX;
+    const auto old_filepath = filepath + ".old";
+    if (boost::filesystem::is_regular_file(filepath)) {
+      boost::filesystem::rename(filepath, old_filepath);
     }
-    // We do not skip or even throw if a list is still locked to prevent data
-    // loss. However, this causes a race which could let the program crash...
-    list->flush(store);
-    if (list->empty()) {
-      stats.num_values_unowned += list->head().num_values_removed;
-      // An existing list that is empty consists only of removed values.
-      // Because such lists are skipped on closing these values have no owner
-      // anymore, i.e. no reference pointing to them, but they still exist
-      // physically in the data file, i.e. the store.
-    } else {
-      ++stats.num_keys;
-      stats.num_values_put += list->head().num_values_added;
-      stats.num_values_removed += list->head().num_values_removed;
-      stats.key_size_avg += entry.first.size();
-      stats.key_size_max = std::max(stats.key_size_max, entry.first.size());
-      stats.key_size_min = std::min(stats.key_size_min, entry.first.size());
-      stats.list_size_avg += list->size();
-      stats.list_size_max = std::max(stats.list_size_max, list->size());
-      stats.list_size_min = std::min(stats.list_size_min, list->size());
-      writeEntryToFile(Entry(entry.first, list->head()), file.get());
+
+    const mt::AutoCloseFile file(std::fopen(filepath.c_str(), "w"));
+    MT_ASSERT_NOT_NULL(file.get());
+    const auto status = std::setvbuf(file.get(), nullptr, _IOFBF, mt::MiB(10));
+    MT_ASSERT_IS_ZERO(status);
+
+    Stats stats;
+    for (const auto& entry : map_) {
+      const auto list = entry.second.get();
+      if (list->is_locked()) {
+        System::log(__PRETTY_FUNCTION__)
+            << "List is still locked, data is possibly lost. Key was "
+            << entry.first.toString() << '\n';
+      }
+      // We do not skip or even throw if a list is still locked to prevent data
+      // loss. However, this causes a race which could let the program crash...
+      list->flush(store_.get());
+      if (list->empty()) {
+        stats.num_values_unowned += list->head().num_values_removed;
+        // An existing list that is empty consists only of removed values.
+        // Because such lists are skipped on closing these values have no owner
+        // anymore, i.e. no reference pointing to them, but they still exist
+        // physically in the data file, i.e. the store.
+      } else {
+        ++stats.num_keys;
+        stats.num_values_put += list->head().num_values_added;
+        stats.num_values_removed += list->head().num_values_removed;
+        stats.key_size_avg += entry.first.size();
+        stats.key_size_max = std::max(stats.key_size_max, entry.first.size());
+        stats.key_size_min = std::min(stats.key_size_min, entry.first.size());
+        stats.list_size_avg += list->size();
+        stats.list_size_max = std::max(stats.list_size_max, list->size());
+        stats.list_size_min = std::min(stats.list_size_min, list->size());
+        writeEntryToFile(Entry(entry.first, list->head()), file.get());
+      }
+    }
+
+    if (stats.num_keys != 0) {
+      stats.key_size_avg /= stats.num_keys;
+      stats.list_size_avg /= stats.num_keys;
+    }
+
+    stats.num_values_unowned += old_stats_.num_values_unowned;
+    writeStatsToTail(stats, file.get());
+
+    if (boost::filesystem::is_regular_file(old_filepath)) {
+      const auto status = boost::filesystem::remove(old_filepath);
+      MT_ASSERT_TRUE(status);
     }
   }
-
-  if (stats.num_keys != 0) {
-    stats.key_size_avg /= stats.num_keys;
-    stats.list_size_avg /= stats.num_keys;
-  }
-
-  stats.num_values_unowned += old_stats_.num_values_unowned;
-  writeStatsToTail(stats, file.get());
-
-  if (boost::filesystem::is_regular_file(old_filepath)) {
-    const auto status = boost::filesystem::remove(old_filepath);
-    MT_ASSERT_TRUE(status);
-  }
-  filepath_.clear();
-
-  MT_ENSURE_FALSE(isOpen());
-  return stats;
 }
 
-bool Table::isOpen() const { return !filepath_.empty(); }
-
-SharedListPointer Table::getShared(const Bytes& key) const {
+SharedList Table::getShared(const Bytes& key) const {
   List* list = nullptr;
   {
     boost::shared_lock<boost::shared_mutex> lock(mutex_);
@@ -237,10 +239,10 @@ SharedListPointer Table::getShared(const Bytes& key) const {
     }
   }
   // `mutex_` is unlocked now.
-  return list ? SharedListPointer(list) : SharedListPointer();
+  return list ? SharedList(*list, *store_) : SharedList();
 }
 
-UniqueListPointer Table::getUnique(const Bytes& key) const {
+UniqueList Table::getUnique(const Bytes& key) {
   List* list = nullptr;
   {
     boost::shared_lock<boost::shared_mutex> lock(mutex_);
@@ -250,10 +252,10 @@ UniqueListPointer Table::getUnique(const Bytes& key) const {
     }
   }
   // `mutex_` is unlocked now.
-  return list ? UniqueListPointer(list) : UniqueListPointer();
+  return list ? UniqueList(list, store_.get(), &arena_) : UniqueList();
 }
 
-UniqueListPointer Table::getUniqueOrCreate(const Bytes& key) {
+UniqueList Table::getUniqueOrCreate(const Bytes& key) {
   mt::check(key.size() <= Limits::max_key_size(),
             "Reject key because it's too large.");
 
@@ -273,14 +275,14 @@ UniqueListPointer Table::getUniqueOrCreate(const Bytes& key) {
     list = iter->second.get();
   }
   // `mutex_` is unlocked now.
-  return UniqueListPointer(list);
+  return UniqueList(list, store_.get(), &arena_);
 }
 
 void Table::forEachKey(Callables::Procedure action) const {
   boost::shared_lock<boost::shared_mutex> lock(mutex_);
   for (const auto& entry : map_) {
-    SharedListPointer list(entry.second.get());
-    if (!list->empty()) {
+    SharedList list(*entry.second, *store_);
+    if (!list.empty()) {
       action(entry.first);
     }
   }
@@ -288,26 +290,30 @@ void Table::forEachKey(Callables::Procedure action) const {
 
 void Table::forEachEntry(Procedure action) const {
   boost::shared_lock<boost::shared_mutex> lock(mutex_);
+  store_->adviseAccessPattern(Store::AccessPattern::WILLNEED);
   for (const auto& entry : map_) {
-    SharedListPointer list(entry.second.get());
-    if (!list->empty()) {
+    SharedList list(*entry.second, *store_);
+    if (!list.empty()) {
       action(entry.first, std::move(list));
     }
   }
+  store_->adviseAccessPattern(Store::AccessPattern::NORMAL);
 }
+
+std::size_t Table::getBlockSize() const { return store_->getBlockSize(); }
 
 Table::Stats Table::getStats() const {
   Stats stats;
-  forEachEntry([&stats](const Bytes& key, SharedListPointer&& list) {
+  forEachEntry([&stats](const Bytes& key, SharedList&& list) {
     ++stats.num_keys;
-    stats.num_values_put += list->head().num_values_added;
-    stats.num_values_removed += list->head().num_values_removed;
+    stats.num_values_put += list.head().num_values_added;
+    stats.num_values_removed += list.head().num_values_removed;
     stats.key_size_min = std::min(stats.key_size_min, key.size());
     stats.key_size_max = std::max(stats.key_size_max, key.size());
     stats.key_size_avg += key.size();
-    stats.list_size_min = std::min(stats.list_size_min, list->size());
-    stats.list_size_max = std::max(stats.list_size_max, list->size());
-    stats.list_size_avg += list->size();
+    stats.list_size_min = std::min(stats.list_size_min, list.size());
+    stats.list_size_max = std::max(stats.list_size_max, list.size());
+    stats.list_size_avg += list.size();
   });
   if (stats.num_keys != 0) {
     stats.key_size_avg /= stats.num_keys;

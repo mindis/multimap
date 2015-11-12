@@ -19,8 +19,8 @@
 #include <boost/filesystem/operations.hpp>
 #include <gmock/gmock.h>
 #include "multimap/internal/List.hpp"
-#include "multimap/internal/Arena.hpp"
 #include "multimap/internal/Generator.hpp"
+#include "multimap/Map.hpp"
 
 namespace multimap {
 namespace internal {
@@ -83,9 +83,9 @@ TEST(ListTest, IsNotCopyConstructibleOrAssignable) {
   ASSERT_FALSE(std::is_copy_assignable<List>::value);
 }
 
-TEST(ListTest, IsNotMoveConstructibleOrAssignable) {
-  ASSERT_FALSE(std::is_move_constructible<List>::value);
-  ASSERT_FALSE(std::is_move_assignable<List>::value);
+TEST(ListTest, IsMoveConstructibleAndAssignable) {
+  ASSERT_TRUE(std::is_move_constructible<List>::value);
+  ASSERT_TRUE(std::is_move_assignable<List>::value);
 }
 
 TEST(ListTest, DefaultConstructedHasProperState) {
@@ -217,17 +217,25 @@ struct ListTestIteration : testing::TestWithParam<std::uint32_t> {
     directory = "/tmp/multimap.ListTestIteration";
     boost::filesystem::remove_all(directory);
     assert(boost::filesystem::create_directory(directory));
-    store = new Store(directory / "store", block_size);
+
+    Store::Options store_opts;
+    store_opts.block_size = 128;
+    store_opts.create_if_missing = true;
+    store_opts.error_if_exists = true;
+    store.reset(new Store(directory / "store", store_opts));
   }
 
   void TearDown() override {
-    delete store; // Destructor flushes all data to disk.
+    store.reset(); // Destructor flushes all data to disk.
     assert(boost::filesystem::remove_all(directory));
   }
 
+  Store* getStore() { return store.get(); }
+  Arena* getArena() { return &arena; }
+
+private:
   Arena arena;
-  Store* store;
-  std::size_t block_size = 128;
+  std::unique_ptr<Store> store;
   boost::filesystem::path directory;
 };
 
@@ -235,13 +243,13 @@ TEST_P(ListTestIteration, AddSmallValuesAndIterateOnce) {
   List list;
   for (std::size_t i = 0; i != GetParam(); ++i) {
     const auto value = std::to_string(i);
-    list.add(value, store, &arena);
+    list.add(value, getStore(), getArena());
     ASSERT_EQ(list.head().num_values_removed, 0);
     ASSERT_EQ(list.head().num_values_added, i + 1);
   }
   ASSERT_EQ(list.size(), GetParam());
 
-  auto iter = list.iterator(*store);
+  auto iter = list.iterator(*getStore());
   for (std::size_t i = 0; i != GetParam(); ++i) {
     ASSERT_TRUE(iter.hasNext());
     ASSERT_EQ(iter.available(), GetParam() - i);
@@ -255,13 +263,13 @@ TEST_P(ListTestIteration, AddSmallValuesAndIterateTwice) {
   List list;
   for (std::size_t i = 0; i != GetParam(); ++i) {
     const auto value = std::to_string(i);
-    list.add(value, store, &arena);
+    list.add(value, getStore(), getArena());
     ASSERT_EQ(list.head().num_values_removed, 0);
     ASSERT_EQ(list.head().num_values_added, i + 1);
   }
   ASSERT_EQ(list.size(), GetParam());
 
-  auto iter = list.iterator(*store);
+  auto iter = list.iterator(*getStore());
   for (std::size_t i = 0; i != GetParam(); ++i) {
     ASSERT_TRUE(iter.hasNext());
     ASSERT_EQ(iter.available(), GetParam() - i);
@@ -270,7 +278,7 @@ TEST_P(ListTestIteration, AddSmallValuesAndIterateTwice) {
   ASSERT_FALSE(iter.hasNext());
   ASSERT_EQ(iter.available(), 0);
 
-  iter = list.iterator(*store);
+  iter = list.iterator(*getStore());
   for (std::size_t i = 0; i != GetParam(); ++i) {
     ASSERT_TRUE(iter.hasNext());
     ASSERT_EQ(iter.available(), GetParam() - i);
@@ -283,16 +291,16 @@ TEST_P(ListTestIteration, AddSmallValuesAndIterateTwice) {
 TEST_P(ListTestIteration, AddLargeValuesAndIterateOnce) {
   List list;
   SequenceGenerator gen;
-  const std::size_t size = block_size * 2.5;
+  const std::size_t size = getStore()->getBlockSize() * 2.5;
   for (std::size_t i = 0; i != GetParam(); ++i) {
-    list.add(gen.generate(size), store, &arena);
+    list.add(gen.generate(size), getStore(), getArena());
     ASSERT_EQ(list.head().num_values_removed, 0);
     ASSERT_EQ(list.head().num_values_added, i + 1);
   }
   ASSERT_EQ(list.size(), GetParam());
 
   gen.reset();
-  auto iter = list.iterator(*store);
+  auto iter = list.iterator(*getStore());
   for (std::size_t i = 0; i != GetParam(); ++i) {
     ASSERT_TRUE(iter.hasNext());
     ASSERT_EQ(iter.available(), GetParam() - i);
@@ -305,16 +313,16 @@ TEST_P(ListTestIteration, AddLargeValuesAndIterateOnce) {
 TEST_P(ListTestIteration, AddLargeValuesAndIterateTwice) {
   List list;
   SequenceGenerator gen;
-  const std::size_t size = block_size * 2.5;
+  const std::size_t size = getStore()->getBlockSize() * 2.5;
   for (std::size_t i = 0; i != GetParam(); ++i) {
-    list.add(gen.generate(size), store, &arena);
+    list.add(gen.generate(size), getStore(), getArena());
     ASSERT_EQ(list.head().num_values_removed, 0);
     ASSERT_EQ(list.head().num_values_added, i + 1);
   }
   ASSERT_EQ(list.size(), GetParam());
 
   gen.reset();
-  auto iter = list.iterator(*store);
+  auto iter = list.iterator(*getStore());
   for (std::size_t i = 0; i != GetParam(); ++i) {
     ASSERT_TRUE(iter.hasNext());
     ASSERT_EQ(iter.available(), GetParam() - i);
@@ -324,7 +332,7 @@ TEST_P(ListTestIteration, AddLargeValuesAndIterateTwice) {
   ASSERT_EQ(iter.available(), 0);
 
   gen.reset();
-  iter = list.iterator(*store);
+  iter = list.iterator(*getStore());
   for (std::size_t i = 0; i != GetParam(); ++i) {
     ASSERT_TRUE(iter.hasNext());
     ASSERT_EQ(iter.available(), GetParam() - i);
@@ -338,46 +346,197 @@ INSTANTIATE_TEST_CASE_P(Parameterized, ListTestIteration,
                         testing::Values(0, 1, 2, 10, 100, 1000, 1000000));
 
 // -----------------------------------------------------------------------------
-// class SharedListPointer
+// class SharedList
 
-TEST(SharedListPointerTest, IsDefaultConstructible) {
-  ASSERT_TRUE(std::is_default_constructible<SharedListPointer>::value);
+TEST(SharedListTest, IsDefaultConstructible) {
+  ASSERT_TRUE(std::is_default_constructible<SharedList>::value);
 }
 
-TEST(SharedListPointerTest, IsNotCopyConstructibleOrAssignable) {
-  ASSERT_FALSE(std::is_copy_constructible<SharedListPointer>::value);
-  ASSERT_FALSE(std::is_copy_assignable<SharedListPointer>::value);
+TEST(SharedListTest, IsNotCopyConstructibleOrAssignable) {
+  ASSERT_FALSE(std::is_copy_constructible<SharedList>::value);
+  ASSERT_FALSE(std::is_copy_assignable<SharedList>::value);
 }
 
-TEST(SharedListPointerTest, IsMoveConstructibleAndAssignable) {
-  ASSERT_TRUE(std::is_move_constructible<SharedListPointer>::value);
-  ASSERT_TRUE(std::is_move_assignable<SharedListPointer>::value);
+TEST(SharedListTest, IsMoveConstructibleAndAssignable) {
+  ASSERT_TRUE(std::is_move_constructible<SharedList>::value);
+  ASSERT_TRUE(std::is_move_assignable<SharedList>::value);
 }
 
-TEST(SharedListPointerTest, DefaultConstructedHasProperState) {
-  ASSERT_EQ(SharedListPointer().get(), nullptr);
+TEST(SharedListTest, DefaultConstructedHasProperState) {
+  ASSERT_TRUE(SharedList().isNull());
 }
 
 // -----------------------------------------------------------------------------
-// class UniqueListPointer
+// class UniqueList
 
-TEST(UniqueListPointerTest, IsDefaultConstructible) {
-  ASSERT_TRUE(std::is_default_constructible<UniqueListPointer>::value);
+TEST(UniqueListTest, IsDefaultConstructible) {
+  ASSERT_TRUE(std::is_default_constructible<UniqueList>::value);
 }
 
-TEST(UniqueListPointerTest, IsNotCopyConstructibleOrAssignable) {
-  ASSERT_FALSE(std::is_copy_constructible<UniqueListPointer>::value);
-  ASSERT_FALSE(std::is_copy_assignable<UniqueListPointer>::value);
+TEST(UniqueListTest, IsNotCopyConstructibleOrAssignable) {
+  ASSERT_FALSE(std::is_copy_constructible<UniqueList>::value);
+  ASSERT_FALSE(std::is_copy_assignable<UniqueList>::value);
 }
 
-TEST(UniqueListPointerTest, IsMoveConstructibleAndAssignable) {
-  ASSERT_TRUE(std::is_move_constructible<UniqueListPointer>::value);
-  ASSERT_TRUE(std::is_move_assignable<UniqueListPointer>::value);
+TEST(UniqueListTest, IsMoveConstructibleAndAssignable) {
+  ASSERT_TRUE(std::is_move_constructible<UniqueList>::value);
+  ASSERT_TRUE(std::is_move_assignable<UniqueList>::value);
 }
 
-TEST(UniqueListPointerTest, DefaultConstructedHasProperState) {
-  ASSERT_EQ(UniqueListPointer().get(), nullptr);
+TEST(UniqueListTest, DefaultConstructedHasProperState) {
+  ASSERT_TRUE(UniqueList().isNull());
 }
+
+// -----------------------------------------------------------------------------
+// class SharedListIterator
+
+TEST(SharedListIteratorTest, IsDefaultConstructible) {
+  ASSERT_TRUE(std::is_default_constructible<SharedListIterator>::value);
+}
+
+TEST(SharedListIteratorTest, IsNotCopyConstructibleOrAssignable) {
+  ASSERT_FALSE(std::is_copy_constructible<SharedListIterator>::value);
+  ASSERT_FALSE(std::is_copy_assignable<SharedListIterator>::value);
+}
+
+TEST(SharedListIteratorTest, IsMoveConstructibleAndAssignable) {
+  ASSERT_TRUE(std::is_move_constructible<SharedListIterator>::value);
+  ASSERT_TRUE(std::is_move_assignable<SharedListIterator>::value);
+}
+
+TEST(SharedListIteratorTest, DefaultConstructedHasProperState) {
+  ASSERT_EQ(SharedListIterator().available(), 0);
+  ASSERT_FALSE(SharedListIterator().hasNext());
+  // Calling `next()` or `peekNext()` or `remove()` is undefined behavior.
+}
+
+struct ListIteratorTestWithParam : testing::TestWithParam<std::uint32_t> {
+  void SetUp() override {
+    directory = "/tmp/multimap.ListIteratorTestWithParam";
+    boost::filesystem::remove_all(directory);
+    assert(boost::filesystem::create_directory(directory));
+
+    // Replace `Map` by `Table`.
+    Options options;
+    options.create_if_missing = true;
+    map = Map(directory, options);
+
+    key = "key";
+    for (std::size_t i = 0; i != GetParam(); ++i) {
+      map.put(key, std::to_string(i));
+    }
+  }
+
+  void TearDown() override {
+    map = Map(); // We need the d'tor call here.
+    assert(boost::filesystem::remove_all(directory));
+  }
+
+  Map map;
+  std::string key;
+  boost::filesystem::path directory;
+};
+
+struct SharedListIteratorTestWithParam : public ListIteratorTestWithParam {
+  SharedListIterator getIterator() { return map.get(key); }
+};
+
+TEST_P(SharedListIteratorTestWithParam, Iterate) {
+  SharedListIterator iter = getIterator();
+  ASSERT_EQ(iter.available(), GetParam());
+  for (std::size_t i = 0; iter.hasNext(); ++i) {
+    ASSERT_EQ(iter.available(), GetParam() - i);
+    ASSERT_EQ(iter.next(), std::to_string(i));
+  }
+  ASSERT_EQ(iter.available(), 0);
+  ASSERT_FALSE(iter.hasNext());
+}
+
+INSTANTIATE_TEST_CASE_P(Parameterized, SharedListIteratorTestWithParam,
+                        testing::Values(0, 1, 2, 10, 100, 1000, 1000000));
+
+// -----------------------------------------------------------------------------
+// class UniqueListIterator
+
+TEST(UniqueListIteratorTest, IsDefaultConstructible) {
+  ASSERT_TRUE(std::is_default_constructible<UniqueListIterator>::value);
+}
+
+TEST(UniqueListIteratorTest, IsNotCopyConstructibleOrAssignable) {
+  ASSERT_FALSE(std::is_copy_constructible<UniqueListIterator>::value);
+  ASSERT_FALSE(std::is_copy_assignable<UniqueListIterator>::value);
+}
+
+TEST(UniqueListIteratorTest, IsMoveConstructibleAndAssignable) {
+  ASSERT_TRUE(std::is_move_constructible<UniqueListIterator>::value);
+  ASSERT_TRUE(std::is_move_assignable<UniqueListIterator>::value);
+}
+
+TEST(UniqueListIteratorTest, DefaultConstructedHasProperState) {
+  ASSERT_EQ(UniqueListIterator().available(), 0);
+  ASSERT_FALSE(UniqueListIterator().hasNext());
+  // Calling `next()` or `peekNext()` or `remove()` is undefined behavior.
+}
+
+struct UniqueListIteratorTestWithParam : public ListIteratorTestWithParam {
+  UniqueListIterator getIterator() { return map.getMutable(key); }
+};
+
+TEST_P(UniqueListIteratorTestWithParam, Iterate) {
+  UniqueListIterator iter = getIterator();
+  ASSERT_EQ(iter.available(), GetParam());
+  for (std::size_t i = 0; iter.hasNext(); ++i) {
+    ASSERT_EQ(iter.available(), GetParam() - i);
+    ASSERT_EQ(iter.next(), std::to_string(i));
+  }
+  ASSERT_EQ(iter.available(), 0);
+  ASSERT_FALSE(iter.hasNext());
+}
+
+TEST_P(UniqueListIteratorTestWithParam, IterateOnceAndRemoveEvery23thValue) {
+  UniqueListIterator iter = getIterator();
+  std::size_t num_removed = 0;
+  for (std::size_t i = 0; iter.hasNext(); ++i) {
+    ASSERT_EQ(iter.next(), std::to_string(i));
+    if (i % 23 == 0) {
+      iter.remove();
+      ++num_removed;
+    }
+  }
+  ASSERT_EQ(iter.available(), 0);
+  ASSERT_FALSE(iter.hasNext());
+}
+
+TEST_P(UniqueListIteratorTestWithParam,
+       IterateTwiceAndRemoveEvery23thValueIn1stRun) {
+  std::size_t num_removed = 0;
+  {
+    UniqueListIterator iter = getIterator();
+    for (std::size_t i = 0; iter.hasNext(); ++i) {
+      iter.next();
+      if (i % 23 == 0) {
+        iter.remove();
+        ++num_removed;
+      }
+    }
+    ASSERT_EQ(iter.available(), 0);
+    ASSERT_FALSE(iter.hasNext());
+  }
+  {
+    UniqueListIterator iter = getIterator();
+    ASSERT_EQ(iter.available(), GetParam() - num_removed);
+    for (std::size_t i = 0; iter.hasNext(); ++i) {
+      if (i % 23 != 0) {
+        ASSERT_NE(std::stoi(iter.next().toString()) % 23, 0);
+      }
+    }
+    ASSERT_EQ(iter.available(), 0);
+    ASSERT_FALSE(iter.hasNext());
+  }
+}
+
+INSTANTIATE_TEST_CASE_P(Parameterized, UniqueListIteratorTestWithParam,
+                        testing::Values(0, 1, 2, 10, 100, 1000, 1000000));
 
 } // namespace internal
 } // namespace multimap

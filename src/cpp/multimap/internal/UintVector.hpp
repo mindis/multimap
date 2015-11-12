@@ -52,6 +52,15 @@ public:
     size_ = 0;
   }
 
+  bool operator==(const UintVector& other) const {
+    if (size_ == other.size_ && offset_ == other.offset_) {
+      return std::memcmp(data_.get(), other.data_.get(), size_) == 0;
+    }
+    return false;
+  }
+
+  bool operator!=(const UintVector& other) const { return !(*this == other); }
+
 private:
   void allocateMoreIfFull();
 

@@ -20,7 +20,6 @@
 
 #include <functional>
 #include "multimap/Bytes.hpp"
-#include "multimap/internal/Iterator.hpp"
 
 namespace multimap {
 

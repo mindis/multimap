@@ -30,7 +30,26 @@ namespace {
 
 const std::string FILE_PREFIX = "multimap";
 const std::string NAME_OF_LOCK_FILE = FILE_PREFIX + ".lock";
-const std::string NAME_OF_PROPERTIES_FILE = FILE_PREFIX + ".properties";
+const std::string NAME_OF_ID_FILE = FILE_PREFIX + ".id";
+
+struct Id {
+  std::uint64_t block_size = 0;
+  std::uint64_t num_tables = 0;
+  std::uint64_t version_major = VERSION_MAJOR;
+  std::uint64_t version_minor = VERSION_MINOR;
+};
+
+Id readIdFromFile(const boost::filesystem::path& filepath) {
+  Id id;
+  std::ifstream(filepath.string())
+      .read(reinterpret_cast<char*>(&id), sizeof id);
+  return id;
+}
+
+void writeIdToFile(const Id& id, const boost::filesystem::path& filepath) {
+  std::ofstream(filepath.string())
+      .write(reinterpret_cast<const char*>(&id), sizeof id);
+}
 
 void checkOptions(const Options& options) {
   mt::check(options.block_size != 0, "options.block_size must be positive");
@@ -70,19 +89,17 @@ Map::Map(const boost::filesystem::path& directory, const Options& options) {
             "The path '%s' does not refer to a directory.", abs_dir.c_str());
 
   directory_lock_guard_.lock(abs_dir, NAME_OF_LOCK_FILE);
-  const auto properties_file = abs_dir / NAME_OF_PROPERTIES_FILE;
-  const auto map_exists = boost::filesystem::is_regular_file(properties_file);
+  const auto id_file = abs_dir / NAME_OF_ID_FILE;
+  const auto map_exists = boost::filesystem::is_regular_file(id_file);
 
   if (map_exists) {
     mt::check(!options.error_if_exists,
               "A Multimap in '%s' does already exist.", abs_dir.c_str());
 
-    const auto props = mt::readPropertiesFromFile(properties_file.string());
-    const auto version_major = std::stoul(props.at("map.version_major"));
-    const auto version_minor = std::stoul(props.at("map.version_minor"));
-    checkVersion(version_major, version_minor);
+    const auto id = readIdFromFile(id_file);
+    checkVersion(id.version_major, id.version_minor);
 
-    shards_.resize(std::stoul(props.at("map.num_shards")));
+    shards_.resize(id.num_tables);
 
   } else {
     mt::check(options.create_if_missing, "No Multimap found in '%s'.",
@@ -91,26 +108,24 @@ Map::Map(const boost::filesystem::path& directory, const Options& options) {
     shards_.resize(mt::nextPrime(options.num_shards));
   }
 
+  internal::Shard::Options shard_opts;
+  shard_opts.block_size = options.block_size;
+  shard_opts.create_if_missing = options.create_if_missing;
+  shard_opts.error_if_exists = options.error_if_exists;
+
   const auto prefix = abs_dir / FILE_PREFIX;
   for (std::size_t i = 0; i != shards_.size(); ++i) {
     const auto prefix_i = prefix.string() + '.' + std::to_string(i);
-    shards_[i].reset(new internal::Shard(prefix_i, options.block_size));
+    shards_[i].reset(new internal::Shard(prefix_i, shard_opts));
   }
 }
 
 Map::~Map() {
   if (!shards_.empty()) {
-    internal::Shard::Stats stats;
-    for (auto& shard : shards_) {
-      stats.combine(shard->close());
-    }
-    auto properties = stats.toProperties();
-    properties["map.num_shards"] = std::to_string(shards_.size());
-    properties["map.version_major"] = std::to_string(VERSION_MAJOR);
-    properties["map.version_minor"] = std::to_string(VERSION_MINOR);
-
-    const auto file = directory_lock_guard_.path() / NAME_OF_PROPERTIES_FILE;
-    mt::writePropertiesToFile(properties, file.string());
+    Id id;
+    id.num_tables = shards_.size();
+    id.block_size = shards_.front()->getBlockSize();
+    writeIdToFile(id, directory_lock_guard_.path() / NAME_OF_ID_FILE);
   }
 }
 
@@ -331,30 +346,28 @@ void Map::optimize(const boost::filesystem::path& source,
             "The path '%s' does not refer to a directory.", abs_source.c_str());
 
   internal::System::DirectoryLockGuard lock(abs_source, NAME_OF_LOCK_FILE);
-  const auto properties_file = abs_source / NAME_OF_PROPERTIES_FILE;
-  const auto map_exists = boost::filesystem::is_regular_file(properties_file);
+  const auto id_file = abs_source / NAME_OF_ID_FILE;
+  const auto map_exists = boost::filesystem::is_regular_file(id_file);
   mt::check(map_exists, "No Multimap found in '%s'.", abs_source.c_str());
 
-  const auto props = mt::readPropertiesFromFile(properties_file.string());
-  const auto version_major = std::stoul(props.at("map.version_major"));
-  const auto version_minor = std::stoul(props.at("map.version_minor"));
-  checkVersion(version_major, version_minor);
+  const auto id = readIdFromFile(id_file);
+  checkVersion(id.version_major, id.version_minor);
 
   Options new_options = options;
   new_options.error_if_exists = true;
   new_options.create_if_missing = true;
   if (options.block_size == 0) {
-    new_options.block_size = std::stoul(props.at("store.block_size"));
+    new_options.block_size = id.block_size;
   }
-  const auto old_num_shards = std::stoul(props.at("map.num_shards"));
   if (options.num_shards == 0) {
-    new_options.num_shards = old_num_shards;
+    new_options.num_shards = id.num_tables;
   }
 
   Map new_map(target, new_options);
   const auto prefix = abs_source / FILE_PREFIX;
-  for (std::size_t i = 0; i != old_num_shards; ++i) {
-    internal::Shard shard(prefix.string() + '.' + std::to_string(i));
+  for (std::size_t i = 0; i != id.num_tables; ++i) {
+    internal::Shard shard(prefix.string() + '.' + std::to_string(i),
+                          internal::Shard::Options());
     if (options.compare_bytes) {
       std::vector<std::string> sorted_values;
       // TODO Test if reusing sorted_values makes any difference.

@@ -104,9 +104,10 @@ mt::Properties Store::Stats::toProperties(const std::string& prefix) const {
   return properties;
 }
 
-Store::Store(const boost::filesystem::path& filepath, std::size_t block_size,
-             std::size_t buffer_size) {
+Store::Store(const boost::filesystem::path& filepath, const Options& options) {
   if (boost::filesystem::is_regular_file(filepath)) {
+    mt::check(!options.error_if_exists, "Already exists");
+
     fd_ = ::open(filepath.c_str(), O_RDWR);
     mt::check(fd_ != -1, mt::Messages::COULD_NOT_OPEN, filepath.c_str());
 
@@ -124,22 +125,21 @@ Store::Store(const boost::filesystem::path& filepath, std::size_t block_size,
       mapped_.size = file_size;
     }
 
-  } else if (block_size == 0) {
-    mt::throwRuntimeError2(mt::Messages::NOT_A_REGULAR_FILE, filepath.c_str());
-
-  } else {
-    // Create new block file.
-    MT_REQUIRE_GT(buffer_size, block_size);
-    MT_REQUIRE_IS_ZERO(buffer_size % block_size);
+  } else if (options.create_if_missing) {
+    MT_REQUIRE_GT(options.buffer_size, options.block_size);
+    MT_REQUIRE_IS_ZERO(options.buffer_size % options.block_size);
 
     fd_ = ::open(filepath.c_str(), O_RDWR | O_CREAT, 0644);
     mt::check(fd_ != -1, mt::Messages::COULD_NOT_CREATE, filepath.c_str());
 
-    stats_.block_size = block_size;
+    stats_.block_size = options.block_size;
+
+  } else {
+    mt::throwRuntimeError2("Does not exist '%s'", filepath.c_str());
   }
 
-  buffer_.data.reset(new char[buffer_size]);
-  buffer_.size = buffer_size;
+  buffer_.data.reset(new char[options.buffer_size]);
+  buffer_.size = options.buffer_size;
 }
 
 Store::~Store() {
@@ -162,10 +162,10 @@ Store::~Store() {
 void Store::adviseAccessPattern(AccessPattern pattern) const {
   std::lock_guard<std::mutex> lock(mutex_);
   switch (pattern) {
-    case AccessPattern::RANDOM:
+    case AccessPattern::NORMAL:
       fill_page_cache_ = false;
       break;
-    case AccessPattern::SEQUENTIAL:
+    case AccessPattern::WILLNEED:
       fill_page_cache_ = true;
       break;
     default:

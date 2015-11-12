@@ -34,6 +34,13 @@ public:
     static std::size_t max_value_size();
   };
 
+  struct Options {
+    std::size_t block_size = 512;
+    std::size_t buffer_size = mt::MiB(1);
+    bool create_if_missing = false;
+    bool error_if_exists = false;
+  };
+
   struct Stats {
     std::uint64_t block_size = 0;
     std::uint64_t num_blocks = 0;
@@ -59,13 +66,12 @@ public:
                 "Store::Stats does not have expected size");
   // Use __attribute__((packed)) if 32- and 64-bit size differ.
 
-  static const std::size_t DEFAULT_BUFFER_SIZE = mt::MiB(1);
-  // Larger buffer gets no performance improvement.
+  //  static const std::size_t DEFAULT_BUFFER_SIZE = mt::MiB(1);
+  //  // Larger buffer gets no performance improvement.
 
-  Store() = default;
+  Store() = default; // TODO Delete
 
-  Store(const boost::filesystem::path& filepath, std::size_t block_size,
-        std::size_t buffer_size = DEFAULT_BUFFER_SIZE);
+  Store(const boost::filesystem::path& filepath, const Options& options);
 
   ~Store();
 
@@ -134,7 +140,8 @@ public:
     }
   }
 
-  enum class AccessPattern { RANDOM, SEQUENTIAL };
+  enum class AccessPattern { NORMAL, WILLNEED };
+  // The names are borrowed from `posix_fadvise`.
 
   void adviseAccessPattern(AccessPattern pattern) const;
 

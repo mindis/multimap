@@ -37,7 +37,16 @@ public:
     static std::size_t max_key_size();
   };
 
+  struct Options {
+    std::size_t block_size = 512;
+    std::size_t buffer_size = mt::MiB(1);
+    bool create_if_missing = false;
+    bool error_if_exists = false;
+  };
+
   struct Stats {
+    std::uint64_t block_size = 0;
+    std::uint64_t num_blocks = 0;
     std::uint64_t num_keys = 0;
     std::uint64_t num_values_put = 0;
     std::uint64_t num_values_removed = 0;
@@ -66,46 +75,43 @@ public:
   static_assert(std::is_standard_layout<Stats>::value,
                 "Table::Stats is no standard layout type");
 
-  static_assert(mt::hasExpectedSize<Stats>(80, 80),
+  static_assert(mt::hasExpectedSize<Stats>(80, 96),
                 "Table::Stats does not have expected size");
   // Use __attribute__((packed)) if 32- and 64-bit size differ.
 
-  typedef std::function<void(const Bytes&, SharedListPointer&&)> Procedure;
+  typedef std::function<void(const Bytes&, SharedList&&)> Procedure;
 
-  Table() = default;
+  Table() = default; // TODO Delete
+
+  // TODO Table(const boost::filesystem::path& prefix);
+
+  Table(const boost::filesystem::path& prefix, const Options& options);
 
   ~Table();
 
-  Table(const boost::filesystem::path& filepath);
+  SharedList getShared(const Bytes& key) const;
 
-  void open(const boost::filesystem::path& filepath);
+  UniqueList getUnique(const Bytes& key);
 
-  Stats close(Store* store);
-
-  bool isOpen() const;
-
-  SharedListPointer getShared(const Bytes& key) const;
-
-  UniqueListPointer getUnique(const Bytes& key) const;
-
-  UniqueListPointer getUniqueOrCreate(const Bytes& key);
+  UniqueList getUniqueOrCreate(const Bytes& key);
 
   void forEachKey(Callables::Procedure action) const;
 
   void forEachEntry(Procedure action) const;
+
+  std::size_t getBlockSize() const;
 
   Stats getStats() const;
   // Returns various statistics about the table.
   // The data is collected upon request and triggers a full table scan.
 
 private:
-  typedef std::unordered_map<Bytes, std::unique_ptr<List> > Hashtable;
-
   mutable boost::shared_mutex mutex_;
-  Hashtable map_;
+  std::unordered_map<Bytes, std::unique_ptr<List> > map_;
+  std::unique_ptr<Store> store_;
   Arena arena_;
   Stats old_stats_;
-  boost::filesystem::path filepath_;
+  boost::filesystem::path prefix_;
 };
 
 } // namespace internal
