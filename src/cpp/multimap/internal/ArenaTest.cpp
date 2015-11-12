@@ -23,9 +23,6 @@
 namespace multimap {
 namespace internal {
 
-using testing::Eq;
-using testing::NotNull;
-
 TEST(ArenaTest, IsDefaultConstructible) {
   ASSERT_TRUE(std::is_default_constructible<Arena>::value);
 }
@@ -40,19 +37,24 @@ TEST(ArenaTest, IsMoveConstructibleAndAssignable) {
   ASSERT_TRUE(std::is_move_assignable<Arena>::value);
 }
 
-TEST(ArenaTest, ConstructedWithValidParamsHasProperState) {
-  const auto chunk_size = 128;
-  Arena arena(chunk_size);
-  ASSERT_THROW(arena.allocate(0), mt::AssertionError);
-  ASSERT_THAT(arena.allocate(1), NotNull());
-  ASSERT_THAT(arena.allocated(), Eq(1));
-  ASSERT_THAT(arena.allocate(2), NotNull());
-  ASSERT_THAT(arena.allocated(), Eq(3));
-  ASSERT_THAT(arena.allocate(128), NotNull());
-  ASSERT_THAT(arena.allocated(), Eq(131));
-  ASSERT_THAT(arena.allocate(5000), NotNull());
-  ASSERT_THAT(arena.allocated(), Eq(5131));
+TEST(ArenaTest, DefaultConstructedHasProperState) {
+  ASSERT_THROW(Arena().allocate(0), mt::AssertionError);
+  ASSERT_NE(Arena().allocate(1), nullptr);
+  ASSERT_EQ(Arena().allocated(), 0);
 }
 
-}  // namespace internal
-}  // namespace multimap
+TEST(ArenaTest, ConstructedWithValidParamsHasProperState) {
+  Arena arena;
+  ASSERT_THROW(arena.allocate(0), mt::AssertionError);
+  ASSERT_NE(arena.allocate(1), nullptr);
+  ASSERT_EQ(arena.allocated(), 1);
+  ASSERT_NE(arena.allocate(2), nullptr);
+  ASSERT_EQ(arena.allocated(), 3);
+  ASSERT_NE(arena.allocate(128), nullptr);
+  ASSERT_EQ(arena.allocated(), 131);
+  ASSERT_NE(arena.allocate(5000), nullptr);
+  ASSERT_EQ(arena.allocated(), 5131);
+}
+
+} // namespace internal
+} // namespace multimap

@@ -28,11 +28,21 @@ const Callables::Predicate TRUE_PREDICATE = [](const Bytes&) { return true; };
 const Callables::Predicate FALSE_PREDICATE = [](const Bytes&) { return false; };
 const Callables::Procedure NULL_PROCEDURE = [](const Bytes&) {};
 const Callables::Function NULL_FUNCTION = [](const Bytes&) { return ""; };
-const Callables::Procedure2<Map::ListIterator> NULL_PROCEDURE2 =
+const Callables::Procedure2 NULL_PROCEDURE2 =
     [](const Bytes&, Map::ListIterator&&) {};
 
 TEST(MapTest, IsDefaultConstructible) {
   ASSERT_TRUE(std::is_default_constructible<Map>::value);
+}
+
+TEST(MapTest, IsNotCopyConstructibleOrAssignable) {
+  ASSERT_FALSE(std::is_copy_constructible<Map>::value);
+  ASSERT_FALSE(std::is_copy_assignable<Map>::value);
+}
+
+TEST(MapTest, IsMoveConstructibleOrAssignable) {
+  ASSERT_TRUE(std::is_move_constructible<Map>::value);
+  ASSERT_TRUE(std::is_move_assignable<Map>::value);
 }
 
 TEST(MapTest, DefaultConstructedHasProperState) {
@@ -56,16 +66,6 @@ TEST(MapTest, DefaultConstructedHasProperState) {
   ASSERT_THROW(Map().forEachValue(key, TRUE_PREDICATE), mt::AssertionError);
   ASSERT_THROW(Map().forEachEntry(NULL_PROCEDURE2), mt::AssertionError);
   ASSERT_THROW(Map().getProperties(), mt::AssertionError);
-}
-
-TEST(MapTest, IsNotCopyConstructibleOrAssignable) {
-  ASSERT_FALSE(std::is_copy_constructible<Map>::value);
-  ASSERT_FALSE(std::is_copy_assignable<Map>::value);
-}
-
-TEST(MapTest, IsMoveConstructibleOrAssignable) {
-  ASSERT_TRUE(std::is_move_constructible<Map>::value);
-  ASSERT_TRUE(std::is_move_assignable<Map>::value);
 }
 
 struct MapTestFixture : public testing::Test {

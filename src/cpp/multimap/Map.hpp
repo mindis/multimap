@@ -31,9 +31,9 @@ namespace multimap {
 static const std::size_t VERSION_MAJOR = 0;
 static const std::size_t VERSION_MINOR = 3;
 
-// This class implements a 1:n key-value store where each key is associated
-// with a list of values.
 class Map {
+  // Insanely fast 1:n key-value store.
+
 public:
   struct Limits {
     // Provides static methods to request upper bounds.
@@ -42,18 +42,14 @@ public:
     static std::size_t max_value_size();
   };
 
-  typedef internal::Shard::ListIterator ListIterator;
-  // An iterator type to iterate a immutable list. All operations declared in
-  // the class template Iterator<bool> that can mutate the underlying list are
-  // disabled.
+  typedef internal::SharedListIterator ListIterator;
+  // An iterator type to iterate an immutable list.
 
-  typedef internal::Shard::MutableListIterator MutableListIterator;
-  // An iterator type to iterate a mutable list. All operations declared in the
-  // class template Iterator<bool> that can mutate the underlying list are
-  // enabled.
+  typedef internal::UniqueListIterator MutableListIterator;
+  // An iterator type to iterate a mutable list.
 
   Map() = default;
-  // Creates a default instance which is not associated with a physical map.
+  // Creates a default instance which cannot be used for anything.
 
   Map(const boost::filesystem::path& directory, const Options& options);
   // Opens the map located in directory. If the map does not exist and
@@ -203,7 +199,7 @@ public:
   // This method will block until a reader lock for the list in question can be
   // acquired.
 
-  void forEachEntry(Callables::Procedure2<ListIterator> action) const;
+  void forEachEntry(Callables::Procedure2 action) const;
   // TODO Document this.
 
   std::map<std::string, std::string> getProperties() const;

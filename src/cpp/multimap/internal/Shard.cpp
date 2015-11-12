@@ -93,28 +93,28 @@ Shard::Stats Shard::close() {
 }
 
 void Shard::put(const Bytes& key, const Bytes& value) {
-  table_.getUniqueOrCreate(key).list()->add(value, &arena_, &store_);
+  table_.getUniqueOrCreate(key)->add(value, &store_, &arena_);
 }
 
-Shard::ListIterator Shard::get(const Bytes& key) const {
-  return ListIterator(table_.getShared(key), store_);
+SharedListIterator Shard::getShared(const Bytes& key) const {
+  return SharedListIterator(table_.getShared(key), store_);
 }
 
-Shard::MutableListIterator Shard::getMutable(const Bytes& key) {
-  return MutableListIterator(table_.getUnique(key), &store_);
+UniqueListIterator Shard::getUnique(const Bytes& key) {
+  return UniqueListIterator(table_.getUnique(key), &store_);
 }
 
 bool Shard::contains(const Bytes& key) const {
-  const auto list_lock = table_.getShared(key);
-  return list_lock.hasList() && !list_lock.list()->empty();
+  const auto list = table_.getShared(key);
+  return list ? !list->empty() : false;
 }
 
 std::size_t Shard::remove(const Bytes& key) {
   std::size_t num_removed = 0;
-  auto list_lock = table_.getUnique(key);
-  if (list_lock.hasList()) {
-    num_removed = list_lock.list()->size();
-    list_lock.list()->clear();
+  auto list = table_.getUnique(key);
+  if (list) {
+    num_removed = list->size();
+    list->clear();
   }
   return num_removed;
 }
@@ -182,11 +182,11 @@ void Shard::forEachValue(const Bytes& key, Callables::Predicate action) const {
   }
 }
 
-void Shard::forEachEntry(Callables::Procedure2<ListIterator> action) const {
+void Shard::forEachEntry(Callables::Procedure2 action) const {
   store_.adviseAccessPattern(Store::AccessPattern::SEQUENTIAL);
   table_.forEachEntry(
-      [action, this](const Bytes& key, SharedListLock&& list_lock) {
-        action(key, ListIterator(std::move(list_lock), store_));
+      [action, this](const Bytes& key, SharedListPointer&& list) {
+        action(key, SharedListIterator(std::move(list), store_));
       });
   store_.adviseAccessPattern(Store::AccessPattern::RANDOM);
 }
@@ -203,7 +203,7 @@ bool Shard::isOpen() const { return table_.isOpen(); }
 std::size_t Shard::remove(const Bytes& key, Callables::Predicate predicate,
                           bool exit_on_first_success) {
   std::size_t num_removed = 0;
-  auto iter = getMutable(key);
+  auto iter = getUnique(key);
   while (iter.hasNext()) {
     if (predicate(iter.next())) {
       iter.remove();
@@ -218,9 +218,9 @@ std::size_t Shard::remove(const Bytes& key, Callables::Predicate predicate,
 std::size_t Shard::replace(const Bytes& key, Callables::Function function,
                            bool exit_on_first_success) {
   std::vector<std::string> replaced_values;
-  auto list_lock = table_.getUnique(key);
-  if (list_lock.hasList()) {
-    auto iter = list_lock.list()->iterator(&store_);
+  auto list = table_.getUnique(key);
+  if (list) {
+    auto iter = list->iterator(&store_);
     while (iter.hasNext()) {
       auto replaced_value = function(iter.next());
       if (!replaced_value.empty()) {
@@ -232,7 +232,7 @@ std::size_t Shard::replace(const Bytes& key, Callables::Function function,
       }
     }
     for (const auto& value : replaced_values) {
-      list_lock.list()->add(value, &arena_, &store_);
+      list->add(value, &store_, &arena_);
     }
   }
   return replaced_values.size();

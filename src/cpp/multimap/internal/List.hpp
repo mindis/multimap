@@ -31,13 +31,16 @@
 namespace multimap {
 namespace internal {
 
+// -----------------------------------------------------------------------------
+// class List
+
 class List {
   // This class is designed for minimal memory footprint since
   // there will be an instance for each key put into Multimap.
   // The following patterns were applied:
   //
-  //  * Dependency injection, e.g. for `List::add()`.
-  //  * `List::mutex_` is allocated only on demand.
+  //   * Dependency injection, e.g. for `List::add()`.
+  //   * `List::mutex_` is allocated only on demand.
 
 public:
   struct Head {
@@ -291,7 +294,7 @@ public:
   List(const List&) = delete;
   List& operator=(const List&) = delete;
 
-  void add(const Bytes& value, Arena* arena, Store* store);
+  void add(const Bytes& value, Store* store, Arena* arena);
 
   void flush(Store* store);
 
@@ -312,17 +315,17 @@ public:
   // ---------------------------------------------------------------------------
   // Synchronization interface based on std::shared_mutex.
 
-  void lock();
+  void lock() const;
 
-  bool try_lock();
+  bool try_lock() const;
 
-  void unlock();
+  void unlock() const;
 
-  void lock_shared();
+  void lock_shared() const;
 
-  bool try_lock_shared();
+  bool try_lock_shared() const;
 
-  void unlock_shared();
+  void unlock_shared() const;
 
   bool is_locked() const;
 
@@ -357,6 +360,94 @@ template <> inline void List::Iter<true>::Stream::writeBackMutatedBlocks() {
     store_->replace(blocks_);
   }
 }
+
+// -----------------------------------------------------------------------------
+// class SharedListPointer
+
+class SharedListPointer {
+public:
+  SharedListPointer() = default;
+
+  explicit SharedListPointer(const List* list) : list_(list) {
+    list_->lock_shared();
+  }
+
+  SharedListPointer(SharedListPointer&& other) : list_(other.release()) {}
+
+  ~SharedListPointer() {
+    if (list_) {
+      list_->unlock_shared();
+    }
+  }
+
+  SharedListPointer& operator=(SharedListPointer&& other) {
+    if (list_) {
+      list_->unlock_shared();
+    }
+    list_ = other.release();
+    return *this;
+  }
+
+  const List& operator*() const { return *list_; }
+
+  const List* operator->() const { return list_; }
+
+  const List* get() const { return list_; }
+
+  explicit operator bool() const { return list_; }
+
+private:
+  const List* release() {
+    auto list = list_;
+    list_ = nullptr;
+    return list;
+  }
+
+  const List* list_ = nullptr;
+};
+
+// -----------------------------------------------------------------------------
+// class UniqueListPointer
+
+class UniqueListPointer {
+public:
+  UniqueListPointer() = default;
+
+  explicit UniqueListPointer(List* list) : list_(list) { list_->lock(); }
+
+  UniqueListPointer(UniqueListPointer&& other) : list_(other.release()) {}
+
+  ~UniqueListPointer() {
+    if (list_) {
+      list_->unlock();
+    }
+  }
+
+  UniqueListPointer& operator=(UniqueListPointer&& other) {
+    if (list_) {
+      list_->unlock();
+    }
+    list_ = other.release();
+    return *this;
+  }
+
+  List& operator*() const { return *list_; }
+
+  List* operator->() const { return list_; }
+
+  List* get() const { return list_; }
+
+  explicit operator bool() const { return list_; }
+
+private:
+  List* release() {
+    auto list = list_;
+    list_ = nullptr;
+    return list;
+  }
+
+  List* list_ = nullptr;
+};
 
 } // namespace internal
 } // namespace multimap

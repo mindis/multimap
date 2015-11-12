@@ -18,90 +18,73 @@
 #ifndef MULTIMAP_INTERNAL_ITERATOR_HPP_INCLUDED
 #define MULTIMAP_INTERNAL_ITERATOR_HPP_INCLUDED
 
-#include <cstdint>
+#include "multimap/internal/List.hpp"
 #include "multimap/internal/Store.hpp"
-#include "multimap/internal/ListLock.hpp"
 
 namespace multimap {
 namespace internal {
 
-// This class template implements a forward iterator on a list of values. The
-// template parameter decides whether an instantiation can delete values from
-// the underlying list while iterating or not. If the actual parameter is true
-// a const iterator will be created where the DeleteValue() method is disabled,
-// and vice versa.
-//
-// The iterator supports lazy initialization, which means that no IO operation
-// is performed until one of the methods SeekToFirst(), SeekTo(target), or
-// SeekTo(predicate) is called. This might be useful in cases where multiple
-// iterators have to be requested first to determine in which order they have
-// to be processed.
-//
-// The iterator also owns a lock for the underlying list to synchronize
-// concurrent access. There are two types of locks: a reader lock (also called
-// shared lock) and a writer lock (also called unique or exclusive lock). The
-// former will be owned by a read-only iterator aka Iterator<true>, the latter
-// will be owned by a read-write iterator aka Iterator<false>. The lock is
-// automatically released when the lifetime of an iterator object ends and its
-// destructor is called.
-//
-// Users normally don't need to include or instantiate this class directly, but
-// use the typedefs Map::ListIter and Map::ConstListIter instead.
-//
-// The interface is inspired by Qt's QListIterator and Java's Iterator classes.
-// http://doc.qt.io/qt-5/qlistiterator.html
-// http://docs.oracle.com/javase/7/docs/api/java/util/Iterator.html
-template <typename ListLock> class Iterator {
+// -----------------------------------------------------------------------------
+// class SharedListIterator
+
+class SharedListIterator {
 public:
-  Iterator() = default;
+  SharedListIterator() = default;
 
-  Iterator(ListLock&& list_lock, const Store& store);
+  SharedListIterator(SharedListPointer&& list, const Store& store)
+      : list_(std::move(list)) {
+    if (list_) {
+      iter_ = list_->iterator(store);
+    }
+  }
 
-  Iterator(ListLock&& list_lock, Store* store);
+  SharedListIterator(SharedListIterator&&) = default;
+  SharedListIterator& operator=(SharedListIterator&&) = default;
 
-  Iterator(Iterator&&) = default;
-  Iterator& operator=(Iterator&&) = default;
+  std::size_t available() const { return iter_.available(); }
 
-  std::size_t available() const { return list_iter_.available(); }
+  bool hasNext() { return iter_.hasNext(); }
 
-  bool hasNext() { return list_iter_.hasNext(); }
+  Bytes next() { return iter_.next(); }
 
-  Bytes next() { return list_iter_.next(); }
-
-  Bytes peekNext() const { return list_iter_.peekNext(); }
-
-  void remove();
-  // Enabled if ListLock is UniqueListLock.
+  Bytes peekNext() { return iter_.peekNext(); }
 
 private:
-  typename ListLock::ListIterator list_iter_;
-  ListLock list_lock_;
+  List::Iterator iter_;
+  SharedListPointer list_;
 };
 
-template <>
-inline Iterator<SharedListLock>::Iterator(SharedListLock&& list_lock,
-                                          const Store& store)
-    : list_lock_(std::move(list_lock)) {
-  if (list_lock_.hasList()) {
-    list_iter_ = SharedListLock::ListIterator(*list_lock_.list(), store);
+// -----------------------------------------------------------------------------
+// class UniqueListIterator
+
+class UniqueListIterator {
+public:
+  UniqueListIterator() = default;
+
+  UniqueListIterator(UniqueListPointer&& list, Store* store)
+      : list_(std::move(list)) {
+    if (list_) {
+      iter_ = list_->iterator(store);
+    }
   }
-}
 
-template <>
-inline Iterator<UniqueListLock>::Iterator(UniqueListLock&& list_lock,
-                                          Store* store)
-    : list_lock_(std::move(list_lock)) {
-  if (list_lock_.hasList()) {
-    list_iter_ = UniqueListLock::ListIterator(list_lock_.list(), store);
-  }
-}
+  UniqueListIterator(UniqueListIterator&&) = default;
+  UniqueListIterator& operator=(UniqueListIterator&&) = default;
 
-template <> inline void Iterator<UniqueListLock>::remove() {
-  list_iter_.remove();
-}
+  std::size_t available() const { return iter_.available(); }
 
-typedef Iterator<SharedListLock> SharedListIterator;
-typedef Iterator<UniqueListLock> UniqueListIterator;
+  bool hasNext() { return iter_.hasNext(); }
+
+  Bytes next() { return iter_.next(); }
+
+  Bytes peekNext() { return iter_.peekNext(); }
+
+  void remove() { iter_.remove(); }
+
+private:
+  List::MutableIterator iter_;
+  UniqueListPointer list_;
+};
 
 } // namespace internal
 } // namespace multimap

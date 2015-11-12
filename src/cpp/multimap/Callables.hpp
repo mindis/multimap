@@ -20,10 +20,10 @@
 
 #include <functional>
 #include "multimap/Bytes.hpp"
+#include "multimap/internal/Iterator.hpp"
 
 namespace multimap {
 
-// This type is just a namespace.
 struct Callables {
   typedef std::function<char*(std::size_t)> Allocate;
 
@@ -38,8 +38,8 @@ struct Callables {
   // can be used to collect information about the processed data, and thus
   // returning a result indirectly.
 
-  template <typename Iterator>
-  using Procedure2 = std::function<void(const Bytes&, Iterator&&)>;
+  typedef internal::SharedListIterator ListIterator;
+  typedef std::function<void(const Bytes&, ListIterator&&)> Procedure2;
 
   typedef std::function<std::string(const Bytes&)> Function;
   // Types implementing this interface can process a value and return a new

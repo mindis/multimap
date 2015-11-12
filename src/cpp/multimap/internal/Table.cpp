@@ -227,7 +227,7 @@ Table::Stats Table::close(Store* store) {
 
 bool Table::isOpen() const { return !filepath_.empty(); }
 
-SharedListLock Table::getShared(const Bytes& key) const {
+SharedListPointer Table::getShared(const Bytes& key) const {
   List* list = nullptr;
   {
     boost::shared_lock<boost::shared_mutex> lock(mutex_);
@@ -236,10 +236,11 @@ SharedListLock Table::getShared(const Bytes& key) const {
       list = iter->second.get();
     }
   }
-  return list ? SharedListLock(*list) : SharedListLock();
+  // `mutex_` is unlocked now.
+  return list ? SharedListPointer(list) : SharedListPointer();
 }
 
-UniqueListLock Table::getUnique(const Bytes& key) const {
+UniqueListPointer Table::getUnique(const Bytes& key) const {
   List* list = nullptr;
   {
     boost::shared_lock<boost::shared_mutex> lock(mutex_);
@@ -248,10 +249,11 @@ UniqueListLock Table::getUnique(const Bytes& key) const {
       list = iter->second.get();
     }
   }
-  return list ? UniqueListLock(*list) : UniqueListLock();
+  // `mutex_` is unlocked now.
+  return list ? UniqueListPointer(list) : UniqueListPointer();
 }
 
-UniqueListLock Table::getUniqueOrCreate(const Bytes& key) {
+UniqueListPointer Table::getUniqueOrCreate(const Bytes& key) {
   mt::check(key.size() <= Limits::max_key_size(),
             "Reject key because it's too large.");
 
@@ -270,33 +272,33 @@ UniqueListLock Table::getUniqueOrCreate(const Bytes& key) {
     const auto iter = emplace_result.first;
     list = iter->second.get();
   }
-  return UniqueListLock(*list);
+  // `mutex_` is unlocked now.
+  return UniqueListPointer(list);
 }
 
 void Table::forEachKey(Callables::Procedure action) const {
   boost::shared_lock<boost::shared_mutex> lock(mutex_);
   for (const auto& entry : map_) {
-    SharedListLock lock(*entry.second);
-    if (!lock.list()->empty()) {
+    SharedListPointer list(entry.second.get());
+    if (!list->empty()) {
       action(entry.first);
     }
   }
 }
 
-void Table::forEachEntry(EntryProcedure action) const {
+void Table::forEachEntry(Procedure action) const {
   boost::shared_lock<boost::shared_mutex> lock(mutex_);
   for (const auto& entry : map_) {
-    SharedListLock list_lock(*entry.second);
-    if (!list_lock.list()->empty()) {
-      action(entry.first, std::move(list_lock));
+    SharedListPointer list(entry.second.get());
+    if (!list->empty()) {
+      action(entry.first, std::move(list));
     }
   }
 }
 
 Table::Stats Table::getStats() const {
   Stats stats;
-  forEachEntry([&stats](const Bytes& key, SharedListLock&& list_lock) {
-    const auto list = list_lock.list();
+  forEachEntry([&stats](const Bytes& key, SharedListPointer&& list) {
     ++stats.num_keys;
     stats.num_values_put += list->head().num_values_added;
     stats.num_values_removed += list->head().num_values_removed;

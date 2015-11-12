@@ -26,28 +26,28 @@ namespace multimap {
 namespace internal {
 
 using namespace boost::archive::iterators;
-typedef base64_from_binary<transform_width<const char*, 6, 8>> ToBase64Iter;
+typedef base64_from_binary<transform_width<const char*, 6, 8> > ToBase64Iter;
 typedef transform_width<binary_from_base64<const char*>, 8, 6> ToBinaryIter;
 
-void Base64::encode(const Bytes& binary, std::string& base64) {
+void Base64::encode(const Bytes& binary, std::string* base64) {
   encode(binary.data(), binary.size(), base64);
 }
 
-void Base64::encode(const std::string& binary, std::string& base64) {
+void Base64::encode(const std::string& binary, std::string* base64) {
   encode(binary.data(), binary.size(), base64);
 }
 
-void Base64::encode(const char* data, std::size_t size, std::string& base64) {
+void Base64::encode(const char* data, std::size_t size, std::string* base64) {
   MT_REQUIRE_NOT_NULL(data);
 
-  base64.assign(ToBase64Iter(data), ToBase64Iter(data + size));
+  base64->assign(ToBase64Iter(data), ToBase64Iter(data + size));
 
   // Boost does not handle Base64 padding.
   const auto num_padding_chars = (3 - (size % 3)) % 3;
-  base64.append(num_padding_chars, '=');
+  base64->append(num_padding_chars, '=');
 }
 
-void Base64::decode(const std::string& base64, std::string& binary) {
+void Base64::decode(const std::string& base64, std::string* binary) {
   // Boost does not handle Base64 padding.
   auto base64_copy = base64;
   auto iter = base64_copy.rbegin();
@@ -56,10 +56,10 @@ void Base64::decode(const std::string& base64, std::string& binary) {
     ++iter;
   }
 
-  binary.assign(ToBinaryIter(base64_copy.data()),
+  binary->assign(ToBinaryIter(base64_copy.data()),
                  ToBinaryIter(base64_copy.data() + base64.size()));
-  binary.resize(binary.size() - std::distance(base64_copy.rbegin(), iter));
+  binary->resize(binary->size() - std::distance(base64_copy.rbegin(), iter));
 }
 
-}  // namespace internal
-}  // namespace multimap
+} // namespace internal
+} // namespace multimap

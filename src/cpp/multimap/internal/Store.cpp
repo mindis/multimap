@@ -75,13 +75,12 @@ Store::Stats Store::Stats::combine(const Stats& a, const Stats& b) {
   return Stats(a).combine(b);
 }
 
-Store::Stats Store::Stats::fromProperties(
-    const mt::Properties& properties) {
+Store::Stats Store::Stats::fromProperties(const mt::Properties& properties) {
   return fromProperties(properties, "");
 }
 
-Store::Stats Store::Stats::fromProperties(
-    const mt::Properties& properties, const std::string& prefix) {
+Store::Stats Store::Stats::fromProperties(const mt::Properties& properties,
+                                          const std::string& prefix) {
   auto pfx = prefix;
   if (!pfx.empty()) {
     pfx.push_back('.');
@@ -92,9 +91,7 @@ Store::Stats Store::Stats::fromProperties(
   return stats;
 }
 
-mt::Properties Store::Stats::toProperties() const {
-  return toProperties("");
-}
+mt::Properties Store::Stats::toProperties() const { return toProperties(""); }
 
 mt::Properties Store::Stats::toProperties(const std::string& prefix) const {
   auto pfx = prefix;
@@ -107,8 +104,8 @@ mt::Properties Store::Stats::toProperties(const std::string& prefix) const {
   return properties;
 }
 
-Store::Store(const boost::filesystem::path& filepath,
-                     std::size_t block_size, std::size_t buffer_size) {
+Store::Store(const boost::filesystem::path& filepath, std::size_t block_size,
+             std::size_t buffer_size) {
   if (boost::filesystem::is_regular_file(filepath)) {
     fd_ = ::open(filepath.c_str(), O_RDWR);
     mt::check(fd_ != -1, mt::Messages::COULD_NOT_OPEN, filepath.c_str());

@@ -23,7 +23,6 @@ HEADERS += \
     $$PWD/src/cpp/multimap/internal/Block.hpp \
     $$PWD/src/cpp/multimap/internal/Iterator.hpp \
     $$PWD/src/cpp/multimap/internal/List.hpp \
-    $$PWD/src/cpp/multimap/internal/ListLock.hpp \
     $$PWD/src/cpp/multimap/internal/Shard.hpp \
     $$PWD/src/cpp/multimap/internal/Store.hpp \
     $$PWD/src/cpp/multimap/internal/System.hpp \

@@ -94,7 +94,7 @@ void List::Head::writeToFile(std::FILE* file) const {
 
 List::List(const Head& head) : head_(head) {}
 
-void List::add(const Bytes& value, Arena* arena, Store* store) {
+void List::add(const Bytes& value, Store* store, Arena* arena) {
   if (!block_.hasData()) {
     const auto block_size = store->getBlockSize();
     char* data = arena->allocate(block_size);
@@ -149,7 +149,7 @@ void List::flush(Store* store) {
   }
 }
 
-void List::lock() {
+void List::lock() const {
   {
     std::lock_guard<std::mutex> lock(list_mutex_allocation_mutex);
     createMutexUnlocked();
@@ -160,7 +160,7 @@ void List::lock() {
   mutex_->lock();
 }
 
-bool List::try_lock() {
+bool List::try_lock() const {
   std::lock_guard<std::mutex> lock(list_mutex_allocation_mutex);
   createMutexUnlocked();
   const auto locked = mutex_->try_lock();
@@ -172,7 +172,7 @@ bool List::try_lock() {
   return locked;
 }
 
-void List::unlock() {
+void List::unlock() const {
   std::lock_guard<std::mutex> lock(list_mutex_allocation_mutex);
   MT_REQUIRE_NOT_ZERO(mutex_->refcount);
   mutex_->unlock();
@@ -182,7 +182,7 @@ void List::unlock() {
   }
 }
 
-void List::lock_shared() {
+void List::lock_shared() const {
   {
     std::lock_guard<std::mutex> lock(list_mutex_allocation_mutex);
     createMutexUnlocked();
@@ -193,7 +193,7 @@ void List::lock_shared() {
   mutex_->lock_shared();
 }
 
-bool List::try_lock_shared() {
+bool List::try_lock_shared() const {
   std::lock_guard<std::mutex> lock(list_mutex_allocation_mutex);
   createMutexUnlocked();
   const auto locked = mutex_->try_lock_shared();
@@ -205,7 +205,7 @@ bool List::try_lock_shared() {
   return locked;
 }
 
-void List::unlock_shared() {
+void List::unlock_shared() const {
   std::lock_guard<std::mutex> lock(list_mutex_allocation_mutex);
   MT_REQUIRE_NOT_ZERO(mutex_->refcount);
   mutex_->unlock_shared();

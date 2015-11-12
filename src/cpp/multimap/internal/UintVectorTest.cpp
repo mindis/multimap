@@ -28,11 +28,6 @@ TEST(UintVectorTest, IsDefaultConstructible) {
   ASSERT_TRUE(std::is_default_constructible<UintVector>::value);
 }
 
-TEST(UintVectorTest, DefaultConstructedHasProperState) {
-  ASSERT_TRUE(UintVector().unpack().empty());
-  ASSERT_TRUE(UintVector().empty());
-}
-
 TEST(UintVectorTest, IsCopyConstructibleAndAssignable) {
   ASSERT_TRUE(std::is_copy_constructible<UintVector>::value);
   ASSERT_TRUE(std::is_copy_assignable<UintVector>::value);
@@ -43,8 +38,12 @@ TEST(UintVectorTest, IsMoveConstructibleAndAssignable) {
   ASSERT_TRUE(std::is_move_assignable<UintVector>::value);
 }
 
-struct UintVectorTestWithParam : public testing::TestWithParam<std::uint32_t> {
-};
+TEST(UintVectorTest, DefaultConstructedHasProperState) {
+  ASSERT_TRUE(UintVector().unpack().empty());
+  ASSERT_TRUE(UintVector().empty());
+}
+
+class UintVectorTestWithParam : public testing::TestWithParam<std::uint32_t> {};
 
 TEST_P(UintVectorTestWithParam, AddValueAndUnpack) {
   UintVector vector;

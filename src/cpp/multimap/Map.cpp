@@ -119,11 +119,11 @@ void Map::put(const Bytes& key, const Bytes& value) {
 }
 
 Map::ListIterator Map::get(const Bytes& key) const {
-  return selectShard(shards_, key).get(key);
+  return selectShard(shards_, key).getShared(key);
 }
 
 Map::MutableListIterator Map::getMutable(const Bytes& key) {
-  return selectShard(shards_, key).getMutable(key);
+  return selectShard(shards_, key).getUnique(key);
 }
 
 bool Map::contains(const Bytes& key) const {
@@ -183,7 +183,7 @@ void Map::forEachValue(const Bytes& key, Callables::Predicate action) const {
   selectShard(shards_, key).forEachValue(key, action);
 }
 
-void Map::forEachEntry(Callables::Procedure2<ListIterator> action) const {
+void Map::forEachEntry(Callables::Procedure2 action) const {
   MT_REQUIRE_FALSE(shards_.empty());
   for (const auto& shard : shards_) {
     shard->forEachEntry(action);
@@ -223,18 +223,18 @@ void Map::importFromBase64(const boost::filesystem::path& target,
     std::ifstream ifs(filepath.string());
     mt::check(ifs, "Could not open '%s'.", filepath.c_str());
 
-    std::string from_base64_key;
-    std::string from_base64_value;
-    std::string to_binary_key;
-    std::string to_binary_value;
-    if (ifs >> from_base64_key) {
-      internal::Base64::decode(from_base64_key, to_binary_key);
+    std::string base64_key;
+    std::string base64_value;
+    std::string binary_key;
+    std::string binary_value;
+    if (ifs >> base64_key) {
+      internal::Base64::decode(base64_key, &binary_key);
       while (ifs) {
         switch (ifs.peek()) {
           case '\n':
           case '\r':
-            ifs >> from_base64_key;
-            internal::Base64::decode(from_base64_key, to_binary_key);
+            ifs >> base64_key;
+            internal::Base64::decode(base64_key, &binary_key);
             break;
           case '\f':
           case '\t':
@@ -243,9 +243,9 @@ void Map::importFromBase64(const boost::filesystem::path& target,
             ifs.ignore();
             break;
           default:
-            ifs >> from_base64_value;
-            internal::Base64::decode(from_base64_value, to_binary_value);
-            map.put(to_binary_key, to_binary_value);
+            ifs >> base64_value;
+            internal::Base64::decode(base64_value, &binary_value);
+            map.put(binary_key, binary_value);
         }
       }
     }
@@ -301,10 +301,10 @@ void Map::exportToBase64(const boost::filesystem::path& source,
       std::sort(sorted_values.begin(), sorted_values.end(), compare);
 
       // Write as Base64
-      internal::Base64::encode(key, base64_key);
+      internal::Base64::encode(key, &base64_key);
       ofs << base64_key;
       for (const auto& value : sorted_values) {
-        internal::Base64::encode(value, base64_value);
+        internal::Base64::encode(value, &base64_value);
         ofs << ' ' << base64_value;
       }
       ofs << '\n';
@@ -312,10 +312,10 @@ void Map::exportToBase64(const boost::filesystem::path& source,
   } else {
     map.forEachEntry([&](const Bytes& key, ListIterator&& iter) {
       // Write as Base64
-      internal::Base64::encode(key, base64_key);
+      internal::Base64::encode(key, &base64_key);
       ofs << base64_key;
       while (iter.hasNext()) {
-        internal::Base64::encode(iter.next(), base64_value);
+        internal::Base64::encode(iter.next(), &base64_value);
         ofs << ' ' << base64_value;
       }
       ofs << '\n';

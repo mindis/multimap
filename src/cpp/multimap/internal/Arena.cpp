@@ -53,5 +53,5 @@ char* Arena::allocate(std::size_t num_bytes) {
   return result;
 }
 
-}  // namespace internal
-}  // namespace multimap
+} // namespace internal
+} // namespace multimap

@@ -15,9 +15,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "gmock/gmock.h"
+#include <gmock/gmock.h>
 
-int main(int argc, char* argv[]) {
+int main(int argc, char** argv) {
   testing::InitGoogleMock(&argc, argv);
   return RUN_ALL_TESTS();
 }

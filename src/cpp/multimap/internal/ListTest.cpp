@@ -235,7 +235,7 @@ TEST_P(ListTestIteration, AddSmallValuesAndIterateOnce) {
   List list;
   for (std::size_t i = 0; i != GetParam(); ++i) {
     const auto value = std::to_string(i);
-    list.add(value, &arena, store);
+    list.add(value, store, &arena);
     ASSERT_EQ(list.head().num_values_removed, 0);
     ASSERT_EQ(list.head().num_values_added, i + 1);
   }
@@ -255,7 +255,7 @@ TEST_P(ListTestIteration, AddSmallValuesAndIterateTwice) {
   List list;
   for (std::size_t i = 0; i != GetParam(); ++i) {
     const auto value = std::to_string(i);
-    list.add(value, &arena, store);
+    list.add(value, store, &arena);
     ASSERT_EQ(list.head().num_values_removed, 0);
     ASSERT_EQ(list.head().num_values_added, i + 1);
   }
@@ -285,7 +285,7 @@ TEST_P(ListTestIteration, AddLargeValuesAndIterateOnce) {
   SequenceGenerator gen;
   const std::size_t size = block_size * 2.5;
   for (std::size_t i = 0; i != GetParam(); ++i) {
-    list.add(gen.generate(size), &arena, store);
+    list.add(gen.generate(size), store, &arena);
     ASSERT_EQ(list.head().num_values_removed, 0);
     ASSERT_EQ(list.head().num_values_added, i + 1);
   }
@@ -307,7 +307,7 @@ TEST_P(ListTestIteration, AddLargeValuesAndIterateTwice) {
   SequenceGenerator gen;
   const std::size_t size = block_size * 2.5;
   for (std::size_t i = 0; i != GetParam(); ++i) {
-    list.add(gen.generate(size), &arena, store);
+    list.add(gen.generate(size), store, &arena);
     ASSERT_EQ(list.head().num_values_removed, 0);
     ASSERT_EQ(list.head().num_values_added, i + 1);
   }
@@ -336,6 +336,48 @@ TEST_P(ListTestIteration, AddLargeValuesAndIterateTwice) {
 
 INSTANTIATE_TEST_CASE_P(Parameterized, ListTestIteration,
                         testing::Values(0, 1, 2, 10, 100, 1000, 1000000));
+
+// -----------------------------------------------------------------------------
+// class SharedListPointer
+
+TEST(SharedListPointerTest, IsDefaultConstructible) {
+  ASSERT_TRUE(std::is_default_constructible<SharedListPointer>::value);
+}
+
+TEST(SharedListPointerTest, IsNotCopyConstructibleOrAssignable) {
+  ASSERT_FALSE(std::is_copy_constructible<SharedListPointer>::value);
+  ASSERT_FALSE(std::is_copy_assignable<SharedListPointer>::value);
+}
+
+TEST(SharedListPointerTest, IsMoveConstructibleAndAssignable) {
+  ASSERT_TRUE(std::is_move_constructible<SharedListPointer>::value);
+  ASSERT_TRUE(std::is_move_assignable<SharedListPointer>::value);
+}
+
+TEST(SharedListPointerTest, DefaultConstructedHasProperState) {
+  ASSERT_EQ(SharedListPointer().get(), nullptr);
+}
+
+// -----------------------------------------------------------------------------
+// class UniqueListPointer
+
+TEST(UniqueListPointerTest, IsDefaultConstructible) {
+  ASSERT_TRUE(std::is_default_constructible<UniqueListPointer>::value);
+}
+
+TEST(UniqueListPointerTest, IsNotCopyConstructibleOrAssignable) {
+  ASSERT_FALSE(std::is_copy_constructible<UniqueListPointer>::value);
+  ASSERT_FALSE(std::is_copy_assignable<UniqueListPointer>::value);
+}
+
+TEST(UniqueListPointerTest, IsMoveConstructibleAndAssignable) {
+  ASSERT_TRUE(std::is_move_constructible<UniqueListPointer>::value);
+  ASSERT_TRUE(std::is_move_assignable<UniqueListPointer>::value);
+}
+
+TEST(UniqueListPointerTest, DefaultConstructedHasProperState) {
+  ASSERT_EQ(UniqueListPointer().get(), nullptr);
+}
 
 } // namespace internal
 } // namespace multimap

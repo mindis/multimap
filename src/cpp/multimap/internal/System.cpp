@@ -166,5 +166,5 @@ const std::string& System::DirectoryLockGuard::filename() const {
   return filename_;
 }
 
-}  // namespace internal
-}  // namespace multimap
+} // namespace internal
+} // namespace multimap

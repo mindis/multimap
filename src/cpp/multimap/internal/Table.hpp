@@ -24,7 +24,7 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/thread/shared_mutex.hpp>
 #include "multimap/internal/Arena.hpp"
-#include "multimap/internal/ListLock.hpp"
+#include "multimap/internal/List.hpp"
 #include "multimap/thirdparty/mt.hpp"
 #include "multimap/Callables.hpp"
 
@@ -70,7 +70,7 @@ public:
                 "Table::Stats does not have expected size");
   // Use __attribute__((packed)) if 32- and 64-bit size differ.
 
-  typedef std::function<void(const Bytes&, SharedListLock&&)> EntryProcedure;
+  typedef std::function<void(const Bytes&, SharedListPointer&&)> Procedure;
 
   Table() = default;
 
@@ -84,15 +84,15 @@ public:
 
   bool isOpen() const;
 
-  SharedListLock getShared(const Bytes& key) const;
+  SharedListPointer getShared(const Bytes& key) const;
 
-  UniqueListLock getUnique(const Bytes& key) const;
+  UniqueListPointer getUnique(const Bytes& key) const;
 
-  UniqueListLock getUniqueOrCreate(const Bytes& key);
+  UniqueListPointer getUniqueOrCreate(const Bytes& key);
 
   void forEachKey(Callables::Procedure action) const;
 
-  void forEachEntry(EntryProcedure action) const;
+  void forEachEntry(Procedure action) const;
 
   Stats getStats() const;
   // Returns various statistics about the table.

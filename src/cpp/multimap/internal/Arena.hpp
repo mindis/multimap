@@ -27,7 +27,7 @@ namespace internal {
 class Arena {
   // This class is not thread-safe by design and needs external locking.
 
- public:
+public:
   static const std::size_t DEFAULT_CHUNK_SIZE = 4096;
 
   explicit Arena(std::size_t chunk_size = DEFAULT_CHUNK_SIZE);
@@ -46,15 +46,15 @@ class Arena {
     offset_ = 0;
   }
 
- private:
-  std::vector<std::unique_ptr<char[]>> chunks_;
-  std::vector<std::unique_ptr<char[]>> blobs_;
+private:
+  std::vector<std::unique_ptr<char[]> > chunks_;
+  std::vector<std::unique_ptr<char[]> > blobs_;
   std::size_t chunk_size_ = 0;
   std::size_t allocated_ = 0;
   std::size_t offset_ = 0;
 };
 
-}  // namespace internal
-}  // namespace multimap
+} // namespace internal
+} // namespace multimap
 
-#endif  // MULTIMAP_INTERNAL_ARENA_HPP_INCLUDED
+#endif // MULTIMAP_INTERNAL_ARENA_HPP_INCLUDED

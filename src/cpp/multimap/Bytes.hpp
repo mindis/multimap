@@ -68,10 +68,10 @@ public:
   bool empty() const { return size_ == 0; }
   // Returns true if the number of bytes wrapped is zero, and false otherwise.
 
-//  void clear() {
-//    data_ = "";
-//    size_ = 0;
-//  }
+  void clear() {
+    data_ = "";
+    size_ = 0;
+  }
   // Let this instance refer to an empty array.
   // Postconditions:
   //   * data() != nullptr

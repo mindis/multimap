@@ -20,8 +20,8 @@
 
 #include <functional>
 #include <boost/filesystem/path.hpp>
-#include "multimap/internal/Iterator.hpp"
 #include "multimap/internal/Arena.hpp"
+#include "multimap/internal/Iterator.hpp"
 #include "multimap/internal/Store.hpp"
 #include "multimap/internal/Table.hpp"
 #include "multimap/thirdparty/mt.hpp"
@@ -50,9 +50,6 @@ public:
     mt::Properties toProperties() const;
   };
 
-  typedef Iterator<SharedListLock> ListIterator;
-  typedef Iterator<UniqueListLock> MutableListIterator;
-
   Shard() = default;
 
   Shard(const boost::filesystem::path& prefix);
@@ -65,9 +62,9 @@ public:
 
   void put(const Bytes& key, const Bytes& value);
 
-  ListIterator get(const Bytes& key) const;
+  SharedListIterator getShared(const Bytes& key) const;
 
-  MutableListIterator getMutable(const Bytes& key);
+  UniqueListIterator getUnique(const Bytes& key);
 
   bool contains(const Bytes& key) const;
 
@@ -97,7 +94,7 @@ public:
 
   void forEachValue(const Bytes& key, Callables::Predicate action) const;
 
-  void forEachEntry(Callables::Procedure2<ListIterator> action) const;
+  void forEachEntry(Callables::Procedure2 action) const;
 
   Stats getStats() const;
 

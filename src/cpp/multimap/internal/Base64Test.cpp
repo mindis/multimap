@@ -16,6 +16,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <string>
+#include <type_traits>
 #include <gmock/gmock.h>
 #include "multimap/internal/Base64.hpp"
 
@@ -51,97 +52,101 @@ const std::string TEST_STRING_F_BASE64 =
     "9udGludWVkIGFuZCBpbmRlZmF0aWdhYmxlIGdlbmVyYXRpb24gb2Yga25vd2xlZGdlLCBleGNl"
     "ZWRzIHRoZSBzaG9ydCB2ZWhlbWVuY2Ugb2YgYW55IGNhcm5hbCBwbGVhc3VyZS4=";
 
+TEST(Base64Test, IsNotDefaultConstructible) {
+  ASSERT_FALSE(std::is_default_constructible<Base64>::value);
+}
+
 TEST(Base64Test, EncodeZeroBytesReturnsEmptyString) {
   Bytes binary;
   std::string base64;
-  Base64::encode(binary, base64);
+  Base64::encode(binary, &base64);
   ASSERT_TRUE(base64.empty());
 
   base64 = "nonempty";
-  Base64::encode(binary, base64);
+  Base64::encode(binary, &base64);
   ASSERT_TRUE(base64.empty());
 }
 
 TEST(Base64Test, EncodeTestStringA) {
   std::string base64;
-  Base64::encode(TEST_STRING_A_BINARY, base64);
+  Base64::encode(TEST_STRING_A_BINARY, &base64);
   ASSERT_EQ(base64, TEST_STRING_A_BASE64);
 }
 
 TEST(Base64Test, EncodeTestStringB) {
   std::string base64;
-  Base64::encode(TEST_STRING_B_BINARY, base64);
+  Base64::encode(TEST_STRING_B_BINARY, &base64);
   ASSERT_EQ(base64, TEST_STRING_B_BASE64);
 }
 
 TEST(Base64Test, EncodeTestStringC) {
   std::string base64;
-  Base64::encode(TEST_STRING_C_BINARY, base64);
+  Base64::encode(TEST_STRING_C_BINARY, &base64);
   ASSERT_EQ(base64, TEST_STRING_C_BASE64);
 }
 
 TEST(Base64Test, EncodeTestStringD) {
   std::string base64;
-  Base64::encode(TEST_STRING_D_BINARY, base64);
+  Base64::encode(TEST_STRING_D_BINARY, &base64);
   ASSERT_EQ(base64, TEST_STRING_D_BASE64);
 }
 
 TEST(Base64Test, EncodeTestStringE) {
   std::string base64;
-  Base64::encode(TEST_STRING_E_BINARY, base64);
+  Base64::encode(TEST_STRING_E_BINARY, &base64);
   ASSERT_EQ(base64, TEST_STRING_E_BASE64);
 }
 
 TEST(Base64Test, EncodeTestStringF) {
   std::string base64;
-  Base64::encode(TEST_STRING_F_BINARY, base64);
+  Base64::encode(TEST_STRING_F_BINARY, &base64);
   ASSERT_EQ(base64, TEST_STRING_F_BASE64);
 }
 
 TEST(Base64Test, DecodeEmptyStringReturnsZeroBytes) {
   std::string base64;
   std::string binary;
-  Base64::decode(base64, binary);
+  Base64::decode(base64, &binary);
   ASSERT_TRUE(binary.empty());
 
   binary = "\x12\x34\x56";
-  Base64::decode(base64, binary);
+  Base64::decode(base64, &binary);
   ASSERT_TRUE(binary.empty());
 }
 
 TEST(Base64Test, DecodeTestStringA) {
   std::string binary;
-  Base64::decode(TEST_STRING_A_BASE64, binary);
+  Base64::decode(TEST_STRING_A_BASE64, &binary);
   ASSERT_EQ(binary, TEST_STRING_A_BINARY);
 }
 
 TEST(Base64Test, DecodeTestStringB) {
   std::string binary;
-  Base64::decode(TEST_STRING_B_BASE64, binary);
+  Base64::decode(TEST_STRING_B_BASE64, &binary);
   ASSERT_EQ(binary, TEST_STRING_B_BINARY);
 }
 
 TEST(Base64Test, DecodeTestStringC) {
   std::string binary;
-  Base64::decode(TEST_STRING_C_BASE64, binary);
+  Base64::decode(TEST_STRING_C_BASE64, &binary);
   ASSERT_EQ(binary, TEST_STRING_C_BINARY);
 }
 
 TEST(Base64Test, DecodeTestStringD) {
   std::string binary;
-  Base64::decode(TEST_STRING_D_BASE64, binary);
+  Base64::decode(TEST_STRING_D_BASE64, &binary);
   ASSERT_EQ(binary, TEST_STRING_D_BINARY);
 }
 
 TEST(Base64Test, DecodeTestStringE) {
   std::string binary;
-  Base64::decode(TEST_STRING_E_BASE64, binary);
+  Base64::decode(TEST_STRING_E_BASE64, &binary);
   ASSERT_EQ(binary, TEST_STRING_E_BINARY);
 }
 
 TEST(Base64Test, DecodeTestStringF) {
   std::string binary;
-  Base64::decode(TEST_STRING_F_BASE64, binary);
+  Base64::decode(TEST_STRING_F_BASE64, &binary);
   ASSERT_EQ(binary, TEST_STRING_F_BINARY);
 }
 
