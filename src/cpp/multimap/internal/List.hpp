@@ -387,6 +387,13 @@ public:
     list_->lock_shared();
   }
 
+  SharedList(const List& list, const Store& store, std::try_to_lock_t) {
+    if (list.try_lock_shared()) {
+      list_ = &list;
+      store_ = &store;
+    }
+  }
+
   SharedList(SharedList&& other)
       : list_(other.release()), store_(other.store_) {}
 
@@ -472,6 +479,14 @@ public:
   UniqueList(List* list, Store* store, Arena* arena)
       : list_(list), store_(store), arena_(arena) {
     list_->lock();
+  }
+
+  UniqueList(List* list, Store* store, Arena* arena, std::try_to_lock_t) {
+    if (list->try_lock()) {
+      list_ = list;
+      store_ = store;
+      arena_ = arena;
+    }
   }
 
   UniqueList(UniqueList&& other)

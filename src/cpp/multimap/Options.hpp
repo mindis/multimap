@@ -39,6 +39,8 @@ struct Options {
   bool error_if_exists = false;
   // Determines whether an already existing map should be treated as an error.
 
+  std::size_t buffer_size = mt::MiB(1);
+
   std::function<bool(const Bytes&, const Bytes&)> compare_bytes;
   // Optional: Compare function which returns `true` if the left operand is
   // less than the right operand. Returns `false` otherwise.

@@ -28,7 +28,7 @@ const Callables::Predicate TRUE_PREDICATE = [](const Bytes&) { return true; };
 const Callables::Predicate FALSE_PREDICATE = [](const Bytes&) { return false; };
 const Callables::Procedure NULL_PROCEDURE = [](const Bytes&) {};
 const Callables::Function NULL_FUNCTION = [](const Bytes&) { return ""; };
-const Callables::Procedure2 NULL_PROCEDURE2 =
+const Callables::BinaryProcedure NULL_PROCEDURE2 =
     [](const Bytes&, Map::ListIterator&&) {};
 
 TEST(MapTest, IsDefaultConstructible) {
@@ -72,10 +72,10 @@ struct MapTestFixture : public testing::Test {
   void SetUp() override {
     directory = "/tmp/multimap.MapTestFixture";
     boost::filesystem::remove_all(directory);
-    assert(boost::filesystem::create_directory(directory));
+    boost::filesystem::create_directory(directory);
   }
 
-  void TearDown() override { assert(boost::filesystem::remove_all(directory)); }
+  void TearDown() override { boost::filesystem::remove_all(directory); }
 
   boost::filesystem::path directory;
 };
@@ -117,7 +117,7 @@ TEST_F(MapTestFixture, PutValueWithMaxKeySize) {
   Options options;
   options.create_if_missing = true;
   Map map(directory, options);
-  std::string key(Map::Limits::max_key_size(), 'k');
+  std::string key(Map::Limits::getMaxKeySize(), 'k');
   ASSERT_NO_THROW(map.put(key, "value"));
 }
 
@@ -125,7 +125,7 @@ TEST_F(MapTestFixture, PutValueWithTooLargeKeyThrows) {
   Options options;
   options.create_if_missing = true;
   Map map(directory, options);
-  std::string key(Map::Limits::max_key_size() + 1, 'k');
+  std::string key(Map::Limits::getMaxKeySize() + 1, 'k');
   ASSERT_THROW(map.put(key, "value"), std::runtime_error);
 }
 
@@ -133,7 +133,7 @@ TEST_F(MapTestFixture, PutValueWithMaxValueSize) {
   Options options;
   options.create_if_missing = true;
   Map map(directory, options);
-  std::string value(Map::Limits::max_value_size(), 'v');
+  std::string value(Map::Limits::getMaxValueSize(), 'v');
   ASSERT_NO_THROW(map.put("key", value));
 }
 
@@ -141,7 +141,7 @@ TEST_F(MapTestFixture, PutValueWithTooLargeValueThrows) {
   Options options;
   options.create_if_missing = true;
   Map map(directory, options);
-  std::string value(Map::Limits::max_value_size() + 1, 'v');
+  std::string value(Map::Limits::getMaxValueSize() + 1, 'v');
   ASSERT_THROW(map.put("key", value), std::runtime_error);
 }
 

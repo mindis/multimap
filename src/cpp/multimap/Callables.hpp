@@ -20,12 +20,11 @@
 
 #include <functional>
 #include "multimap/Bytes.hpp"
+#include "multimap/internal/List.hpp"
 
 namespace multimap {
 
 struct Callables {
-  typedef std::function<char*(std::size_t)> Allocate;
-
   typedef std::function<bool(const Bytes&)> Predicate;
   // Types implementing this interface can process a value and return a
   // boolean. Predicates check a value for certain property and thus,
@@ -38,15 +37,13 @@ struct Callables {
   // returning a result indirectly.
 
   typedef internal::SharedListIterator ListIterator;
-  typedef std::function<void(const Bytes&, ListIterator&&)> Procedure2;
+  typedef std::function<void(const Bytes&, ListIterator&&)> BinaryProcedure;
 
   typedef std::function<std::string(const Bytes&)> Function;
   // Types implementing this interface can process a value and return a new
   // one. Functions map an input value to an output value. An empty or no
   // result can be signaled returning an empty string. std::string is used
   // here as a convenient byte buffer that may contain arbitrary bytes.
-
-  typedef std::function<Bytes(const Bytes&, Allocate&)> Function2;
 
   typedef std::function<bool(const Bytes&, const Bytes&)> Compare;
   // Types implementing this interface can process two values and return a

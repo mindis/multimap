@@ -21,7 +21,7 @@
 #include <map>
 #include <vector>
 #include <boost/filesystem/path.hpp>
-#include "multimap/internal/Shard.hpp"
+#include "multimap/internal/Table.hpp"
 #include "multimap/internal/System.hpp"
 #include "multimap/Callables.hpp"
 #include "multimap/Options.hpp"
@@ -38,8 +38,8 @@ public:
   struct Limits {
     // Provides static methods to request upper bounds.
 
-    static std::size_t max_key_size();
-    static std::size_t max_value_size();
+    static std::size_t getMaxKeySize();
+    static std::size_t getMaxValueSize();
   };
 
   typedef internal::SharedListIterator ListIterator;
@@ -49,7 +49,7 @@ public:
   // An iterator type to iterate a mutable list.
 
   Map() = default;
-  // Creates a default instance which cannot be used for anything.
+  // Creates a default instance which is non-functional.
 
   Map(const boost::filesystem::path& directory, const Options& options);
   // Opens the map located in directory. If the map does not exist and
@@ -98,10 +98,10 @@ public:
   // will block until the lock is released.
 
   bool contains(const Bytes& key) const;
-    // Returns true if the list associated with key contains at least one value,
-    // returns false otherwise. If the key does not exist the list is considered
-    // to be empty. If a non-empty list is currently locked, the method will
-    // block until the lock is released.
+  // Returns true if the list associated with key contains at least one value,
+  // returns false otherwise. If the key does not exist the list is considered
+  // to be empty. If a non-empty list is currently locked, the method will
+  // block until the lock is released.
 
   std::size_t remove(const Bytes& key);
   // Deletes all values for key by clearing the associated list. This method
@@ -140,8 +140,6 @@ public:
   // method will block until a writer lock can be acquired.
   // Returns: the number of replaced values.
 
-  std::size_t replaceAll(const Bytes& key, Callables::Function2 function);
-
   std::size_t replaceAllEqual(const Bytes& key, const Bytes& old_value,
                               const Bytes& new_value);
   // Replaces all values in the list associated with key which are equal to
@@ -160,8 +158,6 @@ public:
   // to the end of the list. Future releases will support in-place
   // replacements. This method will block until a writer lock can be acquired.
   // Returns: true if a value was replaced, false otherwise.
-
-  bool replaceFirst(const Bytes& key, Callables::Function2 function);
 
   bool replaceFirstEqual(const Bytes& key, const Bytes& old_value,
                          const Bytes& new_value);
@@ -199,7 +195,7 @@ public:
   // This method will block until a reader lock for the list in question can be
   // acquired.
 
-  void forEachEntry(Callables::Procedure2 action) const;
+  void forEachEntry(Callables::BinaryProcedure action) const;
   // TODO Document this.
 
   std::map<std::string, std::string> getProperties() const;
@@ -208,14 +204,6 @@ public:
   // look at lists which are currently not locked to be non-blocking.
   // Therefore, the returned values will be an approximation. For the time of
   // execution the map is locked for read-only operations.
-
-  std::size_t max_key_size() const;
-  // Returns the maximum size of a key in bytes which may be put. Currently
-  // this is 65536 bytes.
-
-  std::size_t max_value_size() const;
-  // Returns the maximum size of a value in bytes which may be put. Currently
-  // this is options.block_size - 2 bytes.
 
   // LONG RUNNING OPERATIONS (require exclusive access to entire map)
   // ---------------------------------------------------------------------------
@@ -288,7 +276,7 @@ public:
   //   * `new_block_size` is not a power of two.
 
 private:
-  std::vector<std::unique_ptr<internal::Shard> > shards_;
+  std::vector<std::unique_ptr<internal::Table> > tables_;
   internal::System::DirectoryLockGuard directory_lock_guard_;
 };
 

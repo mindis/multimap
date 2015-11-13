@@ -34,7 +34,7 @@ const std::string NAME_OF_ID_FILE = FILE_PREFIX + ".id";
 
 struct Id {
   std::uint64_t block_size = 0;
-  std::uint64_t num_tables = 0;
+  std::uint64_t num_shards = 0;
   std::uint64_t version_major = VERSION_MAJOR;
   std::uint64_t version_minor = VERSION_MINOR;
 };
@@ -65,21 +65,63 @@ void checkVersion(std::uint32_t client_major, std::uint32_t client_minor) {
             client_major, client_minor, VERSION_MAJOR, VERSION_MINOR);
 }
 
-internal::Shard& selectShard(
-    const std::vector<std::unique_ptr<internal::Shard> >& shards,
+internal::Table& getTable(
+    const std::vector<std::unique_ptr<internal::Table> >& tables,
     const Bytes& key) {
-  MT_REQUIRE_FALSE(shards.empty());
-  return *shards[mt::fnv1aHash32(key.data(), key.size()) % shards.size()];
+  MT_REQUIRE_FALSE(tables.empty());
+  // TODO Replace by xxhash?
+  return *tables[mt::fnv1aHash32(key.data(), key.size()) % tables.size()];
+}
+
+std::size_t removeValues(
+    const std::vector<std::unique_ptr<internal::Table> >& tables,
+    const Bytes& key, Callables::Predicate predicate,
+    bool exit_on_first_success) {
+  std::size_t num_removed = 0;
+  auto iter = Map::MutableListIterator(getTable(tables, key).getUnique(key));
+  while (iter.hasNext()) {
+    if (predicate(iter.next())) {
+      iter.remove();
+      ++num_removed;
+      if (exit_on_first_success) {
+        break;
+      }
+    }
+  }
+  return num_removed;
+}
+
+std::size_t replaceValues(
+    const std::vector<std::unique_ptr<internal::Table> >& tables,
+    const Bytes& key, Callables::Function function,
+    bool exit_on_first_success) {
+  std::vector<std::string> replaced_values;
+  auto iter = Map::MutableListIterator(getTable(tables, key).getUnique(key));
+  while (iter.hasNext()) {
+    auto replaced_value = function(iter.next());
+    if (!replaced_value.empty()) {
+      replaced_values.push_back(std::move(replaced_value));
+      iter.remove();
+      if (exit_on_first_success) {
+        break;
+      }
+    }
+  }
+  auto list = iter.release();
+  for (const auto& value : replaced_values) {
+    list.add(value);
+  }
+  return replaced_values.size();
 }
 
 } // namespace
 
-std::size_t Map::Limits::max_key_size() {
-  return internal::Shard::Limits::max_key_size();
+std::size_t Map::Limits::getMaxKeySize() {
+  return internal::Table::Limits::getMaxKeySize();
 }
 
-std::size_t Map::Limits::max_value_size() {
-  return internal::Shard::Limits::max_value_size();
+std::size_t Map::Limits::getMaxValueSize() {
+  return internal::Table::Limits::getMaxValueSize();
 }
 
 Map::Map(const boost::filesystem::path& directory, const Options& options) {
@@ -99,123 +141,151 @@ Map::Map(const boost::filesystem::path& directory, const Options& options) {
     const auto id = readIdFromFile(id_file);
     checkVersion(id.version_major, id.version_minor);
 
-    shards_.resize(id.num_tables);
+    tables_.resize(id.num_shards);
 
   } else {
     mt::check(options.create_if_missing, "No Multimap found in '%s'.",
               abs_dir.c_str());
 
-    shards_.resize(mt::nextPrime(options.num_shards));
+    tables_.resize(mt::nextPrime(options.num_shards));
   }
 
-  internal::Shard::Options shard_opts;
-  shard_opts.block_size = options.block_size;
-  shard_opts.create_if_missing = options.create_if_missing;
-  shard_opts.error_if_exists = options.error_if_exists;
+  internal::Table::Options table_opts;
+  table_opts.block_size = options.block_size;
+  table_opts.buffer_size = options.buffer_size;
+  table_opts.create_if_missing = options.create_if_missing;
+  table_opts.error_if_exists = options.error_if_exists;
 
   const auto prefix = abs_dir / FILE_PREFIX;
-  for (std::size_t i = 0; i != shards_.size(); ++i) {
+  for (std::size_t i = 0; i != tables_.size(); ++i) {
     const auto prefix_i = prefix.string() + '.' + std::to_string(i);
-    shards_[i].reset(new internal::Shard(prefix_i, shard_opts));
+    tables_[i].reset(new internal::Table(prefix_i, table_opts));
   }
 }
 
 Map::~Map() {
-  if (!shards_.empty()) {
+  if (!tables_.empty()) {
     Id id;
-    id.num_tables = shards_.size();
-    id.block_size = shards_.front()->getBlockSize();
+    id.num_shards = tables_.size();
+    id.block_size = tables_.front()->getBlockSize();
     writeIdToFile(id, directory_lock_guard_.path() / NAME_OF_ID_FILE);
   }
 }
 
 void Map::put(const Bytes& key, const Bytes& value) {
-  selectShard(shards_, key).put(key, value);
+  getTable(tables_, key).getUniqueOrCreate(key).add(value);
 }
 
 Map::ListIterator Map::get(const Bytes& key) const {
-  return selectShard(shards_, key).getShared(key);
+  return Map::ListIterator(getTable(tables_, key).getShared(key));
 }
 
 Map::MutableListIterator Map::getMutable(const Bytes& key) {
-  return selectShard(shards_, key).getUnique(key);
+  return Map::MutableListIterator(getTable(tables_, key).getUnique(key));
 }
 
 bool Map::contains(const Bytes& key) const {
-  return selectShard(shards_, key).contains(key);
+  if (auto list = getTable(tables_, key).getShared(key)) {
+    return list.size() != 0;
+  }
+  return false;
 }
 
 std::size_t Map::remove(const Bytes& key) {
-  return selectShard(shards_, key).remove(key);
+  if (auto list = getTable(tables_, key).getUnique(key)) {
+    return list.clear();
+  }
+  return 0;
 }
 
 std::size_t Map::removeAll(const Bytes& key, Callables::Predicate predicate) {
-  return selectShard(shards_, key).removeAll(key, predicate);
+  return removeValues(tables_, key, predicate, false);
 }
 
 std::size_t Map::removeAllEqual(const Bytes& key, const Bytes& value) {
-  return selectShard(shards_, key).removeAllEqual(key, value);
+  return removeAll(key, [&value](const Bytes& current_value) {
+    return current_value == value;
+  });
 }
 
 bool Map::removeFirst(const Bytes& key, Callables::Predicate predicate) {
-  return selectShard(shards_, key).removeFirst(key, predicate);
+  return removeValues(tables_, key, predicate, true);
 }
 
 bool Map::removeFirstEqual(const Bytes& key, const Bytes& value) {
-  return selectShard(shards_, key).removeFirstEqual(key, value);
+  return removeFirst(key, [&value](const Bytes& current_value) {
+    return current_value == value;
+  });
 }
 
 std::size_t Map::replaceAll(const Bytes& key, Callables::Function function) {
-  return selectShard(shards_, key).replaceAll(key, function);
+  return replaceValues(tables_, key, function, false);
 }
 
 std::size_t Map::replaceAllEqual(const Bytes& key, const Bytes& old_value,
                                  const Bytes& new_value) {
-  return selectShard(shards_, key).replaceAllEqual(key, old_value, new_value);
+  return replaceAll(key, [&old_value, &new_value](const Bytes& current_value)
+                             -> std::string {
+    return (current_value == old_value) ? new_value.toString() : std::string();
+  });
 }
 
 bool Map::replaceFirst(const Bytes& key, Callables::Function function) {
-  return selectShard(shards_, key).replaceFirst(key, function);
+  return replaceValues(tables_, key, function, true);
 }
 
 bool Map::replaceFirstEqual(const Bytes& key, const Bytes& old_value,
                             const Bytes& new_value) {
-  return selectShard(shards_, key).replaceFirstEqual(key, old_value, new_value);
+  return replaceFirst(key,
+                      [&old_value, &new_value](const Bytes& current_value) {
+    return (current_value == old_value) ? new_value.toString() : std::string();
+  });
 }
 
 void Map::forEachKey(Callables::Procedure action) const {
-  MT_REQUIRE_FALSE(shards_.empty());
-  for (const auto& shard : shards_) {
-    shard->forEachKey(action);
+  MT_REQUIRE_FALSE(tables_.empty());
+  for (const auto& table : tables_) {
+    table->forEachKey(action);
   }
 }
 
 void Map::forEachValue(const Bytes& key, Callables::Procedure action) const {
-  selectShard(shards_, key).forEachValue(key, action);
+  auto iter = ListIterator(getTable(tables_, key).getShared(key));
+  while (iter.hasNext()) {
+    action(iter.next());
+  }
 }
 
 void Map::forEachValue(const Bytes& key, Callables::Predicate action) const {
-  selectShard(shards_, key).forEachValue(key, action);
+  auto iter = ListIterator(getTable(tables_, key).getShared(key));
+  while (iter.hasNext()) {
+    if (!action(iter.next())) {
+      break;
+    }
+  }
 }
 
-void Map::forEachEntry(Callables::Procedure2 action) const {
-  MT_REQUIRE_FALSE(shards_.empty());
-  for (const auto& shard : shards_) {
-    shard->forEachEntry(action);
+void Map::forEachEntry(Callables::BinaryProcedure action) const {
+  MT_REQUIRE_FALSE(tables_.empty());
+  for (const auto& table : tables_) {
+    table->forEachEntry(
+        [action, this](const Bytes& key, internal::SharedList&& list) {
+          action(key, ListIterator(std::move(list)));
+        });
   }
 }
 
 std::map<std::string, std::string> Map::getProperties() const {
-  MT_REQUIRE_FALSE(shards_.empty());
+  MT_REQUIRE_FALSE(tables_.empty());
 
-  internal::Shard::Stats stats;
-  for (const auto& shard : shards_) {
-    stats.combine(shard->getStats());
+  internal::Table::Stats stats;
+  for (const auto& table : tables_) {
+    stats.combine(table->getStats());
   }
   auto properties = stats.toProperties();
-  properties["map.num_shards"] = std::to_string(shards_.size());
-  properties["map.version_major"] = std::to_string(VERSION_MAJOR);
-  properties["map.version_minor"] = std::to_string(VERSION_MINOR);
+  properties["num_shards"] = std::to_string(tables_.size());
+  properties["version_major"] = std::to_string(VERSION_MAJOR);
+  properties["version_minor"] = std::to_string(VERSION_MINOR);
   return properties;
 }
 
@@ -360,18 +430,18 @@ void Map::optimize(const boost::filesystem::path& source,
     new_options.block_size = id.block_size;
   }
   if (options.num_shards == 0) {
-    new_options.num_shards = id.num_tables;
+    new_options.num_shards = id.num_shards;
   }
 
   Map new_map(target, new_options);
   const auto prefix = abs_source / FILE_PREFIX;
-  for (std::size_t i = 0; i != id.num_tables; ++i) {
-    internal::Shard shard(prefix.string() + '.' + std::to_string(i),
-                          internal::Shard::Options());
+  for (std::size_t i = 0; i != id.num_shards; ++i) {
+    const auto table_prefix = prefix.string() + '.' + std::to_string(i);
+    internal::Table table(table_prefix, internal::Table::Options());
     if (options.compare_bytes) {
       std::vector<std::string> sorted_values;
       // TODO Test if reusing sorted_values makes any difference.
-      shard.forEachEntry([&new_map, &options, &sorted_values](
+      table.forEachEntry([&new_map, &options, &sorted_values](
           const Bytes& key, ListIterator&& iter) {
         sorted_values.clear();
         sorted_values.reserve(iter.available());
@@ -385,7 +455,7 @@ void Map::optimize(const boost::filesystem::path& source,
         }
       });
     } else {
-      shard.forEachEntry([&new_map](const Bytes& key, ListIterator&& iter) {
+      table.forEachEntry([&new_map](const Bytes& key, ListIterator&& iter) {
         while (iter.hasNext()) {
           new_map.put(key, iter.next());
         }

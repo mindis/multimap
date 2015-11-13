@@ -42,7 +42,7 @@ Entry readEntryFromFile(std::FILE* file, Arena* arena) {
 
 void writeEntryToFile(const Entry& entry, std::FILE* file) {
   const auto& key = entry.first;
-  MT_REQUIRE_LE(key.size(), Table::Limits::max_key_size());
+  MT_REQUIRE_LE(key.size(), Table::Limits::getMaxKeySize());
 
   const std::int32_t key_size = key.size();
   System::write(file, &key_size, sizeof key_size);
@@ -64,8 +64,12 @@ void writeStatsToTail(const Table::Stats& stats, std::FILE* file) {
 
 } // namespace
 
-std::size_t Table::Limits::max_key_size() {
+std::size_t Table::Limits::getMaxKeySize() {
   return std::numeric_limits<std::int32_t>::max();
+}
+
+std::size_t Table::Limits::getMaxValueSize() {
+  return Store::Limits::max_value_size();
 }
 
 Table::Stats& Table::Stats::combine(const Stats& other) {
@@ -94,54 +98,42 @@ Table::Stats Table::Stats::combine(const Stats& a, const Stats& b) {
 }
 
 Table::Stats Table::Stats::fromProperties(const mt::Properties& properties) {
-  return fromProperties(properties, "");
-}
-
-Table::Stats Table::Stats::fromProperties(const mt::Properties& properties,
-                                          const std::string& prefix) {
-  auto pfx = prefix;
-  if (!pfx.empty()) {
-    pfx.push_back('.');
-  }
   Stats stats;
-  using namespace std;
-  stats.num_keys = stoul(properties.at(pfx + "num_keys"));
-  stats.num_values_put = stoul(properties.at(pfx + "num_values_put"));
-  stats.num_values_removed = stoul(properties.at(pfx + "num_values_removed"));
-  stats.num_values_unowned = stoul(properties.at(pfx + "num_values_unowned"));
-  stats.key_size_min = stoul(properties.at(pfx + "key_size_min"));
-  stats.key_size_max = stoul(properties.at(pfx + "key_size_max"));
-  stats.key_size_avg = stoul(properties.at(pfx + "key_size_avg"));
-  stats.list_size_min = stoul(properties.at(pfx + "list_size_min"));
-  stats.list_size_max = stoul(properties.at(pfx + "list_size_max"));
-  stats.list_size_avg = stoul(properties.at(pfx + "list_size_avg"));
+  stats.num_keys = std::stoul(properties.at("num_keys"));
+  stats.num_values_put = std::stoul(properties.at("num_values_put"));
+  stats.num_values_removed = std::stoul(properties.at("num_values_removed"));
+  stats.num_values_unowned = std::stoul(properties.at("num_values_unowned"));
+  stats.key_size_min = std::stoul(properties.at("key_size_min"));
+  stats.key_size_max = std::stoul(properties.at("key_size_max"));
+  stats.key_size_avg = std::stoul(properties.at("key_size_avg"));
+  stats.list_size_min = std::stoul(properties.at("list_size_min"));
+  stats.list_size_max = std::stoul(properties.at("list_size_max"));
+  stats.list_size_avg = std::stoul(properties.at("list_size_avg"));
   return stats;
 }
 
-mt::Properties Table::Stats::toProperties() const { return toProperties(""); }
-
-mt::Properties Table::Stats::toProperties(const std::string& prefix) const {
-  auto pfx = prefix;
-  if (!pfx.empty()) {
-    pfx.push_back('.');
-  }
+mt::Properties Table::Stats::toProperties() const {
   mt::Properties properties;
-  properties[pfx + "num_keys"] = std::to_string(num_keys);
-  properties[pfx + "num_values_put"] = std::to_string(num_values_put);
-  properties[pfx + "num_values_removed"] = std::to_string(num_values_removed);
-  properties[pfx + "num_values_unowned"] = std::to_string(num_values_unowned);
-  properties[pfx + "key_size_min"] = std::to_string(key_size_min);
-  properties[pfx + "key_size_max"] = std::to_string(key_size_max);
-  properties[pfx + "key_size_avg"] = std::to_string(key_size_avg);
-  properties[pfx + "list_size_min"] = std::to_string(list_size_min);
-  properties[pfx + "list_size_max"] = std::to_string(list_size_max);
-  properties[pfx + "list_size_avg"] = std::to_string(list_size_avg);
+  properties["num_keys"] = std::to_string(num_keys);
+  properties["num_values_put"] = std::to_string(num_values_put);
+  properties["num_values_removed"] = std::to_string(num_values_removed);
+  properties["num_values_unowned"] = std::to_string(num_values_unowned);
+  properties["key_size_min"] = std::to_string(key_size_min);
+  properties["key_size_max"] = std::to_string(key_size_max);
+  properties["key_size_avg"] = std::to_string(key_size_avg);
+  properties["list_size_min"] = std::to_string(list_size_min);
+  properties["list_size_max"] = std::to_string(list_size_max);
+  properties["list_size_avg"] = std::to_string(list_size_avg);
   return properties;
 }
 
-Table::Table(const boost::filesystem::path& prefix, const Options& options) {
-  const auto table_filepath = prefix.string() + TABLE_FILE_SUFFIX;
-  const auto store_filepath = prefix.string() + STORE_FILE_SUFFIX;
+Table::Table(const boost::filesystem::path& filepath_prefix)
+    : Table(filepath_prefix, Options()) {}
+
+Table::Table(const boost::filesystem::path& filepath_prefix,
+             const Options& options) {
+  const auto table_filepath = filepath_prefix.string() + TABLE_FILE_SUFFIX;
+  const auto store_filepath = filepath_prefix.string() + STORE_FILE_SUFFIX;
 
   if (boost::filesystem::is_regular_file(table_filepath)) {
     mt::check(!options.error_if_exists, "Already exists");
@@ -167,7 +159,7 @@ Table::Table(const boost::filesystem::path& prefix, const Options& options) {
   store_opts.create_if_missing = options.create_if_missing;
   store_opts.error_if_exists = options.error_if_exists;
   store_.reset(new Store(store_filepath, store_opts));
-  prefix_ = prefix;
+  prefix_ = filepath_prefix;
 }
 
 Table::~Table() {
@@ -256,7 +248,7 @@ UniqueList Table::getUnique(const Bytes& key) {
 }
 
 UniqueList Table::getUniqueOrCreate(const Bytes& key) {
-  mt::check(key.size() <= Limits::max_key_size(),
+  mt::check(key.size() <= Limits::getMaxKeySize(),
             "Reject key because it's too large.");
 
   List* list = nullptr;
@@ -281,19 +273,19 @@ UniqueList Table::getUniqueOrCreate(const Bytes& key) {
 void Table::forEachKey(Callables::Procedure action) const {
   boost::shared_lock<boost::shared_mutex> lock(mutex_);
   for (const auto& entry : map_) {
-    SharedList list(*entry.second, *store_);
-    if (!list.empty()) {
+    SharedList list(*entry.second, *store_, std::try_to_lock);
+    if (list && !list.empty()) {
       action(entry.first);
     }
   }
 }
 
-void Table::forEachEntry(Procedure action) const {
+void Table::forEachEntry(BinaryProcedure action) const {
   boost::shared_lock<boost::shared_mutex> lock(mutex_);
   store_->adviseAccessPattern(Store::AccessPattern::WILLNEED);
   for (const auto& entry : map_) {
-    SharedList list(*entry.second, *store_);
-    if (!list.empty()) {
+    SharedList list(*entry.second, *store_, std::try_to_lock);
+    if (list && !list.empty()) {
       action(entry.first, std::move(list));
     }
   }

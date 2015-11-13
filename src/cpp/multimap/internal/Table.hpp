@@ -34,7 +34,8 @@ namespace internal {
 class Table {
 public:
   struct Limits {
-    static std::size_t max_key_size();
+    static std::size_t getMaxKeySize();
+    static std::size_t getMaxValueSize();
   };
 
   struct Options {
@@ -64,12 +65,7 @@ public:
 
     static Stats fromProperties(const mt::Properties& properties);
 
-    static Stats fromProperties(const mt::Properties& properties,
-                                const std::string& prefix);
-
     mt::Properties toProperties() const;
-
-    mt::Properties toProperties(const std::string& prefix) const;
   };
 
   static_assert(std::is_standard_layout<Stats>::value,
@@ -79,13 +75,11 @@ public:
                 "Table::Stats does not have expected size");
   // Use __attribute__((packed)) if 32- and 64-bit size differ.
 
-  typedef std::function<void(const Bytes&, SharedList&&)> Procedure;
+  typedef std::function<void(const Bytes&, SharedList&&)> BinaryProcedure;
 
-  Table() = default; // TODO Delete
+  Table(const boost::filesystem::path& filepath_prefix);
 
-  // TODO Table(const boost::filesystem::path& prefix);
-
-  Table(const boost::filesystem::path& prefix, const Options& options);
+  Table(const boost::filesystem::path& filepath_prefix, const Options& options);
 
   ~Table();
 
@@ -97,7 +91,7 @@ public:
 
   void forEachKey(Callables::Procedure action) const;
 
-  void forEachEntry(Procedure action) const;
+  void forEachEntry(BinaryProcedure action) const;
 
   std::size_t getBlockSize() const;
 

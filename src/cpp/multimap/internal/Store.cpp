@@ -104,6 +104,9 @@ mt::Properties Store::Stats::toProperties(const std::string& prefix) const {
   return properties;
 }
 
+Store::Store(const boost::filesystem::path& filepath)
+    : Store(filepath, Options()) {}
+
 Store::Store(const boost::filesystem::path& filepath, const Options& options) {
   if (boost::filesystem::is_regular_file(filepath)) {
     mt::check(!options.error_if_exists, "Already exists");
