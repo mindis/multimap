@@ -57,7 +57,7 @@ void writeStatsToTail(const Store::Stats& stats, int fd) {
 
 } // namespace
 
-std::size_t Store::Limits::max_value_size() {
+std::size_t Store::Limits::getMaxValueSize() {
   return Varint::Limits::N4_MAX_UINT_WITH_FLAG;
 }
 
@@ -76,31 +76,16 @@ Store::Stats Store::Stats::combine(const Stats& a, const Stats& b) {
 }
 
 Store::Stats Store::Stats::fromProperties(const mt::Properties& properties) {
-  return fromProperties(properties, "");
-}
-
-Store::Stats Store::Stats::fromProperties(const mt::Properties& properties,
-                                          const std::string& prefix) {
-  auto pfx = prefix;
-  if (!pfx.empty()) {
-    pfx.push_back('.');
-  }
   Stats stats;
-  stats.block_size = std::stoul(properties.at(pfx + "block_size"));
-  stats.num_blocks = std::stoul(properties.at(pfx + "num_blocks"));
+  stats.block_size = std::stoul(properties.at("block_size"));
+  stats.num_blocks = std::stoul(properties.at("num_blocks"));
   return stats;
 }
 
-mt::Properties Store::Stats::toProperties() const { return toProperties(""); }
-
-mt::Properties Store::Stats::toProperties(const std::string& prefix) const {
-  auto pfx = prefix;
-  if (!pfx.empty()) {
-    pfx.push_back('.');
-  }
+mt::Properties Store::Stats::toProperties() const {
   mt::Properties properties;
-  properties[pfx + "block_size"] = std::to_string(block_size);
-  properties[pfx + "num_blocks"] = std::to_string(num_blocks);
+  properties["block_size"] = std::to_string(block_size);
+  properties["num_blocks"] = std::to_string(num_blocks);
   return properties;
 }
 

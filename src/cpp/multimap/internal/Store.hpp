@@ -31,13 +31,12 @@ namespace internal {
 class Store {
 public:
   struct Limits {
-    static std::size_t max_value_size();
+    static std::size_t getMaxValueSize();
   };
 
   struct Options {
     std::size_t block_size = 512;
     std::size_t buffer_size = mt::MiB(1);
-    // Larger buffer gets no performance improvement.
     bool create_if_missing = false;
     bool error_if_exists = false;
   };
@@ -52,12 +51,7 @@ public:
 
     static Stats fromProperties(const mt::Properties& properties);
 
-    static Stats fromProperties(const mt::Properties& properties,
-                                const std::string& prefix);
-
     mt::Properties toProperties() const;
-
-    mt::Properties toProperties(const std::string& prefix) const;
   };
 
   static_assert(std::is_standard_layout<Stats>::value,

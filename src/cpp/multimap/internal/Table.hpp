@@ -49,7 +49,7 @@ public:
     std::uint64_t block_size = 0;
     std::uint64_t num_blocks = 0;
     std::uint64_t num_keys = 0;
-    std::uint64_t num_values_put = 0;
+    std::uint64_t num_values_added = 0;
     std::uint64_t num_values_removed = 0;
     std::uint64_t num_values_unowned = 0;
     std::uint64_t key_size_min = -1;

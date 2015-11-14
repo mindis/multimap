@@ -291,9 +291,6 @@ public:
   List(List&&) = default;
   List& operator=(List&&) = default;
 
-  //  List(const List&) = delete;
-  //  List& operator=(const List&) = delete;
-
   void add(const Bytes& value, Store* store, Arena* arena);
 
   void flush(Store* store);

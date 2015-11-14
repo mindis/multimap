@@ -69,11 +69,11 @@ std::size_t Table::Limits::getMaxKeySize() {
 }
 
 std::size_t Table::Limits::getMaxValueSize() {
-  return Store::Limits::max_value_size();
+  return Store::Limits::getMaxValueSize();
 }
 
 Table::Stats& Table::Stats::combine(const Stats& other) {
-  num_values_put += other.num_values_put;
+  num_values_added += other.num_values_added;
   num_values_removed += other.num_values_removed;
   num_values_unowned += other.num_values_unowned;
   if (other.num_keys != 0) {
@@ -100,7 +100,7 @@ Table::Stats Table::Stats::combine(const Stats& a, const Stats& b) {
 Table::Stats Table::Stats::fromProperties(const mt::Properties& properties) {
   Stats stats;
   stats.num_keys = std::stoul(properties.at("num_keys"));
-  stats.num_values_put = std::stoul(properties.at("num_values_put"));
+  stats.num_values_added = std::stoul(properties.at("num_values_put"));
   stats.num_values_removed = std::stoul(properties.at("num_values_removed"));
   stats.num_values_unowned = std::stoul(properties.at("num_values_unowned"));
   stats.key_size_min = std::stoul(properties.at("key_size_min"));
@@ -115,7 +115,7 @@ Table::Stats Table::Stats::fromProperties(const mt::Properties& properties) {
 mt::Properties Table::Stats::toProperties() const {
   mt::Properties properties;
   properties["num_keys"] = std::to_string(num_keys);
-  properties["num_values_put"] = std::to_string(num_values_put);
+  properties["num_values_put"] = std::to_string(num_values_added);
   properties["num_values_removed"] = std::to_string(num_values_removed);
   properties["num_values_unowned"] = std::to_string(num_values_unowned);
   properties["key_size_min"] = std::to_string(key_size_min);
@@ -172,7 +172,7 @@ Table::~Table() {
 
     const mt::AutoCloseFile file(std::fopen(filepath.c_str(), "w"));
     MT_ASSERT_NOT_NULL(file.get());
-    const auto status = std::setvbuf(file.get(), nullptr, _IOFBF, mt::MiB(10));
+    const auto status = std::setvbuf(file.get(), nullptr, _IOFBF, mt::MiB(1));
     MT_ASSERT_IS_ZERO(status);
 
     Stats stats;
@@ -194,7 +194,7 @@ Table::~Table() {
         // physically in the data file, i.e. the store.
       } else {
         ++stats.num_keys;
-        stats.num_values_put += list->head().num_values_added;
+        stats.num_values_added += list->head().num_values_added;
         stats.num_values_removed += list->head().num_values_removed;
         stats.key_size_avg += entry.first.size();
         stats.key_size_max = std::max(stats.key_size_max, entry.first.size());
@@ -298,7 +298,7 @@ Table::Stats Table::getStats() const {
   Stats stats;
   forEachEntry([&stats](const Bytes& key, SharedList&& list) {
     ++stats.num_keys;
-    stats.num_values_put += list.head().num_values_added;
+    stats.num_values_added += list.head().num_values_added;
     stats.num_values_removed += list.head().num_values_removed;
     stats.key_size_min = std::min(stats.key_size_min, key.size());
     stats.key_size_max = std::max(stats.key_size_max, key.size());
