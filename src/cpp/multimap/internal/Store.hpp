@@ -30,10 +30,6 @@ namespace internal {
 
 class Store {
 public:
-  struct Limits {
-    static std::size_t getMaxValueSize();
-  };
-
   struct Options {
     std::size_t block_size = 512;
     std::size_t buffer_size = mt::MiB(1);

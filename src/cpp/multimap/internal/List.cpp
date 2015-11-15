@@ -78,6 +78,10 @@ private:
   std::size_t maximum_size_;
 };
 
+std::size_t List::Limits::getMaxValueSize() {
+  return std::numeric_limits<std::int32_t>::max();
+}
+
 List::Head List::Head::readFromFile(std::FILE* file) {
   Head head;
   System::read(file, &head.num_values_added, sizeof head.num_values_added);
@@ -95,6 +99,9 @@ void List::Head::writeToFile(std::FILE* file) const {
 List::List(const Head& head) : head_(head) {}
 
 void List::add(const Bytes& value, Store* store, Arena* arena) {
+  mt::check(value.size() <= Limits::getMaxValueSize(),
+            "Reject value because it's too large.");
+
   if (!block_.hasData()) {
     const auto block_size = store->getBlockSize();
     char* data = arena->allocate(block_size);

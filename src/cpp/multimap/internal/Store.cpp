@@ -57,10 +57,6 @@ void writeStatsToTail(const Store::Stats& stats, int fd) {
 
 } // namespace
 
-std::size_t Store::Limits::getMaxValueSize() {
-  return Varint::Limits::N4_MAX_UINT_WITH_FLAG;
-}
-
 Store::Stats& Store::Stats::combine(const Stats& other) {
   if (block_size == 0) {
     block_size = other.block_size;

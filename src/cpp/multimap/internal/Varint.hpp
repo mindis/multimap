@@ -47,6 +47,11 @@ struct Varint {
     static const std::uint32_t N4_MAX_UINT;
     static const std::uint32_t N4_MAX_UINT_WITH_FLAG;
 
+    static const std::uint32_t N5_MIN_UINT;
+    static const std::uint32_t N5_MIN_UINT_WITH_FLAG;
+    static const std::uint32_t N5_MAX_UINT;
+    static const std::uint32_t N5_MAX_UINT_WITH_FLAG;
+
     Limits() = delete;
   };
 

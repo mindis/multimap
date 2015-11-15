@@ -43,6 +43,10 @@ class List {
   //   * `List::mutex_` is allocated only on demand.
 
 public:
+  struct Limits {
+    static std::size_t getMaxValueSize();
+  };
+
   struct Head {
     std::uint32_t num_values_added = 0;
     std::uint32_t num_values_removed = 0;

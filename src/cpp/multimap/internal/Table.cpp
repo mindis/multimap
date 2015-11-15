@@ -69,7 +69,7 @@ std::size_t Table::Limits::getMaxKeySize() {
 }
 
 std::size_t Table::Limits::getMaxValueSize() {
-  return Store::Limits::getMaxValueSize();
+  return List::Limits::getMaxValueSize();
 }
 
 Table::Stats& Table::Stats::combine(const Stats& other) {
