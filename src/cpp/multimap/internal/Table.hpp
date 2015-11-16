@@ -94,11 +94,11 @@ public:
 
   void forEachEntry(BinaryProcedure action) const;
 
-  std::size_t Table::getBlockSize() const { return store_->getBlockSize(); }
+  std::size_t getBlockSize() const { return store_->getBlockSize(); }
 
-  std::size_t Table::getBufferSize() const { return store_->getBufferSize(); }
+  std::size_t getBufferSize() const { return store_->getBufferSize(); }
 
-  bool Table::isReadOnly() const { return store_->isReadOnly(); }
+  bool isReadOnly() const { return store_->isReadOnly(); }
 
   Stats getStats() const;
   // Returns various statistics about the table.
