@@ -41,7 +41,7 @@ Store::Stats readAndRemoveStatsFromTail(int fd) {
   MT_ASSERT_NE(end_of_data, -1);
 
   status = ::ftruncate64(fd, end_of_data);
-  MT_ASSERT_IS_ZERO(status);
+  MT_ASSERT_ZERO(status);
 
   return stats;
 }
@@ -97,7 +97,7 @@ Store::Store(const boost::filesystem::path& filepath, const Options& options) {
 
     stats_ = readAndRemoveStatsFromTail(fd_);
     const auto file_size = boost::filesystem::file_size(filepath);
-    MT_ASSERT_IS_ZERO(file_size % stats_.block_size);
+    MT_ASSERT_ZERO(file_size % stats_.block_size);
     MT_ASSERT_EQ(file_size / stats_.block_size, stats_.num_blocks);
 
     if (file_size != 0) {
@@ -111,7 +111,7 @@ Store::Store(const boost::filesystem::path& filepath, const Options& options) {
 
   } else if (options.create_if_missing) {
     MT_REQUIRE_GT(options.buffer_size, options.block_size);
-    MT_REQUIRE_IS_ZERO(options.buffer_size % options.block_size);
+    MT_REQUIRE_ZERO(options.buffer_size % options.block_size);
 
     fd_ = ::open(filepath.c_str(), O_RDWR | O_CREAT, 0644);
     mt::check(fd_ != -1, mt::Messages::COULD_NOT_CREATE, filepath.c_str());

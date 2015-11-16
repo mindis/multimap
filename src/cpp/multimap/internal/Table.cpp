@@ -173,7 +173,7 @@ Table::~Table() {
     const mt::AutoCloseFile file(std::fopen(filepath.c_str(), "w"));
     MT_ASSERT_NOT_NULL(file.get());
     const auto status = std::setvbuf(file.get(), nullptr, _IOFBF, mt::MiB(1));
-    MT_ASSERT_IS_ZERO(status);
+    MT_ASSERT_ZERO(status);
 
     Stats stats;
     for (const auto& entry : map_) {

@@ -31,7 +31,7 @@
 
 namespace mt {
 
-static const std::size_t VERSION = 20151104;
+static const std::size_t VERSION = 20151116;
 
 // -----------------------------------------------------------------------------
 // COMMON
@@ -330,24 +330,24 @@ AssertionError::AssertionError(const char* file, std::size_t line,
 
 #define __MT_ASSERT_TRUE(expr) __MT_VOID
 #define __MT_ASSERT_FALSE(expr) __MT_VOID
-#define __MT_ASSERT_IS_NULL(expr) __MT_VOID
-#define __MT_ASSERT_IS_ZERO(expr) __MT_VOID
+#define __MT_ASSERT_NULL(expr) __MT_VOID
+#define __MT_ASSERT_ZERO(expr) __MT_VOID
 #define __MT_ASSERT_NOT_NULL(expr) __MT_VOID
 #define __MT_ASSERT_NOT_ZERO(expr) __MT_VOID
 #define __MT_ASSERT_COMPARE(expr, a, b) __MT_VOID
 
 #define __MT_REQUIRE_TRUE(expr) __MT_VOID
 #define __MT_REQUIRE_FALSE(expr) __MT_VOID
-#define __MT_REQUIRE_IS_NULL(expr) __MT_VOID
-#define __MT_REQUIRE_IS_ZERO(expr) __MT_VOID
+#define __MT_REQUIRE_NULL(expr) __MT_VOID
+#define __MT_REQUIRE_ZERO(expr) __MT_VOID
 #define __MT_REQUIRE_NOT_NULL(expr) __MT_VOID
 #define __MT_REQUIRE_NOT_ZERO(expr) __MT_VOID
 #define __MT_REQUIRE_COMPARE(expr, a, b) __MT_VOID
 
 #define __MT_ENSURE_TRUE(expr) __MT_VOID
 #define __MT_ENSURE_FALSE(expr) __MT_VOID
-#define __MT_ENSURE_IS_NULL(expr) __MT_VOID
-#define __MT_ENSURE_IS_ZERO(expr) __MT_VOID
+#define __MT_ENSURE_NULL(expr) __MT_VOID
+#define __MT_ENSURE_ZERO(expr) __MT_VOID
 #define __MT_ENSURE_NOT_NULL(expr) __MT_VOID
 #define __MT_ENSURE_NOT_ZERO(expr) __MT_VOID
 #define __MT_ENSURE_COMPARE(expr, a, b) __MT_VOID
@@ -364,12 +364,12 @@ AssertionError::AssertionError(const char* file, std::size_t line,
           : mt::internal::throwError(__FILE__, __LINE__, #expr,                \
                                      mt::AssertionError::Expected::FALSE,      \
                                      mt::AssertionError::Type::ASSERTION);
-#define __MT_ASSERT_IS_NULL(expr)                                              \
+#define __MT_ASSERT_NULL(expr)                                                 \
   !(expr) ? __MT_VOID                                                          \
           : mt::internal::throwError(__FILE__, __LINE__, #expr,                \
                                      mt::AssertionError::Expected::IS_NULL,    \
                                      mt::AssertionError::Type::ASSERTION);
-#define __MT_ASSERT_IS_ZERO(expr)                                              \
+#define __MT_ASSERT_ZERO(expr)                                                 \
   !(expr) ? __MT_VOID                                                          \
           : mt::internal::throwError(__FILE__, __LINE__, #expr,                \
                                      mt::AssertionError::Expected::IS_ZERO,    \
@@ -399,12 +399,12 @@ AssertionError::AssertionError(const char* file, std::size_t line,
           : mt::internal::throwError(__FILE__, __LINE__, #expr,                \
                                      mt::AssertionError::Expected::FALSE,      \
                                      mt::AssertionError::Type::PRECONDITION);
-#define __MT_REQUIRE_IS_NULL(expr)                                             \
+#define __MT_REQUIRE_NULL(expr)                                                \
   !(expr) ? __MT_VOID                                                          \
           : mt::internal::throwError(__FILE__, __LINE__, #expr,                \
                                      mt::AssertionError::Expected::IS_NULL,    \
                                      mt::AssertionError::Type::PRECONDITION);
-#define __MT_REQUIRE_IS_ZERO(expr)                                             \
+#define __MT_REQUIRE_ZERO(expr)                                                \
   !(expr) ? __MT_VOID                                                          \
           : mt::internal::throwError(__FILE__, __LINE__, #expr,                \
                                      mt::AssertionError::Expected::IS_ZERO,    \
@@ -434,12 +434,12 @@ AssertionError::AssertionError(const char* file, std::size_t line,
           : mt::internal::throwError(__FILE__, __LINE__, #expr,                \
                                      mt::AssertionError::Expected::FALSE,      \
                                      mt::AssertionError::Type::POSTCONDITION);
-#define __MT_ENSURE_IS_NULL(expr)                                              \
+#define __MT_ENSURE_NULL(expr)                                                 \
   !(expr) ? __MT_VOID                                                          \
           : mt::internal::throwError(__FILE__, __LINE__, #expr,                \
                                      mt::AssertionError::Expected::IS_NULL,    \
                                      mt::AssertionError::Type::POSTCONDITION);
-#define __MT_ENSURE_IS_ZERO(expr)                                              \
+#define __MT_ENSURE_ZERO(expr)                                                 \
   !(expr) ? __MT_VOID                                                          \
           : mt::internal::throwError(__FILE__, __LINE__, #expr,                \
                                      mt::AssertionError::Expected::IS_ZERO,    \
@@ -463,8 +463,8 @@ AssertionError::AssertionError(const char* file, std::size_t line,
 
 #define MT_ASSERT_TRUE(expr) __MT_ASSERT_TRUE(expr)
 #define MT_ASSERT_FALSE(expr) __MT_ASSERT_FALSE(expr)
-#define MT_ASSERT_IS_NULL(expr) __MT_ASSERT_IS_NULL(expr)
-#define MT_ASSERT_IS_ZERO(expr) __MT_ASSERT_IS_ZERO(expr)
+#define MT_ASSERT_NULL(expr) __MT_ASSERT_NULL(expr)
+#define MT_ASSERT_ZERO(expr) __MT_ASSERT_ZERO(expr)
 #define MT_ASSERT_NOT_NULL(expr) __MT_ASSERT_NOT_NULL(expr)
 #define MT_ASSERT_NOT_ZERO(expr) __MT_ASSERT_NOT_ZERO(expr)
 #define MT_ASSERT_EQ(a, b) __MT_ASSERT_COMPARE(a == b, a, b)
@@ -476,8 +476,8 @@ AssertionError::AssertionError(const char* file, std::size_t line,
 
 #define MT_REQUIRE_TRUE(expr) __MT_REQUIRE_TRUE(expr)
 #define MT_REQUIRE_FALSE(expr) __MT_REQUIRE_FALSE(expr)
-#define MT_REQUIRE_IS_NULL(expr) __MT_REQUIRE_IS_NULL(expr)
-#define MT_REQUIRE_IS_ZERO(expr) __MT_REQUIRE_IS_ZERO(expr)
+#define MT_REQUIRE_NULL(expr) __MT_REQUIRE_NULL(expr)
+#define MT_REQUIRE_ZERO(expr) __MT_REQUIRE_ZERO(expr)
 #define MT_REQUIRE_NOT_NULL(expr) __MT_REQUIRE_NOT_NULL(expr)
 #define MT_REQUIRE_NOT_ZERO(expr) __MT_REQUIRE_NOT_ZERO(expr)
 #define MT_REQUIRE_EQ(a, b) __MT_REQUIRE_COMPARE(a == b, a, b)
@@ -489,8 +489,8 @@ AssertionError::AssertionError(const char* file, std::size_t line,
 
 #define MT_ENSURE_TRUE(expr) __MT_ENSURE_TRUE(expr)
 #define MT_ENSURE_FALSE(expr) __MT_ENSURE_FALSE(expr)
-#define MT_ENSURE_IS_NULL(expr) __MT_ENSURE_IS_NULL(expr)
-#define MT_ENSURE_IS_ZERO(expr) __MT_ENSURE_IS_ZERO(expr)
+#define MT_ENSURE_NULL(expr) __MT_ENSURE_NULL(expr)
+#define MT_ENSURE_ZERO(expr) __MT_ENSURE_ZERO(expr)
 #define MT_ENSURE_NOT_NULL(expr) __MT_ENSURE_NOT_NULL(expr)
 #define MT_ENSURE_NOT_ZERO(expr) __MT_ENSURE_NOT_ZERO(expr)
 #define MT_ENSURE_EQ(a, b) __MT_ENSURE_COMPARE(a == b, a, b)

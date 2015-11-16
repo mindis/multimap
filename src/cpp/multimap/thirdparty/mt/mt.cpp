@@ -255,7 +255,7 @@ std::FILE* AutoCloseFile::get() const { return file_; }
 void AutoCloseFile::reset(std::FILE* file) {
   if (file_) {
     const auto status = std::fclose(file_);
-    MT_ASSERT_IS_ZERO(status);
+    MT_ASSERT_ZERO(status);
   }
   file_ = file;
 }

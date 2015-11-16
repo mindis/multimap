@@ -237,7 +237,7 @@ void List::createMutexUnlocked() const {
 }
 
 void List::deleteMutexUnlocked() const {
-  MT_REQUIRE_IS_ZERO(mutex_->refcount);
+  MT_REQUIRE_ZERO(mutex_->refcount);
   MutexPool::instance().putMutex(std::move(mutex_));
   mutex_.reset();
 }
