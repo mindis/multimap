@@ -64,9 +64,7 @@ void writeStatsToTail(const Table::Stats& stats, std::FILE* file) {
 
 } // namespace
 
-std::size_t Table::Limits::getMaxKeySize() {
-  return Varint::Limits::MAX_N4;
-}
+std::size_t Table::Limits::getMaxKeySize() { return Varint::Limits::MAX_N4; }
 
 std::size_t Table::Limits::getMaxValueSize() {
   return List::Limits::getMaxValueSize();
@@ -291,8 +289,6 @@ void Table::forEachEntry(BinaryProcedure action) const {
   }
   store_->adviseAccessPattern(Store::AccessPattern::NORMAL);
 }
-
-std::size_t Table::getBlockSize() const { return store_->getBlockSize(); }
 
 Table::Stats Table::getStats() const {
   Stats stats;
