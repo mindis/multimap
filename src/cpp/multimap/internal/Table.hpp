@@ -96,10 +96,6 @@ public:
 
   std::size_t getBlockSize() const { return store_->getBlockSize(); }
 
-  std::size_t getBufferSize() const { return store_->getBufferSize(); }
-
-  bool isReadOnly() const { return store_->isReadOnly(); }
-
   Stats getStats() const;
   // Returns various statistics about the table.
   // The data is collected upon request and triggers a full table scan.
