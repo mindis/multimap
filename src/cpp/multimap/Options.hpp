@@ -18,7 +18,6 @@
 #ifndef MULTIMAP_OPTIONS_HPP_INCLUDED
 #define MULTIMAP_OPTIONS_HPP_INCLUDED
 
-#include <cstddef>
 #include <functional>
 #include "multimap/Bytes.hpp"
 
@@ -41,10 +40,9 @@ struct Options {
 
   std::size_t buffer_size = mt::MiB(1);
 
-  std::function<bool(const Bytes&, const Bytes&)> compare_bytes;
+  std::function<bool(const Bytes&, const Bytes&)> compare;
   // Optional: Compare function which returns `true` if the left operand is
   // less than the right operand. Returns `false` otherwise.
-  // Used by `Map::optimize()`.
 };
 
 }  // namespace multimap
