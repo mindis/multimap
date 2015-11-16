@@ -25,12 +25,13 @@ namespace multimap {
 
 // A pure data holder used to configure an instantiation of class Map.
 struct Options {
+  std::size_t num_shards = 23;
+
   std::size_t block_size = 512;
   // Determines the block size of a newly created map. The value is ignored if
-  // the map already exists when opened. The value must be a power of two. Have
-  // a look at Choosing the block size for more information.
-
-  std::size_t num_shards = 23;
+  // the map already exists. The value must be a power of two. For small key
+  // sets, up to 1M, the default value should be appropriate. For larger key
+  // sets the block size can be reduced to lower the overall memory usage.
 
   bool create_if_missing = false;
   // Determines whether a map has to be created if it does not exist.
