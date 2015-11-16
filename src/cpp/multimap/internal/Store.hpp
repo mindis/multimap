@@ -35,6 +35,7 @@ public:
     std::size_t buffer_size = mt::MiB(1);
     bool create_if_missing = false;
     bool error_if_exists = false;
+    bool readonly = false;
   };
 
   struct Stats {
