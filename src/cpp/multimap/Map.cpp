@@ -33,7 +33,7 @@ const std::string NAME_OF_LOCK_FILE = FILE_PREFIX + ".lock";
 const std::string NAME_OF_ID_FILE = FILE_PREFIX + ".id";
 
 struct Id {
-  std::uint64_t block_size = 0;
+  std::uint64_t checksum = 0;
   std::uint64_t num_shards = 0;
   std::uint64_t version_major = VERSION_MAJOR;
   std::uint64_t version_minor = VERSION_MINOR;
@@ -167,7 +167,6 @@ Map::~Map() {
   if (!tables_.empty()) {
     Id id;
     id.num_shards = tables_.size();
-    id.block_size = tables_.front()->getBlockSize();
     writeIdToFile(id, directory_lock_guard_.path() / NAME_OF_ID_FILE);
   }
 }
@@ -423,21 +422,27 @@ void Map::optimize(const boost::filesystem::path& source,
   const auto id = readIdFromFile(id_file);
   checkVersion(id.version_major, id.version_minor);
 
-  Options new_options = options;
-  new_options.error_if_exists = true;
-  new_options.create_if_missing = true;
-  if (options.block_size == 0) {
-    new_options.block_size = id.block_size;
-  }
-  if (options.num_shards == 0) {
-    new_options.num_shards = id.num_shards;
-  }
+  // TODO verify id.checksum.
 
-  Map new_map(target, new_options);
+  Map new_map;
   const auto prefix = abs_source / FILE_PREFIX;
   for (std::size_t i = 0; i != id.num_shards; ++i) {
     const auto table_prefix = prefix.string() + '.' + std::to_string(i);
     internal::Table table(table_prefix, internal::Table::Options());
+
+    if (i == 0) {
+      Options new_opts = options;
+      new_opts.error_if_exists = true;
+      new_opts.create_if_missing = true;
+      if (new_opts.block_size == 0) {
+        new_opts.block_size = table.getBlockSize();
+      }
+      if (new_opts.num_shards == 0) {
+        new_opts.num_shards = id.num_shards;
+      }
+      new_map = Map(target, new_opts);
+    }
+
     if (options.compare) {
       std::vector<std::string> sorted_values;
       // TODO Test if reusing sorted_values makes any difference.
