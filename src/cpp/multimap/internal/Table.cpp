@@ -65,7 +65,7 @@ void writeStatsToTail(const Table::Stats& stats, std::FILE* file) {
 } // namespace
 
 std::size_t Table::Limits::getMaxKeySize() {
-  return std::numeric_limits<std::int32_t>::max();
+  return Varint::Limits::MAX_N4;
 }
 
 std::size_t Table::Limits::getMaxValueSize() {

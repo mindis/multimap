@@ -54,17 +54,17 @@ TEST_P(UintVectorTestWithParam, AddValueAndUnpack) {
 
 INSTANTIATE_TEST_CASE_P(Parameterized, UintVectorTestWithParam,
                         testing::Values(0, 1, 10, 1000, 10000000,
-                                        Varint::Limits::N4_MAX_UINT));
+                                        Varint::Limits::MAX_N4));
 
 TEST(UintVectorTest, TryToAddTooLargeValue) {
   UintVector vector;
-  ASSERT_FALSE(vector.add(Varint::Limits::N4_MAX_UINT + 1));
+  ASSERT_FALSE(vector.add(Varint::Limits::MAX_N4 + 1));
 }
 
 TEST(UintVectorTest, AddIncreasingValuesAndUnpack) {
   UintVector vector;
   std::uint32_t values[] = { 0,    1,        10,
-                             1000, 10000000, Varint::Limits::N4_MAX_UINT };
+                             1000, 10000000, Varint::Limits::MAX_N4 };
   for (auto value : values) {
     vector.add(value);
   }
@@ -73,7 +73,7 @@ TEST(UintVectorTest, AddIncreasingValuesAndUnpack) {
 
 TEST(UintVectorTest, AddDecreasingValuesAndThrow) {
   UintVector vector;
-  std::uint32_t values[] = { Varint::Limits::N4_MAX_UINT, 10000000 };
+  std::uint32_t values[] = { Varint::Limits::MAX_N4, 10000000 };
   vector.add(values[0]);
   ASSERT_THROW(vector.add(values[1]), mt::AssertionError);
 }

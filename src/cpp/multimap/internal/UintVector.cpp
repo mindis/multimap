@@ -93,7 +93,7 @@ std::vector<std::uint32_t> UintVector::unpack() const {
 bool UintVector::add(std::uint32_t value) {
   allocateMoreIfFull();
   if (empty()) {
-    if (value <= Varint::Limits::N4_MAX_UINT) {
+    if (value <= Varint::Limits::MAX_N4) {
       offset_ += Varint::writeUint(value, current(), size_);
       offset_ += writeUint32(value, current());
       return true;
@@ -104,7 +104,7 @@ bool UintVector::add(std::uint32_t value) {
     readUint32(current(), &prev_value);
     MT_ASSERT_LT(prev_value, value);
     const std::uint32_t delta = value - prev_value;
-    if (delta <= Varint::Limits::N4_MAX_UINT) {
+    if (delta <= Varint::Limits::MAX_N4) {
       offset_ += Varint::writeUint(delta, current(), remaining());
       offset_ += writeUint32(value, current());
       return true;

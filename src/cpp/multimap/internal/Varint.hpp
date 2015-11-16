@@ -27,47 +27,68 @@ struct Varint {
 
   struct Limits {
 
-    static const std::uint32_t N1_MIN_UINT;
-    static const std::uint32_t N1_MIN_UINT_WITH_FLAG;
-    static const std::uint32_t N1_MAX_UINT;
-    static const std::uint32_t N1_MAX_UINT_WITH_FLAG;
+    static const std::uint32_t MIN_N1;
+    static const std::uint32_t MIN_N2;
+    static const std::uint32_t MIN_N3;
+    static const std::uint32_t MIN_N4;
 
-    static const std::uint32_t N2_MIN_UINT;
-    static const std::uint32_t N2_MIN_UINT_WITH_FLAG;
-    static const std::uint32_t N2_MAX_UINT;
-    static const std::uint32_t N2_MAX_UINT_WITH_FLAG;
+    static const std::uint32_t MAX_N1;
+    static const std::uint32_t MAX_N2;
+    static const std::uint32_t MAX_N3;
+    static const std::uint32_t MAX_N4;
 
-    static const std::uint32_t N3_MIN_UINT;
-    static const std::uint32_t N3_MIN_UINT_WITH_FLAG;
-    static const std::uint32_t N3_MAX_UINT;
-    static const std::uint32_t N3_MAX_UINT_WITH_FLAG;
+    static const std::uint32_t MIN_N1_WITH_FLAG;
+    static const std::uint32_t MIN_N2_WITH_FLAG;
+    static const std::uint32_t MIN_N3_WITH_FLAG;
+    static const std::uint32_t MIN_N4_WITH_FLAG;
 
-    static const std::uint32_t N4_MIN_UINT;
-    static const std::uint32_t N4_MIN_UINT_WITH_FLAG;
-    static const std::uint32_t N4_MAX_UINT;
-    static const std::uint32_t N4_MAX_UINT_WITH_FLAG;
-
-    static const std::uint32_t N5_MIN_UINT;
-    static const std::uint32_t N5_MIN_UINT_WITH_FLAG;
-    static const std::uint32_t N5_MAX_UINT;
-    static const std::uint32_t N5_MAX_UINT_WITH_FLAG;
+    static const std::uint32_t MAX_N1_WITH_FLAG;
+    static const std::uint32_t MAX_N2_WITH_FLAG;
+    static const std::uint32_t MAX_N3_WITH_FLAG;
+    static const std::uint32_t MAX_N4_WITH_FLAG;
 
     Limits() = delete;
   };
 
   static std::size_t readUint(const char* buffer, std::size_t size,
                               std::uint32_t* value);
+  // Reads a 32-bit unsigned integer from `buffer` into `value`.
+  // Returns the number of bytes read on success, otherwise zero.
+  // Preconditions:
+  //  * `buffer` is not null
+  //  * `value` is not null
 
   static std::size_t readUintWithFlag(const char* buffer, std::size_t size,
                                       std::uint32_t* value, bool* flag);
+  // Reads a 32-bit unsigned integer with flag from `buffer` into `value` and
+  // `flag`. Returns the number of bytes read on success, otherwise zero.
+  // Preconditions:
+  //  * `buffer` is not null
+  //  * `value` is not null
+  //  * `flag` is not null
 
   static std::size_t writeUint(std::uint32_t value, char* buffer,
                                std::size_t size);
+  // Writes a 32-bit unsigned integer into `buffer`.
+  // Returns the number of bytes written on success, otherwise zero.
+  // Preconditions:
+  //  * `value` is not greater than `MAX_N4`
+  //  * `buffer` is not null
 
   static std::size_t writeUintWithFlag(std::uint32_t value, bool flag,
                                        char* buffer, std::size_t size);
+  // Writes a 32-bit unsigned integer with flag into `buffer`.
+  // Returns the number of bytes written on success, otherwise zero.
+  // Preconditions:
+  //  * `value` is not greater than `MAX_N4_WITH_FLAG`
+  //  * `buffer` is not null
 
-  static bool writeFlag(bool flag, char* buffer, std::size_t size);
+  static void writeFlag(bool flag, char* buffer, std::size_t size);
+  // Sets a flag in `buffer` which is expected to point to the first byte
+  // of a valid varint encoding produced by a call to `writeUintWithFlag()`.
+  // Preconditions:
+  //  * `buffer` is not null
+  //  * `size` is not zero
 
   Varint() = delete;
 };

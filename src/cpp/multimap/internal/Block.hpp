@@ -111,11 +111,9 @@ public:
     return nbytes;
   }
 
-  bool writeFlagAt(bool flag, std::size_t offset) {
+  void writeFlagAt(bool flag, std::size_t offset) {
     MT_REQUIRE_NOT_NULL(data_);
-    return offset < size_
-               ? Varint::writeFlag(flag, data_ + offset, size_ - offset)
-               : false;
+    Varint::writeFlag(flag, data_ + offset, size_ - offset);
   }
 
 private:

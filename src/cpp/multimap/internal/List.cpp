@@ -79,7 +79,7 @@ private:
 };
 
 std::size_t List::Limits::getMaxValueSize() {
-  return std::numeric_limits<std::int32_t>::max();
+  return Varint::Limits::MAX_N4_WITH_FLAG;
 }
 
 List::Head List::Head::readFromFile(std::FILE* file) {
