@@ -28,9 +28,9 @@ struct Options {
   std::size_t num_shards = 23;
 
   std::size_t block_size = 512;
-  // Determines the block size of a newly created map. The value is ignored if
-  // the map already exists. The value must be a power of two. For small key
-  // sets, up to 1M, the default value should be appropriate. For larger key
+  // Determines the block size of a newly created map.  The value is ignored if
+  // the map already exists.  The value must be a power of two.  For small key
+  // sets, up to 1M, the default value should be appropriate.  For larger key
   // sets the block size can be reduced to lower the overall memory usage.
 
   bool create_if_missing = false;
@@ -39,6 +39,12 @@ struct Options {
   bool error_if_exists = false;
   // Determines whether an already existing map should be treated as an error.
 
+  bool readonly = false;
+  // Opens a map in read-only mode.  In read-only mode all operations that
+  // could possibly modify the data stored in the map are not allowed to be
+  // called and will throw an exception on an attempt to do so.  This flag is
+  // useful to prevent unintentional updates of read-only datasets.
+
   std::size_t buffer_size = mt::MiB(1);
 
   std::function<bool(const Bytes&, const Bytes&)> compare;
@@ -46,6 +52,6 @@ struct Options {
   // less than the right operand. Returns `false` otherwise.
 };
 
-}  // namespace multimap
+} // namespace multimap
 
-#endif  // MULTIMAP_OPTIONS_HPP_INCLUDED
+#endif // MULTIMAP_OPTIONS_HPP_INCLUDED
