@@ -17,7 +17,7 @@
 
 #include "multimap/internal/Varint.hpp"
 
-#include "multimap/thirdparty/mt.hpp"
+#include "multimap/thirdparty/mt/mt.hpp"
 
 namespace multimap {
 namespace internal {

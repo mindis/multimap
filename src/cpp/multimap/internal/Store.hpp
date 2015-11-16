@@ -23,7 +23,7 @@
 #include <type_traits>
 #include <boost/filesystem/path.hpp>
 #include "multimap/internal/Block.hpp"
-#include "multimap/thirdparty/mt.hpp"
+#include "multimap/thirdparty/mt/mt.hpp"
 
 namespace multimap {
 namespace internal {

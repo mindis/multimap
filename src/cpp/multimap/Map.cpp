@@ -22,7 +22,7 @@
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/filesystem/operations.hpp>
 #include "multimap/internal/Base64.hpp"
-#include "multimap/thirdparty/mt.hpp"
+#include "multimap/thirdparty/mt/mt.hpp"
 
 namespace multimap {
 
@@ -438,7 +438,7 @@ void Map::optimize(const boost::filesystem::path& source,
   for (std::size_t i = 0; i != id.num_shards; ++i) {
     const auto table_prefix = prefix.string() + '.' + std::to_string(i);
     internal::Table table(table_prefix, internal::Table::Options());
-    if (options.compare_bytes) {
+    if (options.compare) {
       std::vector<std::string> sorted_values;
       // TODO Test if reusing sorted_values makes any difference.
       table.forEachEntry([&new_map, &options, &sorted_values](
@@ -449,7 +449,7 @@ void Map::optimize(const boost::filesystem::path& source,
           sorted_values.push_back(iter.next().toString());
         }
         std::sort(sorted_values.begin(), sorted_values.end(),
-                  options.compare_bytes);
+                  options.compare);
         for (const auto& value : sorted_values) {
           new_map.put(key, value);
         }

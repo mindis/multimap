@@ -22,8 +22,8 @@
 #include <cstring>
 #include <functional>
 #include <string>
-#include "multimap/thirdparty/mt.hpp"
-#include "multimap/thirdparty/xxhash.h"
+#include "multimap/thirdparty/mt/mt.hpp"
+#include "multimap/thirdparty/xxhash/xxhash.h"
 
 namespace multimap {
 

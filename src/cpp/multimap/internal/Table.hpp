@@ -25,7 +25,7 @@
 #include <boost/thread/shared_mutex.hpp>
 #include "multimap/internal/Arena.hpp"
 #include "multimap/internal/List.hpp"
-#include "multimap/thirdparty/mt.hpp"
+#include "multimap/thirdparty/mt/mt.hpp"
 #include "multimap/Callables.hpp"
 
 namespace multimap {
