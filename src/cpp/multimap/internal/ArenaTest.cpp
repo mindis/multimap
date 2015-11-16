@@ -18,7 +18,7 @@
 #include <type_traits>
 #include <gmock/gmock.h>
 #include "multimap/internal/Arena.hpp"
-#include "multimap/thirdparty/mt.hpp"
+#include "multimap/thirdparty/mt/mt.hpp"
 
 namespace multimap {
 namespace internal {
