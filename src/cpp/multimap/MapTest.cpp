@@ -28,7 +28,7 @@ const Callables::Predicate TRUE_PREDICATE = [](const Bytes&) { return true; };
 const Callables::Predicate FALSE_PREDICATE = [](const Bytes&) { return false; };
 const Callables::Procedure NULL_PROCEDURE = [](const Bytes&) {};
 const Callables::Function NULL_FUNCTION = [](const Bytes&) { return ""; };
-const Callables::BinaryProcedure NULL_PROCEDURE2 =
+const Callables::BinaryProcedure NULL_BINARY_PROCEDURE =
     [](const Bytes&, Map::ListIterator&&) {};
 
 TEST(MapTest, IsDefaultConstructible) {
@@ -64,7 +64,7 @@ TEST(MapTest, DefaultConstructedHasProperState) {
   ASSERT_THROW(Map().forEachKey(NULL_PROCEDURE), mt::AssertionError);
   ASSERT_THROW(Map().forEachValue(key, NULL_PROCEDURE), mt::AssertionError);
   ASSERT_THROW(Map().forEachValue(key, TRUE_PREDICATE), mt::AssertionError);
-  ASSERT_THROW(Map().forEachEntry(NULL_PROCEDURE2), mt::AssertionError);
+  ASSERT_THROW(Map().forEachEntry(NULL_BINARY_PROCEDURE), mt::AssertionError);
   ASSERT_THROW(Map().getProperties(), mt::AssertionError);
 }
 
@@ -143,6 +143,46 @@ TEST_F(MapTestFixture, PutValueWithTooLargeValueThrows) {
   Map map(directory, options);
   std::string value(Map::Limits::getMaxValueSize() + 1, 'v');
   ASSERT_THROW(map.put("key", value), std::runtime_error);
+}
+
+TEST_F(MapTestFixture, ReadOnlyModeDoesNotAllowUpdates) {
+  {
+    Options options;
+    options.create_if_missing = true;
+    Map map(directory, options);
+    for (auto k = 0; k != 100; ++k) {
+      for (auto v = 0; v != 100; ++v) {
+        map.put(std::to_string(k), std::to_string(k + v * v));
+      }
+    }
+  }
+  {
+    Options options;
+    options.readonly = true;
+    Map map(directory, options);
+
+    const auto key = std::to_string(23);
+    ASSERT_NO_THROW(map.contains(key));
+    ASSERT_NO_THROW(map.forEachEntry(NULL_BINARY_PROCEDURE));
+    ASSERT_NO_THROW(map.forEachKey(NULL_PROCEDURE));
+    ASSERT_NO_THROW(map.forEachValue(key, NULL_PROCEDURE));
+    ASSERT_NO_THROW(map.forEachValue(key, TRUE_PREDICATE));
+    ASSERT_NO_THROW(map.get(key));
+    ASSERT_NO_THROW(map.getProperties());
+
+    const auto value = std::to_string(42);
+    ASSERT_THROW(map.getMutable(key), std::runtime_error);
+    ASSERT_THROW(map.put(key, value), std::runtime_error);
+    ASSERT_THROW(map.remove(key), std::runtime_error);
+    ASSERT_THROW(map.removeAll(key, TRUE_PREDICATE), std::runtime_error);
+    ASSERT_THROW(map.removeAllEqual(key, value), std::runtime_error);
+    ASSERT_THROW(map.removeFirst(key, TRUE_PREDICATE), std::runtime_error);
+    ASSERT_THROW(map.removeFirstEqual(key, value), std::runtime_error);
+    ASSERT_THROW(map.replaceAll(key, NULL_FUNCTION), std::runtime_error);
+    ASSERT_THROW(map.replaceAllEqual(key, value, "43"), std::runtime_error);
+    ASSERT_THROW(map.replaceFirst(key, NULL_FUNCTION), std::runtime_error);
+    ASSERT_THROW(map.replaceFirstEqual(key, value, "43"), std::runtime_error);
+  }
 }
 
 struct MapTestWithParam : public testing::TestWithParam<std::uint32_t> {
