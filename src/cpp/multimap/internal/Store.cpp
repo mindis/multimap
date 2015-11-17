@@ -28,21 +28,14 @@ namespace internal {
 
 namespace {
 
-Store::Stats readAndRemoveStatsFromTail(int fd) {
+Store::Stats readStatsFromTail(int fd) {
   Store::Stats stats;
-  auto end_of_data = ::lseek64(fd, -(sizeof stats), SEEK_END);
+  const auto end_of_data = ::lseek64(fd, -(sizeof stats), SEEK_END);
   MT_ASSERT_NE(end_of_data, -1);
 
-  auto status = ::read(fd, &stats, sizeof stats);
+  const auto status = ::read(fd, &stats, sizeof stats);
   MT_ASSERT_NE(status, -1);
   MT_ASSERT_EQ(static_cast<std::size_t>(status), sizeof stats);
-
-  end_of_data = ::lseek64(fd, -(sizeof stats), SEEK_CUR);
-  MT_ASSERT_NE(end_of_data, -1);
-
-  status = ::ftruncate64(fd, end_of_data);
-  MT_ASSERT_ZERO(status);
-
   return stats;
 }
 
@@ -53,6 +46,13 @@ void writeStatsToTail(const Store::Stats& stats, int fd) {
   status = ::write(fd, &stats, sizeof stats);
   MT_ASSERT_NE(status, -1);
   MT_ASSERT_EQ(static_cast<std::size_t>(status), sizeof stats);
+}
+
+void removeStatsFromTail(int fd) {
+  const auto end_of_data = ::lseek64(fd, -sizeof(Store::Stats), SEEK_CUR);
+  MT_ASSERT_NE(end_of_data, -1);
+  const auto status = ::ftruncate64(fd, end_of_data);
+  MT_ASSERT_ZERO(status);
 }
 
 } // namespace
@@ -92,38 +92,53 @@ Store::Store(const boost::filesystem::path& filepath, const Options& options) {
   if (boost::filesystem::is_regular_file(filepath)) {
     mt::check(!options.error_if_exists, "Already exists");
 
-    fd_ = ::open(filepath.c_str(), O_RDWR);
+    if (options.readonly) {
+      fd_ = ::open(filepath.c_str(), O_RDONLY);
+    } else {
+      fd_ = ::open(filepath.c_str(), O_RDWR);
+    }
     mt::check(fd_ != -1, mt::Messages::COULD_NOT_OPEN, filepath.c_str());
 
-    stats_ = readAndRemoveStatsFromTail(fd_);
-    const auto file_size = boost::filesystem::file_size(filepath);
-    MT_ASSERT_ZERO(file_size % stats_.block_size);
-    MT_ASSERT_EQ(file_size / stats_.block_size, stats_.num_blocks);
+    stats_ = readStatsFromTail(fd_);
+    if (!options.readonly) {
+      removeStatsFromTail(fd_);
+    }
 
-    if (file_size != 0) {
-      const auto prot = PROT_READ | PROT_WRITE;
-      mapped_.data = ::mmap64(nullptr, file_size, prot, MAP_SHARED, fd_, 0);
+    if (stats_.num_blocks != 0) {
+      auto prot = PROT_READ;
+      if (!options.readonly) {
+        prot |= PROT_WRITE;
+      }
+      const auto len = stats_.num_blocks * stats_.block_size;
+      mapped_.data = ::mmap64(nullptr, len, prot, MAP_SHARED, fd_, 0);
       mt::check(mapped_.data != MAP_FAILED,
                 "POSIX mmap64() failed for '%s' because: %s", filepath.c_str(),
                 std::strerror(errno));
-      mapped_.size = file_size;
+      mapped_.size = len;
     }
 
   } else if (options.create_if_missing) {
     MT_REQUIRE_GT(options.buffer_size, options.block_size);
     MT_REQUIRE_ZERO(options.buffer_size % options.block_size);
 
-    fd_ = ::open(filepath.c_str(), O_RDWR | O_CREAT, 0644);
+    if (options.readonly) {
+      fd_ = ::open(filepath.c_str(), O_RDONLY | O_CREAT, 0644);
+      // Creating a file in read-only mode sounds strange, but we'll try.
+    } else {
+      fd_ = ::open(filepath.c_str(), O_RDWR | O_CREAT, 0644);
+    }
     mt::check(fd_ != -1, mt::Messages::COULD_NOT_CREATE, filepath.c_str());
-
     stats_.block_size = options.block_size;
 
   } else {
-    mt::throwRuntimeError2("Does not exist '%s'", filepath.c_str());
+    mt::throwRuntimeError2("Could not open '%s' because it does not exist",
+                           filepath.c_str());
   }
 
-  buffer_.data.reset(new char[options.buffer_size]);
-  buffer_.size = options.buffer_size;
+  if (!options.readonly) {
+    buffer_.data.reset(new char[options.buffer_size]);
+    buffer_.size = options.buffer_size;
+  }
 }
 
 Store::~Store() {
@@ -137,7 +152,9 @@ Store::~Store() {
       MT_ASSERT_NE(nbytes, -1);
       MT_ASSERT_EQ(static_cast<std::size_t>(nbytes), buffer_.offset);
     }
-    writeStatsToTail(getStats(), fd_);
+    if (!isReadOnly()) {
+      writeStatsToTail(getStats(), fd_);
+    }
     const auto status = ::close(fd_);
     MT_ASSERT_EQ(status, 0);
   }

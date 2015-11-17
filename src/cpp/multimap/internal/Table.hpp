@@ -94,6 +94,8 @@ public:
 
   void forEachEntry(BinaryProcedure action) const;
 
+  bool isReadOnly() const { return store_->isReadOnly(); }
+
   std::size_t getBlockSize() const { return store_->getBlockSize(); }
 
   Stats getStats() const;

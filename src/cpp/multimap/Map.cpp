@@ -132,15 +132,13 @@ Map::Map(const boost::filesystem::path& directory, const Options& options) {
 
   directory_lock_guard_.lock(abs_dir, NAME_OF_LOCK_FILE);
   const auto id_file = abs_dir / NAME_OF_ID_FILE;
-  const auto map_exists = boost::filesystem::is_regular_file(id_file);
 
-  if (map_exists) {
+  if (boost::filesystem::is_regular_file(id_file)) {
     mt::check(!options.error_if_exists,
               "A Multimap in '%s' does already exist.", abs_dir.c_str());
 
     const auto id = readIdFromFile(id_file);
     checkVersion(id.version_major, id.version_minor);
-
     tables_.resize(id.num_shards);
 
   } else {
@@ -155,6 +153,7 @@ Map::Map(const boost::filesystem::path& directory, const Options& options) {
   table_opts.buffer_size = options.buffer_size;
   table_opts.create_if_missing = options.create_if_missing;
   table_opts.error_if_exists = options.error_if_exists;
+  table_opts.readonly = options.readonly;
 
   const auto prefix = abs_dir / FILE_PREFIX;
   for (std::size_t i = 0; i != tables_.size(); ++i) {
@@ -422,7 +421,7 @@ void Map::optimize(const boost::filesystem::path& source,
   const auto id = readIdFromFile(id_file);
   checkVersion(id.version_major, id.version_minor);
 
-  // TODO verify id.checksum.
+  // TODO Verify id.checksum.
 
   Map new_map;
   const auto prefix = abs_source / FILE_PREFIX;

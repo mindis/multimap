@@ -145,10 +145,13 @@ Table::Table(const boost::filesystem::path& filepath_prefix,
       const auto entry = readEntryFromFile(file.get(), &arena_);
       map_[entry.first].reset(new List(entry.second));
     }
+
   } else if (options.create_if_missing) {
     // Nothing to do here.
+
   } else {
-    mt::throwRuntimeError2("Does not exist '%s'", table_filepath.c_str());
+    mt::throwRuntimeError2("Could not open '%s' because it does not exist",
+                           table_filepath.c_str());
   }
 
   Store::Options store_opts;
@@ -156,12 +159,13 @@ Table::Table(const boost::filesystem::path& filepath_prefix,
   store_opts.buffer_size = options.buffer_size;
   store_opts.create_if_missing = options.create_if_missing;
   store_opts.error_if_exists = options.error_if_exists;
+  store_opts.readonly = options.readonly;
   store_.reset(new Store(store_filepath, store_opts));
   prefix_ = filepath_prefix;
 }
 
 Table::~Table() {
-  if (!prefix_.empty()) {
+  if (!prefix_.empty() && !isReadOnly()) {
     const auto filepath = prefix_.string() + TABLE_FILE_SUFFIX;
     const auto old_filepath = filepath + ".old";
     if (boost::filesystem::is_regular_file(filepath)) {
@@ -233,6 +237,8 @@ SharedList Table::getShared(const Bytes& key) const {
 }
 
 UniqueList Table::getUnique(const Bytes& key) {
+  mt::check(!isReadOnly(), "Attempt to get write access to read-only table");
+
   List* list = nullptr;
   {
     boost::shared_lock<boost::shared_mutex> lock(mutex_);
@@ -246,8 +252,9 @@ UniqueList Table::getUnique(const Bytes& key) {
 }
 
 UniqueList Table::getUniqueOrCreate(const Bytes& key) {
+  mt::check(!isReadOnly(), "Attempt to get write access to read-only table");
   mt::check(key.size() <= Limits::getMaxKeySize(),
-            "Reject key because it's too large.");
+            "Reject key of %d bytes because it's too big.", key.size());
 
   List* list = nullptr;
   {

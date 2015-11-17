@@ -134,6 +134,8 @@ public:
 
   void adviseAccessPattern(AccessPattern pattern) const;
 
+  bool isReadOnly() const { return buffer_.size == 0; }
+
   std::size_t getBlockSize() const { return stats_.block_size; }
 
   Stats getStats() const {
