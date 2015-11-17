@@ -18,6 +18,7 @@
 #ifndef MT_MT_HPP_INCLUDED
 #define MT_MT_HPP_INCLUDED
 
+#include <cstdarg>
 #include <fstream>
 #include <iterator>
 #include <map>
@@ -78,22 +79,136 @@ std::uint64_t fnv1aHash64(const void* buf, std::size_t len);
 
 void throwRuntimeError(const char* message);
 
-void throwRuntimeError2(const char* format, ...);
+void throwRuntimeError(const std::string& message);
+
+void throwRuntimeErrorFormat(const char* format, ...);
 
 void check(bool expression, const char* format, ...);
 
-std::vector<std::string> getStackTrace(std::size_t skip_head = 1);
+namespace internal {
 
-void printStackTraceTo(std::ostream& os, std::size_t skip_head = 2);
+std::string printFormatVargs(const char* format, va_list args);
 
-void printStackTrace(std::size_t skip_head = 3);
+} // namespace internal
 
-struct Messages {
-  static constexpr auto COULD_NOT_OPEN = "Could not open '%s' for reading.";
-  static constexpr auto COULD_NOT_CREATE = "Could not create '%s' for writing.";
-  static constexpr auto NOT_A_REGULAR_FILE = "'%s' is not a regular file.";
-  static constexpr auto NOT_A_DIRECTORY = "'%s' is not a directory.";
-  static constexpr auto FATAL_ERROR = "Fatal error.";
+struct Check {
+  // TODO Make descriptive error messages.
+
+  static void isTrue(bool expression, const char* format, ...);
+
+  static void isFalse(bool expression, const char* format, ...);
+
+  template <typename T>
+  static void isNull(const T* pointer, const char* format, ...) {
+    if (pointer != nullptr) {
+      va_list args;
+      va_start(args, format);
+      const auto msg = internal::printFormatVargs(format, args);
+      va_end(args);
+      throwRuntimeError(msg);
+    }
+  }
+
+  template <typename T>
+  static void notNull(const T* pointer, const char* format, ...) {
+    if (pointer == nullptr) {
+      va_list args;
+      va_start(args, format);
+      const auto msg = internal::printFormatVargs(format, args);
+      va_end(args);
+      throwRuntimeError(msg);
+    }
+  }
+
+  template <typename T>
+  static void isZero(const T& value, const char* format, ...) {
+    if (value != 0) {
+      va_list args;
+      va_start(args, format);
+      const auto msg = internal::printFormatVargs(format, args);
+      va_end(args);
+      throwRuntimeError(msg);
+    }
+  }
+
+  template <typename T>
+  static void notZero(const T& value, const char* format, ...) {
+    if (value == 0) {
+      va_list args;
+      va_start(args, format);
+      const auto msg = internal::printFormatVargs(format, args);
+      va_end(args);
+      throwRuntimeError(msg);
+    }
+  }
+
+  template <typename A, typename B>
+  static void isEqual(const A& a, const B& b, const char* format, ...) {
+    if (!(a == b)) {
+      va_list args;
+      va_start(args, format);
+      const auto msg = internal::printFormatVargs(format, args);
+      va_end(args);
+      throwRuntimeError(msg);
+    }
+  }
+
+  template <typename A, typename B>
+  static void notEqual(const A& a, const B& b, const char* format, ...) {
+    if (!(a != b)) {
+      va_list args;
+      va_start(args, format);
+      const auto msg = internal::printFormatVargs(format, args);
+      va_end(args);
+      throwRuntimeError(msg);
+    }
+  }
+
+  template <typename A, typename B>
+  static void isLessThan(const A& a, const B& b, const char* format, ...) {
+    if (!(a < b)) {
+      va_list args;
+      va_start(args, format);
+      const auto msg = internal::printFormatVargs(format, args);
+      va_end(args);
+      throwRuntimeError(msg);
+    }
+  }
+
+  template <typename A, typename B>
+  static void isLessEqual(const A& a, const B& b, const char* format, ...) {
+    if (!(a <= b)) {
+      va_list args;
+      va_start(args, format);
+      const auto msg = internal::printFormatVargs(format, args);
+      va_end(args);
+      throwRuntimeError(msg);
+    }
+  }
+
+  template <typename A, typename B>
+  static void isGreaterThan(const A& a, const B& b, const char* format, ...) {
+    if (!(a > b)) {
+      va_list args;
+      va_start(args, format);
+      const auto msg = internal::printFormatVargs(format, args);
+      va_end(args);
+      throwRuntimeError(msg);
+    }
+  }
+
+  template <typename A, typename B>
+  static void isGreaterEqual(const A& a, const B& b, const char* format, ...) {
+    if (!(a >= b)) {
+      va_list args;
+      va_start(args, format);
+      const auto msg = internal::printFormatVargs(format, args);
+      va_end(args);
+      throwRuntimeError(msg);
+    }
+  }
+
+  Check() = delete;
 };
 
 // -----------------------------------------------------------------------------
@@ -126,7 +241,7 @@ struct Files {
                             const boost::filesystem::path& filepath,
                             PrintTo print_to) {
     std::ofstream ofs(filepath.string());
-    check(ofs, Messages::COULD_NOT_CREATE, filepath.c_str());
+    check(ofs, "Could not create '%s'", filepath.c_str());
 
     for (const auto& value : container) {
       print_to(value, ofs);
@@ -273,6 +388,12 @@ public:
 };
 
 namespace internal {
+
+std::vector<std::string> getStackTrace(std::size_t skip_head = 1);
+
+void printStackTraceTo(std::ostream& os, std::size_t skip_head = 2);
+
+void printStackTrace(std::size_t skip_head = 3);
 
 template <typename Lhs, typename Rhs>
 std::string makeErrorMessage(const char* file, std::size_t line,

@@ -56,16 +56,6 @@ std::string serializeToString(const Properties& properties) {
   return joined;
 }
 
-void throwRuntimeError3(const char* format, va_list args) {
-  va_list args2;
-  va_copy(args2, args);
-  const auto num_bytes = std::vsnprintf(nullptr, 0, format, args) + 1;
-  std::vector<char> buffer(num_bytes);
-  std::vsnprintf(buffer.data(), buffer.size(), format, args2);
-  va_end(args2);
-  throwRuntimeError(buffer.data());
-}
-
 void demangle(std::string& symbol) {
   const auto stripFunctionName = [](std::string& symbol) {
     const auto pos_lparen = symbol.find('(');
@@ -151,7 +141,7 @@ std::string makeErrorMessage(const char* file, unsigned line, const char* expr,
       throw "The unexpected happened.";
   }
   oss << "\n\n";
-  printStackTraceTo(oss, skip_head_from_stacktrace);
+  internal::printStackTraceTo(oss, skip_head_from_stacktrace);
   return oss.str();
 }
 
@@ -213,7 +203,7 @@ std::uint64_t fnv1aHash64(const void* buf, std::size_t len) {
 
 Files::Bytes Files::readAllBytes(const boost::filesystem::path& filepath) {
   std::ifstream ifs(filepath.string());
-  mt::check(ifs, Messages::COULD_NOT_OPEN, filepath.c_str());
+  mt::check(ifs, "Could not open '%s'", filepath.c_str());
 
   Bytes bytes(boost::filesystem::file_size(filepath));
   ifs.read(bytes.data(), bytes.size());
@@ -224,7 +214,7 @@ Files::Bytes Files::readAllBytes(const boost::filesystem::path& filepath) {
 std::vector<std::string> Files::readAllLines(
     const boost::filesystem::path& filepath) {
   std::ifstream ifs(filepath.string());
-  check(ifs, Messages::COULD_NOT_OPEN, filepath.c_str());
+  check(ifs, "Could not open '%s'", filepath.c_str());
 
   std::string line;
   std::vector<std::string> lines;
@@ -262,7 +252,7 @@ void AutoCloseFile::reset(std::FILE* file) {
 
 Properties readPropertiesFromFile(const std::string& filepath) {
   std::ifstream ifs(filepath);
-  check(ifs, Messages::COULD_NOT_OPEN, filepath.c_str());
+  check(ifs, "Could not open '%s'", filepath.c_str());
 
   std::string line;
   Properties properties;
@@ -295,7 +285,7 @@ void writePropertiesToFile(const Properties& properties,
   MT_REQUIRE_EQ(properties.count("checksum"), 0);
 
   std::ofstream ofs(filepath);
-  check(ofs, Messages::COULD_NOT_CREATE, filepath.c_str());
+  check(ofs, "Could not create '%s'", filepath.c_str());
 
   const auto content = serializeToString(properties);
   ofs << content << "checksum=" << crc32(content) << '\n';
@@ -305,21 +295,62 @@ void throwRuntimeError(const char* message) {
   throw std::runtime_error(message);
 }
 
-void throwRuntimeError2(const char* format, ...) {
+void throwRuntimeError(const std::string& message) {
+  throwRuntimeError(message.c_str());
+}
+
+void throwRuntimeErrorFormat(const char* format, ...) {
   va_list args;
   va_start(args, format);
-  throwRuntimeError3(format, args);
+  const auto msg = internal::printFormatVargs(format, args);
   va_end(args);
+  throwRuntimeError(msg);
 }
 
 void check(bool expression, const char* format, ...) {
   if (!expression) {
     va_list args;
     va_start(args, format);
-    throwRuntimeError3(format, args);
+    const auto msg = internal::printFormatVargs(format, args);
     va_end(args);
+    throwRuntimeError(msg);
   }
 }
+
+void Check::isTrue(bool expression, const char* format, ...) {
+  if (!expression) {
+    va_list args;
+    va_start(args, format);
+    const auto msg = internal::printFormatVargs(format, args);
+    va_end(args);
+    throwRuntimeError(msg);
+  }
+}
+
+void Check::isFalse(bool expression, const char* format, ...) {
+  if (expression) {
+    va_list args;
+    va_start(args, format);
+    const auto msg = internal::printFormatVargs(format, args);
+    va_end(args);
+    throwRuntimeError(msg);
+  }
+}
+
+namespace internal {
+
+std::string printFormatVargs(const char* format, va_list args) {
+  va_list args2;
+  va_copy(args2, args);
+  std::vector<char> buffer(std::vsnprintf(nullptr, 0, format, args) + 1);
+  std::vsnprintf(buffer.data(), buffer.size(), format, args2);
+  va_end(args2);
+  return std::string(buffer.data(), buffer.size());
+}
+
+} // namespace internal
+
+namespace internal {
 
 std::vector<std::string> getStackTrace(std::size_t skip_head) {
   std::vector<std::string> result;
@@ -343,6 +374,8 @@ void printStackTraceTo(std::ostream& os, std::size_t skip_head) {
 void printStackTrace(std::size_t skip_head) {
   printStackTraceTo(std::cerr, skip_head);
 }
+
+} // namespace internal
 
 AssertionError::AssertionError(const char* message)
     : std::runtime_error(message) {}

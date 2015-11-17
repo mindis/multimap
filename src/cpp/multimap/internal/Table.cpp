@@ -150,8 +150,8 @@ Table::Table(const boost::filesystem::path& filepath_prefix,
     // Nothing to do here.
 
   } else {
-    mt::throwRuntimeError2("Could not open '%s' because it does not exist",
-                           table_filepath.c_str());
+    mt::throwRuntimeErrorFormat("Could not open '%s' because it does not exist",
+                                table_filepath.c_str());
   }
 
   Store::Options store_opts;

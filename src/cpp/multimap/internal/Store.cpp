@@ -90,14 +90,19 @@ Store::Store(const boost::filesystem::path& filepath)
 
 Store::Store(const boost::filesystem::path& filepath, const Options& options) {
   if (boost::filesystem::is_regular_file(filepath)) {
-    mt::check(!options.error_if_exists, "Already exists");
+    mt::Check::isFalse(options.error_if_exists, "Store already exists");
 
     if (options.readonly) {
       fd_ = ::open(filepath.c_str(), O_RDONLY);
+      mt::Check::notEqual(
+          fd_, -1, "Could not open '%s' in read-only mode because of '%s'",
+          filepath.c_str(), std::strerror(errno));
     } else {
       fd_ = ::open(filepath.c_str(), O_RDWR);
+      mt::Check::notEqual(
+          fd_, -1, "Could not open '%s' in read-write mode because of '%s'",
+          filepath.c_str(), std::strerror(errno));
     }
-    mt::check(fd_ != -1, mt::Messages::COULD_NOT_OPEN, filepath.c_str());
 
     stats_ = readStatsFromTail(fd_);
     if (!options.readonly) {
@@ -111,9 +116,9 @@ Store::Store(const boost::filesystem::path& filepath, const Options& options) {
       }
       const auto len = stats_.num_blocks * stats_.block_size;
       mapped_.data = ::mmap64(nullptr, len, prot, MAP_SHARED, fd_, 0);
-      mt::check(mapped_.data != MAP_FAILED,
-                "POSIX mmap64() failed for '%s' because: %s", filepath.c_str(),
-                std::strerror(errno));
+      mt::Check::notEqual(mapped_.data, MAP_FAILED,
+                          "mmap64() failed for '%s' because of '%s'",
+                          filepath.c_str(), std::strerror(errno));
       mapped_.size = len;
     }
 
@@ -124,15 +129,20 @@ Store::Store(const boost::filesystem::path& filepath, const Options& options) {
     if (options.readonly) {
       fd_ = ::open(filepath.c_str(), O_RDONLY | O_CREAT, 0644);
       // Creating a file in read-only mode sounds strange, but we'll try.
+      mt::Check::notEqual(
+          fd_, -1, "Could not create '%s' in read-only mode because of '%s'",
+          filepath.c_str(), std::strerror(errno));
     } else {
       fd_ = ::open(filepath.c_str(), O_RDWR | O_CREAT, 0644);
+      mt::Check::notEqual(
+          fd_, -1, "Could not create '%s' in read-write mode because of '%s'",
+          filepath.c_str(), std::strerror(errno));
     }
-    mt::check(fd_ != -1, mt::Messages::COULD_NOT_CREATE, filepath.c_str());
     stats_.block_size = options.block_size;
 
   } else {
-    mt::throwRuntimeError2("Could not open '%s' because it does not exist",
-                           filepath.c_str());
+    mt::throwRuntimeErrorFormat("Could not open '%s' because it does not exist",
+                                filepath.c_str());
   }
 
   if (!options.readonly) {
@@ -145,18 +155,22 @@ Store::~Store() {
   if (fd_ != -1) {
     if (mapped_.data) {
       const auto status = ::munmap(mapped_.data, mapped_.size);
-      MT_ASSERT_EQ(status, 0);
+      mt::Check::isZero(status, "munmap() failed because of '%s'",
+                        std::strerror(errno));
     }
     if (!buffer_.empty()) {
       const auto nbytes = ::write(fd_, buffer_.data.get(), buffer_.offset);
-      MT_ASSERT_NE(nbytes, -1);
-      MT_ASSERT_EQ(static_cast<std::size_t>(nbytes), buffer_.offset);
+      mt::Check::notEqual(nbytes, -1, "write() failed because of '%s'",
+                          std::strerror(errno));
+      mt::Check::isEqual(static_cast<std::size_t>(nbytes), buffer_.offset,
+                         "write() wrote less data than expected");
     }
     if (!isReadOnly()) {
       writeStatsToTail(getStats(), fd_);
     }
     const auto status = ::close(fd_);
-    MT_ASSERT_EQ(status, 0);
+    mt::Check::isZero(status, "close() failed because of '%s'",
+                      std::strerror(errno));
   }
 }
 
@@ -170,7 +184,7 @@ void Store::adviseAccessPattern(AccessPattern pattern) const {
       fill_page_cache_ = true;
       break;
     default:
-      mt::throwRuntimeError(mt::Messages::FATAL_ERROR);
+      mt::throwRuntimeError("Default case in switch statement reached");
   }
 }
 
@@ -178,9 +192,10 @@ std::uint32_t Store::putUnlocked(const char* block) {
   if (buffer_.offset == buffer_.size) {
     // Flush buffer
     const auto nbytes = ::write(fd_, buffer_.data.get(), buffer_.size);
-    mt::check(nbytes != -1, "POSIX write() failed");
-    mt::check(static_cast<std::size_t>(nbytes) == buffer_.size,
-              "POSIX write() wrote only %u of %u bytes", nbytes, buffer_.size);
+    mt::Check::notEqual(nbytes, -1, "write() failed because of '%s'",
+                        std::strerror(errno));
+    mt::Check::isEqual(static_cast<std::size_t>(nbytes), buffer_.size,
+                       "write() wrote less data than expected");
     buffer_.offset = 0;
 
     // Remap file
@@ -194,11 +209,15 @@ std::uint32_t Store::putUnlocked(const char* block) {
       // buffer cache share the same pages of physical memory. [kerrisk p1032]
       mapped_.data =
           ::mremap(mapped_.data, mapped_.size, new_size, MREMAP_MAYMOVE);
-      mt::check(mapped_.data != MAP_FAILED, "POSIX mremap() failed");
+      mt::Check::notEqual(mapped_.data, MAP_FAILED,
+                          "mremap() failed because of '%s'",
+                          std::strerror(errno));
     } else {
       const auto prot = PROT_READ | PROT_WRITE;
       mapped_.data = ::mmap64(nullptr, new_size, prot, MAP_SHARED, fd_, 0);
-      mt::check(mapped_.data != MAP_FAILED, "POSIX mmap64() failed");
+      mt::Check::notEqual(mapped_.data, MAP_FAILED,
+                          "mmap64() failed because of '%s'",
+                          std::strerror(errno));
     }
     mapped_.size = new_size;
   }
