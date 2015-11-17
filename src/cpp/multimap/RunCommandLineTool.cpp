@@ -17,7 +17,7 @@
 
 #include <iostream>
 #include <boost/program_options.hpp>
-#include "multimap/thirdparty/mt.hpp"
+#include "multimap/thirdparty/mt/mt.hpp"
 #include "multimap/Map.hpp"
 
 const char* HELP     = "help";
@@ -35,7 +35,7 @@ namespace po = boost::program_options;
 
 void requireOption(const po::variables_map& arguments, const char* option) {
   if (arguments.count(option) == 0) {
-    mt::throwRuntimeError2("Option '--%s' is missing.", option);
+    mt::throwRuntimeErrorFormat("Option '--%s' is missing.", option);
   }
 }
 
