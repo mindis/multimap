@@ -141,8 +141,8 @@ Store::Store(const boost::filesystem::path& filepath, const Options& options) {
     stats_.block_size = options.block_size;
 
   } else {
-    mt::throwRuntimeErrorFormat("Could not open '%s' because it does not exist",
-                                filepath.c_str());
+    mt::failFormat("Could not open '%s' because it does not exist",
+                   filepath.c_str());
   }
 
   if (!options.readonly) {
@@ -184,7 +184,7 @@ void Store::adviseAccessPattern(AccessPattern pattern) const {
       fill_page_cache_ = true;
       break;
     default:
-      mt::throwRuntimeError("Default case in switch statement reached");
+      mt::fail("Default case in switch statement reached");
   }
 }
 

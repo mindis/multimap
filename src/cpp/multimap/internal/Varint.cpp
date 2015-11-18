@@ -79,7 +79,7 @@ std::size_t Varint::readUint(const char* buffer, std::size_t size,
         *value += ptr[3];
         return 4;
       default:
-        mt::throwRuntimeError("Invalid varint encoding");
+        mt::fail("Invalid varint encoding");
     }
   }
   return 0;
@@ -124,7 +124,7 @@ std::size_t Varint::readUintWithFlag(const char* buffer, std::size_t size,
         *value += ptr[3];
         return 4;
       default:
-        mt::throwRuntimeError("Invalid varint with flag encoding");
+        mt::fail("Invalid varint with flag encoding");
     }
   }
   return 0;
@@ -169,7 +169,7 @@ std::size_t Varint::writeUint(std::uint32_t value, char* buffer,
     ptr[3] = (value);
     return 4;
   }
-  mt::throwRuntimeErrorFormat("Cannot encode too big value: %d", value);
+  mt::failFormat("Cannot encode too big value: %d", value);
 too_few_bytes:
   return 0;
 }
@@ -213,7 +213,7 @@ std::size_t Varint::writeUintWithFlag(std::uint32_t value, bool flag,
     ptr[3] = (value);
     return 4;
   }
-  mt::throwRuntimeErrorFormat("Cannot encode too big value: %d", value);
+  mt::failFormat("Cannot encode too big value: %d", value);
 too_few_bytes:
   return 0;
 }

@@ -28,41 +28,10 @@ namespace multimap {
 
 namespace {
 
-const std::string FILE_PREFIX = "multimap";
-const std::string NAME_OF_LOCK_FILE = FILE_PREFIX + ".lock";
-const std::string NAME_OF_ID_FILE = FILE_PREFIX + ".id";
-
-struct Id {
-  std::uint64_t checksum = 0;
-  std::uint64_t num_shards = 0;
-  std::uint64_t version_major = VERSION_MAJOR;
-  std::uint64_t version_minor = VERSION_MINOR;
-};
-
-Id readIdFromFile(const boost::filesystem::path& filepath) {
-  Id id;
-  std::ifstream(filepath.string())
-      .read(reinterpret_cast<char*>(&id), sizeof id);
-  return id;
-}
-
-void writeIdToFile(const Id& id, const boost::filesystem::path& filepath) {
-  std::ofstream(filepath.string())
-      .write(reinterpret_cast<const char*>(&id), sizeof id);
-}
-
 void checkOptions(const Options& options) {
   mt::check(options.block_size != 0, "options.block_size must be positive");
   mt::check(mt::isPowerOfTwo(options.block_size),
             "options.block_size must be a power of two");
-}
-
-void checkVersion(std::uint32_t client_major, std::uint32_t client_minor) {
-  mt::check(client_major == VERSION_MAJOR && client_minor == VERSION_MINOR,
-            "Version check failed. The Multimap you are trying to open "
-            "was created with version %u.%u of the library. Your "
-            "installed version is %u.%u which is not compatible.",
-            client_major, client_minor, VERSION_MAJOR, VERSION_MINOR);
 }
 
 internal::Table& getTable(
@@ -130,15 +99,15 @@ Map::Map(const boost::filesystem::path& directory, const Options& options) {
   mt::check(boost::filesystem::is_directory(abs_dir),
             "The path '%s' does not refer to a directory.", abs_dir.c_str());
 
-  directory_lock_guard_.lock(abs_dir, NAME_OF_LOCK_FILE);
-  const auto id_file = abs_dir / NAME_OF_ID_FILE;
+  directory_lock_guard_.lock(abs_dir, internal::getNameOfLockFile());
+  const auto id_file = abs_dir / internal::getNameOfIdFile();
 
   if (boost::filesystem::is_regular_file(id_file)) {
     mt::check(!options.error_if_exists,
               "A Multimap in '%s' does already exist.", abs_dir.c_str());
 
-    const auto id = readIdFromFile(id_file);
-    checkVersion(id.version_major, id.version_minor);
+    const auto id = internal::Id::readFromFile(id_file);
+    internal::checkVersion(id.version_major, id.version_minor);
     tables_.resize(id.num_shards);
 
   } else {
@@ -155,7 +124,7 @@ Map::Map(const boost::filesystem::path& directory, const Options& options) {
   table_opts.error_if_exists = options.error_if_exists;
   table_opts.readonly = options.readonly;
 
-  const auto prefix = abs_dir / FILE_PREFIX;
+  const auto prefix = abs_dir / internal::getFilePrefix();
   for (std::size_t i = 0; i != tables_.size(); ++i) {
     const auto prefix_i = prefix.string() + '.' + std::to_string(i);
     tables_[i].reset(new internal::Table(prefix_i, table_opts));
@@ -164,9 +133,10 @@ Map::Map(const boost::filesystem::path& directory, const Options& options) {
 
 Map::~Map() {
   if (!tables_.empty()) {
-    Id id;
+    internal::Id id;
     id.num_shards = tables_.size();
-    writeIdToFile(id, directory_lock_guard_.path() / NAME_OF_ID_FILE);
+    auto output = directory_lock_guard_.path() / internal::getNameOfIdFile();
+    internal::Id::writeToFile(id, output);
   }
 }
 
@@ -287,185 +257,41 @@ std::map<std::string, std::string> Map::getProperties() const {
   return properties;
 }
 
-void Map::importFromBase64(const boost::filesystem::path& target,
-                           const boost::filesystem::path& source) {
-  Options options;
-  options.error_if_exists = false;
-  options.create_if_missing = false;
-  Map::importFromBase64(target, source, options);
+namespace internal {
+
+Id Id::readFromFile(const boost::filesystem::path& path) {
+  Id id;
+  std::ifstream(path.string()).read(reinterpret_cast<char*>(&id), sizeof id);
+  return id;
 }
 
-void Map::importFromBase64(const boost::filesystem::path& target,
-                           const boost::filesystem::path& source,
-                           const Options& options) {
-  Map map(target, options);
-
-  const auto import_file = [&map](const boost::filesystem::path& filepath) {
-    mt::check(boost::filesystem::is_regular_file(filepath),
-              "'%s' is not a regular file.", filepath.c_str());
-    std::ifstream ifs(filepath.string());
-    mt::check(ifs, "Could not open '%s'.", filepath.c_str());
-
-    std::string base64_key;
-    std::string base64_value;
-    std::string binary_key;
-    std::string binary_value;
-    if (ifs >> base64_key) {
-      internal::Base64::decode(base64_key, &binary_key);
-      while (ifs) {
-        switch (ifs.peek()) {
-          case '\n':
-          case '\r':
-            ifs >> base64_key;
-            internal::Base64::decode(base64_key, &binary_key);
-            break;
-          case '\f':
-          case '\t':
-          case '\v':
-          case ' ':
-            ifs.ignore();
-            break;
-          default:
-            ifs >> base64_value;
-            internal::Base64::decode(base64_value, &binary_value);
-            map.put(binary_key, binary_value);
-        }
-      }
-    }
-  };
-
-  const auto is_hidden = [](const boost::filesystem::path& path) {
-    return path.filename().string().front() == '.';
-  };
-
-  if (boost::filesystem::is_directory(source)) {
-    boost::filesystem::directory_iterator end;
-    boost::filesystem::directory_iterator iter(source);
-    while (iter != end) {
-      if (is_hidden(iter->path()))
-        continue;
-      import_file(iter->path());
-      ++iter;
-    }
-  } else {
-    import_file(source);
-  }
+void Id::writeToFile(const Id& id, const boost::filesystem::path& path) {
+  std::ofstream(path.string())
+      .write(reinterpret_cast<const char*>(&id), sizeof id);
 }
 
-void Map::exportToBase64(const boost::filesystem::path& source,
-                         const boost::filesystem::path& target) {
-  Map::exportToBase64(source, target, Callables::Compare());
+const std::string& getFilePrefix() {
+  static const std::string result = "multimap";
+  return result;
 }
 
-void Map::exportToBase64(const boost::filesystem::path& source,
-                         const boost::filesystem::path& target,
-                         Callables::Compare compare) {
-  Options options;
-  options.error_if_exists = false;
-  options.create_if_missing = false;
-  Map map(source, options);
-
-  std::ofstream ofs(target.string());
-  mt::check(ofs, "Could not create '%s'.", target.c_str());
-
-  std::string base64_key;
-  std::string base64_value;
-  std::vector<std::string> sorted_values;
-  if (compare) {
-    map.forEachEntry([&](const Bytes& key, ListIterator&& iter) {
-      // TODO Test if reusing sorted_values makes any difference.
-
-      // Sort values
-      sorted_values.clear();
-      sorted_values.reserve(iter.available());
-      while (iter.hasNext()) {
-        sorted_values.push_back(iter.next().toString());
-      }
-      std::sort(sorted_values.begin(), sorted_values.end(), compare);
-
-      // Write as Base64
-      internal::Base64::encode(key, &base64_key);
-      ofs << base64_key;
-      for (const auto& value : sorted_values) {
-        internal::Base64::encode(value, &base64_value);
-        ofs << ' ' << base64_value;
-      }
-      ofs << '\n';
-    });
-  } else {
-    map.forEachEntry([&](const Bytes& key, ListIterator&& iter) {
-      // Write as Base64
-      internal::Base64::encode(key, &base64_key);
-      ofs << base64_key;
-      while (iter.hasNext()) {
-        internal::Base64::encode(iter.next(), &base64_value);
-        ofs << ' ' << base64_value;
-      }
-      ofs << '\n';
-    });
-  }
+const std::string& getNameOfIdFile() {
+  static const std::string result = getFilePrefix() + ".id";
+  return result;
 }
 
-void Map::optimize(const boost::filesystem::path& source,
-                   const boost::filesystem::path& target,
-                   const Options& options) {
-  const auto abs_source = boost::filesystem::absolute(source);
-  mt::check(boost::filesystem::is_directory(abs_source),
-            "The path '%s' does not refer to a directory.", abs_source.c_str());
-
-  internal::System::DirectoryLockGuard lock(abs_source, NAME_OF_LOCK_FILE);
-  const auto id_file = abs_source / NAME_OF_ID_FILE;
-  const auto map_exists = boost::filesystem::is_regular_file(id_file);
-  mt::check(map_exists, "No Multimap found in '%s'.", abs_source.c_str());
-
-  const auto id = readIdFromFile(id_file);
-  checkVersion(id.version_major, id.version_minor);
-
-  // TODO Verify id.checksum.
-
-  Map new_map;
-  const auto prefix = abs_source / FILE_PREFIX;
-  for (std::size_t i = 0; i != id.num_shards; ++i) {
-    const auto table_prefix = prefix.string() + '.' + std::to_string(i);
-    internal::Table table(table_prefix, internal::Table::Options());
-
-    if (i == 0) {
-      Options new_opts = options;
-      new_opts.error_if_exists = true;
-      new_opts.create_if_missing = true;
-      if (new_opts.block_size == 0) {
-        new_opts.block_size = table.getBlockSize();
-      }
-      if (new_opts.num_shards == 0) {
-        new_opts.num_shards = id.num_shards;
-      }
-      new_map = Map(target, new_opts);
-    }
-
-    if (options.compare) {
-      std::vector<std::string> sorted_values;
-      // TODO Test if reusing sorted_values makes any difference.
-      table.forEachEntry([&new_map, &options, &sorted_values](
-          const Bytes& key, ListIterator&& iter) {
-        sorted_values.clear();
-        sorted_values.reserve(iter.available());
-        while (iter.hasNext()) {
-          sorted_values.push_back(iter.next().toString());
-        }
-        std::sort(sorted_values.begin(), sorted_values.end(),
-                  options.compare);
-        for (const auto& value : sorted_values) {
-          new_map.put(key, value);
-        }
-      });
-    } else {
-      table.forEachEntry([&new_map](const Bytes& key, ListIterator&& iter) {
-        while (iter.hasNext()) {
-          new_map.put(key, iter.next());
-        }
-      });
-    }
-  }
+const std::string& getNameOfLockFile() {
+  static const std::string result = getFilePrefix() + ".lock";
+  return result;
 }
 
+void checkVersion(std::uint32_t id_major, std::uint32_t id_minor) {
+  mt::check(id_major == VERSION_MAJOR && id_minor == VERSION_MINOR,
+            "Version check failed. The Multimap you are trying to open "
+            "was created with version %u.%u of the library. Your "
+            "installed version is %u.%u which is not compatible.",
+            id_major, id_minor, VERSION_MAJOR, VERSION_MINOR);
+}
+
+} // namespace internal
 } // namespace multimap
