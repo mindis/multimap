@@ -32,7 +32,7 @@
 
 namespace mt {
 
-static const std::size_t VERSION = 20151116;
+static const std::size_t VERSION = 20151118;
 
 // -----------------------------------------------------------------------------
 // COMMON
@@ -77,11 +77,11 @@ std::uint64_t fnv1aHash64(const void* buf, std::size_t len);
 // -----------------------------------------------------------------------------
 // ERROR HANDLING
 
-void throwRuntimeError(const char* message);
+void fail(const char* message);
 
-void throwRuntimeError(const std::string& message);
+void fail(const std::string& message);
 
-void throwRuntimeErrorFormat(const char* format, ...);
+void failFormat(const char* format, ...);
 
 void check(bool expression, const char* format, ...);
 
@@ -105,7 +105,7 @@ struct Check {
       va_start(args, format);
       const auto msg = internal::printFormatVargs(format, args);
       va_end(args);
-      throwRuntimeError(msg);
+      fail(msg);
     }
   }
 
@@ -116,7 +116,7 @@ struct Check {
       va_start(args, format);
       const auto msg = internal::printFormatVargs(format, args);
       va_end(args);
-      throwRuntimeError(msg);
+      fail(msg);
     }
   }
 
@@ -127,7 +127,7 @@ struct Check {
       va_start(args, format);
       const auto msg = internal::printFormatVargs(format, args);
       va_end(args);
-      throwRuntimeError(msg);
+      fail(msg);
     }
   }
 
@@ -138,7 +138,7 @@ struct Check {
       va_start(args, format);
       const auto msg = internal::printFormatVargs(format, args);
       va_end(args);
-      throwRuntimeError(msg);
+      fail(msg);
     }
   }
 
@@ -149,7 +149,7 @@ struct Check {
       va_start(args, format);
       const auto msg = internal::printFormatVargs(format, args);
       va_end(args);
-      throwRuntimeError(msg);
+      fail(msg);
     }
   }
 
@@ -160,7 +160,7 @@ struct Check {
       va_start(args, format);
       const auto msg = internal::printFormatVargs(format, args);
       va_end(args);
-      throwRuntimeError(msg);
+      fail(msg);
     }
   }
 
@@ -171,7 +171,7 @@ struct Check {
       va_start(args, format);
       const auto msg = internal::printFormatVargs(format, args);
       va_end(args);
-      throwRuntimeError(msg);
+      fail(msg);
     }
   }
 
@@ -182,7 +182,7 @@ struct Check {
       va_start(args, format);
       const auto msg = internal::printFormatVargs(format, args);
       va_end(args);
-      throwRuntimeError(msg);
+      fail(msg);
     }
   }
 
@@ -193,7 +193,7 @@ struct Check {
       va_start(args, format);
       const auto msg = internal::printFormatVargs(format, args);
       va_end(args);
-      throwRuntimeError(msg);
+      fail(msg);
     }
   }
 
@@ -204,7 +204,7 @@ struct Check {
       va_start(args, format);
       const auto msg = internal::printFormatVargs(format, args);
       va_end(args);
-      throwRuntimeError(msg);
+      fail(msg);
     }
   }
 

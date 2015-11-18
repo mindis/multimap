@@ -291,20 +291,16 @@ void writePropertiesToFile(const Properties& properties,
   ofs << content << "checksum=" << crc32(content) << '\n';
 }
 
-void throwRuntimeError(const char* message) {
-  throw std::runtime_error(message);
-}
+void fail(const char* message) { throw std::runtime_error(message); }
 
-void throwRuntimeError(const std::string& message) {
-  throwRuntimeError(message.c_str());
-}
+void fail(const std::string& message) { fail(message.c_str()); }
 
-void throwRuntimeErrorFormat(const char* format, ...) {
+void failFormat(const char* format, ...) {
   va_list args;
   va_start(args, format);
   const auto msg = internal::printFormatVargs(format, args);
   va_end(args);
-  throwRuntimeError(msg);
+  fail(msg);
 }
 
 void check(bool expression, const char* format, ...) {
@@ -313,7 +309,7 @@ void check(bool expression, const char* format, ...) {
     va_start(args, format);
     const auto msg = internal::printFormatVargs(format, args);
     va_end(args);
-    throwRuntimeError(msg);
+    fail(msg);
   }
 }
 
@@ -323,7 +319,7 @@ void Check::isTrue(bool expression, const char* format, ...) {
     va_start(args, format);
     const auto msg = internal::printFormatVargs(format, args);
     va_end(args);
-    throwRuntimeError(msg);
+    fail(msg);
   }
 }
 
@@ -333,7 +329,7 @@ void Check::isFalse(bool expression, const char* format, ...) {
     va_start(args, format);
     const auto msg = internal::printFormatVargs(format, args);
     va_end(args);
-    throwRuntimeError(msg);
+    fail(msg);
   }
 }
 
