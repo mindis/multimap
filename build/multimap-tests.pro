@@ -36,4 +36,4 @@ SOURCES += \
     ../src/cpp/multimap/internal/UintVectorTest.cpp \
     ../src/cpp/multimap/internal/VarintTest.cpp \
     ../src/cpp/multimap/MapTest.cpp \
-    ../src/cpp/multimap/RunUnitTests.cpp
+    ../src/cpp/multimap/main-tests.cpp

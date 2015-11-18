@@ -10,6 +10,4 @@ COMMON = multimap.pri
 }
 
 SOURCES += \
-    ../src/cpp/multimap/RunCommandLineTool.cpp
-
-unix: LIBS += -lboost_program_options
+    ../src/cpp/multimap/main-tool.cpp
