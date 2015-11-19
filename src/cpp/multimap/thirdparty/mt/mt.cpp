@@ -250,6 +250,48 @@ void AutoCloseFile::reset(std::FILE* file) {
   file_ = file;
 }
 
+const char* DirectoryLockGuard::DEFAULT_FILENAME = ".lock";
+
+DirectoryLockGuard::DirectoryLockGuard(const boost::filesystem::path& directory,
+                                       const std::string& filename)
+    : directory_(directory), filename_(filename) {
+  Check::isTrue(boost::filesystem::is_directory(directory),
+                "Not a directory '%s'", directory_.c_str());
+  const AutoCloseFile file(std::fopen((directory_ / filename_).c_str(), "w"));
+  Check::notNull(file.get(), "Already locked '%s'", directory_.c_str());
+}
+
+DirectoryLockGuard::DirectoryLockGuard(DirectoryLockGuard&& other)
+    : directory_(other.directory_), filename_(other.filename_) {
+  other.directory_.clear();
+  other.filename_.clear();
+}
+
+DirectoryLockGuard& DirectoryLockGuard::operator=(
+    DirectoryLockGuard&& other) {
+  if (&other != this) {
+    directory_ = other.directory_;
+    filename_ = other.filename_;
+    other.directory_.clear();
+    other.filename_.clear();
+  }
+  return *this;
+}
+
+DirectoryLockGuard::~DirectoryLockGuard() {
+  if (!directory_.empty()) {
+    boost::filesystem::remove(directory_ / filename_);
+  }
+}
+
+const boost::filesystem::path& DirectoryLockGuard::directory() const {
+  return directory_;
+}
+
+const std::string& DirectoryLockGuard::filename() const {
+  return filename_;
+}
+
 Properties readPropertiesFromFile(const std::string& filepath) {
   std::ifstream ifs(filepath);
   check(ifs, "Could not open '%s'", filepath.c_str());

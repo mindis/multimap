@@ -32,7 +32,7 @@
 
 namespace mt {
 
-static const std::size_t VERSION = 20151118;
+static const std::size_t VERSION = 20151119;
 
 // -----------------------------------------------------------------------------
 // COMMON
@@ -270,6 +270,32 @@ public:
 
 private:
   std::FILE* file_ = nullptr;
+};
+
+class DirectoryLockGuard {
+public:
+  static const char* DEFAULT_FILENAME;
+
+  DirectoryLockGuard() = default;
+
+  DirectoryLockGuard(const boost::filesystem::path& directory,
+                     const std::string& filename = DEFAULT_FILENAME);
+
+  DirectoryLockGuard(const DirectoryLockGuard&) = delete;
+  DirectoryLockGuard& operator=(const DirectoryLockGuard&) = delete;
+
+  DirectoryLockGuard(DirectoryLockGuard&& other);
+  DirectoryLockGuard& operator=(DirectoryLockGuard&& other);
+
+  ~DirectoryLockGuard();
+
+  const boost::filesystem::path& directory() const;
+
+  const std::string& filename() const;
+
+private:
+  boost::filesystem::path directory_;
+  std::string filename_;
 };
 
 // -----------------------------------------------------------------------------
