@@ -56,41 +56,9 @@ struct System {
   static void read(std::FILE* stream, void* buf, std::size_t count);
 
   static void write(std::FILE* stream, const void* buf, std::size_t count);
-
-  class DirectoryLockGuard {
-   public:
-    static const std::string DEFAULT_FILENAME;
-
-    DirectoryLockGuard();
-
-    explicit DirectoryLockGuard(const boost::filesystem::path& path);
-
-    DirectoryLockGuard(const boost::filesystem::path& path,
-                       const std::string filename);
-
-    DirectoryLockGuard(const DirectoryLockGuard&) = delete;
-    DirectoryLockGuard& operator=(const DirectoryLockGuard&) = delete;
-
-    DirectoryLockGuard(DirectoryLockGuard&& other);
-    DirectoryLockGuard& operator=(DirectoryLockGuard&& other);
-
-    ~DirectoryLockGuard();
-
-    void lock(const boost::filesystem::path& path);
-
-    void lock(const boost::filesystem::path& path, const std::string filename);
-
-    const boost::filesystem::path& path() const;
-
-    const std::string& filename() const;
-
-   private:
-    boost::filesystem::path directory_;
-    std::string filename_;
-  };
 };
 
-}  // namespace internal
-}  // namespace multimap
+} // namespace internal
+} // namespace multimap
 
-#endif  // MULTIMAP_INTERNAL_SYSTEM_HPP_INCLUDED
+#endif // MULTIMAP_INTERNAL_SYSTEM_HPP_INCLUDED
