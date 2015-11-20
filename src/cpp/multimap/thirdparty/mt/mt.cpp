@@ -179,26 +179,24 @@ std::size_t crc32(const char* data, std::size_t size) {
 
 // Source: http://www.isthe.com/chongo/src/fnv/hash_32a.c
 std::uint32_t fnv1aHash32(const void* buf, std::size_t len) {
-  std::uint32_t hash = 0x811c9dc5; // FNV1_32A_INIT
-  const auto uchar_buf = reinterpret_cast<const unsigned char*>(buf);
+  std::uint32_t h = 0x811c9dc5; // FNV1_32A_INIT
+  const auto ptr = reinterpret_cast<const std::uint8_t*>(buf);
   for (std::size_t i = 0; i != len; ++i) {
-    hash ^= uchar_buf[i];
-    hash +=
-        (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24);
+    h ^= ptr[i];
+    h += (h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24);
   }
-  return hash;
+  return h;
 }
 
 // Source: http://www.isthe.com/chongo/src/fnv/hash_64a.c
 std::uint64_t fnv1aHash64(const void* buf, std::size_t len) {
-  std::uint64_t hash = 0xcbf29ce484222325ULL; // FNV1A_64_INIT
-  const auto uchar_buf = reinterpret_cast<const unsigned char*>(buf);
+  std::uint64_t h = 0xcbf29ce484222325ULL; // FNV1A_64_INIT
+  const auto ptr = reinterpret_cast<const std::uint8_t*>(buf);
   for (std::size_t i = 0; i != len; ++i) {
-    hash ^= uchar_buf[i];
-    hash += (hash << 1) + (hash << 4) + (hash << 5) + (hash << 7) +
-            (hash << 8) + (hash << 40);
+    h ^= ptr[i];
+    h += (h << 1) + (h << 4) + (h << 5) + (h << 7) + (h << 8) + (h << 40);
   }
-  return hash;
+  return h;
 }
 
 Files::Bytes Files::readAllBytes(const boost::filesystem::path& filepath) {
@@ -267,8 +265,7 @@ DirectoryLockGuard::DirectoryLockGuard(DirectoryLockGuard&& other)
   other.filename_.clear();
 }
 
-DirectoryLockGuard& DirectoryLockGuard::operator=(
-    DirectoryLockGuard&& other) {
+DirectoryLockGuard& DirectoryLockGuard::operator=(DirectoryLockGuard&& other) {
   if (&other != this) {
     directory_ = other.directory_;
     filename_ = other.filename_;
@@ -288,9 +285,7 @@ const boost::filesystem::path& DirectoryLockGuard::directory() const {
   return directory_;
 }
 
-const std::string& DirectoryLockGuard::filename() const {
-  return filename_;
-}
+const std::string& DirectoryLockGuard::filename() const { return filename_; }
 
 Properties readPropertiesFromFile(const std::string& filepath) {
   std::ifstream ifs(filepath);
@@ -333,62 +328,22 @@ void writePropertiesToFile(const Properties& properties,
   ofs << content << "checksum=" << crc32(content) << '\n';
 }
 
-void fail(const char* message) { throw std::runtime_error(message); }
-
-void fail(const std::string& message) { fail(message.c_str()); }
-
-void failFormat(const char* format, ...) {
-  va_list args;
-  va_start(args, format);
-  const auto msg = internal::printFormatVargs(format, args);
-  va_end(args);
-  fail(msg);
-}
-
-void check(bool expression, const char* format, ...) {
-  if (!expression) {
-    va_list args;
-    va_start(args, format);
-    const auto msg = internal::printFormatVargs(format, args);
-    va_end(args);
-    fail(msg);
-  }
-}
-
-void Check::isTrue(bool expression, const char* format, ...) {
-  if (!expression) {
-    va_list args;
-    va_start(args, format);
-    const auto msg = internal::printFormatVargs(format, args);
-    va_end(args);
-    fail(msg);
-  }
-}
-
-void Check::isFalse(bool expression, const char* format, ...) {
-  if (expression) {
-    va_list args;
-    va_start(args, format);
-    const auto msg = internal::printFormatVargs(format, args);
-    va_end(args);
-    fail(msg);
-  }
-}
-
 namespace internal {
 
-std::string printFormatVargs(const char* format, va_list args) {
+std::string toString(const char* format, va_list args) {
+  std::string result;
+  toString(format, args, &result);
+  return result;
+}
+
+void toString(const char* format, va_list args, std::string* output) {
   va_list args2;
   va_copy(args2, args);
   std::vector<char> buffer(std::vsnprintf(nullptr, 0, format, args) + 1);
   std::vsnprintf(buffer.data(), buffer.size(), format, args2);
   va_end(args2);
-  return std::string(buffer.data(), buffer.size());
+  output->assign(buffer.data(), buffer.size());
 }
-
-} // namespace internal
-
-namespace internal {
 
 std::vector<std::string> getStackTrace(std::size_t skip_head) {
   std::vector<std::string> result;

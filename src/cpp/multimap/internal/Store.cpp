@@ -57,20 +57,6 @@ void removeStatsFromTail(int fd) {
 
 } // namespace
 
-Store::Stats& Store::Stats::combine(const Stats& other) {
-  if (block_size == 0) {
-    block_size = other.block_size;
-  } else {
-    MT_ASSERT_EQ(block_size, other.block_size);
-  }
-  num_blocks += other.num_blocks;
-  return *this;
-}
-
-Store::Stats Store::Stats::combine(const Stats& a, const Stats& b) {
-  return Stats(a).combine(b);
-}
-
 Store::Stats Store::Stats::fromProperties(const mt::Properties& properties) {
   Stats stats;
   stats.block_size = std::stoul(properties.at("block_size"));
@@ -88,20 +74,20 @@ mt::Properties Store::Stats::toProperties() const {
 Store::Store(const boost::filesystem::path& filepath)
     : Store(filepath, Options()) {}
 
-Store::Store(const boost::filesystem::path& filepath, const Options& options) {
-  if (boost::filesystem::is_regular_file(filepath)) {
+Store::Store(const boost::filesystem::path& file, const Options& options) {
+  if (boost::filesystem::is_regular_file(file)) {
     mt::Check::isFalse(options.error_if_exists, "Store already exists");
 
     if (options.readonly) {
-      fd_ = ::open(filepath.c_str(), O_RDONLY);
+      fd_ = ::open(file.c_str(), O_RDONLY);
       mt::Check::notEqual(
           fd_, -1, "Could not open '%s' in read-only mode because of '%s'",
-          filepath.c_str(), std::strerror(errno));
+          file.c_str(), std::strerror(errno));
     } else {
-      fd_ = ::open(filepath.c_str(), O_RDWR);
+      fd_ = ::open(file.c_str(), O_RDWR);
       mt::Check::notEqual(
           fd_, -1, "Could not open '%s' in read-write mode because of '%s'",
-          filepath.c_str(), std::strerror(errno));
+          file.c_str(), std::strerror(errno));
     }
 
     stats_ = readStatsFromTail(fd_);
@@ -118,7 +104,7 @@ Store::Store(const boost::filesystem::path& filepath, const Options& options) {
       mapped_.data = ::mmap64(nullptr, len, prot, MAP_SHARED, fd_, 0);
       mt::Check::notEqual(mapped_.data, MAP_FAILED,
                           "mmap64() failed for '%s' because of '%s'",
-                          filepath.c_str(), std::strerror(errno));
+                          file.c_str(), std::strerror(errno));
       mapped_.size = len;
     }
 
@@ -127,22 +113,21 @@ Store::Store(const boost::filesystem::path& filepath, const Options& options) {
     MT_REQUIRE_ZERO(options.buffer_size % options.block_size);
 
     if (options.readonly) {
-      fd_ = ::open(filepath.c_str(), O_RDONLY | O_CREAT, 0644);
+      fd_ = ::open(file.c_str(), O_RDONLY | O_CREAT, 0644);
       // Creating a file in read-only mode sounds strange, but we'll try.
       mt::Check::notEqual(
           fd_, -1, "Could not create '%s' in read-only mode because of '%s'",
-          filepath.c_str(), std::strerror(errno));
+          file.c_str(), std::strerror(errno));
     } else {
-      fd_ = ::open(filepath.c_str(), O_RDWR | O_CREAT, 0644);
+      fd_ = ::open(file.c_str(), O_RDWR | O_CREAT, 0644);
       mt::Check::notEqual(
           fd_, -1, "Could not create '%s' in read-write mode because of '%s'",
-          filepath.c_str(), std::strerror(errno));
+          file.c_str(), std::strerror(errno));
     }
     stats_.block_size = options.block_size;
 
   } else {
-    mt::failFormat("Could not open '%s' because it does not exist",
-                   filepath.c_str());
+    mt::fail("Could not open '%s' because it does not exist", file.c_str());
   }
 
   if (!options.readonly) {

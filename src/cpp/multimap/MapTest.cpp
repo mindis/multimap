@@ -65,7 +65,7 @@ TEST(MapTest, DefaultConstructedHasProperState) {
   ASSERT_THROW(Map().forEachValue(key, NULL_PROCEDURE), mt::AssertionError);
   ASSERT_THROW(Map().forEachValue(key, TRUE_PREDICATE), mt::AssertionError);
   ASSERT_THROW(Map().forEachEntry(NULL_BINARY_PROCEDURE), mt::AssertionError);
-  ASSERT_THROW(Map().getProperties(), mt::AssertionError);
+  ASSERT_TRUE(Map().getStats().empty());
 }
 
 struct MapTestFixture : public testing::Test {
@@ -168,7 +168,7 @@ TEST_F(MapTestFixture, ReadOnlyModeDoesNotAllowUpdates) {
     ASSERT_NO_THROW(map.forEachValue(key, NULL_PROCEDURE));
     ASSERT_NO_THROW(map.forEachValue(key, TRUE_PREDICATE));
     ASSERT_NO_THROW(map.get(key));
-    ASSERT_NO_THROW(map.getProperties());
+    ASSERT_NO_THROW(map.getStats());
 
     const auto value = std::to_string(42);
     ASSERT_THROW(map.getMutable(key), std::runtime_error);

@@ -22,7 +22,18 @@
 
 namespace multimap {
 
-Map::Stats stats(const boost::filesystem::path& directory) {}
+std::vector<internal::Table::Stats> stats(
+    const boost::filesystem::path& directory) {
+  mt::DirectoryLockGuard lock(directory, internal::getNameOfLockFile());
+  const auto id_file = directory / internal::getNameOfIdFile();
+  const auto id = internal::Id::readFromFile(id_file);
+  std::vector<internal::Table::Stats> stats;
+  for (std::size_t i = 0; i != id.num_shards; ++i) {
+    const auto stats_file = directory / internal::getNameOfStatsFile(i);
+    stats.push_back(internal::Table::Stats::readFromFile(stats_file));
+  }
+  return stats;
+}
 
 void importFromBase64(const boost::filesystem::path& directory,
                       const boost::filesystem::path& input) {
@@ -147,8 +158,7 @@ void optimize(const boost::filesystem::path& directory,
   mt::check(boost::filesystem::is_directory(abs_dir),
             "The path '%s' does not refer to a directory.", abs_dir.c_str());
 
-  internal::System::DirectoryLockGuard lock(abs_dir,
-                                            internal::getNameOfLockFile());
+  mt::DirectoryLockGuard lock(abs_dir, internal::getNameOfLockFile());
   const auto id_file = abs_dir / internal::getNameOfIdFile();
   const auto map_exists = boost::filesystem::is_regular_file(id_file);
   mt::check(map_exists, "No Multimap found in '%s'.", abs_dir.c_str());

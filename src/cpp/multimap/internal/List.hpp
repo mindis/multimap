@@ -57,9 +57,9 @@ public:
       return num_values_added - num_values_removed;
     }
 
-    static Head readFromFile(std::FILE* file);
+    static Head readFromStream(std::FILE* file);
 
-    void writeToFile(std::FILE* file) const;
+    void writeToStream(std::FILE* file) const;
   };
 
   static_assert(mt::hasExpectedSize<Head>(20, 24),

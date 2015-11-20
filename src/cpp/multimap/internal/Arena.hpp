@@ -26,7 +26,7 @@ namespace internal {
 
 class Arena {
   // This class is not thread-safe by design and needs external locking.
-  // TODO Make this clas thread-safe?
+  // TODO Make this class thread-safe?
 
 public:
   static const std::size_t DEFAULT_CHUNK_SIZE = 4096;

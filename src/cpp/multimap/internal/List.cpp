@@ -82,18 +82,20 @@ std::size_t List::Limits::getMaxValueSize() {
   return Varint::Limits::MAX_N4_WITH_FLAG;
 }
 
-List::Head List::Head::readFromFile(std::FILE* file) {
+List::Head List::Head::readFromStream(std::FILE* stream) {
   Head head;
-  System::read(file, &head.num_values_added, sizeof head.num_values_added);
-  System::read(file, &head.num_values_removed, sizeof head.num_values_removed);
-  head.block_ids = UintVector::readFromStream(file);
+  // TODO Move read/write into MT lib.
+  System::read(stream, &head.num_values_added, sizeof head.num_values_added);
+  System::read(stream, &head.num_values_removed,
+               sizeof head.num_values_removed);
+  head.block_ids = UintVector::readFromStream(stream);
   return head;
 }
 
-void List::Head::writeToFile(std::FILE* file) const {
-  System::write(file, &num_values_added, sizeof num_values_added);
-  System::write(file, &num_values_removed, sizeof num_values_removed);
-  block_ids.writeToStream(file);
+void List::Head::writeToStream(std::FILE* stream) const {
+  System::write(stream, &num_values_added, sizeof num_values_added);
+  System::write(stream, &num_values_removed, sizeof num_values_removed);
+  block_ids.writeToStream(stream);
 }
 
 List::List(const Head& head) : head_(head) {}

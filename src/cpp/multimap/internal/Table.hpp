@@ -53,20 +53,28 @@ public:
     std::uint64_t num_values_added = 0;
     std::uint64_t num_values_removed = 0;
     std::uint64_t num_values_unowned = 0;
-    std::uint64_t key_size_min = -1;
+    std::uint64_t key_size_min = 0;
     std::uint64_t key_size_max = 0;
     std::uint64_t key_size_avg = 0;
-    std::uint64_t list_size_min = -1;
+    std::uint64_t list_size_min = 0;
     std::uint64_t list_size_max = 0;
     std::uint64_t list_size_avg = 0;
-
-    Stats& combine(const Stats& other);
-
-    static Stats combine(const Stats& a, const Stats& b);
 
     static Stats fromProperties(const mt::Properties& properties);
 
     mt::Properties toProperties() const;
+
+    static Stats readFromFile(const boost::filesystem::path& file);
+
+    void writeToFile(const boost::filesystem::path& file) const;
+
+    static Stats total(const std::vector<Stats>& stats);
+
+    static Stats max(const std::vector<Stats>& stats);
+
+    std::vector<std::uint64_t> toVector() const;
+
+    static const std::vector<std::string>& names();
   };
 
   static_assert(std::is_standard_layout<Stats>::value,
@@ -78,9 +86,9 @@ public:
 
   typedef std::function<void(const Bytes&, SharedList&&)> BinaryProcedure;
 
-  Table(const boost::filesystem::path& filepath_prefix);
+  Table(const boost::filesystem::path& file_prefix);
 
-  Table(const boost::filesystem::path& filepath_prefix, const Options& options);
+  Table(const boost::filesystem::path& file_prefix, const Options& options);
 
   ~Table();
 
@@ -102,12 +110,16 @@ public:
   // Returns various statistics about the table.
   // The data is collected upon request and triggers a full table scan.
 
+  static std::string getNameOfKeysFile(const std::string& prefix);
+  static std::string getNameOfStatsFile(const std::string& prefix);
+  static std::string getNameOfValuesFile(const std::string& prefix);
+
 private:
   mutable boost::shared_mutex mutex_;
   std::unordered_map<Bytes, std::unique_ptr<List> > map_;
   std::unique_ptr<Store> store_;
   Arena arena_;
-  Stats old_stats_;
+  Stats stats_;
   boost::filesystem::path prefix_;
 };
 

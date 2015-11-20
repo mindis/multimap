@@ -42,13 +42,13 @@ public:
     std::uint64_t block_size = 0;
     std::uint64_t num_blocks = 0;
 
-    Stats& combine(const Stats& other);
-
-    static Stats combine(const Stats& a, const Stats& b);
-
     static Stats fromProperties(const mt::Properties& properties);
 
     mt::Properties toProperties() const;
+
+    static Stats readFromFd(int fd);
+
+    void writeToFd(int fd) const;
   };
 
   static_assert(std::is_standard_layout<Stats>::value,

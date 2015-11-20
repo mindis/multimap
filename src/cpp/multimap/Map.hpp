@@ -22,7 +22,7 @@
 #include <vector>
 #include <boost/filesystem/path.hpp>
 #include "multimap/internal/Table.hpp"
-#include "multimap/internal/System.hpp"
+#include "multimap/thirdparty/mt/mt.hpp"
 #include "multimap/Callables.hpp"
 #include "multimap/Options.hpp"
 
@@ -40,10 +40,6 @@ public:
 
     static std::size_t getMaxKeySize();
     static std::size_t getMaxValueSize();
-  };
-
-  struct Stats : public internal::Table::Stats {
-    std::size_t num_shards = 0;
   };
 
   typedef internal::SharedListIterator ListIterator;
@@ -202,7 +198,10 @@ public:
   void forEachEntry(Callables::BinaryProcedure action) const;
   // TODO Document this.
 
-  std::map<std::string, std::string> getProperties() const;
+  std::vector<internal::Table::Stats> getStats() const;
+
+  // Replace by getStats().toProperties()
+//  std::map<std::string, std::string> getProperties() const;
   // Returns a list of properties which describe the state of the map similar
   // to those written to the multimap.properties file. This method will only
   // look at lists which are currently not locked to be non-blocking.
@@ -211,7 +210,7 @@ public:
 
 private:
   std::vector<std::unique_ptr<internal::Table> > tables_;
-  internal::System::DirectoryLockGuard directory_lock_guard_;
+  mt::DirectoryLockGuard lock_;
 };
 
 namespace internal {
@@ -222,13 +221,16 @@ struct Id {
   std::uint64_t version_major = VERSION_MAJOR;
   std::uint64_t version_minor = VERSION_MINOR;
 
-  static Id readFromFile(const boost::filesystem::path& path);
-  static void writeToFile(const Id& id, const boost::filesystem::path& path);
+  static Id readFromFile(const boost::filesystem::path& file);
+  void writeToFile(const boost::filesystem::path& file) const;
 };
 
-const std::string& getFilePrefix();
-const std::string& getNameOfIdFile();
-const std::string& getNameOfLockFile();
+const std::string getFilePrefix();
+const std::string getNameOfIdFile();
+const std::string getNameOfLockFile();
+const std::string getNameOfKeysFile(std::size_t index);
+const std::string getNameOfStatsFile(std::size_t index);
+const std::string getNameOfValuesFile(std::size_t index);
 void checkVersion(std::uint32_t id_major, std::uint32_t id_minor);
 
 } // namespace internal

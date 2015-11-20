@@ -23,7 +23,8 @@
 
 namespace multimap {
 
-Map::Stats stats(const boost::filesystem::path& directory);
+std::vector<internal::Table::Stats> stats(
+    const boost::filesystem::path& directory);
 
 void importFromBase64(const boost::filesystem::path& directory,
                       const boost::filesystem::path& input);

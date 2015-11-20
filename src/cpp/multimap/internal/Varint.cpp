@@ -169,7 +169,7 @@ std::size_t Varint::writeUint(std::uint32_t value, char* buffer,
     ptr[3] = (value);
     return 4;
   }
-  mt::failFormat("Cannot encode too big value: %d", value);
+  mt::fail("Cannot encode too big value: %d", value);
 too_few_bytes:
   return 0;
 }
@@ -213,7 +213,7 @@ std::size_t Varint::writeUintWithFlag(std::uint32_t value, bool flag,
     ptr[3] = (value);
     return 4;
   }
-  mt::failFormat("Cannot encode too big value: %d", value);
+  mt::fail("Cannot encode too big value: %d", value);
 too_few_bytes:
   return 0;
 }

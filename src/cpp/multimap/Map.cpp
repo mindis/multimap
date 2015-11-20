@@ -19,9 +19,7 @@
 
 #include <algorithm>
 #include <fstream>
-#include <boost/algorithm/string/trim.hpp>
 #include <boost/filesystem/operations.hpp>
-#include "multimap/internal/Base64.hpp"
 #include "multimap/thirdparty/mt/mt.hpp"
 
 namespace multimap {
@@ -38,8 +36,7 @@ internal::Table& getTable(
     const std::vector<std::unique_ptr<internal::Table> >& tables,
     const Bytes& key) {
   MT_REQUIRE_FALSE(tables.empty());
-  // TODO Replace by xxhash?
-  return *tables[mt::fnv1aHash32(key.data(), key.size()) % tables.size()];
+  return *tables[mt::fnv1aHash(key.data(), key.size()) % tables.size()];
 }
 
 std::size_t removeValues(
@@ -99,7 +96,7 @@ Map::Map(const boost::filesystem::path& directory, const Options& options) {
   mt::check(boost::filesystem::is_directory(abs_dir),
             "The path '%s' does not refer to a directory.", abs_dir.c_str());
 
-  directory_lock_guard_.lock(abs_dir, internal::getNameOfLockFile());
+  lock_ = mt::DirectoryLockGuard(abs_dir, internal::getNameOfLockFile());
   const auto id_file = abs_dir / internal::getNameOfIdFile();
 
   if (boost::filesystem::is_regular_file(id_file)) {
@@ -135,8 +132,7 @@ Map::~Map() {
   if (!tables_.empty()) {
     internal::Id id;
     id.num_shards = tables_.size();
-    auto output = directory_lock_guard_.path() / internal::getNameOfIdFile();
-    internal::Id::writeToFile(id, output);
+    id.writeToFile(lock_.directory() / internal::getNameOfIdFile());
   }
 }
 
@@ -243,46 +239,65 @@ void Map::forEachEntry(Callables::BinaryProcedure action) const {
   }
 }
 
-std::map<std::string, std::string> Map::getProperties() const {
-  MT_REQUIRE_FALSE(tables_.empty());
-
-  internal::Table::Stats stats;
+std::vector<internal::Table::Stats> Map::getStats() const {
+  std::vector<internal::Table::Stats> stats;
   for (const auto& table : tables_) {
-    stats.combine(table->getStats());
+    stats.push_back(table->getStats());
   }
-  auto properties = stats.toProperties();
-  properties["num_shards"] = std::to_string(tables_.size());
-  properties["version_major"] = std::to_string(VERSION_MAJOR);
-  properties["version_minor"] = std::to_string(VERSION_MINOR);
-  return properties;
+  return stats;
 }
+
+// std::map<std::string, std::string> Map::getProperties() const {
+//  MT_REQUIRE_FALSE(tables_.empty());
+
+//  internal::Table::Stats stats;
+//  for (const auto& table : tables_) {
+//    stats.combine(table->getStats());
+//  }
+//  auto properties = stats.toProperties();
+//  properties["num_shards"] = std::to_string(tables_.size());
+//  properties["version_major"] = std::to_string(VERSION_MAJOR);
+//  properties["version_minor"] = std::to_string(VERSION_MINOR);
+//  return properties;
+//}
 
 namespace internal {
 
-Id Id::readFromFile(const boost::filesystem::path& path) {
+Id Id::readFromFile(const boost::filesystem::path& file) {
+  std::ifstream ifs(file.string());
+  mt::check(ifs, "Could not open '%s' for reading", file.c_str());
   Id id;
-  std::ifstream(path.string()).read(reinterpret_cast<char*>(&id), sizeof id);
+  ifs.read(reinterpret_cast<char*>(&id), sizeof id);
+  mt::check(ifs, "std::ifstream::read() failed()");
   return id;
 }
 
-void Id::writeToFile(const Id& id, const boost::filesystem::path& path) {
-  std::ofstream(path.string())
-      .write(reinterpret_cast<const char*>(&id), sizeof id);
+void Id::writeToFile(const boost::filesystem::path& file) const {
+  std::ofstream ofs(file.string());
+  mt::check(ofs, "Could not create '%s' for writing", file.c_str());
+  ofs.write(reinterpret_cast<const char*>(this), sizeof *this);
+  mt::check(ofs, "std::ofstream::write() failed");
 }
 
-const std::string& getFilePrefix() {
-  static const std::string result = "multimap";
-  return result;
+const std::string getFilePrefix() { return "multimap"; }
+
+const std::string getNameOfIdFile() { return getFilePrefix() + ".id"; }
+
+const std::string getNameOfLockFile() { return getFilePrefix() + ".lock"; }
+
+const std::string getNameOfKeysFile(std::size_t index) {
+  const auto prefix = getFilePrefix() + '.' + std::to_string(index);
+  return Table::getNameOfKeysFile(prefix);
 }
 
-const std::string& getNameOfIdFile() {
-  static const std::string result = getFilePrefix() + ".id";
-  return result;
+const std::string getNameOfStatsFile(std::size_t index) {
+  const auto prefix = getFilePrefix() + '.' + std::to_string(index);
+  return Table::getNameOfStatsFile(prefix);
 }
 
-const std::string& getNameOfLockFile() {
-  static const std::string result = getFilePrefix() + ".lock";
-  return result;
+const std::string getNameOfValuesFile(std::size_t index) {
+  const auto prefix = getFilePrefix() + '.' + std::to_string(index);
+  return Table::getNameOfValuesFile(prefix);
 }
 
 void checkVersion(std::uint32_t id_major, std::uint32_t id_minor) {

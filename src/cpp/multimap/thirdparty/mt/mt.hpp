@@ -32,7 +32,7 @@
 
 namespace mt {
 
-static const std::size_t VERSION = 20151119;
+static const std::size_t VERSION = 20151120;
 
 // -----------------------------------------------------------------------------
 // COMMON
@@ -50,6 +50,10 @@ constexpr std::size_t MiB(std::size_t mebibytes) { return mebibytes << 20; }
 
 constexpr std::size_t GiB(std::size_t gibibytes) { return gibibytes << 30; }
 // Converts a number in gibibytes to the equivalent number in bytes.
+
+constexpr bool is32BitSystem() { return sizeof(void*) == 4; }
+
+constexpr bool is64BitSystem() { return sizeof(void*) == 8; }
 
 // -----------------------------------------------------------------------------
 // HASHING
@@ -74,38 +78,75 @@ std::uint64_t fnv1aHash64(const void* buf, std::size_t len);
 //  * Parameter hashval removed, internally set to FNV1A_64_INIT.
 //  * More C++ like coding style.
 
+inline std::size_t fnv1aHash(const void* buf, std::size_t len) {
+  return is64BitSystem() ? fnv1aHash64(buf, len) : fnv1aHash32(buf, len);
+  // The compiler will optimize away branching here.
+}
+// Dispatching function to choose either `fnv1aHash32()` or `fnv1aHash64()`
+// depending on the actual system.
+
 // -----------------------------------------------------------------------------
 // ERROR HANDLING
 
-void fail(const char* message);
-
-void fail(const std::string& message);
-
-void failFormat(const char* format, ...);
-
-void check(bool expression, const char* format, ...);
-
 namespace internal {
 
-std::string printFormatVargs(const char* format, va_list args);
+std::string toString(const char* format, va_list args);
+
+void toString(const char* format, va_list args, std::string* output);
 
 } // namespace internal
+
+#define __MT_TO_STRING(format, args, output)                                   \
+  va_start(args, format);                                                      \
+  internal::toString(format, args, output);                                    \
+  va_end(args)
+
+template <typename Error = std::runtime_error>
+void fail(const char* format, ...) {
+  va_list args;
+  std::string message;
+  __MT_TO_STRING(format, args, &message);
+  throw Error(message);
+}
+
+template <typename Error = std::runtime_error>
+void check(bool expression, const char* format, ...) {
+  if (!expression) {
+    va_list args;
+    std::string message;
+    __MT_TO_STRING(format, args, &message);
+    throw Error(message);
+  }
+}
 
 struct Check {
   // TODO Make descriptive error messages.
 
-  static void isTrue(bool expression, const char* format, ...);
+  static void isTrue(bool expression, const char* format, ...) {
+    if (!expression) {
+      va_list args;
+      std::string message;
+      __MT_TO_STRING(format, args, &message);
+      throw std::runtime_error(message);
+    }
+  }
 
-  static void isFalse(bool expression, const char* format, ...);
+  static void isFalse(bool expression, const char* format, ...) {
+    if (expression) {
+      va_list args;
+      std::string message;
+      __MT_TO_STRING(format, args, &message);
+      throw std::runtime_error(message);
+    }
+  }
 
   template <typename T>
   static void isNull(const T* pointer, const char* format, ...) {
     if (pointer != nullptr) {
       va_list args;
-      va_start(args, format);
-      const auto msg = internal::printFormatVargs(format, args);
-      va_end(args);
-      fail(msg);
+      std::string message;
+      __MT_TO_STRING(format, args, &message);
+      throw std::runtime_error(message);
     }
   }
 
@@ -113,10 +154,9 @@ struct Check {
   static void notNull(const T* pointer, const char* format, ...) {
     if (pointer == nullptr) {
       va_list args;
-      va_start(args, format);
-      const auto msg = internal::printFormatVargs(format, args);
-      va_end(args);
-      fail(msg);
+      std::string message;
+      __MT_TO_STRING(format, args, &message);
+      throw std::runtime_error(message);
     }
   }
 
@@ -124,10 +164,9 @@ struct Check {
   static void isZero(const T& value, const char* format, ...) {
     if (value != 0) {
       va_list args;
-      va_start(args, format);
-      const auto msg = internal::printFormatVargs(format, args);
-      va_end(args);
-      fail(msg);
+      std::string message;
+      __MT_TO_STRING(format, args, &message);
+      throw std::runtime_error(message);
     }
   }
 
@@ -135,10 +174,9 @@ struct Check {
   static void notZero(const T& value, const char* format, ...) {
     if (value == 0) {
       va_list args;
-      va_start(args, format);
-      const auto msg = internal::printFormatVargs(format, args);
-      va_end(args);
-      fail(msg);
+      std::string message;
+      __MT_TO_STRING(format, args, &message);
+      throw std::runtime_error(message);
     }
   }
 
@@ -146,10 +184,9 @@ struct Check {
   static void isEqual(const A& a, const B& b, const char* format, ...) {
     if (!(a == b)) {
       va_list args;
-      va_start(args, format);
-      const auto msg = internal::printFormatVargs(format, args);
-      va_end(args);
-      fail(msg);
+      std::string message;
+      __MT_TO_STRING(format, args, &message);
+      throw std::runtime_error(message);
     }
   }
 
@@ -157,10 +194,9 @@ struct Check {
   static void notEqual(const A& a, const B& b, const char* format, ...) {
     if (!(a != b)) {
       va_list args;
-      va_start(args, format);
-      const auto msg = internal::printFormatVargs(format, args);
-      va_end(args);
-      fail(msg);
+      std::string message;
+      __MT_TO_STRING(format, args, &message);
+      throw std::runtime_error(message);
     }
   }
 
@@ -168,10 +204,9 @@ struct Check {
   static void isLessThan(const A& a, const B& b, const char* format, ...) {
     if (!(a < b)) {
       va_list args;
-      va_start(args, format);
-      const auto msg = internal::printFormatVargs(format, args);
-      va_end(args);
-      fail(msg);
+      std::string message;
+      __MT_TO_STRING(format, args, &message);
+      throw std::runtime_error(message);
     }
   }
 
@@ -179,10 +214,9 @@ struct Check {
   static void isLessEqual(const A& a, const B& b, const char* format, ...) {
     if (!(a <= b)) {
       va_list args;
-      va_start(args, format);
-      const auto msg = internal::printFormatVargs(format, args);
-      va_end(args);
-      fail(msg);
+      std::string message;
+      __MT_TO_STRING(format, args, &message);
+      throw std::runtime_error(message);
     }
   }
 
@@ -190,10 +224,9 @@ struct Check {
   static void isGreaterThan(const A& a, const B& b, const char* format, ...) {
     if (!(a > b)) {
       va_list args;
-      va_start(args, format);
-      const auto msg = internal::printFormatVargs(format, args);
-      va_end(args);
-      fail(msg);
+      std::string message;
+      __MT_TO_STRING(format, args, &message);
+      throw std::runtime_error(message);
     }
   }
 
@@ -201,10 +234,9 @@ struct Check {
   static void isGreaterEqual(const A& a, const B& b, const char* format, ...) {
     if (!(a >= b)) {
       va_list args;
-      va_start(args, format);
-      const auto msg = internal::printFormatVargs(format, args);
-      va_end(args);
-      fail(msg);
+      std::string message;
+      __MT_TO_STRING(format, args, &message);
+      throw std::runtime_error(message);
     }
   }
 
@@ -310,10 +342,6 @@ void writePropertiesToFile(const Properties& properties,
 
 // -----------------------------------------------------------------------------
 // TYPE TRAITS
-
-constexpr bool is32BitSystem() { return sizeof(void*) == 4; }
-
-constexpr bool is64BitSystem() { return sizeof(void*) == 8; }
 
 template <typename T>
 constexpr bool hasExpectedSize(std::size_t size_on_32_bit_system,

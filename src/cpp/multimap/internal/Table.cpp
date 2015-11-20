@@ -26,41 +26,37 @@ namespace internal {
 
 namespace {
 
-const char* STORE_FILE_SUFFIX = ".store";
-const char* TABLE_FILE_SUFFIX = ".table";
+struct Entry : public std::pair<Bytes, List::Head> {
 
-typedef std::pair<Bytes, List::Head> Entry;
+  typedef std::pair<Bytes, List::Head> Base;
 
-Entry readEntryFromFile(std::FILE* file, Arena* arena) {
-  std::int32_t key_size;
-  System::read(file, &key_size, sizeof key_size);
-  const auto key_data = arena->allocate(key_size);
-  System::read(file, key_data, key_size);
-  const auto head = List::Head::readFromFile(file);
-  return std::make_pair(Bytes(key_data, key_size), head);
-}
+  Entry(Bytes&& key, List::Head&& head) : Base(key, head) {}
 
-void writeEntryToFile(const Entry& entry, std::FILE* file) {
-  const auto& key = entry.first;
-  MT_REQUIRE_LE(key.size(), Table::Limits::getMaxKeySize());
+  Entry(const Bytes& key, const List::Head& head) : Base(key, head) {}
 
-  const std::int32_t key_size = key.size();
-  System::write(file, &key_size, sizeof key_size);
-  System::write(file, key.data(), key.size());
-  entry.second.writeToFile(file);
-}
+  Bytes& key() { return first; }
+  const Bytes& key() const { return first; }
 
-Table::Stats readStatsFromTail(std::FILE* file) {
-  Table::Stats stats;
-  System::seek(file, -(sizeof stats), SEEK_END);
-  System::read(file, &stats, sizeof stats);
-  return stats;
-}
+  List::Head& head() { return second; }
+  const List::Head& head() const { return second; }
 
-void writeStatsToTail(const Table::Stats& stats, std::FILE* file) {
-  System::seek(file, 0, SEEK_END);
-  System::write(file, &stats, sizeof stats);
-}
+  static Entry readFromStream(std::FILE* stream, Arena* arena) {
+    std::int32_t key_size;
+    System::read(stream, &key_size, sizeof key_size);
+    const auto key_data = arena->allocate(key_size);
+    System::read(stream, key_data, key_size);
+    auto head = List::Head::readFromStream(stream);
+    return Entry(Bytes(key_data, key_size), std::move(head));
+  }
+
+  void writeToStream(std::FILE* stream) const {
+    MT_REQUIRE_LE(key().size(), Table::Limits::getMaxKeySize());
+    const std::int32_t key_size = key().size();
+    System::write(stream, &key_size, sizeof key_size);
+    System::write(stream, key().data(), key().size());
+    head().writeToStream(stream);
+  }
+};
 
 } // namespace
 
@@ -68,31 +64,6 @@ std::size_t Table::Limits::getMaxKeySize() { return Varint::Limits::MAX_N4; }
 
 std::size_t Table::Limits::getMaxValueSize() {
   return List::Limits::getMaxValueSize();
-}
-
-Table::Stats& Table::Stats::combine(const Stats& other) {
-  num_values_added += other.num_values_added;
-  num_values_removed += other.num_values_removed;
-  num_values_unowned += other.num_values_unowned;
-  if (other.num_keys != 0) {
-    key_size_min = std::min(key_size_min, other.key_size_min);
-    key_size_max = std::max(key_size_max, other.key_size_max);
-    const double total_keys = num_keys + other.num_keys;
-    key_size_avg = ((num_keys / total_keys) * key_size_avg) +
-                   ((other.num_keys / total_keys) * other.key_size_avg);
-    // new_avg = (weight * avg'old) + (weight'other * avg'other)
-    list_size_min = std::min(list_size_min, other.list_size_min);
-    list_size_max = std::max(list_size_max, other.list_size_max);
-    list_size_avg = ((num_keys / total_keys) * list_size_avg) +
-                    ((other.num_keys / total_keys) * other.list_size_avg);
-    // new_avg = (weight * avg'old) + (weight'other * avg'other)
-    num_keys += other.num_keys;
-  }
-  return *this;
-}
-
-Table::Stats Table::Stats::combine(const Stats& a, const Stats& b) {
-  return Stats(a).combine(b);
 }
 
 Table::Stats Table::Stats::fromProperties(const mt::Properties& properties) {
@@ -125,33 +96,153 @@ mt::Properties Table::Stats::toProperties() const {
   return properties;
 }
 
-Table::Table(const boost::filesystem::path& filepath_prefix)
-    : Table(filepath_prefix, Options()) {}
+Table::Stats Table::Stats::readFromFile(const boost::filesystem::path& file) {
+  std::ifstream ifs(file.string());
+  mt::check(ifs, "Could not open '%s' for reading", file.c_str());
+  Stats stats;
+  ifs.read(reinterpret_cast<char*>(&stats), sizeof stats);
+  mt::check(ifs, "std::ifstream::read() failed()");
+  return stats;
+}
 
-Table::Table(const boost::filesystem::path& filepath_prefix,
+void Table::Stats::writeToFile(const boost::filesystem::path& file) const {
+  std::ofstream ofs(file.string());
+  mt::check(ofs, "Could not create '%s' for writing", file.c_str());
+  ofs.write(reinterpret_cast<const char*>(this), sizeof *this);
+  mt::check(ofs, "std::ofstream::write() failed");
+}
+
+// Table::Stats& Table::Stats::combine(const Stats& other) {
+//  if (block_size == 0) {
+//    block_size = other.block_size;
+//  } else {
+//    MT_ASSERT_EQ(block_size, other.block_size);
+//  }
+//  num_blocks += other.num_blocks;
+//  num_values_added += other.num_values_added;
+//  num_values_removed += other.num_values_removed;
+//  num_values_unowned += other.num_values_unowned;
+//  if (other.num_keys != 0) {
+//    key_size_min = std::min(key_size_min, other.key_size_min);
+//    key_size_max = std::max(key_size_max, other.key_size_max);
+//    const double total_keys = num_keys + other.num_keys;
+//    key_size_avg = ((num_keys / total_keys) * key_size_avg) +
+//                   ((other.num_keys / total_keys) * other.key_size_avg);
+//    // new_avg = (weight * avg'old) + (weight'other * avg'other)
+//    list_size_min = std::min(list_size_min, other.list_size_min);
+//    list_size_max = std::max(list_size_max, other.list_size_max);
+//    list_size_avg = ((num_keys / total_keys) * list_size_avg) +
+//                    ((other.num_keys / total_keys) * other.list_size_avg);
+//    // new_avg = (weight * avg'old) + (weight'other * avg'other)
+//    num_keys += other.num_keys;
+//  }
+//  return *this;
+//}
+
+Table::Stats Table::Stats::total(const std::vector<Stats>& stats) {
+  Table::Stats total;
+  for (const auto& stat : stats) {
+    if (total.block_size == 0) {
+      total.block_size = stat.block_size;
+    } else {
+      MT_ASSERT_EQ(total.block_size, stat.block_size);
+    }
+    total.num_blocks += stat.num_blocks;
+    total.num_keys += stat.num_keys;
+    total.num_values_added += stat.num_values_added;
+    total.num_values_removed += stat.num_values_removed;
+    total.num_values_unowned += stat.num_values_unowned;
+    if (total.key_size_min == 0) {
+      total.key_size_min = stat.key_size_min;
+    } else {
+      total.key_size_min = std::min(total.key_size_min, stat.key_size_min);
+    }
+    total.key_size_max = std::max(total.key_size_max, stat.key_size_max);
+    if (total.list_size_min == 0) {
+      total.list_size_min = stat.list_size_min;
+    } else {
+      total.list_size_min = std::min(total.list_size_min, stat.list_size_min);
+    }
+    total.list_size_max = std::max(total.list_size_max, stat.list_size_max);
+  }
+  if (total.num_keys != 0) {
+    double key_size_avg = 0;
+    double list_size_avg = 0;
+    for (const auto& stat : stats) {
+      const auto weight = stat.num_keys / static_cast<double>(total.num_keys);
+      key_size_avg += weight * stat.key_size_avg;
+      list_size_avg += weight * stat.list_size_avg;
+    }
+    total.key_size_avg = key_size_avg;
+    total.list_size_avg = list_size_avg;
+  }
+  return total;
+}
+
+Table::Stats Table::Stats::max(const std::vector<Stats>& stats) {
+  Table::Stats max;
+  for (const auto& stat : stats) {
+    max.block_size = std::max(max.block_size, stat.block_size);
+    max.num_blocks = std::max(max.num_blocks, stat.num_blocks);
+    max.num_keys = std::max(max.num_keys, stat.num_keys);
+    max.num_values_added =
+        std::max(max.num_values_added, stat.num_values_added);
+    max.num_values_removed =
+        std::max(max.num_values_removed, stat.num_values_removed);
+    max.num_values_unowned =
+        std::max(max.num_values_unowned, stat.num_values_unowned);
+    max.key_size_min = std::max(max.key_size_min, stat.key_size_min);
+    max.key_size_max = std::max(max.key_size_max, stat.key_size_max);
+    max.key_size_avg = std::max(max.key_size_avg, stat.key_size_avg);
+    max.list_size_min = std::max(max.list_size_min, stat.list_size_min);
+    max.list_size_max = std::max(max.list_size_max, stat.list_size_max);
+    max.list_size_avg = std::max(max.list_size_avg, stat.list_size_avg);
+  }
+  return max;
+}
+
+std::vector<std::uint64_t> Table::Stats::toVector() const {
+  return { block_size,       num_blocks,         num_keys,
+           num_values_added, num_values_removed, num_values_unowned,
+           key_size_min,     key_size_max,       key_size_avg,
+           list_size_min,    list_size_max,      list_size_avg };
+}
+
+const std::vector<std::string>& Table::Stats::names() {
+  static std::vector<std::string> names = {
+    "block_size",       "num_blocks",         "num_keys",
+    "num_values_added", "num_values_removed", "num_values_unowned",
+    "key_size_min",     "key_size_max",       "key_size_avg",
+    "list_size_min",    "list_size_max",      "list_size_avg"
+  };
+  return names;
+}
+
+Table::Table(const boost::filesystem::path& file_prefix)
+    : Table(file_prefix, Options()) {}
+
+Table::Table(const boost::filesystem::path& file_prefix,
              const Options& options) {
-  const auto table_filepath = filepath_prefix.string() + TABLE_FILE_SUFFIX;
-  const auto store_filepath = filepath_prefix.string() + STORE_FILE_SUFFIX;
-
-  if (boost::filesystem::is_regular_file(table_filepath)) {
+  const auto stats_file = getNameOfStatsFile(file_prefix.string());
+  if (boost::filesystem::is_regular_file(stats_file)) {
     mt::check(!options.error_if_exists, "Already exists");
 
-    const mt::AutoCloseFile file(std::fopen(table_filepath.c_str(), "r"));
-    MT_ASSERT_NOT_NULL(file.get());
-
-    old_stats_ = readStatsFromTail(file.get());
-    System::seek(file.get(), 0, SEEK_SET);
-    for (std::size_t i = 0; i != old_stats_.num_keys; ++i) {
-      const auto entry = readEntryFromFile(file.get(), &arena_);
-      map_[entry.first].reset(new List(entry.second));
+    stats_ = Stats::readFromFile(stats_file);
+    const auto keys_file = getNameOfKeysFile(file_prefix.string());
+    const mt::AutoCloseFile stream(std::fopen(keys_file.c_str(), "r"));
+    // TODO Replace by mt::open().
+    MT_ASSERT_NOT_NULL(stream.get());
+    for (std::size_t i = 0; i != stats_.num_keys; ++i) {
+      const auto entry = Entry::readFromStream(stream.get(), &arena_);
+      map_[entry.key()].reset(new List(entry.head()));
     }
 
   } else if (options.create_if_missing) {
     // Nothing to do here.
 
   } else {
-    mt::failFormat("Could not open '%s' because it does not exist",
-                   table_filepath.c_str());
+    mt::fail("Could not open '%s' because it does not exist",
+             stats_file.c_str());
   }
 
   Store::Options store_opts;
@@ -160,24 +251,27 @@ Table::Table(const boost::filesystem::path& filepath_prefix,
   store_opts.create_if_missing = options.create_if_missing;
   store_opts.error_if_exists = options.error_if_exists;
   store_opts.readonly = options.readonly;
-  store_.reset(new Store(store_filepath, store_opts));
-  prefix_ = filepath_prefix;
+  const auto values_file = getNameOfValuesFile(file_prefix.string());
+  store_.reset(new Store(values_file, store_opts));
+  prefix_ = file_prefix;
 }
 
 Table::~Table() {
   if (!prefix_.empty() && !isReadOnly()) {
-    const auto filepath = prefix_.string() + TABLE_FILE_SUFFIX;
-    const auto old_filepath = filepath + ".old";
-    if (boost::filesystem::is_regular_file(filepath)) {
-      boost::filesystem::rename(filepath, old_filepath);
+    const auto keys_file = getNameOfKeysFile(prefix_.string());
+    const auto old_keys_file = keys_file + ".old";
+    if (boost::filesystem::is_regular_file(keys_file)) {
+      boost::filesystem::rename(keys_file, old_keys_file);
     }
 
-    const mt::AutoCloseFile file(std::fopen(filepath.c_str(), "w"));
-    MT_ASSERT_NOT_NULL(file.get());
-    const auto status = std::setvbuf(file.get(), nullptr, _IOFBF, mt::MiB(1));
-    MT_ASSERT_ZERO(status);
+    const mt::AutoCloseFile stream(std::fopen(keys_file.c_str(), "w"));
+    MT_ASSERT_NOT_NULL(stream.get());
 
     Stats stats;
+    const auto store_stats = store_->getStats();
+    stats.block_size = store_stats.block_size;
+    stats.num_blocks = store_stats.num_blocks;
+    stats.num_values_unowned = stats_.num_values_unowned;
     for (const auto& entry : map_) {
       const auto list = entry.second.get();
       if (list->is_locked()) {
@@ -200,11 +294,19 @@ Table::~Table() {
         stats.num_values_removed += list->head().num_values_removed;
         stats.key_size_avg += entry.first.size();
         stats.key_size_max = std::max(stats.key_size_max, entry.first.size());
-        stats.key_size_min = std::min(stats.key_size_min, entry.first.size());
+        if (stats.key_size_min == 0) {
+          stats.key_size_min = entry.first.size();
+        } else {
+          stats.key_size_min = std::min(stats.key_size_min, entry.first.size());
+        }
         stats.list_size_avg += list->size();
         stats.list_size_max = std::max(stats.list_size_max, list->size());
-        stats.list_size_min = std::min(stats.list_size_min, list->size());
-        writeEntryToFile(Entry(entry.first, list->head()), file.get());
+        if (stats.list_size_min == 0) {
+          stats.list_size_min = list->size();
+        } else {
+          stats.list_size_min = std::min(stats.list_size_min, list->size());
+        }
+        Entry(entry.first, list->head()).writeToStream(stream.get());
       }
     }
 
@@ -212,12 +314,10 @@ Table::~Table() {
       stats.key_size_avg /= stats.num_keys;
       stats.list_size_avg /= stats.num_keys;
     }
+    stats.writeToFile(getNameOfStatsFile(prefix_.string()));
 
-    stats.num_values_unowned += old_stats_.num_values_unowned;
-    writeStatsToTail(stats, file.get());
-
-    if (boost::filesystem::is_regular_file(old_filepath)) {
-      const auto status = boost::filesystem::remove(old_filepath);
+    if (boost::filesystem::is_regular_file(old_keys_file)) {
+      const auto status = boost::filesystem::remove(old_keys_file);
       MT_ASSERT_TRUE(status);
     }
   }
@@ -299,14 +399,26 @@ void Table::forEachEntry(BinaryProcedure action) const {
 
 Table::Stats Table::getStats() const {
   Stats stats;
+  const auto store_stats = store_->getStats();
+  stats.block_size = store_stats.block_size;
+  stats.num_blocks = store_stats.num_blocks;
+  stats.num_values_unowned = stats_.num_values_unowned;
   forEachEntry([&stats](const Bytes& key, SharedList&& list) {
     ++stats.num_keys;
     stats.num_values_added += list.head().num_values_added;
     stats.num_values_removed += list.head().num_values_removed;
-    stats.key_size_min = std::min(stats.key_size_min, key.size());
+    if (stats.key_size_min == 0) {
+      stats.key_size_min = key.size();
+    } else {
+      stats.key_size_min = std::min(stats.key_size_min, key.size());
+    }
     stats.key_size_max = std::max(stats.key_size_max, key.size());
     stats.key_size_avg += key.size();
-    stats.list_size_min = std::min(stats.list_size_min, list.size());
+    if (stats.list_size_min == 0) {
+      stats.list_size_min = list.size();
+    } else {
+      stats.list_size_min = std::min(stats.list_size_min, list.size());
+    }
     stats.list_size_max = std::max(stats.list_size_max, list.size());
     stats.list_size_avg += list.size();
   });
@@ -314,8 +426,19 @@ Table::Stats Table::getStats() const {
     stats.key_size_avg /= stats.num_keys;
     stats.list_size_avg /= stats.num_keys;
   }
-  stats.num_values_unowned = old_stats_.num_values_unowned;
   return stats;
+}
+
+std::string Table::getNameOfKeysFile(const std::string& prefix) {
+  return prefix + ".keys";
+}
+
+std::string Table::getNameOfStatsFile(const std::string& prefix) {
+  return prefix + ".stats";
+}
+
+std::string Table::getNameOfValuesFile(const std::string& prefix) {
+  return prefix + ".values";
 }
 
 } // namespace internal
