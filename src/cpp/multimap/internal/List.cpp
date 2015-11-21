@@ -17,8 +17,6 @@
 
 #include "multimap/internal/List.hpp"
 
-#include "multimap/internal/System.hpp"
-
 namespace multimap {
 namespace internal {
 
@@ -84,17 +82,15 @@ std::size_t List::Limits::getMaxValueSize() {
 
 List::Head List::Head::readFromStream(std::FILE* stream) {
   Head head;
-  // TODO Move read/write into MT lib.
-  System::read(stream, &head.num_values_added, sizeof head.num_values_added);
-  System::read(stream, &head.num_values_removed,
-               sizeof head.num_values_removed);
+  mt::read(stream, &head.num_values_added, sizeof head.num_values_added);
+  mt::read(stream, &head.num_values_removed, sizeof head.num_values_removed);
   head.block_ids = UintVector::readFromStream(stream);
   return head;
 }
 
 void List::Head::writeToStream(std::FILE* stream) const {
-  System::write(stream, &num_values_added, sizeof num_values_added);
-  System::write(stream, &num_values_removed, sizeof num_values_removed);
+  mt::write(stream, &num_values_added, sizeof num_values_added);
+  mt::write(stream, &num_values_removed, sizeof num_values_removed);
   block_ids.writeToStream(stream);
 }
 

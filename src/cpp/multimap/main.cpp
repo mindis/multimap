@@ -159,16 +159,18 @@ void runHelpCommand(const char* tool_name) {
 }
 
 void runStatsCommand(const CommandLine& cmd) {
+  const auto stats = multimap::stats(cmd.map);
+  const int first_column_width = std::to_string(stats.size()).size();
+
   const auto names = multimap::internal::Table::Stats::names();
-  const int name_width =
+  const int second_column_width =
       std::max_element(names.begin(), names.end(),
                        [](const std::string& a, const std::string& b) {
                          return a.size() < b.size();
                        })->size();
 
-  const auto stats = multimap::stats(cmd.map);
   const auto totals = multimap::internal::Table::Stats::total(stats).toVector();
-  const int value_width =
+  const int third_column_width =
       std::to_string(*std::max_element(totals.begin(), totals.end())).size();
 
   const auto stars = [](double value, double max) {
@@ -177,20 +179,21 @@ void runStatsCommand(const CommandLine& cmd) {
   };
 
   const auto max = multimap::internal::Table::Stats::max(stats).toVector();
-  for (std::size_t i = 0; i != stats.size(); ++i) {
+  for (std::uint32_t i = 0; i != stats.size(); ++i) {
     const auto stat = stats[i].toVector();
-    std::printf("SHARD #%" PRIuMAX "\n", i);
     for (std::size_t j = 0; j != stat.size(); ++j) {
-      std::printf("%-*s %-*" PRIu64 " %s\n", name_width, names[j].c_str(),
-                  value_width, stat[j], stars(stat[j], max[j]).c_str());
+      std::printf("#%-*" PRIu32 " %-*s %-*" PRIu64 " %s\n", first_column_width,
+                  i, second_column_width, names[j].c_str(), third_column_width,
+                  stat[j], stars(stat[j], max[j]).c_str());
     }
     std::printf("\n");
   }
 
-  std::printf("TOTAL\n");
+  const auto hashes = [](std::size_t num) { return std::string(num, '#'); };
   for (std::size_t i = 0; i != totals.size(); ++i) {
-    std::printf("%-*s %-*" PRIu64 "\n", name_width, names[i].c_str(),
-                value_width, totals[i]);
+    std::printf("#%s %-*s %-*" PRIu64 "\n", hashes(first_column_width).c_str(),
+                second_column_width, names[i].c_str(), third_column_width,
+                totals[i]);
   }
 }
 

@@ -17,9 +17,7 @@
 
 #include "multimap/internal/UintVector.hpp"
 
-#include <cassert>
 #include <cstring>
-#include "multimap/internal/System.hpp"
 
 namespace multimap {
 namespace internal {
@@ -58,17 +56,16 @@ UintVector& UintVector::operator=(const UintVector& other) {
 
 UintVector UintVector::readFromStream(std::FILE* stream) {
   UintVector vector;
-  System::read(stream, &vector.offset_, sizeof vector.offset_);
+  mt::read(stream, &vector.offset_, sizeof vector.offset_);
   vector.data_.reset(new char[vector.offset_]);
-  System::read(stream, vector.data_.get(), vector.offset_);
+  mt::read(stream, vector.data_.get(), vector.offset_);
   vector.size_ = vector.offset_;
   return vector;
 }
 
 void UintVector::writeToStream(std::FILE* stream) const {
-  assert(!empty());
-  System::write(stream, &offset_, sizeof offset_);
-  System::write(stream, data_.get(), offset_);
+  mt::write(stream, &offset_, sizeof offset_);
+  mt::write(stream, data_.get(), offset_);
 }
 
 std::vector<std::uint32_t> UintVector::unpack() const {

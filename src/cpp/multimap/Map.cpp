@@ -26,9 +26,9 @@ namespace multimap {
 namespace {
 
 void checkOptions(const Options& options) {
-  mt::check(options.block_size != 0, "options.block_size must be positive");
+  mt::check(options.block_size != 0, "Options::block_size must be positive");
   mt::check(mt::isPowerOfTwo(options.block_size),
-            "options.block_size must be a power of two");
+            "Options::block_size must be a power of two");
 }
 
 internal::Table& getTable(

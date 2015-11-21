@@ -189,10 +189,12 @@ struct MapTestWithParam : public testing::TestWithParam<std::uint32_t> {
   void SetUp() override {
     directory = "/tmp/multimap.MapTestWithParam";
     boost::filesystem::remove_all(directory);
-    assert(boost::filesystem::create_directory(directory));
+    MT_ASSERT_TRUE(boost::filesystem::create_directory(directory));
   }
 
-  void TearDown() override { assert(boost::filesystem::remove_all(directory)); }
+  void TearDown() override {
+    MT_ASSERT_TRUE(boost::filesystem::remove_all(directory));
+  }
 
   boost::filesystem::path directory;
 };

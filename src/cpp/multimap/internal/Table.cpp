@@ -17,9 +17,7 @@
 
 #include "multimap/internal/Table.hpp"
 
-#include <limits>
 #include <boost/filesystem/operations.hpp>
-#include "multimap/internal/System.hpp"
 
 namespace multimap {
 namespace internal {
@@ -42,9 +40,9 @@ struct Entry : public std::pair<Bytes, List::Head> {
 
   static Entry readFromStream(std::FILE* stream, Arena* arena) {
     std::int32_t key_size;
-    System::read(stream, &key_size, sizeof key_size);
+    mt::read(stream, &key_size, sizeof key_size);
     const auto key_data = arena->allocate(key_size);
-    System::read(stream, key_data, key_size);
+    mt::read(stream, key_data, key_size);
     auto head = List::Head::readFromStream(stream);
     return Entry(Bytes(key_data, key_size), std::move(head));
   }
@@ -52,8 +50,8 @@ struct Entry : public std::pair<Bytes, List::Head> {
   void writeToStream(std::FILE* stream) const {
     MT_REQUIRE_LE(key().size(), Table::Limits::getMaxKeySize());
     const std::int32_t key_size = key().size();
-    System::write(stream, &key_size, sizeof key_size);
-    System::write(stream, key().data(), key().size());
+    mt::write(stream, &key_size, sizeof key_size);
+    mt::write(stream, key().data(), key().size());
     head().writeToStream(stream);
   }
 };
@@ -111,33 +109,6 @@ void Table::Stats::writeToFile(const boost::filesystem::path& file) const {
   ofs.write(reinterpret_cast<const char*>(this), sizeof *this);
   mt::check(ofs, "std::ofstream::write() failed");
 }
-
-// Table::Stats& Table::Stats::combine(const Stats& other) {
-//  if (block_size == 0) {
-//    block_size = other.block_size;
-//  } else {
-//    MT_ASSERT_EQ(block_size, other.block_size);
-//  }
-//  num_blocks += other.num_blocks;
-//  num_values_added += other.num_values_added;
-//  num_values_removed += other.num_values_removed;
-//  num_values_unowned += other.num_values_unowned;
-//  if (other.num_keys != 0) {
-//    key_size_min = std::min(key_size_min, other.key_size_min);
-//    key_size_max = std::max(key_size_max, other.key_size_max);
-//    const double total_keys = num_keys + other.num_keys;
-//    key_size_avg = ((num_keys / total_keys) * key_size_avg) +
-//                   ((other.num_keys / total_keys) * other.key_size_avg);
-//    // new_avg = (weight * avg'old) + (weight'other * avg'other)
-//    list_size_min = std::min(list_size_min, other.list_size_min);
-//    list_size_max = std::max(list_size_max, other.list_size_max);
-//    list_size_avg = ((num_keys / total_keys) * list_size_avg) +
-//                    ((other.num_keys / total_keys) * other.list_size_avg);
-//    // new_avg = (weight * avg'old) + (weight'other * avg'other)
-//    num_keys += other.num_keys;
-//  }
-//  return *this;
-//}
 
 Table::Stats Table::Stats::total(const std::vector<Stats>& stats) {
   Table::Stats total;
@@ -275,9 +246,9 @@ Table::~Table() {
     for (const auto& entry : map_) {
       const auto list = entry.second.get();
       if (list->is_locked()) {
-        System::log(__PRETTY_FUNCTION__)
-            << "List is still locked, data is possibly lost. Key was "
-            << entry.first.toString() << '\n';
+        mt::log() << "The list with the key '" << entry.first.toString()
+                  << "' was still locked when shutting down."
+                  << " Recent updates of the list may be lost.\n";
       }
       // We do not skip or even throw if a list is still locked to prevent data
       // loss. However, this causes a race which could let the program crash...

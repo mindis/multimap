@@ -216,7 +216,7 @@ struct ListTestIteration : testing::TestWithParam<std::uint32_t> {
   void SetUp() override {
     directory = "/tmp/multimap.ListTestIteration";
     boost::filesystem::remove_all(directory);
-    assert(boost::filesystem::create_directory(directory));
+    MT_ASSERT_TRUE(boost::filesystem::create_directory(directory));
 
     Store::Options store_opts;
     store_opts.block_size = 128;
@@ -227,7 +227,7 @@ struct ListTestIteration : testing::TestWithParam<std::uint32_t> {
 
   void TearDown() override {
     store.reset(); // Destructor flushes all data to disk.
-    assert(boost::filesystem::remove_all(directory));
+    MT_ASSERT_TRUE(boost::filesystem::remove_all(directory));
   }
 
   Store* getStore() { return store.get(); }
@@ -414,7 +414,7 @@ struct ListIteratorTestWithParam : testing::TestWithParam<std::uint32_t> {
   void SetUp() override {
     directory = "/tmp/multimap.ListIteratorTestWithParam";
     boost::filesystem::remove_all(directory);
-    assert(boost::filesystem::create_directory(directory));
+    MT_ASSERT_TRUE(boost::filesystem::create_directory(directory));
 
     // Replace `Map` by `Table`.
     Options options;
@@ -429,7 +429,7 @@ struct ListIteratorTestWithParam : testing::TestWithParam<std::uint32_t> {
 
   void TearDown() override {
     map = Map(); // We need the d'tor call here.
-    assert(boost::filesystem::remove_all(directory));
+    MT_ASSERT_TRUE(boost::filesystem::remove_all(directory));
   }
 
   Map map;

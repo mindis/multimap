@@ -39,7 +39,7 @@
 namespace {
 
 inline multimap::Map* Cast(JNIEnv* env, jobject self) {
-  assert(self != nullptr);
+  MT_REQUIRE_NOT_NULL(self);
   return static_cast<multimap::Map*>(env->GetDirectBufferAddress(self));
 }
 

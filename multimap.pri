@@ -15,7 +15,6 @@ HEADERS += \
     $$PWD/src/cpp/multimap/internal/Block.hpp \
     $$PWD/src/cpp/multimap/internal/List.hpp \
     $$PWD/src/cpp/multimap/internal/Store.hpp \
-    $$PWD/src/cpp/multimap/internal/System.hpp \
     $$PWD/src/cpp/multimap/internal/Table.hpp \
     $$PWD/src/cpp/multimap/internal/UintVector.hpp \
     $$PWD/src/cpp/multimap/internal/Varint.hpp \
@@ -32,7 +31,6 @@ SOURCES += \
     $$PWD/src/cpp/multimap/internal/Base64.cpp \
     $$PWD/src/cpp/multimap/internal/List.cpp \
     $$PWD/src/cpp/multimap/internal/Store.cpp \
-    $$PWD/src/cpp/multimap/internal/System.cpp \
     $$PWD/src/cpp/multimap/internal/Table.cpp \
     $$PWD/src/cpp/multimap/internal/UintVector.cpp \
     $$PWD/src/cpp/multimap/internal/Varint.cpp \

@@ -72,7 +72,7 @@ Holder<T>* NewHolder(T&& element) {
 inline Callables::Procedure makeProcedure(JNIEnv* env, jobject jprocedure) {
   const auto cls = env->GetObjectClass(jprocedure);
   const auto mid = env->GetMethodID(cls, "call", "(Ljava/nio/ByteBuffer;)V");
-  assert(mid != nullptr);
+  mt::Check::notNull(mid, "env->GetMethodID() failed");
   return [=](const multimap::Bytes& bytes) {
     // Note: java.nio.ByteBuffer cannot wrap a pointer to const void.
     // However, on Java side we will call ByteBuffer.asReadOnlyBuffer().
@@ -91,7 +91,7 @@ inline Callables::Procedure makeProcedure(JNIEnv* env, jobject jprocedure) {
 inline Callables::Predicate makePredicate(JNIEnv* env, jobject jpredicate) {
   const auto cls = env->GetObjectClass(jpredicate);
   const auto mid = env->GetMethodID(cls, "call", "(Ljava/nio/ByteBuffer;)Z");
-  assert(mid != nullptr);
+  mt::Check::notNull(mid, "env->GetMethodID() failed");
   return [=](const multimap::Bytes& bytes) {
     // Note: java.nio.ByteBuffer cannot wrap a pointer to const void.
     // However, on Java side we will call ByteBuffer.asReadOnlyBuffer().
@@ -111,7 +111,7 @@ inline Callables::Predicate makePredicate(JNIEnv* env, jobject jpredicate) {
 inline Callables::Function makeFunction(JNIEnv* env, jobject jfunction) {
   const auto cls = env->GetObjectClass(jfunction);
   const auto mid = env->GetMethodID(cls, "call", "(Ljava/nio/ByteBuffer;)[B");
-  assert(mid != nullptr);
+  mt::Check::notNull(mid, "env->GetMethodID() failed");
   return [=](const multimap::Bytes& bytes) {
     // Note: java.nio.ByteBuffer cannot wrap a pointer to const void.
     // However, on Java side we will call ByteBuffer.asReadOnlyBuffer().
@@ -134,7 +134,7 @@ inline Callables::Compare makeCompare(JNIEnv* env, jobject jless_than) {
   const auto cls = env->GetObjectClass(jless_than);
   const auto mid = env->GetMethodID(
       cls, "call", "(Ljava/nio/ByteBuffer;Ljava/nio/ByteBuffer;)Z");
-  assert(mid != nullptr);
+  mt::Check::notNull(mid, "env->GetMethodID() failed");
   return [=](const multimap::Bytes& lhs, const multimap::Bytes& rhs) {
     // Note: java.nio.ByteBuffer cannot wrap a pointer to const void.
     // However, on Java side we will call ByteBuffer.asReadOnlyBuffer().

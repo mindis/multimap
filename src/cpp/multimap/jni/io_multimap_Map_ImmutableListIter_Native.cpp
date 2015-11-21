@@ -24,7 +24,7 @@ typedef multimap::jni::Holder<multimap::Map::ListIterator>
     MutableListIterHolder;
 
 inline MutableListIterHolder* Cast(JNIEnv* env, jobject self) {
-  assert(self != nullptr);
+  MT_REQUIRE_NOT_NULL(self);
   return static_cast<MutableListIterHolder*>(env->GetDirectBufferAddress(self));
 }
 

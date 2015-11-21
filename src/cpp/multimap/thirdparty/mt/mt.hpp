@@ -19,6 +19,7 @@
 #define MT_MT_HPP_INCLUDED
 
 #include <cstdarg>
+#include <cstdio>
 #include <fstream>
 #include <iterator>
 #include <map>
@@ -54,6 +55,19 @@ constexpr std::size_t GiB(std::size_t gibibytes) { return gibibytes << 30; }
 constexpr bool is32BitSystem() { return sizeof(void*) == 4; }
 
 constexpr bool is64BitSystem() { return sizeof(void*) == 8; }
+
+// -----------------------------------------------------------------------------
+// LOGGING
+
+std::string timestamp();
+
+void printTimestamp(std::ostream& stream);
+
+std::ostream& log(std::ostream& stream);
+// Usage: mt::log(some_stream) << "Some message\n";
+
+std::ostream& log();
+// Usage: mt::log() << "Some message\n";
 
 // -----------------------------------------------------------------------------
 // HASHING
@@ -246,10 +260,10 @@ struct Check {
 // -----------------------------------------------------------------------------
 // INPUT / OUTPUT
 
-template <typename Container>
-std::insert_iterator<Container> inserter(Container& container) {
-  return std::inserter(container, container.end());
-}
+// template <typename Container>
+// std::insert_iterator<Container> inserter(Container& container) {
+//  return std::inserter(container, container.end());
+//}
 // Wrapper for `std::inserter` that only takes a container (and no iterator).
 
 struct Files {
@@ -303,6 +317,21 @@ public:
 private:
   std::FILE* file_ = nullptr;
 };
+
+inline AutoCloseFile open(const boost::filesystem::path& file,
+                          const char* mode) {
+  return AutoCloseFile(std::fopen(file.c_str(), mode));
+}
+
+inline void read(std::FILE* file, void* buffer, std::size_t count) {
+  const auto nbytes = std::fread(buffer, sizeof(char), count, file);
+  Check::isEqual(nbytes, count, "mt::read() failed");
+}
+
+inline void write(std::FILE* file, const void* buffer, std::size_t count) {
+  const auto nbytes = std::fwrite(buffer, sizeof(char), count, file);
+  Check::isEqual(nbytes, count, "mt::write() failed");
+}
 
 class DirectoryLockGuard {
 public:
