@@ -9,12 +9,11 @@ COMMON = multimap.pri
 
 unix {
     multimap.path = /usr/include/multimap
-    multimap.files += ../src/cpp/multimap/*.h
-    multimap.files += ../src/cpp/multimap/*.hpp
+    multimap.files += ../src/cpp/multimap/*.h*
     INSTALLS += multimap
 
     multimap_internal.path = /usr/include/multimap/internal
-    multimap_internal.files += ../src/cpp/multimap/internal/*.hpp
+    multimap_internal.files += ../src/cpp/multimap/internal/*.h*
     INSTALLS += multimap_internal
 
     multimap_thirdparty_mt.path = /usr/include/multimap/thirdparty/mt
@@ -27,6 +26,4 @@ unix {
 
     target.path = /usr/lib
     INSTALLS += target
-
-#    QMAKE_STRIP = echo
 }

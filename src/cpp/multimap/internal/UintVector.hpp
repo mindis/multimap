@@ -22,8 +22,8 @@
 #include <cstdint>
 #include <memory>
 #include <vector>
-#include "multimap/thirdparty/mt/mt.hpp"
 #include "multimap/internal/Varint.hpp"
+#include "multimap/thirdparty/mt/mt.hpp"
 
 namespace multimap {
 namespace internal {

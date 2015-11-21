@@ -6,7 +6,8 @@ QMAKE_LFLAGS += -rdynamic
 # Needed for GNU backtrace
 
 INCLUDEPATH += \
-    $$PWD/src/cpp
+    $$PWD/src/cpp \
+    $$PWD/src/cpp/multimap/thirdparty
 
 HEADERS += \
     $$PWD/src/cpp/multimap/internal/Arena.hpp \
@@ -37,7 +38,7 @@ SOURCES += \
     $$PWD/src/cpp/multimap/internal/Varint.cpp \
     $$PWD/src/cpp/multimap/thirdparty/mt/mt.cpp \
     $$PWD/src/cpp/multimap/thirdparty/xxhash/xxhash.c \
-    $$PWD/src/cpp/multimap/operations.cpp \
-    $$PWD/src/cpp/multimap/Map.cpp
+    $$PWD/src/cpp/multimap/Map.cpp \
+    $$PWD/src/cpp/multimap/operations.cpp
 
 unix|win32: LIBS += -lboost_filesystem -lboost_system -lboost_thread -pthread
