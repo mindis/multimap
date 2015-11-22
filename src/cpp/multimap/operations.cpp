@@ -23,6 +23,19 @@
 
 namespace multimap {
 
+void forEachShard(const boost::filesystem::path& directory,
+                  std::function<void(const internal::Shard&)> action) {
+  mt::DirectoryLockGuard lock(directory, internal::getNameOfLockFile());
+  const auto id_file = directory / internal::getNameOfIdFile();
+  const auto id = internal::Id::readFromFile(id_file);
+  for (std::size_t i = 0; i != id.num_shards; ++i) {
+    internal::Shard::Options options;
+    options.readonly = true;
+    internal::Shard shard(directory / internal::getShardPrefix(i), options);
+    action(shard);
+  }
+}
+
 std::vector<internal::Shard::Stats> stats(
     const boost::filesystem::path& directory) {
   mt::DirectoryLockGuard lock(directory, internal::getNameOfLockFile());
@@ -180,10 +193,8 @@ void optimize(const boost::filesystem::path& directory,
   //  }
 
   Map new_map;
-  const auto prefix = abs_dir / internal::getFilePrefix();
   for (std::size_t i = 0; i != id.num_shards; ++i) {
-    const auto shard_prefix = prefix.string() + '.' + std::to_string(i);
-    internal::Shard shard(shard_prefix, internal::Shard::Options());
+    internal::Shard shard(abs_dir / internal::getShardPrefix(i));
 
     if (i == 0) {
       Options output_opts = options;
