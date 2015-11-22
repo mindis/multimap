@@ -70,7 +70,7 @@ void exportToBase64(const boost::filesystem::path& directory,
 
 void exportToBase64(const boost::filesystem::path& directory,
                     const boost::filesystem::path& output,
-                    Callables::Compare compare);
+                    const Options& options);
 // TODO Document this.
 
 void optimize(const boost::filesystem::path& directory,

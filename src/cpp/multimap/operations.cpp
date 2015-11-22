@@ -23,16 +23,21 @@
 
 namespace multimap {
 
-void forEachShard(const boost::filesystem::path& directory,
-                  std::function<void(const internal::Shard&)> action) {
+void forEachShard(
+    const boost::filesystem::path& directory,
+    std::function<void(const internal::Shard&,
+                       std::size_t /* index */,
+                       std::size_t /* nshards */)> action) {
   mt::DirectoryLockGuard lock(directory, internal::getNameOfLockFile());
   const auto id_file = directory / internal::getNameOfIdFile();
   const auto id = internal::Id::readFromFile(id_file);
+  internal::checkVersion(id.major_version, id.minor_version);
   for (std::size_t i = 0; i != id.num_shards; ++i) {
+    const auto prefix = directory / internal::getShardPrefix(i);
     internal::Shard::Options options;
     options.readonly = true;
-    internal::Shard shard(directory / internal::getShardPrefix(i), options);
-    action(shard);
+    internal::Shard shard(prefix, options);
+    action(shard, i, id.num_shards);
   }
 }
 
@@ -41,6 +46,7 @@ std::vector<internal::Shard::Stats> stats(
   mt::DirectoryLockGuard lock(directory, internal::getNameOfLockFile());
   const auto id_file = directory / internal::getNameOfIdFile();
   const auto id = internal::Id::readFromFile(id_file);
+  internal::checkVersion(id.major_version, id.minor_version);
   std::vector<internal::Shard::Stats> stats;
   for (std::size_t i = 0; i != id.num_shards; ++i) {
     const auto stats_file = directory / internal::getNameOfStatsFile(i);
@@ -62,9 +68,9 @@ void importFromBase64(const boost::filesystem::path& directory,
                       const Options& options) {
   Map map(directory, options);
 
-  auto import_file = [&map, &options](const boost::filesystem::path& file) {
+  const auto import_file = [&](const boost::filesystem::path& file) {
     std::ifstream stream(file.string());
-    mt::check(stream, "Could not open '%s'.", file.c_str());
+    mt::check(stream, "Could not open '%s'", file.c_str());
 
     if (!options.quiet) {
       mt::log(std::cout) << "Importing " << file << std::endl;
@@ -116,104 +122,92 @@ void importFromBase64(const boost::filesystem::path& directory,
 
 void exportToBase64(const boost::filesystem::path& directory,
                     const boost::filesystem::path& output) {
-  exportToBase64(directory, output, Callables::Compare());
+  exportToBase64(directory, output, Options());
 }
 
 void exportToBase64(const boost::filesystem::path& directory,
                     const boost::filesystem::path& output,
-                    Callables::Compare compare) {
-  Options options;
-  options.error_if_exists = false;
-  options.create_if_missing = false;
-  Map map(directory, options);
-
+                    const Options& options) {
   std::ofstream stream(output.string());
-  mt::check(stream, "Could not create '%s'.", output.c_str());
+  mt::check(stream, "Could not create '%s'", output.c_str());
 
-  //  if (!options.quiet) {
-  //    mt::log(std::cout) << "Exporting shard " << (i + 1) << " of " << num
-  //                       << std::endl;
-  //  }
+  const auto print_status = [&options](std::size_t index, std::size_t nshards) {
+    if (!options.quiet) {
+      mt::log(std::cout) << "Exporting shard " << (index + 1) << " of "
+                         << nshards << std::endl;
+    }
+  };
 
   std::string base64_key;
   std::string base64_value;
-  std::vector<std::string> sorted_values;
-  if (compare) {
-    map.forEachEntry([&](const Bytes& key, Map::ListIterator&& iter) {
-      // TODO Test if reusing sorted_values makes any difference.
+  if (options.compare) {
+    std::vector<std::string> sorted_values;
+    forEachShard(directory, [&](const internal::Shard& shard, std::size_t index,
+                                std::size_t nshards) {
+      print_status(index, nshards);
+      shard.forEachEntry([&](const Bytes& key, Map::ListIterator&& iter) {
+        // Sort values
+        sorted_values.clear();
+        sorted_values.reserve(iter.available());
+        while (iter.hasNext()) {
+          sorted_values.push_back(iter.next().toString());
+        }
+        std::sort(sorted_values.begin(), sorted_values.end(), options.compare);
 
-      // Sort values
-      sorted_values.clear();
-      sorted_values.reserve(iter.available());
-      while (iter.hasNext()) {
-        sorted_values.push_back(iter.next().toString());
-      }
-      std::sort(sorted_values.begin(), sorted_values.end(), compare);
-
-      // Write as Base64
-      internal::Base64::encode(key, &base64_key);
-      stream << base64_key;
-      for (const auto& value : sorted_values) {
-        internal::Base64::encode(value, &base64_value);
-        stream << ' ' << base64_value;
-      }
-      stream << '\n';
+        // Write as Base64
+        internal::Base64::encode(key, &base64_key);
+        stream << base64_key;
+        for (const auto& value : sorted_values) {
+          internal::Base64::encode(value, &base64_value);
+          stream << ' ' << base64_value;
+        }
+        stream << '\n';
+      });
     });
   } else {
-    map.forEachEntry([&](const Bytes& key, Map::ListIterator&& iter) {
-      // Write as Base64
-      internal::Base64::encode(key, &base64_key);
-      stream << base64_key;
-      while (iter.hasNext()) {
-        internal::Base64::encode(iter.next(), &base64_value);
-        stream << ' ' << base64_value;
-      }
-      stream << '\n';
+    forEachShard(directory, [&](const internal::Shard& shard, std::size_t index,
+                                std::size_t nshards) {
+      print_status(index, nshards);
+      shard.forEachEntry([&](const Bytes& key, Map::ListIterator&& iter) {
+        // Write as Base64
+        internal::Base64::encode(key, &base64_key);
+        stream << base64_key;
+        while (iter.hasNext()) {
+          internal::Base64::encode(iter.next(), &base64_value);
+          stream << ' ' << base64_value;
+        }
+        stream << '\n';
+      });
     });
   }
 }
 
 void optimize(const boost::filesystem::path& directory,
               const boost::filesystem::path& output, const Options& options) {
-  const auto abs_dir = boost::filesystem::absolute(directory);
-  mt::check(boost::filesystem::is_directory(abs_dir),
-            "The path '%s' does not refer to a directory.", abs_dir.c_str());
-
-  mt::DirectoryLockGuard lock(abs_dir, internal::getNameOfLockFile());
-  const auto id_file = abs_dir / internal::getNameOfIdFile();
-  const auto map_exists = boost::filesystem::is_regular_file(id_file);
-  mt::check(map_exists, "No Multimap found in '%s'.", abs_dir.c_str());
-
-  const auto id = internal::Id::readFromFile(id_file);
-  internal::checkVersion(id.major_version, id.minor_version);
-
-  //  if (!options.quiet) {
-  //    mt::log(std::cout) << "Optimizing shard " << (i + 1) << " of " << num
-  //                       << std::endl;
-  //  }
-
   Map new_map;
-  for (std::size_t i = 0; i != id.num_shards; ++i) {
-    internal::Shard shard(abs_dir / internal::getShardPrefix(i));
+  forEachShard(directory, [&](const internal::Shard& shard, std::size_t index,
+                              std::size_t nshards) {
+    if (!options.quiet) {
+      mt::log(std::cout) << "Optimizing shard " << (index + 1) << " of "
+                         << nshards << std::endl;
+    }
 
-    if (i == 0) {
-      Options output_opts = options;
-      output_opts.error_if_exists = true;
-      output_opts.create_if_missing = true;
-      if (output_opts.block_size == 0) {
-        output_opts.block_size = shard.getBlockSize();
+    if (index == 0) {
+      Options new_map_options = options;
+      new_map_options.error_if_exists = true;
+      new_map_options.create_if_missing = true;
+      if (options.block_size == 0) {
+        new_map_options.block_size = shard.getBlockSize();
       }
-      if (output_opts.num_shards == 0) {
-        output_opts.num_shards = id.num_shards;
+      if (options.num_shards == 0) {
+        new_map_options.num_shards = nshards;
       }
-      new_map = Map(output, output_opts);
+      new_map = Map(output, new_map_options);
     }
 
     if (options.compare) {
       std::vector<std::string> sorted_values;
-      // TODO Test if reusing sorted_values makes any difference.
-      shard.forEachEntry([&new_map, &options, &sorted_values](
-          const Bytes& key, Map::ListIterator&& iter) {
+      shard.forEachEntry([&](const Bytes& key, Map::ListIterator&& iter) {
         sorted_values.clear();
         sorted_values.reserve(iter.available());
         while (iter.hasNext()) {
@@ -225,14 +219,13 @@ void optimize(const boost::filesystem::path& directory,
         }
       });
     } else {
-      shard.forEachEntry(
-          [&new_map](const Bytes& key, Map::ListIterator&& iter) {
-            while (iter.hasNext()) {
-              new_map.put(key, iter.next());
-            }
-          });
+      shard.forEachEntry([&](const Bytes& key, Map::ListIterator&& iter) {
+        while (iter.hasNext()) {
+          new_map.put(key, iter.next());
+        }
+      });
     }
-  }
+  });
 }
 
 } // namespace multimap
