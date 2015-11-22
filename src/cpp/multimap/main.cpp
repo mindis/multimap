@@ -72,8 +72,6 @@ CommandLine parseCommandLine(int argc, const char** argv) {
     cmd.map = *it++;
     if (cmd.command != STATS) {
       mt::check<E>(it != end, "No PATH given");
-      mt::check<E>(boost::filesystem::exists(*it),
-                   "The path '%s' does not exist", *it);
       cmd.path = *it++;
       while (it != end) {
         if (*it == CREATE) {
