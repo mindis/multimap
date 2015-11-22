@@ -59,28 +59,29 @@ public:
     std::uint64_t list_size_min = 0;
     std::uint64_t list_size_max = 0;
     std::uint64_t list_size_avg = 0;
+    std::uint64_t checksum = 0;
 
-    static Stats fromProperties(const mt::Properties& properties);
-
-    mt::Properties toProperties() const;
+    static const std::vector<std::string>& names();
 
     static Stats readFromFile(const boost::filesystem::path& file);
 
     void writeToFile(const boost::filesystem::path& file) const;
 
-    static Stats total(const std::vector<Stats>& stats);
+    static Stats fromProperties(const mt::Properties& properties);
 
-    static Stats max(const std::vector<Stats>& stats);
+    mt::Properties toProperties() const;
 
     std::vector<std::uint64_t> toVector() const;
 
-    static const std::vector<std::string>& names();
+    static Stats total(const std::vector<Stats>& stats);
+
+    static Stats max(const std::vector<Stats>& stats);
   };
 
   static_assert(std::is_standard_layout<Stats>::value,
                 "Table::Stats is no standard layout type");
 
-  static_assert(mt::hasExpectedSize<Stats>(80, 96),
+  static_assert(mt::hasExpectedSize<Stats>(104, 104),
                 "Table::Stats does not have expected size");
   // Use __attribute__((packed)) if 32- and 64-bit size differ.
 

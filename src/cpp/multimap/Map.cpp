@@ -18,7 +18,6 @@
 #include "multimap/Map.hpp"
 
 #include <algorithm>
-#include <fstream>
 #include <boost/filesystem/operations.hpp>
 
 namespace multimap {
@@ -103,7 +102,7 @@ Map::Map(const boost::filesystem::path& directory, const Options& options) {
               "A Multimap in '%s' does already exist.", abs_dir.c_str());
 
     const auto id = internal::Id::readFromFile(id_file);
-    internal::checkVersion(id.version_major, id.version_minor);
+    internal::checkVersion(id.major_version, id.minor_version);
     tables_.resize(id.num_shards);
 
   } else {
@@ -246,36 +245,20 @@ std::vector<internal::Table::Stats> Map::getStats() const {
   return stats;
 }
 
-// std::map<std::string, std::string> Map::getProperties() const {
-//  MT_REQUIRE_FALSE(tables_.empty());
-
-//  internal::Table::Stats stats;
-//  for (const auto& table : tables_) {
-//    stats.combine(table->getStats());
-//  }
-//  auto properties = stats.toProperties();
-//  properties["num_shards"] = std::to_string(tables_.size());
-//  properties["version_major"] = std::to_string(VERSION_MAJOR);
-//  properties["version_minor"] = std::to_string(VERSION_MINOR);
-//  return properties;
-//}
-
 namespace internal {
 
 Id Id::readFromFile(const boost::filesystem::path& file) {
-  std::ifstream ifs(file.string());
-  mt::check(ifs, "Could not open '%s' for reading", file.c_str());
   Id id;
-  ifs.read(reinterpret_cast<char*>(&id), sizeof id);
-  mt::check(ifs, "std::ifstream::read() failed()");
+  const auto stream = mt::open(file, "r");
+  mt::check(stream.get(), "Could not open '%s' for reading", file.c_str());
+  mt::read(stream.get(), &id, sizeof id);
   return id;
 }
 
 void Id::writeToFile(const boost::filesystem::path& file) const {
-  std::ofstream ofs(file.string());
-  mt::check(ofs, "Could not create '%s' for writing", file.c_str());
-  ofs.write(reinterpret_cast<const char*>(this), sizeof *this);
-  mt::check(ofs, "std::ofstream::write() failed");
+  const auto stream = mt::open(file, "w");
+  mt::check(stream.get(), "Could not create '%s' for writing", file.c_str());
+  mt::write(stream.get(), this, sizeof *this);
 }
 
 const std::string getFilePrefix() { return "multimap"; }
@@ -299,12 +282,12 @@ const std::string getNameOfValuesFile(std::size_t index) {
   return Table::getNameOfValuesFile(prefix);
 }
 
-void checkVersion(std::uint32_t id_major, std::uint32_t id_minor) {
-  mt::check(id_major == VERSION_MAJOR && id_minor == VERSION_MINOR,
+void checkVersion(std::uint64_t major_version, std::uint64_t minor_version) {
+  mt::check(major_version == MAJOR_VERSION && minor_version == MINOR_VERSION,
             "Version check failed. The Multimap you are trying to open "
             "was created with version %u.%u of the library. Your "
             "installed version is %u.%u which is not compatible.",
-            id_major, id_minor, VERSION_MAJOR, VERSION_MINOR);
+            major_version, minor_version, MAJOR_VERSION, MINOR_VERSION);
 }
 
 } // namespace internal

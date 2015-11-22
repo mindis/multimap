@@ -164,7 +164,7 @@ void optimize(const boost::filesystem::path& directory,
   mt::check(map_exists, "No Multimap found in '%s'.", abs_dir.c_str());
 
   const auto id = internal::Id::readFromFile(id_file);
-  internal::checkVersion(id.version_major, id.version_minor);
+  internal::checkVersion(id.major_version, id.minor_version);
 
   // TODO Verify id.checksum.
 

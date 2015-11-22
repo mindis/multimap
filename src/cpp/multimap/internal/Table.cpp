@@ -56,6 +56,12 @@ struct Entry : public std::pair<Bytes, List::Head> {
   }
 };
 
+std::uint64_t computeChecksum(const Table::Stats& stats) {
+  auto copy = stats;
+  copy.checksum = 0;
+  return mt::crc32(&copy, sizeof copy);
+}
+
 } // namespace
 
 std::size_t Table::Limits::getMaxKeySize() { return Varint::Limits::MAX_N4; }
@@ -64,10 +70,39 @@ std::size_t Table::Limits::getMaxValueSize() {
   return List::Limits::getMaxValueSize();
 }
 
+const std::vector<std::string>& Table::Stats::names() {
+  static std::vector<std::string> names = {
+    "block_size",       "num_blocks",         "num_keys",
+    "num_values_added", "num_values_removed", "num_values_unowned",
+    "key_size_min",     "key_size_max",       "key_size_avg",
+    "list_size_min",    "list_size_max",      "list_size_avg"
+  };
+  return names;
+}
+
+Table::Stats Table::Stats::readFromFile(const boost::filesystem::path& file) {
+  Stats stats;
+  const auto stream = mt::open(file.c_str(), "r");
+  mt::check(stream.get(), "Could not open '%s' for reading", file.c_str());
+  mt::read(stream.get(), &stats, sizeof stats);
+  mt::check(stats.checksum == computeChecksum(stats), "Sanity check failed");
+  return stats;
+}
+
+void Table::Stats::writeToFile(const boost::filesystem::path& file) const {
+  const auto stream = mt::open(file.c_str(), "w");
+  mt::check(stream.get(), "Could not create '%s' for writing", file.c_str());
+  auto copy = *this;
+  copy.checksum = computeChecksum(*this);
+  mt::write(stream.get(), &copy, sizeof copy);
+}
+
 Table::Stats Table::Stats::fromProperties(const mt::Properties& properties) {
   Stats stats;
+  stats.block_size = std::stoul(properties.at("block_size"));
+  stats.num_blocks = std::stoul(properties.at("num_blocks"));
   stats.num_keys = std::stoul(properties.at("num_keys"));
-  stats.num_values_added = std::stoul(properties.at("num_values_put"));
+  stats.num_values_added = std::stoul(properties.at("num_values_added"));
   stats.num_values_removed = std::stoul(properties.at("num_values_removed"));
   stats.num_values_unowned = std::stoul(properties.at("num_values_unowned"));
   stats.key_size_min = std::stoul(properties.at("key_size_min"));
@@ -76,13 +111,16 @@ Table::Stats Table::Stats::fromProperties(const mt::Properties& properties) {
   stats.list_size_min = std::stoul(properties.at("list_size_min"));
   stats.list_size_max = std::stoul(properties.at("list_size_max"));
   stats.list_size_avg = std::stoul(properties.at("list_size_avg"));
+  // stats.checksum is left default initialized.
   return stats;
 }
 
 mt::Properties Table::Stats::toProperties() const {
   mt::Properties properties;
+  properties["block_size"] = std::to_string(block_size);
+  properties["num_blocks"] = std::to_string(num_blocks);
   properties["num_keys"] = std::to_string(num_keys);
-  properties["num_values_put"] = std::to_string(num_values_added);
+  properties["num_values_added"] = std::to_string(num_values_added);
   properties["num_values_removed"] = std::to_string(num_values_removed);
   properties["num_values_unowned"] = std::to_string(num_values_unowned);
   properties["key_size_min"] = std::to_string(key_size_min);
@@ -91,23 +129,15 @@ mt::Properties Table::Stats::toProperties() const {
   properties["list_size_min"] = std::to_string(list_size_min);
   properties["list_size_max"] = std::to_string(list_size_max);
   properties["list_size_avg"] = std::to_string(list_size_avg);
+  // stats.checksum is not exposed.
   return properties;
 }
 
-Table::Stats Table::Stats::readFromFile(const boost::filesystem::path& file) {
-  std::ifstream ifs(file.string());
-  mt::check(ifs, "Could not open '%s' for reading", file.c_str());
-  Stats stats;
-  ifs.read(reinterpret_cast<char*>(&stats), sizeof stats);
-  mt::check(ifs, "std::ifstream::read() failed()");
-  return stats;
-}
-
-void Table::Stats::writeToFile(const boost::filesystem::path& file) const {
-  std::ofstream ofs(file.string());
-  mt::check(ofs, "Could not create '%s' for writing", file.c_str());
-  ofs.write(reinterpret_cast<const char*>(this), sizeof *this);
-  mt::check(ofs, "std::ofstream::write() failed");
+std::vector<std::uint64_t> Table::Stats::toVector() const {
+  return { block_size,       num_blocks,         num_keys,
+           num_values_added, num_values_removed, num_values_unowned,
+           key_size_min,     key_size_max,       key_size_avg,
+           list_size_min,    list_size_max,      list_size_avg };
 }
 
 Table::Stats Table::Stats::total(const std::vector<Stats>& stats) {
@@ -172,23 +202,6 @@ Table::Stats Table::Stats::max(const std::vector<Stats>& stats) {
   return max;
 }
 
-std::vector<std::uint64_t> Table::Stats::toVector() const {
-  return { block_size,       num_blocks,         num_keys,
-           num_values_added, num_values_removed, num_values_unowned,
-           key_size_min,     key_size_max,       key_size_avg,
-           list_size_min,    list_size_max,      list_size_avg };
-}
-
-const std::vector<std::string>& Table::Stats::names() {
-  static std::vector<std::string> names = {
-    "block_size",       "num_blocks",         "num_keys",
-    "num_values_added", "num_values_removed", "num_values_unowned",
-    "key_size_min",     "key_size_max",       "key_size_avg",
-    "list_size_min",    "list_size_max",      "list_size_avg"
-  };
-  return names;
-}
-
 Table::Table(const boost::filesystem::path& file_prefix)
     : Table(file_prefix, Options()) {}
 
@@ -200,8 +213,7 @@ Table::Table(const boost::filesystem::path& file_prefix,
 
     stats_ = Stats::readFromFile(stats_file);
     const auto keys_file = getNameOfKeysFile(file_prefix.string());
-    const mt::AutoCloseFile stream(std::fopen(keys_file.c_str(), "r"));
-    // TODO Replace by mt::open().
+    const auto stream = mt::open(keys_file.c_str(), "r");
     MT_ASSERT_NOT_NULL(stream.get());
     for (std::size_t i = 0; i != stats_.num_keys; ++i) {
       const auto entry = Entry::readFromStream(stream.get(), &arena_);

@@ -28,8 +28,8 @@
 
 namespace multimap {
 
-static const std::size_t VERSION_MAJOR = 0;
-static const std::size_t VERSION_MINOR = 3;
+static const std::size_t MAJOR_VERSION = 0;
+static const std::size_t MINOR_VERSION = 3;
 
 class Map {
   // Insanely fast 1:n key-value store.
@@ -200,14 +200,6 @@ public:
 
   std::vector<internal::Table::Stats> getStats() const;
 
-  // Replace by getStats().toProperties()
-//  std::map<std::string, std::string> getProperties() const;
-  // Returns a list of properties which describe the state of the map similar
-  // to those written to the multimap.properties file. This method will only
-  // look at lists which are currently not locked to be non-blocking.
-  // Therefore, the returned values will be an approximation. For the time of
-  // execution the map is locked for read-only operations.
-
 private:
   std::vector<std::unique_ptr<internal::Table> > tables_;
   mt::DirectoryLockGuard lock_;
@@ -216,10 +208,9 @@ private:
 namespace internal {
 
 struct Id {
-  std::uint64_t checksum = 0;
   std::uint64_t num_shards = 0;
-  std::uint64_t version_major = VERSION_MAJOR;
-  std::uint64_t version_minor = VERSION_MINOR;
+  std::uint64_t major_version = MAJOR_VERSION;
+  std::uint64_t minor_version = MINOR_VERSION;
 
   static Id readFromFile(const boost::filesystem::path& file);
   void writeToFile(const boost::filesystem::path& file) const;
@@ -231,7 +222,7 @@ const std::string getNameOfLockFile();
 const std::string getNameOfKeysFile(std::size_t index);
 const std::string getNameOfStatsFile(std::size_t index);
 const std::string getNameOfValuesFile(std::size_t index);
-void checkVersion(std::uint32_t id_major, std::uint32_t id_minor);
+void checkVersion(std::uint64_t major_version, std::uint64_t minor_version);
 
 } // namespace internal
 } // namespace multimap
