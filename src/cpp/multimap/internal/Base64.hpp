@@ -24,6 +24,9 @@ namespace multimap {
 namespace internal {
 
 struct Base64 {
+  static std::string encode(const Bytes& binary);
+  // Encodes binary data to a Base64 string.
+
   static void encode(const Bytes& binary, std::string* base64);
   // Encodes binary data to a Base64 string.
 

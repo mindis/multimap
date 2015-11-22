@@ -29,6 +29,12 @@ using namespace boost::archive::iterators;
 typedef base64_from_binary<transform_width<const char*, 6, 8> > ToBase64Iter;
 typedef transform_width<binary_from_base64<const char*>, 8, 6> ToBinaryIter;
 
+std::string Base64::encode(const Bytes& binary) {
+  std::string result;
+  encode(binary, &result);
+  return result;
+}
+
 void Base64::encode(const Bytes& binary, std::string* base64) {
   encode(binary.data(), binary.size(), base64);
 }
