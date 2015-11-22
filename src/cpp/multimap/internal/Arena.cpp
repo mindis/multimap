@@ -22,13 +22,15 @@
 namespace multimap {
 namespace internal {
 
-Arena::Arena(std::size_t chunk_size) : chunk_size_(chunk_size) {
+Arena::Arena(std::size_t chunk_size)
+    : mutex_(new std::mutex()), chunk_size_(chunk_size) {
   MT_REQUIRE_TRUE(mt::isPowerOfTwo(chunk_size_));
   MT_REQUIRE_NOT_ZERO(chunk_size_);
 }
 
 char* Arena::allocate(std::size_t num_bytes) {
   MT_REQUIRE_NOT_ZERO(num_bytes);
+  std::lock_guard<std::mutex> lock(*mutex_);
 
   char* result;
   if (num_bytes <= chunk_size_) {
@@ -51,6 +53,19 @@ char* Arena::allocate(std::size_t num_bytes) {
 
   allocated_ += num_bytes;
   return result;
+}
+
+std::size_t Arena::allocated() const {
+  std::lock_guard<std::mutex> lock(*mutex_);
+  return allocated_;
+}
+
+void Arena::deallocateAll() {
+  std::lock_guard<std::mutex> lock(*mutex_);
+  chunks_.clear();
+  blobs_.clear();
+  allocated_ = 0;
+  offset_ = 0;
 }
 
 } // namespace internal
