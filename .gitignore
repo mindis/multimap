@@ -3,6 +3,7 @@ build/*
 site/
 
 !build/multimap-library.pro
+!build/multimap-library-dbg.pro
 !build/multimap-library-jni.pro
 !build/multimap-tests.pro
 !build/multimap-tool.pro
