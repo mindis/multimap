@@ -21,7 +21,7 @@
 #include <map>
 #include <vector>
 #include <boost/filesystem/path.hpp>
-#include "multimap/internal/Table.hpp"
+#include "multimap/internal/Shard.hpp"
 #include "multimap/thirdparty/mt/mt.hpp"
 #include "multimap/Callables.hpp"
 #include "multimap/Options.hpp"
@@ -198,10 +198,10 @@ public:
   void forEachEntry(Callables::BinaryProcedure action) const;
   // TODO Document this.
 
-  std::vector<internal::Table::Stats> getStats() const;
+  std::vector<internal::Shard::Stats> getStats() const;
 
 private:
-  std::vector<std::unique_ptr<internal::Table> > tables_;
+  std::vector<std::unique_ptr<internal::Shard> > shards_;
   mt::DirectoryLockGuard lock_;
 };
 

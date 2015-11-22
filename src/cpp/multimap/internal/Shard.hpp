@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTIMAP_INTERNAL_TABLE_HPP_INCLUDED
-#define MULTIMAP_INTERNAL_TABLE_HPP_INCLUDED
+#ifndef MULTIMAP_INTERNAL_SHARD_HPP_INCLUDED
+#define MULTIMAP_INTERNAL_SHARD_HPP_INCLUDED
 
 #include <functional>
 #include <memory>
@@ -31,7 +31,7 @@
 namespace multimap {
 namespace internal {
 
-class Table {
+class Shard {
 public:
   struct Limits {
     static std::size_t getMaxKeySize();
@@ -79,19 +79,19 @@ public:
   };
 
   static_assert(std::is_standard_layout<Stats>::value,
-                "Table::Stats is no standard layout type");
+                "Shard::Stats is no standard layout type");
 
   static_assert(mt::hasExpectedSize<Stats>(104, 104),
-                "Table::Stats does not have expected size");
-  // Use __attribute__((packed)) if 32- and 64-bit size differ.
+                "Shard::Stats does not have expected size");
+  // Use __attribute__((packed)) if 32- and 64-bit sizes differ.
 
   typedef std::function<void(const Bytes&, SharedList&&)> BinaryProcedure;
 
-  Table(const boost::filesystem::path& file_prefix);
+  Shard(const boost::filesystem::path& file_prefix);
 
-  Table(const boost::filesystem::path& file_prefix, const Options& options);
+  Shard(const boost::filesystem::path& file_prefix, const Options& options);
 
-  ~Table();
+  ~Shard();
 
   SharedList getShared(const Bytes& key) const;
 
@@ -108,7 +108,7 @@ public:
   std::size_t getBlockSize() const { return store_->getBlockSize(); }
 
   Stats getStats() const;
-  // Returns various statistics about the table.
+  // Returns various statistics about the shard.
   // The data is collected upon request and triggers a full table scan.
 
   static std::string getNameOfKeysFile(const std::string& prefix);
@@ -127,4 +127,4 @@ private:
 } // namespace internal
 } // namespace multimap
 
-#endif // MULTIMAP_INTERNAL_TABLE_HPP_INCLUDED
+#endif // MULTIMAP_INTERNAL_SHARD_HPP_INCLUDED

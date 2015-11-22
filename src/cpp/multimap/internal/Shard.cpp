@@ -15,9 +15,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "multimap/internal/Table.hpp"
+#include "multimap/internal/Shard.hpp"
 
 #include <boost/filesystem/operations.hpp>
+#include "multimap/internal/Base64.hpp"
 
 namespace multimap {
 namespace internal {
@@ -48,7 +49,7 @@ struct Entry : public std::pair<Bytes, List::Head> {
   }
 
   void writeToStream(std::FILE* stream) const {
-    MT_REQUIRE_LE(key().size(), Table::Limits::getMaxKeySize());
+    MT_REQUIRE_LE(key().size(), Shard::Limits::getMaxKeySize());
     const std::int32_t key_size = key().size();
     mt::write(stream, &key_size, sizeof key_size);
     mt::write(stream, key().data(), key().size());
@@ -56,7 +57,7 @@ struct Entry : public std::pair<Bytes, List::Head> {
   }
 };
 
-std::uint64_t computeChecksum(const Table::Stats& stats) {
+std::uint64_t computeChecksum(const Shard::Stats& stats) {
   auto copy = stats;
   copy.checksum = 0;
   return mt::crc32(&copy, sizeof copy);
@@ -64,13 +65,13 @@ std::uint64_t computeChecksum(const Table::Stats& stats) {
 
 } // namespace
 
-std::size_t Table::Limits::getMaxKeySize() { return Varint::Limits::MAX_N4; }
+std::size_t Shard::Limits::getMaxKeySize() { return Varint::Limits::MAX_N4; }
 
-std::size_t Table::Limits::getMaxValueSize() {
+std::size_t Shard::Limits::getMaxValueSize() {
   return List::Limits::getMaxValueSize();
 }
 
-const std::vector<std::string>& Table::Stats::names() {
+const std::vector<std::string>& Shard::Stats::names() {
   static std::vector<std::string> names = {
     "block_size",       "num_blocks",         "num_keys",
     "num_values_added", "num_values_removed", "num_values_unowned",
@@ -80,24 +81,24 @@ const std::vector<std::string>& Table::Stats::names() {
   return names;
 }
 
-Table::Stats Table::Stats::readFromFile(const boost::filesystem::path& file) {
+Shard::Stats Shard::Stats::readFromFile(const boost::filesystem::path& file) {
   Stats stats;
   const auto stream = mt::open(file.c_str(), "r");
-  mt::check(stream.get(), "Could not open '%s' for reading", file.c_str());
+  mt::check(stream.get(), "Could not open '%s'", file.c_str());
   mt::read(stream.get(), &stats, sizeof stats);
   mt::check(stats.checksum == computeChecksum(stats), "Sanity check failed");
   return stats;
 }
 
-void Table::Stats::writeToFile(const boost::filesystem::path& file) const {
+void Shard::Stats::writeToFile(const boost::filesystem::path& file) const {
   const auto stream = mt::open(file.c_str(), "w");
-  mt::check(stream.get(), "Could not create '%s' for writing", file.c_str());
+  mt::check(stream.get(), "Could not create '%s'", file.c_str());
   auto copy = *this;
   copy.checksum = computeChecksum(*this);
   mt::write(stream.get(), &copy, sizeof copy);
 }
 
-Table::Stats Table::Stats::fromProperties(const mt::Properties& properties) {
+Shard::Stats Shard::Stats::fromProperties(const mt::Properties& properties) {
   Stats stats;
   stats.block_size = std::stoul(properties.at("block_size"));
   stats.num_blocks = std::stoul(properties.at("num_blocks"));
@@ -115,7 +116,7 @@ Table::Stats Table::Stats::fromProperties(const mt::Properties& properties) {
   return stats;
 }
 
-mt::Properties Table::Stats::toProperties() const {
+mt::Properties Shard::Stats::toProperties() const {
   mt::Properties properties;
   properties["block_size"] = std::to_string(block_size);
   properties["num_blocks"] = std::to_string(num_blocks);
@@ -133,15 +134,15 @@ mt::Properties Table::Stats::toProperties() const {
   return properties;
 }
 
-std::vector<std::uint64_t> Table::Stats::toVector() const {
+std::vector<std::uint64_t> Shard::Stats::toVector() const {
   return { block_size,       num_blocks,         num_keys,
            num_values_added, num_values_removed, num_values_unowned,
            key_size_min,     key_size_max,       key_size_avg,
            list_size_min,    list_size_max,      list_size_avg };
 }
 
-Table::Stats Table::Stats::total(const std::vector<Stats>& stats) {
-  Table::Stats total;
+Shard::Stats Shard::Stats::total(const std::vector<Stats>& stats) {
+  Shard::Stats total;
   for (const auto& stat : stats) {
     if (total.block_size == 0) {
       total.block_size = stat.block_size;
@@ -180,8 +181,8 @@ Table::Stats Table::Stats::total(const std::vector<Stats>& stats) {
   return total;
 }
 
-Table::Stats Table::Stats::max(const std::vector<Stats>& stats) {
-  Table::Stats max;
+Shard::Stats Shard::Stats::max(const std::vector<Stats>& stats) {
+  Shard::Stats max;
   for (const auto& stat : stats) {
     max.block_size = std::max(max.block_size, stat.block_size);
     max.num_blocks = std::max(max.num_blocks, stat.num_blocks);
@@ -202,10 +203,10 @@ Table::Stats Table::Stats::max(const std::vector<Stats>& stats) {
   return max;
 }
 
-Table::Table(const boost::filesystem::path& file_prefix)
-    : Table(file_prefix, Options()) {}
+Shard::Shard(const boost::filesystem::path& file_prefix)
+    : Shard(file_prefix, Options()) {}
 
-Table::Table(const boost::filesystem::path& file_prefix,
+Shard::Shard(const boost::filesystem::path& file_prefix,
              const Options& options) {
   const auto stats_file = getNameOfStatsFile(file_prefix.string());
   if (boost::filesystem::is_regular_file(stats_file)) {
@@ -214,7 +215,7 @@ Table::Table(const boost::filesystem::path& file_prefix,
     stats_ = Stats::readFromFile(stats_file);
     const auto keys_file = getNameOfKeysFile(file_prefix.string());
     const auto stream = mt::open(keys_file.c_str(), "r");
-    MT_ASSERT_NOT_NULL(stream.get());
+    mt::check(stream.get(), "Could not open '%s'", keys_file.c_str());
     for (std::size_t i = 0; i != stats_.num_keys; ++i) {
       const auto entry = Entry::readFromStream(stream.get(), &arena_);
       map_[entry.key()].reset(new List(entry.head()));
@@ -239,7 +240,7 @@ Table::Table(const boost::filesystem::path& file_prefix,
   prefix_ = file_prefix;
 }
 
-Table::~Table() {
+Shard::~Shard() {
   if (!prefix_.empty() && !isReadOnly()) {
     const auto keys_file = getNameOfKeysFile(prefix_.string());
     const auto old_keys_file = keys_file + ".old";
@@ -247,8 +248,8 @@ Table::~Table() {
       boost::filesystem::rename(keys_file, old_keys_file);
     }
 
-    const mt::AutoCloseFile stream(std::fopen(keys_file.c_str(), "w"));
-    MT_ASSERT_NOT_NULL(stream.get());
+    const auto stream = mt::open(keys_file.c_str(), "w");
+    mt::check(stream.get(), "Could not create '%s", keys_file.c_str());
 
     Stats stats;
     const auto store_stats = store_->getStats();
@@ -258,8 +259,9 @@ Table::~Table() {
     for (const auto& entry : map_) {
       const auto list = entry.second.get();
       if (list->is_locked()) {
-        mt::log() << "The list with the key '" << entry.first.toString()
-                  << "' was still locked when shutting down."
+        const auto key_as_base64 = Base64::encode(entry.first);
+        mt::log() << "The list with the key " << key_as_base64
+                  << " (Base64) was still locked when shutting down."
                   << " Recent updates of the list may be lost.\n";
       }
       // We do not skip or even throw if a list is still locked to prevent data
@@ -306,7 +308,7 @@ Table::~Table() {
   }
 }
 
-SharedList Table::getShared(const Bytes& key) const {
+SharedList Shard::getShared(const Bytes& key) const {
   List* list = nullptr;
   {
     boost::shared_lock<boost::shared_mutex> lock(mutex_);
@@ -319,8 +321,8 @@ SharedList Table::getShared(const Bytes& key) const {
   return list ? SharedList(*list, *store_) : SharedList();
 }
 
-UniqueList Table::getUnique(const Bytes& key) {
-  mt::check(!isReadOnly(), "Attempt to get write access to read-only table");
+UniqueList Shard::getUnique(const Bytes& key) {
+  mt::check(!isReadOnly(), "Attempt to get write access to read-only list");
 
   List* list = nullptr;
   {
@@ -334,10 +336,10 @@ UniqueList Table::getUnique(const Bytes& key) {
   return list ? UniqueList(list, store_.get(), &arena_) : UniqueList();
 }
 
-UniqueList Table::getUniqueOrCreate(const Bytes& key) {
-  mt::check(!isReadOnly(), "Attempt to get write access to read-only table");
+UniqueList Shard::getUniqueOrCreate(const Bytes& key) {
+  mt::check(!isReadOnly(), "Attempt to get write access to read-only list");
   mt::check(key.size() <= Limits::getMaxKeySize(),
-            "Reject key of %d bytes because it's too big.", key.size());
+            "Reject key of %d bytes because it's too big", key.size());
 
   List* list = nullptr;
   {
@@ -358,7 +360,7 @@ UniqueList Table::getUniqueOrCreate(const Bytes& key) {
   return UniqueList(list, store_.get(), &arena_);
 }
 
-void Table::forEachKey(Callables::Procedure action) const {
+void Shard::forEachKey(Callables::Procedure action) const {
   boost::shared_lock<boost::shared_mutex> lock(mutex_);
   for (const auto& entry : map_) {
     SharedList list(*entry.second, *store_, std::try_to_lock);
@@ -368,7 +370,7 @@ void Table::forEachKey(Callables::Procedure action) const {
   }
 }
 
-void Table::forEachEntry(BinaryProcedure action) const {
+void Shard::forEachEntry(BinaryProcedure action) const {
   boost::shared_lock<boost::shared_mutex> lock(mutex_);
   store_->adviseAccessPattern(Store::AccessPattern::WILLNEED);
   for (const auto& entry : map_) {
@@ -380,7 +382,7 @@ void Table::forEachEntry(BinaryProcedure action) const {
   store_->adviseAccessPattern(Store::AccessPattern::NORMAL);
 }
 
-Table::Stats Table::getStats() const {
+Shard::Stats Shard::getStats() const {
   Stats stats;
   const auto store_stats = store_->getStats();
   stats.block_size = store_stats.block_size;
@@ -412,15 +414,15 @@ Table::Stats Table::getStats() const {
   return stats;
 }
 
-std::string Table::getNameOfKeysFile(const std::string& prefix) {
+std::string Shard::getNameOfKeysFile(const std::string& prefix) {
   return prefix + ".keys";
 }
 
-std::string Table::getNameOfStatsFile(const std::string& prefix) {
+std::string Shard::getNameOfStatsFile(const std::string& prefix) {
   return prefix + ".stats";
 }
 
-std::string Table::getNameOfValuesFile(const std::string& prefix) {
+std::string Shard::getNameOfValuesFile(const std::string& prefix) {
   return prefix + ".values";
 }
 
