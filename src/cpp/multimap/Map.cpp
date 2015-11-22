@@ -119,10 +119,9 @@ Map::Map(const boost::filesystem::path& directory, const Options& options) {
   shard_options.error_if_exists = options.error_if_exists;
   shard_options.readonly = options.readonly;
 
-  const auto prefix = abs_dir / internal::getFilePrefix();
   for (std::size_t i = 0; i != shards_.size(); ++i) {
-    const auto prefix_i = prefix.string() + '.' + std::to_string(i);
-    shards_[i].reset(new internal::Shard(prefix_i, shard_options));
+    const auto prefix = abs_dir / internal::getShardPrefix(i);
+    shards_[i].reset(new internal::Shard(prefix, shard_options));
   }
 }
 
@@ -250,14 +249,14 @@ namespace internal {
 Id Id::readFromFile(const boost::filesystem::path& file) {
   Id id;
   const auto stream = mt::open(file, "r");
-  mt::check(stream.get(), "Could not open '%s' for reading", file.c_str());
+  mt::check(stream.get(), "Could not open '%s'", file.c_str());
   mt::read(stream.get(), &id, sizeof id);
   return id;
 }
 
 void Id::writeToFile(const boost::filesystem::path& file) const {
   const auto stream = mt::open(file, "w");
-  mt::check(stream.get(), "Could not create '%s' for writing", file.c_str());
+  mt::check(stream.get(), "Could not create '%s'", file.c_str());
   mt::write(stream.get(), this, sizeof *this);
 }
 
@@ -267,19 +266,20 @@ const std::string getNameOfIdFile() { return getFilePrefix() + ".id"; }
 
 const std::string getNameOfLockFile() { return getFilePrefix() + ".lock"; }
 
+const std::string getShardPrefix(std::size_t index) {
+  return getFilePrefix() + '.' + std::to_string(index);
+}
+
 const std::string getNameOfKeysFile(std::size_t index) {
-  const auto prefix = getFilePrefix() + '.' + std::to_string(index);
-  return Shard::getNameOfKeysFile(prefix);
+  return Shard::getNameOfKeysFile(getShardPrefix(index));
 }
 
 const std::string getNameOfStatsFile(std::size_t index) {
-  const auto prefix = getFilePrefix() + '.' + std::to_string(index);
-  return Shard::getNameOfStatsFile(prefix);
+  return Shard::getNameOfStatsFile(getShardPrefix(index));
 }
 
 const std::string getNameOfValuesFile(std::size_t index) {
-  const auto prefix = getFilePrefix() + '.' + std::to_string(index);
-  return Shard::getNameOfValuesFile(prefix);
+  return Shard::getNameOfValuesFile(getShardPrefix(index));
 }
 
 void checkVersion(std::uint64_t major_version, std::uint64_t minor_version) {

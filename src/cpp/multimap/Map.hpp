@@ -219,6 +219,7 @@ struct Id {
 const std::string getFilePrefix();
 const std::string getNameOfIdFile();
 const std::string getNameOfLockFile();
+const std::string getShardPrefix(std::size_t index);
 const std::string getNameOfKeysFile(std::size_t index);
 const std::string getNameOfStatsFile(std::size_t index);
 const std::string getNameOfValuesFile(std::size_t index);
