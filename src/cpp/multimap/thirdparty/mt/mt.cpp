@@ -201,7 +201,7 @@ std::size_t crc32(const std::string& str) {
   return crc32(str.data(), str.size());
 }
 
-std::size_t crc32(const char* data, std::size_t size) {
+std::size_t crc32(const void* data, std::size_t size) {
   boost::crc_32_type crc;
   crc.process_bytes(data, size);
   return crc.checksum();

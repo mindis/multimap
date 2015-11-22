@@ -75,7 +75,7 @@ std::ostream& log();
 std::size_t crc32(const std::string& str);
 // Computes and returns the 32-bit CRC checksum for `str`.
 
-std::size_t crc32(const char* data, std::size_t size);
+std::size_t crc32(const void* data, std::size_t size);
 // Computes and returns the 32-bit CRC checksum for `[data, data + size)`.
 
 std::uint32_t fnv1aHash32(const void* buf, std::size_t len);
@@ -260,12 +260,6 @@ struct Check {
 // -----------------------------------------------------------------------------
 // INPUT / OUTPUT
 
-// template <typename Container>
-// std::insert_iterator<Container> inserter(Container& container) {
-//  return std::inserter(container, container.end());
-//}
-// Wrapper for `std::inserter` that only takes a container (and no iterator).
-
 struct Files {
   typedef std::vector<char> Bytes;
 
@@ -323,14 +317,25 @@ inline AutoCloseFile open(const boost::filesystem::path& file,
   return AutoCloseFile(std::fopen(file.c_str(), mode));
 }
 
-inline void read(std::FILE* file, void* buffer, std::size_t count) {
-  const auto nbytes = std::fread(buffer, sizeof(char), count, file);
+inline void read(std::FILE* stream, void* buffer, std::size_t count) {
+  const auto nbytes = std::fread(buffer, sizeof(char), count, stream);
   Check::isEqual(nbytes, count, "mt::read() failed");
 }
 
-inline void write(std::FILE* file, const void* buffer, std::size_t count) {
-  const auto nbytes = std::fwrite(buffer, sizeof(char), count, file);
+inline void write(std::FILE* stream, const void* buffer, std::size_t count) {
+  const auto nbytes = std::fwrite(buffer, sizeof(char), count, stream);
   Check::isEqual(nbytes, count, "mt::write() failed");
+}
+
+inline void seek(std::FILE* stream, long offset, int origin) {
+  const auto status = std::fseek(stream, offset, origin);
+  Check::isZero(status, "mt::seek() failed");
+}
+
+inline std::size_t tell(std::FILE* stream) {
+  const auto status = std::ftell(stream);
+  Check::notEqual(status, -1, "mt::tell() failed");
+  return status;
 }
 
 class DirectoryLockGuard {
