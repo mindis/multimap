@@ -17,6 +17,7 @@
 
 #include "multimap/operations.hpp"
 
+#include <iostream>
 #include <boost/filesystem/operations.hpp>
 #include "internal/Base64.hpp"
 
@@ -48,33 +49,35 @@ void importFromBase64(const boost::filesystem::path& directory,
                       const Options& options) {
   Map map(directory, options);
 
-  const auto import_file = [&map](const boost::filesystem::path& filepath) {
-    mt::check(boost::filesystem::is_regular_file(filepath),
-              "'%s' is not a regular file.", filepath.c_str());
-    std::ifstream ifs(filepath.string());
-    mt::check(ifs, "Could not open '%s'.", filepath.c_str());
+  auto import_file = [&map, &options](const boost::filesystem::path& file) {
+    std::ifstream stream(file.string());
+    mt::check(stream, "Could not open '%s'.", file.c_str());
+
+    if (!options.quiet) {
+      mt::log(std::cout) << "Importing " << it->path() << std::endl;
+    }
 
     std::string base64_key;
     std::string base64_value;
     std::string binary_key;
     std::string binary_value;
-    if (ifs >> base64_key) {
+    if (stream >> base64_key) {
       internal::Base64::decode(base64_key, &binary_key);
-      while (ifs) {
-        switch (ifs.peek()) {
+      while (stream) {
+        switch (stream.peek()) {
           case '\n':
           case '\r':
-            ifs >> base64_key;
+            stream >> base64_key;
             internal::Base64::decode(base64_key, &binary_key);
             break;
           case '\f':
           case '\t':
           case '\v':
           case ' ':
-            ifs.ignore();
+            stream.ignore();
             break;
           default:
-            ifs >> base64_value;
+            stream >> base64_value;
             internal::Base64::decode(base64_value, &binary_value);
             map.put(binary_key, binary_value);
         }
@@ -111,8 +114,13 @@ void exportToBase64(const boost::filesystem::path& directory,
   options.create_if_missing = false;
   Map map(directory, options);
 
-  std::ofstream ofs(output.string());
-  mt::check(ofs, "Could not create '%s'.", output.c_str());
+  std::ofstream stream(output.string());
+  mt::check(stream, "Could not create '%s'.", output.c_str());
+
+  //  if (!options.quiet) {
+  //    mt::log(std::cout) << "Exporting shard " << (i + 1) << " of " << num
+  //                       << std::endl;
+  //  }
 
   std::string base64_key;
   std::string base64_value;
@@ -131,23 +139,23 @@ void exportToBase64(const boost::filesystem::path& directory,
 
       // Write as Base64
       internal::Base64::encode(key, &base64_key);
-      ofs << base64_key;
+      stream << base64_key;
       for (const auto& value : sorted_values) {
         internal::Base64::encode(value, &base64_value);
-        ofs << ' ' << base64_value;
+        stream << ' ' << base64_value;
       }
-      ofs << '\n';
+      stream << '\n';
     });
   } else {
     map.forEachEntry([&](const Bytes& key, Map::ListIterator&& iter) {
       // Write as Base64
       internal::Base64::encode(key, &base64_key);
-      ofs << base64_key;
+      stream << base64_key;
       while (iter.hasNext()) {
         internal::Base64::encode(iter.next(), &base64_value);
-        ofs << ' ' << base64_value;
+        stream << ' ' << base64_value;
       }
-      ofs << '\n';
+      stream << '\n';
     });
   }
 }
@@ -166,7 +174,10 @@ void optimize(const boost::filesystem::path& directory,
   const auto id = internal::Id::readFromFile(id_file);
   internal::checkVersion(id.major_version, id.minor_version);
 
-  // TODO Verify id.checksum.
+  //  if (!options.quiet) {
+  //    mt::log(std::cout) << "Optimizing shard " << (i + 1) << " of " << num
+  //                       << std::endl;
+  //  }
 
   Map new_map;
   const auto prefix = abs_dir / internal::getFilePrefix();

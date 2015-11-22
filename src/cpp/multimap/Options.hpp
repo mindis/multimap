@@ -23,8 +23,9 @@
 
 namespace multimap {
 
-// A pure data holder used to configure an instantiation of class Map.
 struct Options {
+  // A type to configure an object of class Map or related functions.
+
   std::size_t num_shards = 23;
 
   std::size_t block_size = 512;
@@ -44,6 +45,9 @@ struct Options {
   // could possibly modify the data stored in the map are not allowed to be
   // called and will throw an exception on an attempt to do so.  This flag is
   // useful to prevent unintentional updates of read-only datasets.
+
+  bool quiet = false;
+  // Prints out status messages for long running jobs from `operations.hpp`.
 
   std::size_t buffer_size = mt::MiB(1);
 

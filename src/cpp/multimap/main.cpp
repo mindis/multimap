@@ -31,9 +31,10 @@ const auto OPTIMIZE = "optimize";
 const auto BS       = "--bs";
 const auto CREATE   = "--create";
 const auto NSHARDS  = "--nshards";
+const auto QUIET    = "--quiet";
 
 const auto COMMANDS = { HELP, STATS, IMPORT, EXPORT, OPTIMIZE };
-const auto OPTIONS  = { BS, CREATE, NSHARDS };
+const auto OPTIONS  = { BS, CREATE, NSHARDS, QUIET };
 
 struct CommandLine {
   struct Error : public std::runtime_error {
@@ -79,6 +80,10 @@ CommandLine parseCommandLine(int argc, const char** argv) {
           cmd.options[*it++];
           continue;
         }
+        if (*it == QUIET) {
+          cmd.options[*it++];
+          continue;
+        }
         if (*it == BS) {
           const auto option = *it++;
           mt::check<E>(it != end, "No value given for '%s'", option);
@@ -101,6 +106,7 @@ CommandLine parseCommandLine(int argc, const char** argv) {
 multimap::Options initOptions(const CommandLine& cmd) {
   multimap::Options options;
   options.create_if_missing = cmd.options.count(CREATE);
+  options.quiet = cmd.options.count(QUIET);
   if (cmd.options.count(BS)) {
     options.block_size = std::stoul(cmd.options.at(BS));
   }
@@ -125,6 +131,7 @@ void runHelpCommand(const char* tool_name) {
     "\n  %-9s      Create a new instance if missing when importing data."
     "\n  %-9s NUM  Block size to use for a new instance. Default is %lu."
     "\n  %-9s NUM  Number of shards to use for a new instance. Default is %lu."
+    "\n  %-9s      Don't print out any status messages."
     "\n\nEXAMPLES\n"
     "\n  %s %-8s path/to/map"
     "\n  %s %-8s path/to/map path/to/input"
@@ -147,6 +154,7 @@ void runHelpCommand(const char* tool_name) {
     CREATE,
     BS, default_options.block_size,
     NSHARDS, default_options.num_shards,
+    QUIET,
     tool_name, STATS,
     tool_name, IMPORT,
     tool_name, IMPORT,
