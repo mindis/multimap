@@ -187,11 +187,6 @@ void optimize(const boost::filesystem::path& directory,
   Map new_map;
   forEachShard(directory, [&](const internal::Shard& shard, std::size_t index,
                               std::size_t nshards) {
-    if (!options.quiet) {
-      mt::log(std::cout) << "Optimizing shard " << (index + 1) << " of "
-                         << nshards << std::endl;
-    }
-
     if (index == 0) {
       Options new_map_options = options;
       new_map_options.error_if_exists = true;
@@ -203,6 +198,11 @@ void optimize(const boost::filesystem::path& directory,
         new_map_options.num_shards = nshards;
       }
       new_map = Map(output, new_map_options);
+    }
+
+    if (!options.quiet) {
+      mt::log(std::cout) << "Optimizing shard " << (index + 1) << " of "
+                         << nshards << std::endl;
     }
 
     if (options.compare) {
