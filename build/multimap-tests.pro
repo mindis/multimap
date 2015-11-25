@@ -67,13 +67,11 @@ SOURCES += \
     ../src/cpp/multimap/internal/UintVectorTest.cpp \
     ../src/cpp/multimap/internal/VarintTest.cpp \
     ../src/cpp/multimap/thirdparty/googlemock/src/gmock_main.cc \
-    ../src/cpp/multimap/thirdparty/googlemock/src/gmock-all.cc \
     ../src/cpp/multimap/thirdparty/googlemock/src/gmock-cardinalities.cc \
     ../src/cpp/multimap/thirdparty/googlemock/src/gmock-internal-utils.cc \
     ../src/cpp/multimap/thirdparty/googlemock/src/gmock-matchers.cc \
     ../src/cpp/multimap/thirdparty/googlemock/src/gmock-spec-builders.cc \
     ../src/cpp/multimap/thirdparty/googlemock/src/gmock.cc \
-    ../src/cpp/multimap/thirdparty/googletest/src/gtest-all.cc \
     ../src/cpp/multimap/thirdparty/googletest/src/gtest-death-test.cc \
     ../src/cpp/multimap/thirdparty/googletest/src/gtest-filepath.cc \
     ../src/cpp/multimap/thirdparty/googletest/src/gtest-port.cc \
