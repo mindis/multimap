@@ -357,7 +357,7 @@ private:
   friend class MutexPool;
 };
 
-static_assert(mt::hasExpectedSize<List>(40, 48),
+static_assert(mt::hasExpectedSize<List>(36, 48),
               "class List does not have expected size");
 
 inline bool operator==(const List::Head& lhs, const List::Head& rhs) {
