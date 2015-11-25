@@ -213,7 +213,17 @@ void runExportCommand(const CommandLine& cmd) {
 }
 
 void runOptimizeCommand(const CommandLine& cmd) {
-  const auto options = initOptions(cmd);
+  auto options = initOptions(cmd);
+  if (cmd.options.count(BS) == 0) {
+    options.block_size = 0;
+    // If no BS is explicitly given set `block_size` to zero to indicate
+    // that the old block size should be used for the new optimized map.
+  }
+  if (cmd.options.count(NSHARDS) == 0) {
+    options.num_shards = 0;
+    // If no NSHARDS is explicitly given set `num_shards` to zero to indicate
+    // that the old number of shards should be used for the new optimized map.
+  }
   multimap::optimize(cmd.map, cmd.path, options);
 }
 
