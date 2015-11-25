@@ -33,7 +33,7 @@
 
 namespace mt {
 
-static const std::size_t VERSION = 20151120;
+static const std::size_t VERSION = 20151125;
 
 // -----------------------------------------------------------------------------
 // COMMON
@@ -57,20 +57,7 @@ constexpr bool is32BitSystem() { return sizeof(void*) == 4; }
 constexpr bool is64BitSystem() { return sizeof(void*) == 8; }
 
 // -----------------------------------------------------------------------------
-// LOGGING
-
-std::string timestamp();
-
-void printTimestamp(std::ostream& stream);
-
-std::ostream& log(std::ostream& stream);
-// Usage: mt::log(some_stream) << "Some message\n";
-
-std::ostream& log();
-// Usage: mt::log() << "Some message\n";
-
-// -----------------------------------------------------------------------------
-// HASHING
+// ALGORITHM
 
 std::size_t crc32(const std::string& str);
 // Computes and returns the 32-bit CRC checksum for `str`.
@@ -98,6 +85,29 @@ inline std::size_t fnv1aHash(const void* buf, std::size_t len) {
 }
 // Dispatching function to choose either `fnv1aHash32()` or `fnv1aHash64()`
 // depending on the actual system.
+
+template <typename A, typename B>
+bool min(const A& a, const B& b) { return a < b ? a : b; }
+// `std::min` requires that `a` and `b` are of the same which means that
+// you cannot compare `std::int32_t` and `std::int64_t` without casting.
+
+template <typename A, typename B>
+bool max(const A& a, const B& b) { return a > b ? a : b; }
+// `std::min` requires that `a` and `b` are of the same which means that
+// you cannot compare `std::int32_t` and `std::int64_t` without casting.
+
+// -----------------------------------------------------------------------------
+// LOGGING
+
+std::string timestamp();
+
+void printTimestamp(std::ostream& stream);
+
+std::ostream& log(std::ostream& stream);
+// Usage: mt::log(some_stream) << "Some message\n";
+
+std::ostream& log();
+// Usage: mt::log() << "Some message\n";
 
 // -----------------------------------------------------------------------------
 // ERROR HANDLING

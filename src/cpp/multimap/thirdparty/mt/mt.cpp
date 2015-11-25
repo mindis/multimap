@@ -168,35 +168,6 @@ std::size_t nextPrime(std::size_t number) {
   return number;
 }
 
-std::string timestamp() {
-  std::ostringstream stream;
-  printTimestamp(stream);
-  return stream.str();
-}
-
-void printTimestamp(std::ostream& stream) {
-  const auto time_since_epoch = std::time(nullptr);
-  Check::notEqual(time_since_epoch, -1, "std::time() failed");
-  struct tm broken_down_time;
-  ::localtime_r(&time_since_epoch, &broken_down_time);
-
-  char old_fill_char = stream.fill('0');
-  stream << broken_down_time.tm_year + 1900;
-  stream << '-' << std::setw(2) << broken_down_time.tm_mon + 1;
-  stream << '-' << std::setw(2) << broken_down_time.tm_mday;
-  stream << ' ' << std::setw(2) << broken_down_time.tm_hour;
-  stream << ':' << std::setw(2) << broken_down_time.tm_min;
-  stream << ':' << std::setw(2) << broken_down_time.tm_sec;
-  stream.fill(old_fill_char);
-}
-
-std::ostream& log(std::ostream& stream) {
-  printTimestamp(stream);
-  return stream.put(' ');
-}
-
-std::ostream& log() { return log(std::clog); }
-
 std::size_t crc32(const std::string& str) {
   return crc32(str.data(), str.size());
 }
@@ -228,6 +199,35 @@ std::uint64_t fnv1aHash64(const void* buf, std::size_t len) {
   }
   return h;
 }
+
+std::string timestamp() {
+  std::ostringstream stream;
+  printTimestamp(stream);
+  return stream.str();
+}
+
+void printTimestamp(std::ostream& stream) {
+  const auto time_since_epoch = std::time(nullptr);
+  Check::notEqual(time_since_epoch, -1, "std::time() failed");
+  struct tm broken_down_time;
+  ::localtime_r(&time_since_epoch, &broken_down_time);
+
+  char old_fill_char = stream.fill('0');
+  stream << broken_down_time.tm_year + 1900;
+  stream << '-' << std::setw(2) << broken_down_time.tm_mon + 1;
+  stream << '-' << std::setw(2) << broken_down_time.tm_mday;
+  stream << ' ' << std::setw(2) << broken_down_time.tm_hour;
+  stream << ':' << std::setw(2) << broken_down_time.tm_min;
+  stream << ':' << std::setw(2) << broken_down_time.tm_sec;
+  stream.fill(old_fill_char);
+}
+
+std::ostream& log(std::ostream& stream) {
+  printTimestamp(stream);
+  return stream.put(' ');
+}
+
+std::ostream& log() { return log(std::clog); }
 
 Files::Bytes Files::readAllBytes(const boost::filesystem::path& filepath) {
   std::ifstream ifs(filepath.string());
