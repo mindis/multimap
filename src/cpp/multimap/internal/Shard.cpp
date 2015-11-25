@@ -278,18 +278,18 @@ Shard::~Shard() {
         stats.num_values_added += list->head().num_values_added;
         stats.num_values_removed += list->head().num_values_removed;
         stats.key_size_avg += entry.first.size();
-        stats.key_size_max = std::max(stats.key_size_max, entry.first.size());
+        stats.key_size_max = mt::max(stats.key_size_max, entry.first.size());
         if (stats.key_size_min == 0) {
           stats.key_size_min = entry.first.size();
         } else {
-          stats.key_size_min = std::min(stats.key_size_min, entry.first.size());
+          stats.key_size_min = mt::min(stats.key_size_min, entry.first.size());
         }
         stats.list_size_avg += list->size();
-        stats.list_size_max = std::max(stats.list_size_max, list->size());
+        stats.list_size_max = mt::max(stats.list_size_max, list->size());
         if (stats.list_size_min == 0) {
           stats.list_size_min = list->size();
         } else {
-          stats.list_size_min = std::min(stats.list_size_min, list->size());
+          stats.list_size_min = mt::min(stats.list_size_min, list->size());
         }
         Entry(entry.first, list->head()).writeToStream(stream.get());
       }
@@ -395,16 +395,16 @@ Shard::Stats Shard::getStats() const {
     if (stats.key_size_min == 0) {
       stats.key_size_min = key.size();
     } else {
-      stats.key_size_min = std::min(stats.key_size_min, key.size());
+      stats.key_size_min = mt::min(stats.key_size_min, key.size());
     }
-    stats.key_size_max = std::max(stats.key_size_max, key.size());
+    stats.key_size_max = mt::max(stats.key_size_max, key.size());
     stats.key_size_avg += key.size();
     if (stats.list_size_min == 0) {
       stats.list_size_min = list.size();
     } else {
-      stats.list_size_min = std::min(stats.list_size_min, list.size());
+      stats.list_size_min = mt::min(stats.list_size_min, list.size());
     }
-    stats.list_size_max = std::max(stats.list_size_max, list.size());
+    stats.list_size_max = mt::max(stats.list_size_max, list.size());
     stats.list_size_avg += list.size();
   });
   if (stats.num_keys != 0) {
