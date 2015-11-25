@@ -30,7 +30,7 @@ namespace {
 
 Store::Stats readStatsFromTail(int fd) {
   Store::Stats stats;
-  const auto end_of_data = ::lseek64(fd, -(sizeof stats), SEEK_END);
+  const auto end_of_data = ::lseek(fd, -(sizeof stats), SEEK_END);
   MT_ASSERT_NE(end_of_data, -1);
 
   const auto status = ::read(fd, &stats, sizeof stats);
@@ -40,7 +40,7 @@ Store::Stats readStatsFromTail(int fd) {
 }
 
 void writeStatsToTail(const Store::Stats& stats, int fd) {
-  auto status = ::lseek64(fd, 0, SEEK_END);
+  auto status = ::lseek(fd, 0, SEEK_END);
   MT_ASSERT_NE(status, -1);
 
   status = ::write(fd, &stats, sizeof stats);
@@ -49,9 +49,9 @@ void writeStatsToTail(const Store::Stats& stats, int fd) {
 }
 
 void removeStatsFromTail(int fd) {
-  const auto end_of_data = ::lseek64(fd, -sizeof(Store::Stats), SEEK_CUR);
+  const auto end_of_data = ::lseek(fd, -sizeof(Store::Stats), SEEK_CUR);
   MT_ASSERT_NE(end_of_data, -1);
-  const auto status = ::ftruncate64(fd, end_of_data);
+  const auto status = ::ftruncate(fd, end_of_data);
   MT_ASSERT_ZERO(status);
 }
 
@@ -101,9 +101,9 @@ Store::Store(const boost::filesystem::path& file, const Options& options) {
         prot |= PROT_WRITE;
       }
       const auto len = stats_.num_blocks * stats_.block_size;
-      mapped_.data = ::mmap64(nullptr, len, prot, MAP_SHARED, fd_, 0);
+      mapped_.data = ::mmap(nullptr, len, prot, MAP_SHARED, fd_, 0);
       mt::Check::notEqual(mapped_.data, MAP_FAILED,
-                          "mmap64() failed for '%s' because of '%s'",
+                          "mmap() failed for '%s' because of '%s'",
                           file.c_str(), std::strerror(errno));
       mapped_.size = len;
     }
@@ -199,9 +199,9 @@ std::uint32_t Store::putUnlocked(const char* block) {
                           std::strerror(errno));
     } else {
       const auto prot = PROT_READ | PROT_WRITE;
-      mapped_.data = ::mmap64(nullptr, new_size, prot, MAP_SHARED, fd_, 0);
+      mapped_.data = ::mmap(nullptr, new_size, prot, MAP_SHARED, fd_, 0);
       mt::Check::notEqual(mapped_.data, MAP_FAILED,
-                          "mmap64() failed because of '%s'",
+                          "mmap() failed because of '%s'",
                           std::strerror(errno));
     }
     mapped_.size = new_size;
