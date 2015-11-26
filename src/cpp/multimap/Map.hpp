@@ -42,6 +42,8 @@ public:
     static std::size_t getMaxValueSize();
   };
 
+  typedef internal::Shard::Stats Stats;
+
   typedef internal::SharedListIterator ListIterator;
   // An iterator type to iterate an immutable list.
 
@@ -198,7 +200,10 @@ public:
   void forEachEntry(Callables::BinaryProcedure action) const;
   // TODO Document this.
 
-  std::vector<internal::Shard::Stats> getStats() const;
+  std::vector<Stats> getStats() const;
+
+  Stats getTotalStats() const;
+
 
 private:
   std::vector<std::unique_ptr<internal::Shard> > shards_;

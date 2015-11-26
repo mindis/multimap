@@ -236,12 +236,16 @@ void Map::forEachEntry(Callables::BinaryProcedure action) const {
   }
 }
 
-std::vector<internal::Shard::Stats> Map::getStats() const {
-  std::vector<internal::Shard::Stats> stats;
+std::vector<Map::Stats> Map::getStats() const {
+  std::vector<Stats> stats;
   for (const auto& shard : shards_) {
     stats.push_back(shard->getStats());
   }
   return stats;
+}
+
+Map::Stats Map::getTotalStats() const {
+  return internal::Shard::Stats::total(getStats());
 }
 
 namespace internal {
