@@ -17,7 +17,7 @@
 
 #include <thread>
 #include <boost/filesystem/operations.hpp>
-#include <gmock/gmock.h>
+#include "gmock/gmock.h"
 #include "multimap/internal/List.hpp"
 #include "multimap/internal/Generator.hpp"
 #include "multimap/Map.hpp"

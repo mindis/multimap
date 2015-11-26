@@ -17,8 +17,8 @@
 
 #include <thread>
 #include <type_traits>
-#include <gmock/gmock.h>
 #include <boost/filesystem/operations.hpp>
+#include "gmock/gmock.h"
 #include "multimap/internal/Shard.hpp"
 
 namespace multimap {

@@ -154,18 +154,18 @@ Shard::Stats Shard::Stats::total(const std::vector<Stats>& stats) {
     total.num_values_added += stat.num_values_added;
     total.num_values_removed += stat.num_values_removed;
     total.num_values_unowned += stat.num_values_unowned;
-    if (total.key_size_min == 0) {
-      total.key_size_min = stat.key_size_min;
-    } else {
-      total.key_size_min = std::min(total.key_size_min, stat.key_size_min);
-    }
     total.key_size_max = std::max(total.key_size_max, stat.key_size_max);
-    if (total.list_size_min == 0) {
-      total.list_size_min = stat.list_size_min;
-    } else {
-      total.list_size_min = std::min(total.list_size_min, stat.list_size_min);
+    if (stat.key_size_min) {
+      total.key_size_min = total.key_size_min
+                               ? mt::min(total.key_size_min, stat.key_size_min)
+                               : stat.key_size_min;
     }
     total.list_size_max = std::max(total.list_size_max, stat.list_size_max);
+    if (stat.list_size_min) {
+      total.list_size_min =
+          total.list_size_min ? mt::min(total.list_size_min, stat.list_size_min)
+                              : stat.list_size_min;
+    }
   }
   if (total.num_keys != 0) {
     double key_size_avg = 0;
@@ -193,12 +193,16 @@ Shard::Stats Shard::Stats::max(const std::vector<Stats>& stats) {
         std::max(max.num_values_removed, stat.num_values_removed);
     max.num_values_unowned =
         std::max(max.num_values_unowned, stat.num_values_unowned);
-    max.key_size_min = std::max(max.key_size_min, stat.key_size_min);
-    max.key_size_max = std::max(max.key_size_max, stat.key_size_max);
     max.key_size_avg = std::max(max.key_size_avg, stat.key_size_avg);
-    max.list_size_min = std::max(max.list_size_min, stat.list_size_min);
-    max.list_size_max = std::max(max.list_size_max, stat.list_size_max);
+    max.key_size_max = std::max(max.key_size_max, stat.key_size_max);
+    if (stat.key_size_min) {
+      max.key_size_min = std::max(max.key_size_min, stat.key_size_min);
+    }
     max.list_size_avg = std::max(max.list_size_avg, stat.list_size_avg);
+    max.list_size_max = std::max(max.list_size_max, stat.list_size_max);
+    if (stat.list_size_min) {
+      max.list_size_min = std::max(max.list_size_min, stat.list_size_min);
+    }
   }
   return max;
 }
@@ -257,9 +261,10 @@ Shard::~Shard() {
     stats.num_blocks = store_stats.num_blocks;
     stats.num_values_unowned = stats_.num_values_unowned;
     for (const auto& entry : map_) {
-      const auto list = entry.second.get();
+      const auto& key = entry.first;
+      const auto& list = entry.second.get();
       if (list->is_locked()) {
-        const auto key_as_base64 = Base64::encode(entry.first);
+        const auto key_as_base64 = Base64::encode(key);
         mt::log() << "The list with the key " << key_as_base64
                   << " (Base64) was still locked when shutting down."
                   << " Recent updates of the list may be lost.\n";
@@ -277,21 +282,17 @@ Shard::~Shard() {
         ++stats.num_keys;
         stats.num_values_added += list->head().num_values_added;
         stats.num_values_removed += list->head().num_values_removed;
-        stats.key_size_avg += entry.first.size();
-        stats.key_size_max = mt::max(stats.key_size_max, entry.first.size());
-        if (stats.key_size_min == 0) {
-          stats.key_size_min = entry.first.size();
-        } else {
-          stats.key_size_min = mt::min(stats.key_size_min, entry.first.size());
-        }
+        stats.key_size_avg += key.size();
+        stats.key_size_max = mt::max(stats.key_size_max, key.size());
+        stats.key_size_min = stats.key_size_min
+                                 ? mt::min(stats.key_size_min, key.size())
+                                 : key.size();
         stats.list_size_avg += list->size();
         stats.list_size_max = mt::max(stats.list_size_max, list->size());
-        if (stats.list_size_min == 0) {
-          stats.list_size_min = list->size();
-        } else {
-          stats.list_size_min = mt::min(stats.list_size_min, list->size());
-        }
-        Entry(entry.first, list->head()).writeToStream(stream.get());
+        stats.list_size_min = stats.list_size_min
+                                  ? mt::min(stats.list_size_min, list->size())
+                                  : list->size();
+        Entry(key, list->head()).writeToStream(stream.get());
       }
     }
 
@@ -392,20 +393,16 @@ Shard::Stats Shard::getStats() const {
     ++stats.num_keys;
     stats.num_values_added += list.head().num_values_added;
     stats.num_values_removed += list.head().num_values_removed;
-    if (stats.key_size_min == 0) {
-      stats.key_size_min = key.size();
-    } else {
-      stats.key_size_min = mt::min(stats.key_size_min, key.size());
-    }
-    stats.key_size_max = mt::max(stats.key_size_max, key.size());
     stats.key_size_avg += key.size();
-    if (stats.list_size_min == 0) {
-      stats.list_size_min = list.size();
-    } else {
-      stats.list_size_min = mt::min(stats.list_size_min, list.size());
-    }
-    stats.list_size_max = mt::max(stats.list_size_max, list.size());
+    stats.key_size_max = mt::max(stats.key_size_max, key.size());
+    stats.key_size_min = stats.key_size_min
+                             ? mt::min(stats.key_size_min, key.size())
+                             : key.size();
     stats.list_size_avg += list.size();
+    stats.list_size_max = mt::max(stats.list_size_max, list.size());
+    stats.list_size_min = stats.list_size_min
+                              ? mt::min(stats.list_size_min, list.size())
+                              : list.size();
   });
   if (stats.num_keys != 0) {
     stats.key_size_avg /= stats.num_keys;
