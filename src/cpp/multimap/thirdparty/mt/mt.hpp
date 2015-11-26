@@ -33,7 +33,7 @@
 
 namespace mt {
 
-static const std::size_t VERSION = 20151125;
+static const std::size_t VERSION = 20151126;
 
 // -----------------------------------------------------------------------------
 // COMMON
@@ -87,12 +87,16 @@ inline std::size_t fnv1aHash(const void* buf, std::size_t len) {
 // depending on the actual system.
 
 template <typename A, typename B>
-bool min(const A& a, const B& b) { return a < b ? a : b; }
+auto min(const A& a, const B& b) -> decltype(a < b ? a : b) {
+  return a < b ? a : b;
+}
 // `std::min` requires that `a` and `b` are of the same which means that
 // you cannot compare `std::int32_t` and `std::int64_t` without casting.
 
 template <typename A, typename B>
-bool max(const A& a, const B& b) { return a > b ? a : b; }
+auto max(const A& a, const B& b) -> decltype(a > b ? a : b) {
+  return a > b ? a : b;
+}
 // `std::min` requires that `a` and `b` are of the same which means that
 // you cannot compare `std::int32_t` and `std::int64_t` without casting.
 
