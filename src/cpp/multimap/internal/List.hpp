@@ -71,8 +71,6 @@ public:
     public:
       static const std::size_t BLOCK_CACHE_SIZE = 1024;
 
-      Stream() : store_(nullptr) {}
-
       MT_ENABLE_IF(IsMutable)
       Stream(List* list, Store* store)
           : block_ids_(list->head_.block_ids.unpack()),
@@ -91,8 +89,8 @@ public:
 
       ~Stream() { writeBackMutatedBlocks(); }
 
-      Stream(Stream&&) = default;
-      Stream& operator=(Stream&&) = default;
+      Stream(Stream&&) = delete;
+      Stream& operator=(Stream&&) = delete;
 
       void readSizeWithFlag(std::uint32_t* size, bool* flag) {
         std::size_t nbytes = 0;
@@ -220,13 +218,14 @@ public:
     Iter() : list_(nullptr) {}
 
     MT_ENABLE_IF(IsMutable)
-    Iter(List* list, Store* store) : list_(list), stream_(list, store) {
+    Iter(List* list, Store* store)
+        : list_(list), stream_(new Stream(list, store)) {
       stats_.available = list->head_.num_values_not_removed();
     }
 
     MT_ENABLE_IF(!IsMutable)
     Iter(const List& list, const Store& store)
-        : list_(&list), stream_(list, store) {
+        : list_(&list), stream_(new Stream(list, store)) {
       stats_.available = list.head_.num_values_not_removed();
     }
 
@@ -255,9 +254,9 @@ public:
         std::uint32_t value_size = 0;
         bool is_marked_as_removed = false;
         do {
-          stream_.readSizeWithFlag(&value_size, &is_marked_as_removed);
+          stream_->readSizeWithFlag(&value_size, &is_marked_as_removed);
           current_value_.resize(value_size);
-          stream_.readData(current_value_.data(), value_size);
+          stream_->readData(current_value_.data(), value_size);
         } while (is_marked_as_removed);
         stats_.load_next_value = false;
       }
@@ -267,7 +266,7 @@ public:
     //  * `hasNext()` yields `true`.
 
     MT_ENABLE_IF(IsMutable) void remove() {
-      stream_.overwriteLastExtractedFlag(true);
+      stream_->overwriteLastExtractedFlag(true);
       ++list_->head_.num_values_removed;
     }
     // Preconditions:
@@ -281,7 +280,7 @@ public:
 
     typename std::conditional<IsMutable, List, const List>::type* list_;
     std::vector<char> current_value_;
-    Stream stream_;
+    std::unique_ptr<Stream> stream_;
     Stats stats_;
   };
 
