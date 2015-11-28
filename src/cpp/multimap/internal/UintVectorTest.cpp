@@ -18,6 +18,7 @@
 #include <type_traits>
 #include "gmock/gmock.h"
 #include "multimap/internal/UintVector.hpp"
+#include "multimap/internal/Varint.hpp"
 
 namespace multimap {
 namespace internal {

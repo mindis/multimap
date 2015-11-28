@@ -18,7 +18,7 @@
 #ifndef MULTIMAP_MAP_HPP_INCLUDED
 #define MULTIMAP_MAP_HPP_INCLUDED
 
-#include <map>
+#include <memory>
 #include <vector>
 #include <boost/filesystem/path.hpp>
 #include "multimap/internal/Shard.hpp"

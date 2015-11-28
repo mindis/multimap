@@ -18,8 +18,10 @@
 #ifndef MULTIMAP_OPERATIONS_HPP_INCLUDED
 #define MULTIMAP_OPERATIONS_HPP_INCLUDED
 
+#include <vector>
 #include <boost/filesystem/path.hpp>
-#include "multimap/Map.hpp"
+#include "multimap/internal/Shard.hpp"
+#include "multimap/Options.hpp"
 
 namespace multimap {
 

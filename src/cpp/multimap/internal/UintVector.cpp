@@ -17,7 +17,7 @@
 
 #include "multimap/internal/UintVector.hpp"
 
-#include <cstring>
+#include "multimap/internal/Varint.hpp"
 
 namespace multimap {
 namespace internal {

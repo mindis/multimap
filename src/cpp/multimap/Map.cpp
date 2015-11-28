@@ -17,7 +17,6 @@
 
 #include "multimap/Map.hpp"
 
-#include <algorithm>
 #include <boost/filesystem/operations.hpp>
 
 namespace multimap {

@@ -19,14 +19,13 @@
 #define MULTIMAP_INTERNAL_LIST_HPP_INCLUDED
 
 #include <functional>
-#include <mutex>
 #include <vector>
 #include <boost/thread/shared_mutex.hpp>
 #include "multimap/internal/Arena.hpp"
 #include "multimap/internal/Store.hpp"
 #include "multimap/internal/UintVector.hpp"
-#include "multimap/Bytes.hpp"
 #include "multimap/thirdparty/mt/mt.hpp"
+#include "multimap/Bytes.hpp"
 
 namespace multimap {
 namespace internal {
@@ -253,12 +252,12 @@ public:
         bool is_marked_as_removed = false;
         do {
           stream_->readSizeWithFlag(&value_size, &is_marked_as_removed);
-          current_value_.resize(value_size);
-          stream_->readData(current_value_.data(), value_size);
+          value_.resize(value_size);
+          stream_->readData(value_.data(), value_size);
         } while (is_marked_as_removed);
         stats_.load_next_value = false;
       }
-      return Bytes(current_value_.data(), current_value_.size());
+      return Bytes(value_.data(), value_.size());
     }
     // Preconditions:
     //  * `hasNext()` yields `true`.
@@ -277,8 +276,8 @@ public:
     };
 
     typename std::conditional<IsMutable, List, const List>::type* list_;
-    std::vector<char> current_value_;
     std::unique_ptr<Stream> stream_;
+    std::vector<char> value_;
     Stats stats_;
   };
 

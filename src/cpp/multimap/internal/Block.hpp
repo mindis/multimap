@@ -18,9 +18,8 @@
 #ifndef MULTIMAP_INTERNAL_BLOCK_HPP_INCLUDED
 #define MULTIMAP_INTERNAL_BLOCK_HPP_INCLUDED
 
+#include <cstring>
 #include <algorithm>
-#include <functional>
-#include "multimap/internal/Arena.hpp"
 #include "multimap/internal/Varint.hpp"
 #include "multimap/thirdparty/mt/mt.hpp"
 

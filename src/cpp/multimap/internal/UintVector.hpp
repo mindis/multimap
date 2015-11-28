@@ -18,11 +18,9 @@
 #ifndef MULTIMAP_INTERNAL_UINT_VECTOR_HPP_INCLUDED
 #define MULTIMAP_INTERNAL_UINT_VECTOR_HPP_INCLUDED
 
-#include <cstdio>
-#include <cstdint>
+#include <cstring>
 #include <memory>
 #include <vector>
-#include "multimap/internal/Varint.hpp"
 #include "multimap/thirdparty/mt/mt.hpp"
 
 namespace multimap {

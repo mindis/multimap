@@ -19,13 +19,15 @@
 
 #include <iostream>
 #include <boost/filesystem/operations.hpp>
-#include "internal/Base64.hpp"
+#include "multimap/internal/Base64.hpp"
+#include "multimap/Map.hpp"
 
 namespace multimap {
 
 void forEachShard(
     const boost::filesystem::path& directory,
-    std::function<void(const internal::Shard&, std::size_t /* index */,
+    std::function<void(const internal::Shard&,
+                       std::size_t /* index */,
                        std::size_t /* nshards */)> action) {
   mt::DirectoryLockGuard lock(directory, internal::getNameOfLockFile());
   const auto id_file = directory / internal::getNameOfIdFile();

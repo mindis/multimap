@@ -18,9 +18,10 @@
 #ifndef MULTIMAP_INTERNAL_SHARD_HPP_INCLUDED
 #define MULTIMAP_INTERNAL_SHARD_HPP_INCLUDED
 
-#include <functional>
 #include <memory>
+#include <type_traits>
 #include <unordered_map>
+#include <vector>
 #include <boost/filesystem/path.hpp>
 #include <boost/thread/shared_mutex.hpp>
 #include "multimap/internal/Arena.hpp"

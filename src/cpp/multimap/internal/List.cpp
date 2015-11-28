@@ -17,8 +17,6 @@
 
 #include "multimap/internal/List.hpp"
 
-#include <cstring>
-
 namespace multimap {
 namespace internal {
 
