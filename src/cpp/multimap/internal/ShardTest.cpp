@@ -200,5 +200,14 @@ TEST_F(ShardTestFixture, PutValuesInTwoSessions) {
   }
 }
 
+// -----------------------------------------------------------------------------
+// class Shard::Stats
+
+TEST(ShardStatsTest, NamesAndToVectorHaveSameDimension) {
+  const auto names = Shard::Stats::names();
+  const auto vector = Shard::Stats().toVector();
+  ASSERT_THAT(names.size(), Eq(vector.size()));
+}
+
 } // namespace internal
 } // namespace multimap
