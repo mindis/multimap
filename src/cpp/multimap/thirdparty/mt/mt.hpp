@@ -429,6 +429,11 @@ constexpr bool hasExpectedSize(std::size_t size_on_32_bit_system,
 //     // Error: no matching function for call to `Foo<false>::mutate()'.
 //   };
 
+#define MT_DISABLE_IF(condition)                                               \
+  template <bool __MT_B = condition,                                           \
+            typename std::enable_if<!__MT_B>::type* = nullptr>
+// Disables a method of a class template if a boolean parameter is true.
+
 #define MT_ENABLE_IF_SAME(generic_type, concrete_type)                         \
   template <typename __MT_T = generic_type,                                    \
             typename std::enable_if<                                           \
