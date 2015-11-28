@@ -109,9 +109,9 @@ std::size_t Shard::Limits::getMaxValueSize() {
 
 const std::vector<std::string>& Shard::Stats::names() {
   static std::vector<std::string> names = {
-    "block_size",         "num_blocks",    "num_keys",     "num_values_put",
-    "num_values_removed", "key_size_min",  "key_size_max", "key_size_avg",
-    "list_size_min",      "list_size_max", "list_size_avg"
+    "block_size",     "num_blocks",    "num_keys",     "num_values_put",
+    "num_values_rmd", "key_size_min",  "key_size_max", "key_size_avg",
+    "list_size_min",  "list_size_max", "list_size_avg"
   };
   return names;
 }
@@ -139,7 +139,7 @@ Shard::Stats Shard::Stats::fromProperties(const mt::Properties& properties) {
   stats.num_blocks = std::stoul(properties.at("num_blocks"));
   stats.num_keys = std::stoul(properties.at("num_keys"));
   stats.num_values_put = std::stoul(properties.at("num_values_put"));
-  stats.num_values_removed = std::stoul(properties.at("num_values_removed"));
+  stats.num_values_rmd = std::stoul(properties.at("num_values_rmd"));
   stats.key_size_min = std::stoul(properties.at("key_size_min"));
   stats.key_size_max = std::stoul(properties.at("key_size_max"));
   stats.key_size_avg = std::stoul(properties.at("key_size_avg"));
@@ -156,7 +156,7 @@ mt::Properties Shard::Stats::toProperties() const {
   properties["num_blocks"] = std::to_string(num_blocks);
   properties["num_keys"] = std::to_string(num_keys);
   properties["num_values_put"] = std::to_string(num_values_put);
-  properties["num_values_removed"] = std::to_string(num_values_removed);
+  properties["num_values_rmd"] = std::to_string(num_values_rmd);
   properties["key_size_min"] = std::to_string(key_size_min);
   properties["key_size_max"] = std::to_string(key_size_max);
   properties["key_size_avg"] = std::to_string(key_size_avg);
@@ -168,9 +168,9 @@ mt::Properties Shard::Stats::toProperties() const {
 }
 
 std::vector<std::uint64_t> Shard::Stats::toVector() const {
-  return { block_size,         num_blocks,    num_keys,     num_values_put,
-           num_values_removed, key_size_min,  key_size_max, key_size_avg,
-           list_size_min,      list_size_max, list_size_avg };
+  return { block_size,     num_blocks,    num_keys,     num_values_put,
+           num_values_rmd, key_size_min,  key_size_max, key_size_avg,
+           list_size_min,  list_size_max, list_size_avg };
 }
 
 Shard::Stats Shard::Stats::total(const std::vector<Stats>& stats) {
@@ -184,7 +184,7 @@ Shard::Stats Shard::Stats::total(const std::vector<Stats>& stats) {
     total.num_blocks += stat.num_blocks;
     total.num_keys += stat.num_keys;
     total.num_values_put += stat.num_values_put;
-    total.num_values_removed += stat.num_values_removed;
+    total.num_values_rmd += stat.num_values_rmd;
     total.key_size_max = std::max(total.key_size_max, stat.key_size_max);
     if (stat.key_size_min) {
       total.key_size_min = total.key_size_min
@@ -219,8 +219,7 @@ Shard::Stats Shard::Stats::max(const std::vector<Stats>& stats) {
     max.num_blocks = std::max(max.num_blocks, stat.num_blocks);
     max.num_keys = std::max(max.num_keys, stat.num_keys);
     max.num_values_put = std::max(max.num_values_put, stat.num_values_put);
-    max.num_values_removed =
-        std::max(max.num_values_removed, stat.num_values_removed);
+    max.num_values_rmd = std::max(max.num_values_rmd, stat.num_values_rmd);
     max.key_size_avg = std::max(max.key_size_avg, stat.key_size_avg);
     max.key_size_max = std::max(max.key_size_max, stat.key_size_max);
     if (stat.key_size_min) {
@@ -252,13 +251,13 @@ Shard::Shard(const boost::filesystem::path& file_prefix,
       const auto entry = Entry::readFromStream(stream.get(), &arena_);
       map_[entry.key()].reset(new List(entry.head()));
       stats_.num_values_put -= entry.head().num_values_added;
-      stats_.num_values_removed -= entry.head().num_values_removed;
+      stats_.num_values_rmd -= entry.head().num_values_removed;
     }
 
     // Reset stats, but preserve number of values put and removed.
     Stats stats;
     stats.num_values_put = stats_.num_values_put;
-    stats.num_values_removed = stats_.num_values_removed;
+    stats.num_values_rmd = stats_.num_values_rmd;
     stats_ = stats;
 
   } else if (options.create_if_missing) {
@@ -307,7 +306,7 @@ Shard::~Shard() {
       // loss. However, this causes a race which could let the program crash...
       list->flush(store_.get());
       stats_.num_values_put += list->head().num_values_added;
-      stats_.num_values_removed += list->head().num_values_removed;
+      stats_.num_values_rmd += list->head().num_values_removed;
       if (!list->empty()) {
         ++stats_.num_keys;
         stats_.key_size_avg += key.size();
@@ -353,7 +352,7 @@ std::size_t Shard::remove(const Bytes& key) {
   std::size_t num_removed = 0;
   if (auto list = getUnique(key)) {
     stats_.num_values_put += list.head().num_values_added;
-    stats_.num_values_removed += list.head().num_values_added;
+    stats_.num_values_rmd += list.head().num_values_added;
     // Since the whole list is discarded, all added values count as removed.
     num_removed = list.size();
     list.clear();
@@ -457,7 +456,7 @@ Shard::Stats Shard::getStats() const {
     if (list) {
       ++stats.num_keys;
       stats.num_values_put += list.head().num_values_added;
-      stats.num_values_removed += list.head().num_values_removed;
+      stats.num_values_rmd += list.head().num_values_removed;
       stats.key_size_avg += key.size();
       stats.key_size_max = mt::max(stats.key_size_max, key.size());
       stats.key_size_min = stats.key_size_min

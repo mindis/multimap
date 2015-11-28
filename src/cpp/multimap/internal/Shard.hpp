@@ -52,7 +52,7 @@ public:
     std::uint64_t num_blocks = 0;
     std::uint64_t num_keys = 0;
     std::uint64_t num_values_put = 0;
-    std::uint64_t num_values_removed = 0;
+    std::uint64_t num_values_rmd = 0;
     std::uint64_t key_size_min = 0;
     std::uint64_t key_size_max = 0;
     std::uint64_t key_size_avg = 0;

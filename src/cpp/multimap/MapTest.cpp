@@ -249,7 +249,7 @@ TEST_P(MapTestWithParam, TotalStatsReportsCorrectValuesAfterPut) {
     ASSERT_THAT(stats.list_size_min, Eq(GetParam()));
     ASSERT_THAT(stats.num_keys, Eq(GetParam()));
     ASSERT_THAT(stats.num_values_put, Eq(GetParam() * GetParam()));
-    ASSERT_THAT(stats.num_values_removed, Eq(0));
+    ASSERT_THAT(stats.num_values_rmd, Eq(0));
   }
 
   Map map(directory, Options());
@@ -259,7 +259,7 @@ TEST_P(MapTestWithParam, TotalStatsReportsCorrectValuesAfterPut) {
   ASSERT_THAT(stats.list_size_min, Eq(GetParam()));
   ASSERT_THAT(stats.num_keys, Eq(GetParam()));
   ASSERT_THAT(stats.num_values_put, Eq(GetParam() * GetParam()));
-  ASSERT_THAT(stats.num_values_removed, Eq(0));
+  ASSERT_THAT(stats.num_values_rmd, Eq(0));
 }
 
 //TEST_P(MapTestWithParam, TotalStatsAreCorrectAfterRemovingValues) {
