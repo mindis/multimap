@@ -90,10 +90,13 @@ public:
   // ---------------------------------------------------------------------------
   // The following interface is only enabled if IsReadOnly is false.
 
-  MT_ENABLE_IF(!IsReadOnly)
+  MT_DISABLE_IF(IsReadOnly)
   char* data() { return data_; }
 
-  MT_ENABLE_IF(!IsReadOnly)
+  MT_DISABLE_IF(IsReadOnly)
+  void fillUpWithZeros() { std::memset(current(), 0, remaining()); }
+
+  MT_DISABLE_IF(IsReadOnly)
   std::size_t writeData(const char* data, std::size_t size) {
     MT_REQUIRE_NOT_NULL(data_);
     const auto nbytes = std::min(size, remaining());
@@ -102,7 +105,7 @@ public:
     return nbytes;
   }
 
-  MT_ENABLE_IF(!IsReadOnly)
+  MT_DISABLE_IF(IsReadOnly)
   std::size_t writeSizeWithFlag(std::uint32_t size, bool flag) {
     MT_REQUIRE_NOT_NULL(data_);
     const auto nbytes =
@@ -111,6 +114,7 @@ public:
     return nbytes;
   }
 
+  MT_DISABLE_IF(IsReadOnly)
   void writeFlagAt(bool flag, std::size_t offset) {
     MT_REQUIRE_NOT_NULL(data_);
     Varint::writeFlag(flag, data_ + offset, size_ - offset);
