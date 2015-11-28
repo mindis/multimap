@@ -109,10 +109,9 @@ std::size_t Shard::Limits::getMaxValueSize() {
 
 const std::vector<std::string>& Shard::Stats::names() {
   static std::vector<std::string> names = {
-    "block_size",       "num_blocks",         "num_keys",
-    "num_values_added", "num_values_removed", "num_values_unowned",
-    "key_size_min",     "key_size_max",       "key_size_avg",
-    "list_size_min",    "list_size_max",      "list_size_avg"
+    "block_size",         "num_blocks",    "num_keys",     "num_values_put",
+    "num_values_removed", "key_size_min",  "key_size_max", "key_size_avg",
+    "list_size_min",      "list_size_max", "list_size_avg"
   };
   return names;
 }
