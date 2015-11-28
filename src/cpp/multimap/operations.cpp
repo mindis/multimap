@@ -25,8 +25,7 @@ namespace multimap {
 
 void forEachShard(
     const boost::filesystem::path& directory,
-    std::function<void(const internal::Shard&,
-                       std::size_t /* index */,
+    std::function<void(const internal::Shard&, std::size_t /* index */,
                        std::size_t /* nshards */)> action) {
   mt::DirectoryLockGuard lock(directory, internal::getNameOfLockFile());
   const auto id_file = directory / internal::getNameOfIdFile();
@@ -184,7 +183,7 @@ void exportToBase64(const boost::filesystem::path& directory,
 
 void optimize(const boost::filesystem::path& directory,
               const boost::filesystem::path& output, const Options& options) {
-  Map new_map;
+  std::unique_ptr<Map> new_map;
   forEachShard(directory, [&](const internal::Shard& shard, std::size_t index,
                               std::size_t nshards) {
     if (index == 0) {
@@ -197,7 +196,7 @@ void optimize(const boost::filesystem::path& directory,
       if (options.num_shards == 0) {
         new_map_options.num_shards = nshards;
       }
-      new_map = Map(output, new_map_options);
+      new_map.reset(new Map(output, new_map_options));
     }
 
     if (!options.quiet) {
@@ -215,13 +214,13 @@ void optimize(const boost::filesystem::path& directory,
         }
         std::sort(sorted_values.begin(), sorted_values.end(), options.compare);
         for (const auto& value : sorted_values) {
-          new_map.put(key, value);
+          new_map->put(key, value);
         }
       });
     } else {
       shard.forEachEntry([&](const Bytes& key, Map::ListIterator&& iter) {
         while (iter.hasNext()) {
-          new_map.put(key, iter.next());
+          new_map->put(key, iter.next());
         }
       });
     }

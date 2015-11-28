@@ -31,7 +31,7 @@
 namespace multimap {
 namespace internal {
 
-class Shard {
+class Shard : mt::Resource {
 public:
   struct Limits {
     static std::size_t getMaxKeySize();
@@ -50,9 +50,8 @@ public:
     std::uint64_t block_size = 0;
     std::uint64_t num_blocks = 0;
     std::uint64_t num_keys = 0;
-    std::uint64_t num_values_added = 0;
+    std::uint64_t num_values_put = 0;
     std::uint64_t num_values_removed = 0;
-    std::uint64_t num_values_unowned = 0;
     std::uint64_t key_size_min = 0;
     std::uint64_t key_size_max = 0;
     std::uint64_t key_size_avg = 0;
@@ -81,11 +80,13 @@ public:
   static_assert(std::is_standard_layout<Stats>::value,
                 "Shard::Stats is no standard layout type");
 
-  static_assert(mt::hasExpectedSize<Stats>(104, 104),
+  static_assert(mt::hasExpectedSize<Stats>(96, 96),
                 "Shard::Stats does not have expected size");
   // Use __attribute__((packed)) if 32- and 64-bit sizes differ.
 
-  typedef std::function<void(const Bytes&, SharedList&&)> BinaryProcedure;
+  typedef SharedListIterator ListIterator;
+
+  typedef UniqueListIterator MutableListIterator;
 
   Shard(const boost::filesystem::path& file_prefix);
 
@@ -93,29 +94,59 @@ public:
 
   ~Shard();
 
-  SharedList getShared(const Bytes& key) const;
+  void put(const Bytes& key, const Bytes& value);
 
-  UniqueList getUnique(const Bytes& key);
+  ListIterator get(const Bytes& key) const;
 
-  UniqueList getUniqueOrCreate(const Bytes& key);
+  MutableListIterator getMutable(const Bytes& key);
 
-  void forEachKey(Callables::Procedure action) const;
+  std::size_t remove(const Bytes& key);
 
-  void forEachEntry(BinaryProcedure action) const;
+  std::size_t removeAll(const Bytes& key, Callables::Predicate predicate);
 
-  bool isReadOnly() const { return store_->isReadOnly(); }
+  std::size_t removeAllEqual(const Bytes& key, const Bytes& value);
 
-  std::size_t getBlockSize() const { return store_->getBlockSize(); }
+  bool removeFirst(const Bytes& key, Callables::Predicate predicate);
+
+  bool removeFirstEqual(const Bytes& key, const Bytes& value);
+
+  std::size_t replaceAll(const Bytes& key, Callables::Function function);
+
+  std::size_t replaceAllEqual(const Bytes& key, const Bytes& old_value,
+                              const Bytes& new_value);
+
+  bool replaceFirst(const Bytes& key, Callables::Function function);
+
+  bool replaceFirstEqual(const Bytes& key, const Bytes& old_value,
+                         const Bytes& new_value);
+
+  void forEachKey(Callables::Procedure action,
+                  bool ignore_empty_lists = true) const;
+
+  void forEachValue(const Bytes& key, Callables::Procedure action) const;
+
+  void forEachValue(const Bytes& key, Callables::Predicate action) const;
+
+  void forEachEntry(Callables::BinaryProcedure action,
+                    bool ignore_empty_lists = true) const;
 
   Stats getStats() const;
   // Returns various statistics about the shard.
   // The data is collected upon request and triggers a full table scan.
+
+  bool isReadOnly() const { return store_->isReadOnly(); }
+
+  std::size_t getBlockSize() const { return store_->getBlockSize(); }
 
   static std::string getNameOfKeysFile(const std::string& prefix);
   static std::string getNameOfStatsFile(const std::string& prefix);
   static std::string getNameOfValuesFile(const std::string& prefix);
 
 private:
+  SharedList getShared(const Bytes& key) const;
+  UniqueList getUnique(const Bytes& key);
+  UniqueList getUniqueOrCreate(const Bytes& key);
+
   mutable boost::shared_mutex mutex_;
   std::unordered_map<Bytes, std::unique_ptr<List> > map_;
   std::unique_ptr<Store> store_;

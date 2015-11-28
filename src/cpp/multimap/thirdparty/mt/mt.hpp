@@ -33,7 +33,7 @@
 
 namespace mt {
 
-static const std::size_t VERSION = 20151126;
+static const std::size_t VERSION = 20151128;
 
 // -----------------------------------------------------------------------------
 // COMMON
@@ -55,6 +55,17 @@ constexpr std::size_t GiB(std::size_t gibibytes) { return gibibytes << 30; }
 constexpr bool is32BitSystem() { return sizeof(void*) == 4; }
 
 constexpr bool is64BitSystem() { return sizeof(void*) == 8; }
+
+struct Resource {
+  // Types representing resources are not copyable or moveable.
+  // To enforce this rule such types should derive from this class.
+
+  Resource() = default;
+  Resource(const Resource&) = delete;
+  Resource& operator=(const Resource&) = delete;
+
+  // Move construction and assignment are implicitly disabled.
+};
 
 // -----------------------------------------------------------------------------
 // ALGORITHM
@@ -90,15 +101,15 @@ template <typename A, typename B>
 auto min(const A& a, const B& b) -> decltype(a < b ? a : b) {
   return a < b ? a : b;
 }
-// `std::min` requires that `a` and `b` are of the same which means that
-// you cannot compare `std::int32_t` and `std::int64_t` without casting.
+// `std::min` requires that `a` and `b` are of the same type which means
+// that you cannot compare `std::int32_t` and `std::int64_t` without casting.
 
 template <typename A, typename B>
 auto max(const A& a, const B& b) -> decltype(a > b ? a : b) {
   return a > b ? a : b;
 }
-// `std::min` requires that `a` and `b` are of the same which means that
-// you cannot compare `std::int32_t` and `std::int64_t` without casting.
+// `std::min` requires that `a` and `b` are of the same type which means
+// that you cannot compare `std::int32_t` and `std::int64_t` without casting.
 
 // -----------------------------------------------------------------------------
 // LOGGING
@@ -549,34 +560,6 @@ AssertionError::AssertionError(const char* file, std::size_t line,
 
 #define __MT_VOID ((void)0)
 
-#ifdef NDEBUG
-
-#define __MT_ASSERT_TRUE(expr) __MT_VOID
-#define __MT_ASSERT_FALSE(expr) __MT_VOID
-#define __MT_ASSERT_NULL(expr) __MT_VOID
-#define __MT_ASSERT_ZERO(expr) __MT_VOID
-#define __MT_ASSERT_NOT_NULL(expr) __MT_VOID
-#define __MT_ASSERT_NOT_ZERO(expr) __MT_VOID
-#define __MT_ASSERT_COMPARE(expr, a, b) __MT_VOID
-
-#define __MT_REQUIRE_TRUE(expr) __MT_VOID
-#define __MT_REQUIRE_FALSE(expr) __MT_VOID
-#define __MT_REQUIRE_NULL(expr) __MT_VOID
-#define __MT_REQUIRE_ZERO(expr) __MT_VOID
-#define __MT_REQUIRE_NOT_NULL(expr) __MT_VOID
-#define __MT_REQUIRE_NOT_ZERO(expr) __MT_VOID
-#define __MT_REQUIRE_COMPARE(expr, a, b) __MT_VOID
-
-#define __MT_ENSURE_TRUE(expr) __MT_VOID
-#define __MT_ENSURE_FALSE(expr) __MT_VOID
-#define __MT_ENSURE_NULL(expr) __MT_VOID
-#define __MT_ENSURE_ZERO(expr) __MT_VOID
-#define __MT_ENSURE_NOT_NULL(expr) __MT_VOID
-#define __MT_ENSURE_NOT_ZERO(expr) __MT_VOID
-#define __MT_ENSURE_COMPARE(expr, a, b) __MT_VOID
-
-#else // NDEBUG
-
 #define __MT_ASSERT_TRUE(expr)                                                 \
   (expr) ? __MT_VOID                                                           \
          : mt::internal::throwError(__FILE__, __LINE__, #expr,                 \
@@ -682,7 +665,7 @@ AssertionError::AssertionError(const char* file, std::size_t line,
          : mt::internal::throwError(__FILE__, __LINE__, #expr, lhs, rhs,       \
                                     mt::AssertionError::Type::POSTCONDITION);
 
-#endif // NDEBUG
+// These assertions/macros are always enabled.
 
 #define MT_ASSERT_TRUE(expr) __MT_ASSERT_TRUE(expr)
 #define MT_ASSERT_FALSE(expr) __MT_ASSERT_FALSE(expr)
@@ -692,9 +675,9 @@ AssertionError::AssertionError(const char* file, std::size_t line,
 #define MT_ASSERT_NOT_ZERO(expr) __MT_ASSERT_NOT_ZERO(expr)
 #define MT_ASSERT_EQ(a, b) __MT_ASSERT_COMPARE(a == b, a, b)
 #define MT_ASSERT_NE(a, b) __MT_ASSERT_COMPARE(a != b, a, b)
-#define MT_ASSERT_LT(a, b) __MT_ASSERT_COMPARE(a < b, a, b)
+#define MT_ASSERT_LT(a, b) __MT_ASSERT_COMPARE(a <  b, a, b)
 #define MT_ASSERT_LE(a, b) __MT_ASSERT_COMPARE(a <= b, a, b)
-#define MT_ASSERT_GT(a, b) __MT_ASSERT_COMPARE(a > b, a, b)
+#define MT_ASSERT_GT(a, b) __MT_ASSERT_COMPARE(a >  b, a, b)
 #define MT_ASSERT_GE(a, b) __MT_ASSERT_COMPARE(a >= b, a, b)
 
 #define MT_REQUIRE_TRUE(expr) __MT_REQUIRE_TRUE(expr)
@@ -705,9 +688,9 @@ AssertionError::AssertionError(const char* file, std::size_t line,
 #define MT_REQUIRE_NOT_ZERO(expr) __MT_REQUIRE_NOT_ZERO(expr)
 #define MT_REQUIRE_EQ(a, b) __MT_REQUIRE_COMPARE(a == b, a, b)
 #define MT_REQUIRE_NE(a, b) __MT_REQUIRE_COMPARE(a != b, a, b)
-#define MT_REQUIRE_LT(a, b) __MT_REQUIRE_COMPARE(a < b, a, b)
+#define MT_REQUIRE_LT(a, b) __MT_REQUIRE_COMPARE(a <  b, a, b)
 #define MT_REQUIRE_LE(a, b) __MT_REQUIRE_COMPARE(a <= b, a, b)
-#define MT_REQUIRE_GT(a, b) __MT_REQUIRE_COMPARE(a > b, a, b)
+#define MT_REQUIRE_GT(a, b) __MT_REQUIRE_COMPARE(a >  b, a, b)
 #define MT_REQUIRE_GE(a, b) __MT_REQUIRE_COMPARE(a >= b, a, b)
 
 #define MT_ENSURE_TRUE(expr) __MT_ENSURE_TRUE(expr)
@@ -718,9 +701,9 @@ AssertionError::AssertionError(const char* file, std::size_t line,
 #define MT_ENSURE_NOT_ZERO(expr) __MT_ENSURE_NOT_ZERO(expr)
 #define MT_ENSURE_EQ(a, b) __MT_ENSURE_COMPARE(a == b, a, b)
 #define MT_ENSURE_NE(a, b) __MT_ENSURE_COMPARE(a != b, a, b)
-#define MT_ENSURE_LT(a, b) __MT_ENSURE_COMPARE(a < b, a, b)
+#define MT_ENSURE_LT(a, b) __MT_ENSURE_COMPARE(a <  b, a, b)
 #define MT_ENSURE_LE(a, b) __MT_ENSURE_COMPARE(a <= b, a, b)
-#define MT_ENSURE_GT(a, b) __MT_ENSURE_COMPARE(a > b, a, b)
+#define MT_ENSURE_GT(a, b) __MT_ENSURE_COMPARE(a >  b, a, b)
 #define MT_ENSURE_GE(a, b) __MT_ENSURE_COMPARE(a >= b, a, b)
 
 #endif // MT_MT_HPP_INCLUDED

@@ -31,7 +31,7 @@ namespace multimap {
 static const std::size_t MAJOR_VERSION = 0;
 static const std::size_t MINOR_VERSION = 3;
 
-class Map {
+class Map : mt::Resource {
   // Insanely fast 1:n key-value store.
 
 public:
@@ -50,9 +50,6 @@ public:
   typedef internal::UniqueListIterator MutableListIterator;
   // An iterator type to iterate a mutable list.
 
-  Map() = default;
-  // Creates a default instance which is non-functional.
-
   Map(const boost::filesystem::path& directory, const Options& options);
   // Opens the map located in directory. If the map does not exist and
   // options.create_if_missing is set to true a new map will be created.
@@ -64,14 +61,10 @@ public:
   //   * options.block_size is not a power of two.
 
   ~Map();
-  // If associated with a physical map the destructor flushes all data to disk
-  // and ensures that the map is stored in consistent state.
+  // Flushes all data to disk and stores the map in persistent state.
   // Preconditions:
   //   * No list is in locked state, i.e. there is no iterator object pointing
   //     to an existing list.
-
-  Map(Map&&) = default;
-  Map& operator=(Map&&) = default;
 
   void put(const Bytes& key, const Bytes& value);
   // Appends value to the end of the list associated with key.
@@ -98,12 +91,6 @@ public:
   // the lifetime of the iterator ends and its destructor is called. If the
   // list is currently locked, either by a reader or writer lock, the method
   // will block until the lock is released.
-
-  bool contains(const Bytes& key) const;
-  // Returns true if the list associated with key contains at least one value,
-  // returns false otherwise. If the key does not exist the list is considered
-  // to be empty. If a non-empty list is currently locked, the method will
-  // block until the lock is released.
 
   std::size_t remove(const Bytes& key);
   // Deletes all values for key by clearing the associated list. This method
@@ -204,6 +191,7 @@ public:
 
   Stats getTotalStats() const;
 
+  bool isReadOnly() const;
 
 private:
   std::vector<std::unique_ptr<internal::Shard> > shards_;

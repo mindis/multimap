@@ -37,47 +37,6 @@ internal::Shard& getShard(
   return *shards[mt::fnv1aHash(key.data(), key.size()) % shards.size()];
 }
 
-std::size_t removeValues(
-    const std::vector<std::unique_ptr<internal::Shard> >& shards,
-    const Bytes& key, Callables::Predicate predicate,
-    bool exit_on_first_success) {
-  std::size_t num_removed = 0;
-  auto iter = Map::MutableListIterator(getShard(shards, key).getUnique(key));
-  while (iter.hasNext()) {
-    if (predicate(iter.next())) {
-      iter.remove();
-      ++num_removed;
-      if (exit_on_first_success) {
-        break;
-      }
-    }
-  }
-  return num_removed;
-}
-
-std::size_t replaceValues(
-    const std::vector<std::unique_ptr<internal::Shard> >& shards,
-    const Bytes& key, Callables::Function function,
-    bool exit_on_first_success) {
-  std::vector<std::string> replaced_values;
-  auto iter = Map::MutableListIterator(getShard(shards, key).getUnique(key));
-  while (iter.hasNext()) {
-    auto replaced_value = function(iter.next());
-    if (!replaced_value.empty()) {
-      replaced_values.push_back(std::move(replaced_value));
-      iter.remove();
-      if (exit_on_first_success) {
-        break;
-      }
-    }
-  }
-  auto list = iter.release();
-  for (const auto& value : replaced_values) {
-    list.add(value);
-  }
-  return replaced_values.size();
-}
-
 } // namespace
 
 std::size_t Map::Limits::getMaxKeySize() {
@@ -134,105 +93,72 @@ Map::~Map() {
 }
 
 void Map::put(const Bytes& key, const Bytes& value) {
-  getShard(shards_, key).getUniqueOrCreate(key).add(value);
+  getShard(shards_, key).put(key, value);
 }
 
 Map::ListIterator Map::get(const Bytes& key) const {
-  return Map::ListIterator(getShard(shards_, key).getShared(key));
+  return getShard(shards_, key).get(key);
 }
 
 Map::MutableListIterator Map::getMutable(const Bytes& key) {
-  return Map::MutableListIterator(getShard(shards_, key).getUnique(key));
-}
-
-bool Map::contains(const Bytes& key) const {
-  if (auto list = getShard(shards_, key).getShared(key)) {
-    return list.size() != 0;
-  }
-  return false;
+  return getShard(shards_, key).getMutable(key);
 }
 
 std::size_t Map::remove(const Bytes& key) {
-  if (auto list = getShard(shards_, key).getUnique(key)) {
-    return list.clear();
-  }
-  return 0;
+  return getShard(shards_, key).remove(key);
 }
 
 std::size_t Map::removeAll(const Bytes& key, Callables::Predicate predicate) {
-  return removeValues(shards_, key, predicate, false);
+  return getShard(shards_, key).removeAll(key, predicate);
 }
 
 std::size_t Map::removeAllEqual(const Bytes& key, const Bytes& value) {
-  return removeAll(key, [&value](const Bytes& current_value) {
-    return current_value == value;
-  });
+  return getShard(shards_, key).removeAllEqual(key, value);
 }
 
 bool Map::removeFirst(const Bytes& key, Callables::Predicate predicate) {
-  return removeValues(shards_, key, predicate, true);
+  return getShard(shards_, key).removeFirst(key, predicate);
 }
 
 bool Map::removeFirstEqual(const Bytes& key, const Bytes& value) {
-  return removeFirst(key, [&value](const Bytes& current_value) {
-    return current_value == value;
-  });
+  return getShard(shards_, key).removeFirstEqual(key, value);
 }
 
 std::size_t Map::replaceAll(const Bytes& key, Callables::Function function) {
-  return replaceValues(shards_, key, function, false);
+  return getShard(shards_, key).replaceAll(key, function);
 }
 
 std::size_t Map::replaceAllEqual(const Bytes& key, const Bytes& old_value,
                                  const Bytes& new_value) {
-  return replaceAll(key, [&old_value, &new_value](const Bytes& current_value)
-                             -> std::string {
-    return (current_value == old_value) ? new_value.toString() : std::string();
-  });
+  return getShard(shards_, key).replaceAllEqual(key, old_value, new_value);
 }
 
 bool Map::replaceFirst(const Bytes& key, Callables::Function function) {
-  return replaceValues(shards_, key, function, true);
+  return getShard(shards_, key).replaceFirst(key, function);
 }
 
 bool Map::replaceFirstEqual(const Bytes& key, const Bytes& old_value,
                             const Bytes& new_value) {
-  return replaceFirst(key,
-                      [&old_value, &new_value](const Bytes& current_value) {
-    return (current_value == old_value) ? new_value.toString() : std::string();
-  });
+  return getShard(shards_, key).replaceFirstEqual(key, old_value, new_value);
 }
 
 void Map::forEachKey(Callables::Procedure action) const {
-  MT_REQUIRE_FALSE(shards_.empty());
   for (const auto& shard : shards_) {
     shard->forEachKey(action);
   }
 }
 
 void Map::forEachValue(const Bytes& key, Callables::Procedure action) const {
-  auto iter = ListIterator(getShard(shards_, key).getShared(key));
-  while (iter.hasNext()) {
-    action(iter.next());
-  }
+  getShard(shards_, key).forEachValue(key, action);
 }
 
 void Map::forEachValue(const Bytes& key, Callables::Predicate action) const {
-  auto iter = ListIterator(getShard(shards_, key).getShared(key));
-  while (iter.hasNext()) {
-    if (!action(iter.next())) {
-      break;
-    }
-  }
+  getShard(shards_, key).forEachValue(key, action);
 }
 
 void Map::forEachEntry(Callables::BinaryProcedure action) const {
-  MT_REQUIRE_FALSE(shards_.empty());
   for (const auto& shard : shards_) {
-    shard->forEachEntry(
-        [action, this](const Bytes& key, internal::SharedList&& list) {
-          action(key, ListIterator(std::move(list)));
-        });
+    shard->forEachEntry(action);
   }
 }
 
@@ -246,6 +172,11 @@ std::vector<Map::Stats> Map::getStats() const {
 
 Map::Stats Map::getTotalStats() const {
   return internal::Shard::Stats::total(getStats());
+}
+
+bool Map::isReadOnly() const {
+  MT_REQUIRE_FALSE(shards_.empty());
+  return shards_.front()->isReadOnly();
 }
 
 namespace internal {

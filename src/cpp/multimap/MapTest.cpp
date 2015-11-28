@@ -17,7 +17,7 @@
 
 #include <type_traits>
 #include <boost/filesystem/operations.hpp>
-#include <gmock/gmock.h>
+#include "gmock/gmock.h"
 #include "multimap/Map.hpp"
 
 namespace multimap {
@@ -31,8 +31,8 @@ const Callables::Function NULL_FUNCTION = [](const Bytes&) { return ""; };
 const Callables::BinaryProcedure NULL_BINARY_PROCEDURE =
     [](const Bytes&, Map::ListIterator&&) {};
 
-TEST(MapTest, IsDefaultConstructible) {
-  ASSERT_TRUE(std::is_default_constructible<Map>::value);
+TEST(MapTest, IsNotDefaultConstructible) {
+  ASSERT_FALSE(std::is_default_constructible<Map>::value);
 }
 
 TEST(MapTest, IsNotCopyConstructibleOrAssignable) {
@@ -40,32 +40,9 @@ TEST(MapTest, IsNotCopyConstructibleOrAssignable) {
   ASSERT_FALSE(std::is_copy_assignable<Map>::value);
 }
 
-TEST(MapTest, IsMoveConstructibleOrAssignable) {
-  ASSERT_TRUE(std::is_move_constructible<Map>::value);
-  ASSERT_TRUE(std::is_move_assignable<Map>::value);
-}
-
-TEST(MapTest, DefaultConstructedHasProperState) {
-  const Bytes key = "key";
-  const Bytes value = "value";
-  ASSERT_THROW(Map().put(key, value), mt::AssertionError);
-  ASSERT_THROW(Map().get(key).available(), mt::AssertionError);
-  ASSERT_THROW(Map().getMutable(key).available(), mt::AssertionError);
-  ASSERT_THROW(Map().contains(key), mt::AssertionError);
-  ASSERT_THROW(Map().remove(key), mt::AssertionError);
-  ASSERT_THROW(Map().removeAll(key, TRUE_PREDICATE), mt::AssertionError);
-  ASSERT_THROW(Map().removeAllEqual(key, value), mt::AssertionError);
-  ASSERT_THROW(Map().removeFirst(key, TRUE_PREDICATE), mt::AssertionError);
-  ASSERT_THROW(Map().removeFirstEqual(key, value), mt::AssertionError);
-  ASSERT_THROW(Map().replaceAll(key, NULL_FUNCTION), mt::AssertionError);
-  ASSERT_THROW(Map().replaceAllEqual(key, value, value), mt::AssertionError);
-  ASSERT_THROW(Map().replaceFirst(key, NULL_FUNCTION), mt::AssertionError);
-  ASSERT_THROW(Map().replaceFirstEqual(key, value, value), mt::AssertionError);
-  ASSERT_THROW(Map().forEachKey(NULL_PROCEDURE), mt::AssertionError);
-  ASSERT_THROW(Map().forEachValue(key, NULL_PROCEDURE), mt::AssertionError);
-  ASSERT_THROW(Map().forEachValue(key, TRUE_PREDICATE), mt::AssertionError);
-  ASSERT_THROW(Map().forEachEntry(NULL_BINARY_PROCEDURE), mt::AssertionError);
-  ASSERT_TRUE(Map().getStats().empty());
+TEST(MapTest, IsNotMoveConstructibleOrAssignable) {
+  ASSERT_FALSE(std::is_move_constructible<Map>::value);
+  ASSERT_FALSE(std::is_move_assignable<Map>::value);
 }
 
 struct MapTestFixture : public testing::Test {
@@ -168,40 +145,38 @@ TEST_F(MapTestFixture, ReadOnlyModeDoesNotAllowUpdates) {
     Map map(directory, options);
     for (auto k = 0; k != 100; ++k) {
       for (auto v = 0; v != 100; ++v) {
-        map.put(std::to_string(k), std::to_string(k + v * v));
+        map.put(std::to_string(k), std::to_string(v));
       }
     }
   }
-  {
-    Options options;
-    options.readonly = true;
-    Map map(directory, options);
 
-    const auto key = std::to_string(23);
-    ASSERT_NO_THROW(map.contains(key));
-    ASSERT_NO_THROW(map.forEachEntry(NULL_BINARY_PROCEDURE));
-    ASSERT_NO_THROW(map.forEachKey(NULL_PROCEDURE));
-    ASSERT_NO_THROW(map.forEachValue(key, NULL_PROCEDURE));
-    ASSERT_NO_THROW(map.forEachValue(key, TRUE_PREDICATE));
-    ASSERT_NO_THROW(map.get(key));
-    ASSERT_NO_THROW(map.getStats());
+  Options options;
+  options.readonly = true;
+  Map map(directory, options);
 
-    const auto value = std::to_string(42);
-    ASSERT_THROW(map.getMutable(key), std::runtime_error);
-    ASSERT_THROW(map.put(key, value), std::runtime_error);
-    ASSERT_THROW(map.remove(key), std::runtime_error);
-    ASSERT_THROW(map.removeAll(key, TRUE_PREDICATE), std::runtime_error);
-    ASSERT_THROW(map.removeAllEqual(key, value), std::runtime_error);
-    ASSERT_THROW(map.removeFirst(key, TRUE_PREDICATE), std::runtime_error);
-    ASSERT_THROW(map.removeFirstEqual(key, value), std::runtime_error);
-    ASSERT_THROW(map.replaceAll(key, NULL_FUNCTION), std::runtime_error);
-    ASSERT_THROW(map.replaceAllEqual(key, value, "43"), std::runtime_error);
-    ASSERT_THROW(map.replaceFirst(key, NULL_FUNCTION), std::runtime_error);
-    ASSERT_THROW(map.replaceFirstEqual(key, value, "43"), std::runtime_error);
-  }
+  const auto key = std::to_string(23);
+  ASSERT_NO_THROW(map.forEachEntry(NULL_BINARY_PROCEDURE));
+  ASSERT_NO_THROW(map.forEachKey(NULL_PROCEDURE));
+  ASSERT_NO_THROW(map.forEachValue(key, NULL_PROCEDURE));
+  ASSERT_NO_THROW(map.forEachValue(key, TRUE_PREDICATE));
+  ASSERT_NO_THROW(map.get(key));
+  ASSERT_NO_THROW(map.getStats());
+
+  const auto value = std::to_string(42);
+  ASSERT_THROW(map.getMutable(key), std::runtime_error);
+  ASSERT_THROW(map.put(key, value), std::runtime_error);
+  ASSERT_THROW(map.remove(key), std::runtime_error);
+  ASSERT_THROW(map.removeAll(key, TRUE_PREDICATE), std::runtime_error);
+  ASSERT_THROW(map.removeAllEqual(key, value), std::runtime_error);
+  ASSERT_THROW(map.removeFirst(key, TRUE_PREDICATE), std::runtime_error);
+  ASSERT_THROW(map.removeFirstEqual(key, value), std::runtime_error);
+  ASSERT_THROW(map.replaceAll(key, NULL_FUNCTION), std::runtime_error);
+  ASSERT_THROW(map.replaceAllEqual(key, value, "43"), std::runtime_error);
+  ASSERT_THROW(map.replaceFirst(key, NULL_FUNCTION), std::runtime_error);
+  ASSERT_THROW(map.replaceFirstEqual(key, value, "43"), std::runtime_error);
 }
 
-struct MapTestWithParam : public testing::TestWithParam<std::uint32_t> {
+struct MapTestWithParam : public testing::TestWithParam<std::int32_t> {
   void SetUp() override {
     directory = "/tmp/multimap.MapTestWithParam";
     boost::filesystem::remove_all(directory);
@@ -219,16 +194,16 @@ TEST_P(MapTestWithParam, PutThenGet) {
   Options options;
   options.create_if_missing = true;
   Map map(directory, options);
-  for (std::uint32_t k = 0; k != GetParam(); ++k) {
-    for (std::uint32_t v = 0; v != GetParam(); ++v) {
-      map.put(std::to_string(k), std::to_string(k + v * v));
+  for (std::int32_t k = 0; k != GetParam(); ++k) {
+    for (std::int32_t v = 0; v != GetParam(); ++v) {
+      map.put(std::to_string(k), std::to_string(v));
     }
   }
-  for (std::uint32_t k = 0; k != GetParam(); ++k) {
+  for (std::int32_t k = 0; k != GetParam(); ++k) {
     auto iter = map.get(std::to_string(k));
     ASSERT_THAT(iter.available(), Eq(GetParam()));
     for (std::uint32_t v = 0; iter.hasNext(); ++v) {
-      ASSERT_EQ(iter.next().toString(), std::to_string(k + v * v));
+      ASSERT_EQ(iter.next().toString(), std::to_string(v));
     }
     ASSERT_EQ(iter.available(), 0);
   }
@@ -239,54 +214,128 @@ TEST_P(MapTestWithParam, PutThenCloseThenOpenThenGet) {
     Options options;
     options.create_if_missing = true;
     Map map(directory, options);
-    for (std::uint32_t k = 0; k != GetParam(); ++k) {
-      for (std::uint32_t v = 0; v != GetParam(); ++v) {
-        map.put(std::to_string(k), std::to_string(k + v * v));
+    for (std::int32_t k = 0; k != GetParam(); ++k) {
+      for (std::int32_t v = 0; v != GetParam(); ++v) {
+        map.put(std::to_string(k), std::to_string(v));
       }
     }
   }
-  {
-    Map map(directory, Options());
-    for (std::uint32_t k = 0; k != GetParam(); ++k) {
-      auto iter = map.get(std::to_string(k));
-      ASSERT_EQ(iter.available(), GetParam());
-      for (std::uint32_t v = 0; iter.hasNext(); ++v) {
-        ASSERT_EQ(iter.next().toString(), std::to_string(k + v * v));
-      }
-      ASSERT_EQ(iter.available(), 0);
+
+  Map map(directory, Options());
+  for (std::int32_t k = 0; k != GetParam(); ++k) {
+    auto iter = map.get(std::to_string(k));
+    ASSERT_EQ(iter.available(), GetParam());
+    for (std::uint32_t v = 0; iter.hasNext(); ++v) {
+      ASSERT_EQ(iter.next().toString(), std::to_string(v));
     }
+    ASSERT_EQ(iter.available(), 0);
   }
 }
+
+TEST_P(MapTestWithParam, TotalStatsReportsCorrectValuesAfterPut) {
+  {
+    Options options;
+    options.create_if_missing = true;
+    Map map(directory, options);
+    for (std::int32_t k = 0; k != GetParam(); ++k) {
+      for (std::int32_t v = 0; v != GetParam(); ++v) {
+        map.put(std::to_string(k), std::to_string(v));
+      }
+    }
+
+    const auto stats = map.getTotalStats();
+    ASSERT_THAT(stats.list_size_avg, Eq(GetParam()));
+    ASSERT_THAT(stats.list_size_max, Eq(GetParam()));
+    ASSERT_THAT(stats.list_size_min, Eq(GetParam()));
+    ASSERT_THAT(stats.num_keys, Eq(GetParam()));
+    ASSERT_THAT(stats.num_values_put, Eq(GetParam() * GetParam()));
+    ASSERT_THAT(stats.num_values_removed, Eq(0));
+  }
+
+  Map map(directory, Options());
+  const auto stats = map.getTotalStats();
+  ASSERT_THAT(stats.list_size_avg, Eq(GetParam()));
+  ASSERT_THAT(stats.list_size_max, Eq(GetParam()));
+  ASSERT_THAT(stats.list_size_min, Eq(GetParam()));
+  ASSERT_THAT(stats.num_keys, Eq(GetParam()));
+  ASSERT_THAT(stats.num_values_put, Eq(GetParam() * GetParam()));
+  ASSERT_THAT(stats.num_values_removed, Eq(0));
+}
+
+//TEST_P(MapTestWithParam, TotalStatsAreCorrectAfterRemovingValues) {
+//  Map::Stats stats_backup;
+//  std::size_t num_removed = 0;
+
+//  const auto is_prime = [](const Bytes& value) {
+//    const auto str = value.toString();
+//    return mt::isPrime(std::stoul(str));
+//  };
+
+//  {
+//    Options options;
+//    options.create_if_missing = true;
+//    Map map(directory, options);
+//    for (std::int32_t k = 0; k != GetParam(); ++k) {
+//      for (std::int32_t v = 0; v != GetParam(); ++v) {
+//        map.put(std::to_string(k), std::to_string(v));
+//      }
+//    }
+
+//    num_removed += map.removeAll("0", is_prime);
+////    num_removed += map.removeAll("1", is_prime);
+////    num_removed += map.removeAll("2", is_prime);
+////    num_removed += map.removeAll("3", is_prime);
+////    num_removed += map.removeAll("4", is_prime);
+
+////    num_removed += map.remove("5");
+////    num_removed += map.remove("6");
+////    num_removed += map.remove("7");
+////    num_removed += map.remove("8");
+////    num_removed += map.remove("9");
+
+//    const auto stats = map.getTotalStats();
+//    ASSERT_THAT(stats.num_keys, Eq(GetParam()));
+//    ASSERT_THAT(stats.num_values_put, Eq(GetParam() * GetParam()));
+//    ASSERT_THAT(stats.num_values_removed, Eq(num_removed));
+//    stats_backup = stats;
+//  }
+
+//  {
+//    Map map(directory, Options());
+//    auto stats = map.getTotalStats();
+//    ASSERT_THAT(stats.num_keys, Eq(GetParam()));
+//    ASSERT_THAT(stats.num_values_put, Eq(stats_backup.num_values_put));
+//    ASSERT_THAT(stats.num_values_removed, Eq(stats_backup.num_values_removed));
+
+//    for (std::int32_t k = 0; k != GetParam(); ++k) {
+//      for (std::int32_t v = 0; v != GetParam(); ++v) {
+//        map.put(std::to_string(k), std::to_string(v));
+//      }
+//    }
+
+//    num_removed += map.removeAll("0", is_prime);
+////    num_removed += map.removeAll("1", is_prime);
+////    num_removed += map.removeAll("2", is_prime);
+////    num_removed += map.removeAll("3", is_prime);
+////    num_removed += map.removeAll("4", is_prime);
+
+////    num_removed += map.remove("5");
+////    num_removed += map.remove("6");
+////    num_removed += map.remove("7");
+////    num_removed += map.remove("8");
+////    num_removed += map.remove("9");
+
+//    stats = map.getTotalStats();
+//    ASSERT_THAT(stats.num_values_put, Eq(GetParam() * GetParam() * 2));
+//    ASSERT_THAT(stats.num_values_removed, Eq(num_removed));
+//  }
+//}
 
 INSTANTIATE_TEST_CASE_P(Parameterized, MapTestWithParam,
                         testing::Values(0, 1, 2, 10, 100, 1000));
 
 // INSTANTIATE_TEST_CASE_P(ParameterizedLongRunning, MapTestWithParam,
 //                         testing::Values(10000, 100000));
-
-TEST_F(MapTestFixture, ContainsReturnsFalseForNonExistingKey) {
-  Options options;
-  options.create_if_missing = true;
-  Map map(directory, options);
-  ASSERT_FALSE(map.contains("key"));
-}
-
-TEST_F(MapTestFixture, ContainsReturnsTrueForExistingKey) {
-  Options options;
-  options.create_if_missing = true;
-  Map map(directory, options);
-  map.put("key", "value");
-  ASSERT_TRUE(map.contains("key"));
-}
-
-TEST_F(MapTestFixture, ContainsReturnsFalseForDeletedKey) {
-  Options options;
-  options.create_if_missing = true;
-  Map map(directory, options);
-  map.put("key", "value");
-  map.remove("key");
-  ASSERT_FALSE(map.contains("key"));
-}
 
 TEST_F(MapTestFixture, DeleteReturnsZeroForNonExistingKey) {
   Options options;
@@ -305,7 +354,7 @@ TEST_F(MapTestFixture, DeleteReturnsNumValuesForExistingKey) {
   ASSERT_EQ(map.remove("key"), 3);
 }
 
-TEST_F(MapTestFixture, DeleteFirstDeletesOneMatch) {
+TEST_F(MapTestFixture, DeleteFirstDeletesFirstMatch) {
   Options options;
   options.create_if_missing = true;
   Map map(directory, options);
@@ -327,7 +376,7 @@ TEST_F(MapTestFixture, DeleteFirstDeletesOneMatch) {
   ASSERT_EQ(map.get("key").available(), num_values - 1);
 }
 
-TEST_F(MapTestFixture, DeleteFirstEqualDeletesOneMatch) {
+TEST_F(MapTestFixture, DeleteFirstEqualDeletesFirstMatch) {
   Options options;
   options.create_if_missing = true;
   Map map(directory, options);
@@ -385,7 +434,7 @@ TEST_F(MapTestFixture, DeleteAllEqualDeletesAllMatches) {
   ASSERT_EQ(map.get("key").available(), num_values - 2);
 }
 
-TEST_F(MapTestFixture, ReplaceFirstReplacesOneMatch) {
+TEST_F(MapTestFixture, ReplaceFirstReplacesFirstMatch) {
   Options options;
   options.create_if_missing = true;
   Map map(directory, options);
@@ -404,10 +453,24 @@ TEST_F(MapTestFixture, ReplaceFirstReplacesOneMatch) {
   };
   ASSERT_TRUE(map.replaceFirst("key", map_250_to_2500));
   ASSERT_EQ(map.get("key").available(), num_values);
-  // TODO Iterate list and check replacement.
+
+  // Check if the "2500" replacement has been added to the end of the list.
+  auto iter = map.get("key");
+  for (std::size_t i = 0; i != 250; ++i) {
+    ASSERT_EQ(iter.next().toString(), std::to_string(i));
+    ASSERT_EQ(iter.next().toString(), std::to_string(i));
+  }
+  ASSERT_EQ(iter.next().toString(), "250");
+  // Only one "250" value is left here.
+  for (std::size_t i = 251; i != num_values / 2; ++i) {
+    ASSERT_EQ(iter.next().toString(), std::to_string(i));
+    ASSERT_EQ(iter.next().toString(), std::to_string(i));
+  }
+  ASSERT_EQ(iter.next().toString(), "2500");
+  ASSERT_EQ(iter.available(), 0);
 }
 
-TEST_F(MapTestFixture, ReplaceFirstEqualReplacesOneMatch) {
+TEST_F(MapTestFixture, ReplaceFirstEqualReplacesFirstMatch) {
   Options options;
   options.create_if_missing = true;
   Map map(directory, options);
@@ -423,7 +486,21 @@ TEST_F(MapTestFixture, ReplaceFirstEqualReplacesOneMatch) {
 
   ASSERT_TRUE(map.replaceFirstEqual("key", "250", "2500"));
   ASSERT_EQ(map.get("key").available(), num_values);
-  // TODO Iterate list and check replacement.
+
+  // Check if the "2500" replacement has been added to the end of the list.
+  auto iter = map.get("key");
+  for (std::size_t i = 0; i != 250; ++i) {
+    ASSERT_EQ(iter.next().toString(), std::to_string(i));
+    ASSERT_EQ(iter.next().toString(), std::to_string(i));
+  }
+  ASSERT_EQ(iter.next().toString(), "250");
+  // Only one "250" value is left here.
+  for (std::size_t i = 251; i != num_values / 2; ++i) {
+    ASSERT_EQ(iter.next().toString(), std::to_string(i));
+    ASSERT_EQ(iter.next().toString(), std::to_string(i));
+  }
+  ASSERT_EQ(iter.next().toString(), "2500");
+  ASSERT_EQ(iter.available(), 0);
 }
 
 TEST_F(MapTestFixture, ReplaceAllReplacesAllMatches) {
@@ -445,7 +522,20 @@ TEST_F(MapTestFixture, ReplaceAllReplacesAllMatches) {
   };
   ASSERT_EQ(map.replaceAll("key", map_250_to_2500), 2);
   ASSERT_EQ(map.get("key").available(), num_values);
-  // TODO Iterate list and check replacement.
+
+  // Check if both "2500" replacements have been added to the end of the list.
+  auto iter = map.get("key");
+  for (std::size_t i = 0; i != 250; ++i) {
+    ASSERT_EQ(iter.next().toString(), std::to_string(i));
+    ASSERT_EQ(iter.next().toString(), std::to_string(i));
+  }
+  for (std::size_t i = 251; i != num_values / 2; ++i) {
+    ASSERT_EQ(iter.next().toString(), std::to_string(i));
+    ASSERT_EQ(iter.next().toString(), std::to_string(i));
+  }
+  ASSERT_EQ(iter.next().toString(), "2500");
+  ASSERT_EQ(iter.next().toString(), "2500");
+  ASSERT_EQ(iter.available(), 0);
 }
 
 TEST_F(MapTestFixture, ReplaceAllEqualReplacesAllMatches) {
@@ -464,7 +554,20 @@ TEST_F(MapTestFixture, ReplaceAllEqualReplacesAllMatches) {
 
   ASSERT_EQ(map.replaceAllEqual("key", "250", "2500"), 2);
   ASSERT_EQ(map.get("key").available(), num_values);
-  // TODO Iterate list and check replacement.
+
+  // Check if both "2500" replacements have been added to the end of the list.
+  auto iter = map.get("key");
+  for (std::size_t i = 0; i != 250; ++i) {
+    ASSERT_EQ(iter.next().toString(), std::to_string(i));
+    ASSERT_EQ(iter.next().toString(), std::to_string(i));
+  }
+  for (std::size_t i = 251; i != num_values / 2; ++i) {
+    ASSERT_EQ(iter.next().toString(), std::to_string(i));
+    ASSERT_EQ(iter.next().toString(), std::to_string(i));
+  }
+  ASSERT_EQ(iter.next().toString(), "2500");
+  ASSERT_EQ(iter.next().toString(), "2500");
+  ASSERT_EQ(iter.available(), 0);
 }
 
 TEST_F(MapTestFixture, IteratorWritesBackMutatedBlocks) {

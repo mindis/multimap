@@ -26,16 +26,13 @@
 namespace multimap {
 namespace internal {
 
-class Arena {
-  // This class is thread-safe and does not need external locking.
+class Arena : mt::Resource {
+  // Objects of this class are thread-safe.
 
 public:
   static const std::size_t DEFAULT_CHUNK_SIZE = 4096;
 
   explicit Arena(std::size_t chunk_size = DEFAULT_CHUNK_SIZE);
-
-  Arena(Arena&&) = default;
-  Arena& operator=(Arena&&) = default;
 
   char* allocate(std::size_t nbytes);
 
@@ -44,7 +41,7 @@ public:
   void deallocateAll();
 
 private:
-  std::unique_ptr<std::mutex> mutex_;
+  mutable std::mutex mutex_;
   std::vector<std::unique_ptr<char[]> > chunks_;
   std::vector<std::unique_ptr<char[]> > blobs_;
   std::size_t chunk_size_ = 0;

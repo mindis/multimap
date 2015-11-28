@@ -32,9 +32,9 @@ TEST(ArenaTest, IsNotCopyConstructibleOrAssignable) {
   ASSERT_FALSE(std::is_copy_assignable<Arena>::value);
 }
 
-TEST(ArenaTest, IsMoveConstructibleAndAssignable) {
-  ASSERT_TRUE(std::is_move_constructible<Arena>::value);
-  ASSERT_TRUE(std::is_move_assignable<Arena>::value);
+TEST(ArenaTest, IsNotMoveConstructibleOrAssignable) {
+  ASSERT_FALSE(std::is_move_constructible<Arena>::value);
+  ASSERT_FALSE(std::is_move_assignable<Arena>::value);
 }
 
 TEST(ArenaTest, DefaultConstructedHasProperState) {
@@ -43,7 +43,7 @@ TEST(ArenaTest, DefaultConstructedHasProperState) {
   ASSERT_EQ(Arena().allocated(), 0);
 }
 
-TEST(ArenaTest, ConstructedWithValidParamsHasProperState) {
+TEST(ArenaTest, DefaultConstructedCanAllocateMemory) {
   Arena arena;
   ASSERT_THROW(arena.allocate(0), mt::AssertionError);
   ASSERT_NE(arena.allocate(1), nullptr);

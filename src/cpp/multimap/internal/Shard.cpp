@@ -63,6 +63,42 @@ std::uint64_t computeChecksum(const Shard::Stats& stats) {
   return mt::crc32(&copy, sizeof copy);
 }
 
+std::size_t removeValues(UniqueList&& list, Callables::Predicate predicate,
+                         bool exit_on_first_success) {
+  std::size_t num_removed = 0;
+  auto iter = list.iterator();
+  while (iter.hasNext()) {
+    if (predicate(iter.next())) {
+      iter.remove();
+      ++num_removed;
+      if (exit_on_first_success) {
+        break;
+      }
+    }
+  }
+  return num_removed;
+}
+
+std::size_t replaceValues(UniqueList&& list, Callables::Function function,
+                          bool exit_on_first_success) {
+  std::vector<std::string> replaced_values;
+  auto iter = list.iterator();
+  while (iter.hasNext()) {
+    auto replaced_value = function(iter.next());
+    if (!replaced_value.empty()) {
+      replaced_values.push_back(std::move(replaced_value));
+      iter.remove();
+      if (exit_on_first_success) {
+        break;
+      }
+    }
+  }
+  for (const auto& value : replaced_values) {
+    list.add(value);
+  }
+  return replaced_values.size();
+}
+
 } // namespace
 
 std::size_t Shard::Limits::getMaxKeySize() { return Varint::Limits::MAX_N4; }
@@ -103,9 +139,8 @@ Shard::Stats Shard::Stats::fromProperties(const mt::Properties& properties) {
   stats.block_size = std::stoul(properties.at("block_size"));
   stats.num_blocks = std::stoul(properties.at("num_blocks"));
   stats.num_keys = std::stoul(properties.at("num_keys"));
-  stats.num_values_added = std::stoul(properties.at("num_values_added"));
+  stats.num_values_put = std::stoul(properties.at("num_values_put"));
   stats.num_values_removed = std::stoul(properties.at("num_values_removed"));
-  stats.num_values_unowned = std::stoul(properties.at("num_values_unowned"));
   stats.key_size_min = std::stoul(properties.at("key_size_min"));
   stats.key_size_max = std::stoul(properties.at("key_size_max"));
   stats.key_size_avg = std::stoul(properties.at("key_size_avg"));
@@ -121,9 +156,8 @@ mt::Properties Shard::Stats::toProperties() const {
   properties["block_size"] = std::to_string(block_size);
   properties["num_blocks"] = std::to_string(num_blocks);
   properties["num_keys"] = std::to_string(num_keys);
-  properties["num_values_added"] = std::to_string(num_values_added);
+  properties["num_values_put"] = std::to_string(num_values_put);
   properties["num_values_removed"] = std::to_string(num_values_removed);
-  properties["num_values_unowned"] = std::to_string(num_values_unowned);
   properties["key_size_min"] = std::to_string(key_size_min);
   properties["key_size_max"] = std::to_string(key_size_max);
   properties["key_size_avg"] = std::to_string(key_size_avg);
@@ -135,10 +169,9 @@ mt::Properties Shard::Stats::toProperties() const {
 }
 
 std::vector<std::uint64_t> Shard::Stats::toVector() const {
-  return { block_size,       num_blocks,         num_keys,
-           num_values_added, num_values_removed, num_values_unowned,
-           key_size_min,     key_size_max,       key_size_avg,
-           list_size_min,    list_size_max,      list_size_avg };
+  return { block_size,         num_blocks,    num_keys,     num_values_put,
+           num_values_removed, key_size_min,  key_size_max, key_size_avg,
+           list_size_min,      list_size_max, list_size_avg };
 }
 
 Shard::Stats Shard::Stats::total(const std::vector<Stats>& stats) {
@@ -151,9 +184,8 @@ Shard::Stats Shard::Stats::total(const std::vector<Stats>& stats) {
     }
     total.num_blocks += stat.num_blocks;
     total.num_keys += stat.num_keys;
-    total.num_values_added += stat.num_values_added;
+    total.num_values_put += stat.num_values_put;
     total.num_values_removed += stat.num_values_removed;
-    total.num_values_unowned += stat.num_values_unowned;
     total.key_size_max = std::max(total.key_size_max, stat.key_size_max);
     if (stat.key_size_min) {
       total.key_size_min = total.key_size_min
@@ -187,12 +219,9 @@ Shard::Stats Shard::Stats::max(const std::vector<Stats>& stats) {
     max.block_size = std::max(max.block_size, stat.block_size);
     max.num_blocks = std::max(max.num_blocks, stat.num_blocks);
     max.num_keys = std::max(max.num_keys, stat.num_keys);
-    max.num_values_added =
-        std::max(max.num_values_added, stat.num_values_added);
+    max.num_values_put = std::max(max.num_values_put, stat.num_values_put);
     max.num_values_removed =
         std::max(max.num_values_removed, stat.num_values_removed);
-    max.num_values_unowned =
-        std::max(max.num_values_unowned, stat.num_values_unowned);
     max.key_size_avg = std::max(max.key_size_avg, stat.key_size_avg);
     max.key_size_max = std::max(max.key_size_max, stat.key_size_max);
     if (stat.key_size_min) {
@@ -223,7 +252,15 @@ Shard::Shard(const boost::filesystem::path& file_prefix,
     for (std::size_t i = 0; i != stats_.num_keys; ++i) {
       const auto entry = Entry::readFromStream(stream.get(), &arena_);
       map_[entry.key()].reset(new List(entry.head()));
+      stats_.num_values_put -= entry.head().num_values_added;
+      stats_.num_values_removed -= entry.head().num_values_removed;
     }
+
+    // Reset stats, but preserve number of values put and removed.
+    Stats stats;
+    stats.num_values_put = stats_.num_values_put;
+    stats.num_values_removed = stats_.num_values_removed;
+    stats_ = stats;
 
   } else if (options.create_if_missing) {
     // Nothing to do here.
@@ -234,7 +271,7 @@ Shard::Shard(const boost::filesystem::path& file_prefix,
   }
 
   Store::Options store_opts;
-  store_opts.block_size = options.block_size;
+  store_opts.block_size = options.block_size; // TODO stats_.block_size?
   store_opts.buffer_size = options.buffer_size;
   store_opts.create_if_missing = options.create_if_missing;
   store_opts.error_if_exists = options.error_if_exists;
@@ -255,11 +292,9 @@ Shard::~Shard() {
     const auto stream = mt::open(keys_file.c_str(), "w");
     mt::check(stream.get(), "Could not create '%s", keys_file.c_str());
 
-    Stats stats;
     const auto store_stats = store_->getStats();
-    stats.block_size = store_stats.block_size;
-    stats.num_blocks = store_stats.num_blocks;
-    stats.num_values_unowned = stats_.num_values_unowned;
+    stats_.block_size = store_stats.block_size;
+    stats_.num_blocks = store_stats.num_blocks;
     for (const auto& entry : map_) {
       const auto& key = entry.first;
       const auto& list = entry.second.get();
@@ -272,41 +307,187 @@ Shard::~Shard() {
       // We do not skip or even throw if a list is still locked to prevent data
       // loss. However, this causes a race which could let the program crash...
       list->flush(store_.get());
-      if (list->empty()) {
-        stats.num_values_unowned += list->head().num_values_removed;
-        // An existing list that is empty consists only of removed values.
-        // Because such lists are skipped on closing these values have no owner
-        // anymore, i.e. no reference pointing to them, but they still exist
-        // physically in the data file, i.e. the store.
-      } else {
-        ++stats.num_keys;
-        stats.num_values_added += list->head().num_values_added;
-        stats.num_values_removed += list->head().num_values_removed;
-        stats.key_size_avg += key.size();
-        stats.key_size_max = mt::max(stats.key_size_max, key.size());
-        stats.key_size_min = stats.key_size_min
-                                 ? mt::min(stats.key_size_min, key.size())
-                                 : key.size();
-        stats.list_size_avg += list->size();
-        stats.list_size_max = mt::max(stats.list_size_max, list->size());
-        stats.list_size_min = stats.list_size_min
-                                  ? mt::min(stats.list_size_min, list->size())
-                                  : list->size();
+      stats_.num_values_put += list->head().num_values_added;
+      stats_.num_values_removed += list->head().num_values_removed;
+      if (!list->empty()) {
+        ++stats_.num_keys;
+        stats_.key_size_avg += key.size();
+        stats_.key_size_max = mt::max(stats_.key_size_max, key.size());
+        stats_.key_size_min = stats_.key_size_min
+                                  ? mt::min(stats_.key_size_min, key.size())
+                                  : key.size();
+        stats_.list_size_avg += list->size();
+        stats_.list_size_max = mt::max(stats_.list_size_max, list->size());
+        stats_.list_size_min = stats_.list_size_min
+                                   ? mt::min(stats_.list_size_min, list->size())
+                                   : list->size();
         Entry(key, list->head()).writeToStream(stream.get());
       }
     }
 
-    if (stats.num_keys != 0) {
-      stats.key_size_avg /= stats.num_keys;
-      stats.list_size_avg /= stats.num_keys;
+    if (stats_.num_keys) {
+      stats_.key_size_avg /= stats_.num_keys;
+      stats_.list_size_avg /= stats_.num_keys;
     }
-    stats.writeToFile(getNameOfStatsFile(prefix_.string()));
+    stats_.writeToFile(getNameOfStatsFile(prefix_.string()));
 
     if (boost::filesystem::is_regular_file(old_keys_file)) {
       const auto status = boost::filesystem::remove(old_keys_file);
       MT_ASSERT_TRUE(status);
     }
   }
+}
+
+void Shard::put(const Bytes& key, const Bytes& value) {
+  getUniqueOrCreate(key).add(value);
+}
+
+Shard::ListIterator Shard::get(const Bytes& key) const {
+  return ListIterator(getShared(key));
+}
+
+Shard::MutableListIterator Shard::getMutable(const Bytes& key) {
+  return MutableListIterator(getUnique(key));
+}
+
+std::size_t Shard::remove(const Bytes& key) {
+  std::size_t num_removed = 0;
+  if (auto list = getUnique(key)) {
+    stats_.num_values_put += list.head().num_values_added;
+    stats_.num_values_removed += list.head().num_values_added;
+    // Since the whole list is discarded, all added values count as removed.
+    num_removed = list.size();
+    list.clear();
+  }
+  return num_removed;
+}
+
+std::size_t Shard::removeAll(const Bytes& key, Callables::Predicate predicate) {
+  return removeValues(getUnique(key), predicate, false);
+}
+
+std::size_t Shard::removeAllEqual(const Bytes& key, const Bytes& value) {
+  return removeAll(key, [&value](const Bytes& current_value) {
+    return current_value == value;
+  });
+}
+
+bool Shard::removeFirst(const Bytes& key, Callables::Predicate predicate) {
+  return removeValues(getUnique(key), predicate, true);
+}
+
+bool Shard::removeFirstEqual(const Bytes& key, const Bytes& value) {
+  return removeFirst(key, [&value](const Bytes& current_value) {
+    return current_value == value;
+  });
+}
+
+std::size_t Shard::replaceAll(const Bytes& key, Callables::Function function) {
+  return replaceValues(getUnique(key), function, false);
+}
+
+std::size_t Shard::replaceAllEqual(const Bytes& key, const Bytes& old_value,
+                                   const Bytes& new_value) {
+  return replaceAll(key, [&old_value, &new_value](const Bytes& current_value)
+                             -> std::string {
+    return (current_value == old_value) ? new_value.toString() : std::string();
+  });
+}
+
+bool Shard::replaceFirst(const Bytes& key, Callables::Function function) {
+  return replaceValues(getUnique(key), function, true);
+}
+
+bool Shard::replaceFirstEqual(const Bytes& key, const Bytes& old_value,
+                              const Bytes& new_value) {
+  return replaceFirst(key,
+                      [&old_value, &new_value](const Bytes& current_value) {
+    return (current_value == old_value) ? new_value.toString() : std::string();
+  });
+}
+
+void Shard::forEachKey(Callables::Procedure action,
+                       bool ignore_empty_lists) const {
+  boost::shared_lock<boost::shared_mutex> lock(mutex_);
+  for (const auto& entry : map_) {
+    SharedList list(*entry.second, *store_, std::try_to_lock);
+    if (list && !(ignore_empty_lists && list.empty())) {
+      action(entry.first);
+    }
+  }
+}
+
+void Shard::forEachValue(const Bytes& key, Callables::Procedure action) const {
+  auto iter = get(key);
+  while (iter.hasNext()) {
+    action(iter.next());
+  }
+}
+
+void Shard::forEachValue(const Bytes& key, Callables::Predicate action) const {
+  auto iter = get(key);
+  while (iter.hasNext()) {
+    if (!action(iter.next())) {
+      break;
+    }
+  }
+}
+
+void Shard::forEachEntry(Callables::BinaryProcedure action,
+                         bool ignore_empty_lists) const {
+  boost::shared_lock<boost::shared_mutex> lock(mutex_);
+  store_->adviseAccessPattern(Store::AccessPattern::WILLNEED);
+  for (const auto& entry : map_) {
+    SharedList list(*entry.second, *store_, std::try_to_lock);
+    if (list && !(ignore_empty_lists && list.empty())) {
+      action(entry.first, ListIterator(std::move(list)));
+    }
+  }
+  store_->adviseAccessPattern(Store::AccessPattern::NORMAL);
+}
+
+Shard::Stats Shard::getStats() const {
+  Stats stats = stats_;
+  const auto store_stats = store_->getStats();
+  stats.block_size = store_stats.block_size;
+  stats.num_blocks = store_stats.num_blocks;
+  boost::shared_lock<boost::shared_mutex> lock(mutex_);
+  for (const auto& entry : map_) {
+    const auto& key = entry.first;
+    SharedList list(*entry.second, *store_, std::try_to_lock);
+    if (list) {
+      ++stats.num_keys;
+      stats.num_values_put += list.head().num_values_added;
+      stats.num_values_removed += list.head().num_values_removed;
+      stats.key_size_avg += key.size();
+      stats.key_size_max = mt::max(stats.key_size_max, key.size());
+      stats.key_size_min = stats.key_size_min
+                               ? mt::min(stats.key_size_min, key.size())
+                               : key.size();
+      stats.list_size_avg += list.size();
+      stats.list_size_max = mt::max(stats.list_size_max, list.size());
+      stats.list_size_min = stats.list_size_min
+                                ? mt::min(stats.list_size_min, list.size())
+                                : list.size();
+    }
+  }
+  if (stats.num_keys) {
+    stats.key_size_avg /= stats.num_keys;
+    stats.list_size_avg /= stats.num_keys;
+  }
+  return stats;
+}
+
+std::string Shard::getNameOfKeysFile(const std::string& prefix) {
+  return prefix + ".keys";
+}
+
+std::string Shard::getNameOfStatsFile(const std::string& prefix) {
+  return prefix + ".stats";
+}
+
+std::string Shard::getNameOfValuesFile(const std::string& prefix) {
+  return prefix + ".values";
 }
 
 SharedList Shard::getShared(const Bytes& key) const {
@@ -359,68 +540,6 @@ UniqueList Shard::getUniqueOrCreate(const Bytes& key) {
   }
   // `mutex_` is unlocked now.
   return UniqueList(list, store_.get(), &arena_);
-}
-
-void Shard::forEachKey(Callables::Procedure action) const {
-  boost::shared_lock<boost::shared_mutex> lock(mutex_);
-  for (const auto& entry : map_) {
-    SharedList list(*entry.second, *store_, std::try_to_lock);
-    if (list && !list.empty()) {
-      action(entry.first);
-    }
-  }
-}
-
-void Shard::forEachEntry(BinaryProcedure action) const {
-  boost::shared_lock<boost::shared_mutex> lock(mutex_);
-  store_->adviseAccessPattern(Store::AccessPattern::WILLNEED);
-  for (const auto& entry : map_) {
-    SharedList list(*entry.second, *store_, std::try_to_lock);
-    if (list && !list.empty()) {
-      action(entry.first, std::move(list));
-    }
-  }
-  store_->adviseAccessPattern(Store::AccessPattern::NORMAL);
-}
-
-Shard::Stats Shard::getStats() const {
-  Stats stats;
-  const auto store_stats = store_->getStats();
-  stats.block_size = store_stats.block_size;
-  stats.num_blocks = store_stats.num_blocks;
-  stats.num_values_unowned = stats_.num_values_unowned;
-  forEachEntry([&stats](const Bytes& key, SharedList&& list) {
-    ++stats.num_keys;
-    stats.num_values_added += list.head().num_values_added;
-    stats.num_values_removed += list.head().num_values_removed;
-    stats.key_size_avg += key.size();
-    stats.key_size_max = mt::max(stats.key_size_max, key.size());
-    stats.key_size_min = stats.key_size_min
-                             ? mt::min(stats.key_size_min, key.size())
-                             : key.size();
-    stats.list_size_avg += list.size();
-    stats.list_size_max = mt::max(stats.list_size_max, list.size());
-    stats.list_size_min = stats.list_size_min
-                              ? mt::min(stats.list_size_min, list.size())
-                              : list.size();
-  });
-  if (stats.num_keys != 0) {
-    stats.key_size_avg /= stats.num_keys;
-    stats.list_size_avg /= stats.num_keys;
-  }
-  return stats;
-}
-
-std::string Shard::getNameOfKeysFile(const std::string& prefix) {
-  return prefix + ".keys";
-}
-
-std::string Shard::getNameOfStatsFile(const std::string& prefix) {
-  return prefix + ".stats";
-}
-
-std::string Shard::getNameOfValuesFile(const std::string& prefix) {
-  return prefix + ".values";
 }
 
 } // namespace internal
