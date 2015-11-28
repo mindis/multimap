@@ -67,7 +67,7 @@ public:
 
   template <bool IsMutable> class Iter {
 
-    class Stream {
+    class Stream : mt::Resource {
     public:
       static const std::size_t BLOCK_CACHE_SIZE = 1024;
 
@@ -79,7 +79,7 @@ public:
         std::reverse(block_ids_.begin(), block_ids_.end());
       }
 
-      MT_ENABLE_IF(!IsMutable)
+      MT_DISABLE_IF(IsMutable)
       Stream(const List& list, const Store& store)
           : block_ids_(list.head_.block_ids.unpack()),
             last_block_(list.block_.getView()),
@@ -89,32 +89,30 @@ public:
 
       ~Stream() { writeBackMutatedBlocks(); }
 
-      Stream(Stream&&) = delete;
-      Stream& operator=(Stream&&) = delete;
-
       void readSizeWithFlag(std::uint32_t* size, bool* flag) {
-        std::size_t nbytes = 0;
-        do {
+        while (true) {
           if (blocks_index_ < blocks_.size()) {
             auto& block = blocks_[blocks_index_];
-            nbytes = block.readSizeWithFlag(size, flag);
-            if (nbytes == 0) {
+            const auto nbytes = block.readSizeWithFlag(size, flag);
+            if (nbytes == 0 || *size == 0) {
+              // End of block or end of data is reached, read next block.
               ++blocks_index_;
+              continue;
             } else {
               size_with_flag_ptr_.index = blocks_index_;
               size_with_flag_ptr_.offset = block.offset() - nbytes;
+              return;
             }
-
-          } else if (block_ids_.empty()) {
-            nbytes = last_block_.readSizeWithFlag(size, flag);
+          }
+          if (block_ids_.empty()) {
+            const auto nbytes = last_block_.readSizeWithFlag(size, flag);
             MT_ASSERT_NOT_ZERO(nbytes);
             size_with_flag_ptr_.index = blocks_index_;
             size_with_flag_ptr_.offset = last_block_.offset() - nbytes;
-
-          } else {
-            loadNextBlocks(true);
+            return;
           }
-        } while (nbytes == 0);
+          loadNextBlocks(true);
+        }
       }
 
       void readData(char* target, std::uint32_t size) {
@@ -223,7 +221,7 @@ public:
       stats_.available = list->head_.num_values_not_removed();
     }
 
-    MT_ENABLE_IF(!IsMutable)
+    MT_DISABLE_IF(IsMutable)
     Iter(const List& list, const Store& store)
         : list_(&list), stream_(new Stream(list, store)) {
       stats_.available = list.head_.num_values_not_removed();
@@ -304,11 +302,7 @@ public:
 
   bool empty() const { return size() == 0; }
 
-  std::size_t clear() {
-    const auto num = size();
-    head_ = Head();
-    return num;
-  }
+  void clear() { head_ = Head(); }
 
   Iterator iterator(const Store& store) const { return Iterator(*this, store); }
 
@@ -380,6 +374,8 @@ template <> inline void List::Iter<true>::Stream::writeBackMutatedBlocks() {
 
 class SharedList {
 public:
+  typedef List::Iterator Iterator;
+
   SharedList() = default;
 
   SharedList(const List& list, const Store& store)
@@ -416,6 +412,10 @@ public:
 
   const List::Head& head() const { return list_->head(); }
 
+  Iterator iterator() const {
+    return list_ ? list_->iterator(*store_) : Iterator();
+  }
+
   std::size_t size() const { return list_->size(); }
 
   bool empty() const { return list_->empty(); }
@@ -449,13 +449,6 @@ public:
   SharedListIterator(SharedListIterator&&) = default;
   SharedListIterator& operator=(SharedListIterator&&) = default;
 
-  SharedList release() {
-    auto list = std::move(list_);
-    iter_ = List::Iterator();
-    list_ = SharedList();
-    return list;
-  }
-
   std::size_t available() const { return iter_.available(); }
 
   bool hasNext() { return iter_.hasNext(); }
@@ -474,6 +467,8 @@ private:
 
 class UniqueList {
 public:
+  typedef List::MutableIterator Iterator;
+
   UniqueList() = default;
 
   UniqueList(List* list, Store* store, Arena* arena)
@@ -512,13 +507,15 @@ public:
 
   const List::Head& head() const { return list_->head(); }
 
+  Iterator iterator() { return list_ ? list_->iterator(store_) : Iterator(); }
+
   std::size_t size() const { return list_->size(); }
 
   bool empty() const { return list_->empty(); }
 
   void add(const Bytes& value) { list_->add(value, store_, arena_); }
 
-  std::size_t clear() { return list_->clear(); }
+  void clear() { list_->clear(); }
 
 private:
   List* release() {
@@ -549,13 +546,6 @@ public:
 
   UniqueListIterator(UniqueListIterator&&) = default;
   UniqueListIterator& operator=(UniqueListIterator&&) = default;
-
-  UniqueList release() {
-    auto list = std::move(list_);
-    iter_ = List::MutableIterator();
-    list_ = UniqueList();
-    return list;
-  }
 
   std::size_t available() const { return iter_.available(); }
 

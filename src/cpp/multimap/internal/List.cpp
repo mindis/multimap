@@ -17,6 +17,8 @@
 
 #include "multimap/internal/List.hpp"
 
+#include <cstring>
+
 namespace multimap {
 namespace internal {
 
@@ -149,6 +151,7 @@ void List::add(const Bytes& value, Store* store, Arena* arena) {
 
 void List::flush(Store* store) {
   if (block_.hasData()) {
+    block_.fillUpWithZeros();
     head_.block_ids.add(store->put(block_));
     block_.rewind();
   }
