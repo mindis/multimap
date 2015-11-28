@@ -232,7 +232,7 @@ TEST_P(ListTestIteration, AddLargeValuesAndIterateTwice) {
 
 TEST_P(ListTestIteration, FlushValuesBetweenAddingThemAndIterate) {
   List list;
-  const auto part_size = 1 + GetParam() / 3;
+  const auto part_size = 1 + GetParam() / 5;
   for (std::size_t i = 0; i != GetParam(); ++i) {
     list.add(std::to_string(i), getStore(), getArena());
     if (list.size() % part_size == 0) {
