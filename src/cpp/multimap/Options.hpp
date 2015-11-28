@@ -24,7 +24,7 @@
 namespace multimap {
 
 struct Options {
-  // A type to configure an object of class Map or related functions.
+  // A type to configure an object of class Map and related functions.
 
   std::size_t num_shards = 23;
 
