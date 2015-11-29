@@ -36,6 +36,7 @@ public:
     bool create_if_missing = false;
     bool error_if_exists = false;
     bool readonly = false;
+    bool quiet = false;
   };
 
   struct Stats {
@@ -180,10 +181,11 @@ private:
 
   mutable std::mutex mutex_;
   mutable bool fill_page_cache_ = false;
+  mt::AutoCloseFd fd_;
   Mapped mapped_;
   Buffer buffer_;
   Stats stats_;
-  int fd_ = -1;
+  bool quiet_;
 };
 
 } // namespace internal

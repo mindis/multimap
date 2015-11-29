@@ -82,23 +82,23 @@ std::size_t List::Limits::getMaxValueSize() {
 
 List::Head List::Head::readFromStream(std::FILE* stream) {
   Head head;
-  mt::read(stream, &head.num_values_added, sizeof head.num_values_added);
-  mt::read(stream, &head.num_values_removed, sizeof head.num_values_removed);
+  mt::fread(stream, &head.num_values_added, sizeof head.num_values_added);
+  mt::fread(stream, &head.num_values_removed, sizeof head.num_values_removed);
   head.block_ids = UintVector::readFromStream(stream);
   return head;
 }
 
 void List::Head::writeToStream(std::FILE* stream) const {
-  mt::write(stream, &num_values_added, sizeof num_values_added);
-  mt::write(stream, &num_values_removed, sizeof num_values_removed);
+  mt::fwrite(stream, &num_values_added, sizeof num_values_added);
+  mt::fwrite(stream, &num_values_removed, sizeof num_values_removed);
   block_ids.writeToStream(stream);
 }
 
 List::List(const Head& head) : head_(head) {}
 
 void List::add(const Bytes& value, Store* store, Arena* arena) {
-  mt::check(value.size() <= Limits::getMaxValueSize(),
-            "Reject value because it's too large.");
+  mt::Check::isLessEqual(value.size(), Limits::getMaxValueSize(),
+                         "Reject value because it's too large.");
 
   if (!block_.hasData()) {
     const auto block_size = store->getBlockSize();

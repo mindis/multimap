@@ -252,32 +252,6 @@ std::vector<std::string> Files::readAllLines(
   return lines;
 }
 
-AutoCloseFile::AutoCloseFile(std::FILE* file) : file_(file) {}
-
-AutoCloseFile::~AutoCloseFile() { reset(); }
-
-AutoCloseFile::AutoCloseFile(AutoCloseFile&& other) : file_(other.file_) {
-  other.file_ = nullptr;
-}
-
-AutoCloseFile& AutoCloseFile::operator=(AutoCloseFile&& other) {
-  if (&other != this) {
-    reset(other.file_);
-    other.file_ = nullptr;
-  }
-  return *this;
-}
-
-std::FILE* AutoCloseFile::get() const { return file_; }
-
-void AutoCloseFile::reset(std::FILE* file) {
-  if (file_) {
-    const auto status = std::fclose(file_);
-    MT_ASSERT_ZERO(status);
-  }
-  file_ = file;
-}
-
 const char* DirectoryLockGuard::DEFAULT_FILENAME = ".lock";
 
 DirectoryLockGuard::DirectoryLockGuard(const boost::filesystem::path& directory,

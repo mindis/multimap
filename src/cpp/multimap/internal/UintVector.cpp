@@ -56,16 +56,16 @@ UintVector& UintVector::operator=(const UintVector& other) {
 
 UintVector UintVector::readFromStream(std::FILE* stream) {
   UintVector vector;
-  mt::read(stream, &vector.offset_, sizeof vector.offset_);
+  mt::fread(stream, &vector.offset_, sizeof vector.offset_);
   vector.data_.reset(new char[vector.offset_]);
-  mt::read(stream, vector.data_.get(), vector.offset_);
+  mt::fread(stream, vector.data_.get(), vector.offset_);
   vector.size_ = vector.offset_;
   return vector;
 }
 
 void UintVector::writeToStream(std::FILE* stream) const {
-  mt::write(stream, &offset_, sizeof offset_);
-  mt::write(stream, data_.get(), offset_);
+  mt::fwrite(stream, &offset_, sizeof offset_);
+  mt::fwrite(stream, data_.get(), offset_);
 }
 
 std::vector<std::uint32_t> UintVector::unpack() const {

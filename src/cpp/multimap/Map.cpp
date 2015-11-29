@@ -24,9 +24,10 @@ namespace multimap {
 namespace {
 
 void checkOptions(const Options& options) {
-  mt::check(options.block_size != 0, "Options::block_size must be positive");
-  mt::check(mt::isPowerOfTwo(options.block_size),
-            "Options::block_size must be a power of two");
+  mt::Check::notZero(options.block_size,
+                     "Options::block_size must be positive");
+  mt::Check::isTrue(mt::isPowerOfTwo(options.block_size),
+                    "Options::block_size must be a power of two");
 }
 
 internal::Shard& getShard(
@@ -49,23 +50,25 @@ std::size_t Map::Limits::getMaxValueSize() {
 Map::Map(const boost::filesystem::path& directory, const Options& options) {
   checkOptions(options);
   const auto abs_dir = boost::filesystem::absolute(directory);
-  mt::check(boost::filesystem::is_directory(abs_dir),
-            "The path '%s' does not refer to a directory.", abs_dir.c_str());
+  mt::Check::isTrue(boost::filesystem::is_directory(abs_dir),
+                    "The path '%s' does not refer to a directory",
+                    abs_dir.c_str());
 
   lock_ = mt::DirectoryLockGuard(abs_dir, internal::getNameOfLockFile());
   const auto id_file = abs_dir / internal::getNameOfIdFile();
 
   if (boost::filesystem::is_regular_file(id_file)) {
-    mt::check(!options.error_if_exists,
-              "A Multimap in '%s' does already exist.", abs_dir.c_str());
+    mt::Check::isFalse(options.error_if_exists,
+                       "A Multimap in '%s' does already exist",
+                       abs_dir.c_str());
 
     const auto id = internal::Id::readFromFile(id_file);
     internal::checkVersion(id.major_version, id.minor_version);
     shards_.resize(id.num_shards);
 
   } else {
-    mt::check(options.create_if_missing, "No Multimap found in '%s'.",
-              abs_dir.c_str());
+    mt::Check::isTrue(options.create_if_missing, "No Multimap found in '%s'",
+                      abs_dir.c_str());
 
     shards_.resize(mt::nextPrime(options.num_shards));
   }
@@ -76,6 +79,7 @@ Map::Map(const boost::filesystem::path& directory, const Options& options) {
   shard_options.create_if_missing = options.create_if_missing;
   shard_options.error_if_exists = options.error_if_exists;
   shard_options.readonly = options.readonly;
+  shard_options.quiet = options.quiet;
 
   for (std::size_t i = 0; i != shards_.size(); ++i) {
     const auto prefix = abs_dir / internal::getShardPrefix(i);
@@ -182,16 +186,14 @@ namespace internal {
 
 Id Id::readFromFile(const boost::filesystem::path& file) {
   Id id;
-  const auto stream = mt::open(file, "r");
-  mt::check(stream.get(), "Could not open '%s'", file.c_str());
-  mt::read(stream.get(), &id, sizeof id);
+  const auto stream = mt::fopen(file, "r");
+  mt::fread(stream.get(), &id, sizeof id);
   return id;
 }
 
 void Id::writeToFile(const boost::filesystem::path& file) const {
-  const auto stream = mt::open(file, "w");
-  mt::check(stream.get(), "Could not create '%s'", file.c_str());
-  mt::write(stream.get(), this, sizeof *this);
+  const auto stream = mt::fopen(file, "w");
+  mt::fwrite(stream.get(), this, sizeof *this);
 }
 
 const std::string getFilePrefix() { return "multimap"; }

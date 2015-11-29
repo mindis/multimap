@@ -18,6 +18,13 @@
 #ifndef MT_MT_HPP_INCLUDED
 #define MT_MT_HPP_INCLUDED
 
+// TODO Add feature test macros
+
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include <cstdarg>
 #include <cstdio>
 #include <fstream>
@@ -33,7 +40,7 @@
 
 namespace mt {
 
-static const std::size_t VERSION = 20151128;
+static const std::size_t VERSION = 20151129;
 
 // -----------------------------------------------------------------------------
 // COMMON
@@ -282,8 +289,240 @@ struct Check {
   Check() = delete;
 };
 
+inline const char* errnostr() { return std::strerror(errno); }
+
 // -----------------------------------------------------------------------------
 // INPUT / OUTPUT
+
+class AutoCloseFd {
+public:
+  AutoCloseFd() = default;
+
+  explicit AutoCloseFd(int fd) : fd_(fd) {}
+
+  AutoCloseFd(AutoCloseFd&& other) : fd_(other.fd_) { other.fd_ = -1; }
+
+  ~AutoCloseFd() { reset(); }
+
+  AutoCloseFd& operator=(AutoCloseFd&& other) {
+    if (&other != this) {
+      reset(other.fd_);
+      other.fd_ = -1;
+    }
+    return *this;
+  }
+
+  int get() const { return fd_; }
+
+  void reset(int fd = -1) {
+    if (fd_ != -1) {
+      const auto result = ::close(fd_);
+      Check::isZero(result, "::close() failed because of '%s'", errnostr());
+    }
+    fd_ = fd;
+  }
+
+private:
+  int fd_ = -1;
+};
+
+inline AutoCloseFd open(const boost::filesystem::path& file, int flags) {
+  const auto result = ::open(file.c_str(), flags);
+  Check::notEqual(result, -1, "mt::open() failed for '%s' because of '%s'",
+                  file.c_str(), errnostr());
+  return AutoCloseFd(result);
+}
+
+inline AutoCloseFd open(const boost::filesystem::path& file, int flags,
+                        mode_t mode) {
+  const auto result = ::open(file.c_str(), flags, mode);
+  Check::notEqual(result, -1, "mt::open() failed for '%s' because of '%s'",
+                  file.c_str(), errnostr());
+  return AutoCloseFd(result);
+}
+
+inline void read(int fd, void* buffer, std::size_t count) {
+  const auto result = ::read(fd, buffer, count);
+  Check::notEqual(result, -1, "mt::read() failed because of '%s'", errnostr());
+  Check::isEqual(static_cast<std::size_t>(result), count,
+                 "mt::read() read less bytes than expected");
+}
+
+inline void write(int fd, const void* buffer, std::size_t count) {
+  const auto result = ::write(fd, buffer, count);
+  Check::notEqual(result, -1, "mt::write() failed because of '%s'", errnostr());
+  Check::isEqual(static_cast<std::size_t>(result), count,
+                 "mt::write() wrote less bytes than expected");
+}
+
+inline void writeOrPrompt(int fd, const void* buffer, std::size_t count) {
+  while (true) {
+    const auto result = ::write(fd, buffer, count);
+    Check::notEqual(result, -1, "mt::write() failed because of '%s'",
+                    errnostr());
+    if (static_cast<std::size_t>(result) < count) {
+      std::cout << "Write operation failed because only " << result << " of "
+                << count << " bytes could be written.\nIn case you ran out of "
+                            "disk space you can do some cleanup now and then "
+                            "try to continue.\nTry to continue? [Y/n] "
+                << std::flush;
+      std::string answer;
+      std::getline(std::cin, answer);
+      if (answer == "n") {
+        fail("mt::write() wrote less bytes than expected");
+      }
+      buffer = static_cast<const char*>(buffer) + result;
+      count -= result;
+    } else {
+      break;
+    }
+  }
+}
+
+inline std::uint64_t seek(int fd, std::int64_t offset, int whence) {
+  const auto result = ::lseek(fd, offset, whence);
+  Check::notEqual(result, -1, "mt::seek() failed because of '%s'", errnostr());
+  return result;
+}
+
+inline std::uint64_t tell(int fd) { return seek(fd, 0, SEEK_CUR); }
+
+inline void truncate(int fd, std::uint64_t length) {
+  const auto result = ::ftruncate(fd, length);
+  Check::isZero(result, "mt::truncate() failed because of '%s'", errnostr());
+}
+
+inline void* mmap(void* addr, std::uint64_t length, int prot, int flags, int fd,
+                  off_t offset) {
+  const auto result = ::mmap(addr, length, prot, flags, fd, offset);
+  Check::notEqual(result, MAP_FAILED, "mt::mmap() failed because of '%s'",
+                  errnostr());
+  return result;
+}
+
+inline void* mremap(void* old_addr, std::size_t old_size, std::size_t new_size,
+                    int flags) {
+  const auto result = ::mremap(old_addr, old_size, new_size, flags);
+  Check::notEqual(result, MAP_FAILED, "mt::mremap() failed because of '%s'",
+                  errnostr());
+  return result;
+}
+
+inline void munmap(void* addr, std::size_t length) {
+  const auto result = ::munmap(addr, length);
+  Check::isZero(result, "mt::munmap() failed because of '%s'", errnostr());
+}
+
+class AutoCloseFile {
+public:
+  AutoCloseFile() = default;
+
+  explicit AutoCloseFile(std::FILE* file) : file_(file) {}
+
+  AutoCloseFile(AutoCloseFile&& other) : file_(other.file_) {
+    other.file_ = nullptr;
+  }
+
+  ~AutoCloseFile() { reset(); }
+
+  AutoCloseFile& operator=(AutoCloseFile&& other) {
+    if (&other != this) {
+      reset(other.file_);
+      other.file_ = nullptr;
+    }
+    return *this;
+  }
+
+  std::FILE* get() const { return file_; }
+
+  void reset(std::FILE* file = nullptr) {
+    if (file_) {
+      const auto status = std::fclose(file_);
+      Check::isZero(status, "std::fclose() failed");
+    }
+    file_ = file;
+  }
+
+private:
+  std::FILE* file_ = nullptr;
+};
+
+inline AutoCloseFile fopen(const boost::filesystem::path& file,
+                           const char* mode) {
+  const auto result = std::fopen(file.c_str(), mode);
+  Check::notNull(result, "mt::fopen() failed because of '%s'", errnostr());
+  return AutoCloseFile(result);
+}
+
+inline void fread(std::FILE* stream, void* buffer, std::size_t count) {
+  const auto result = std::fread(buffer, sizeof(char), count, stream);
+  Check::isEqual(result, count, "mt::fread() failed");
+}
+
+inline void fwrite(std::FILE* stream, const void* buffer, std::size_t count) {
+  const auto result = std::fwrite(buffer, sizeof(char), count, stream);
+  Check::isEqual(result, count, "mt::fwrite() failed");
+}
+
+inline void fwriteOrPrompt(std::FILE* stream, const void* buffer,
+                           std::size_t count) {
+  while (true) {
+    const auto result = std::fwrite(buffer, sizeof(char), count, stream);
+    if (result < count) {
+      std::cout << "Write operation failed because only " << result << " of "
+                << count << " bytes could be written.\nIn case you ran out of "
+                            "disk space you can do some cleanup now and then "
+                            "try to continue.\nTry to continue? [Y/n] "
+                << std::flush;
+      std::string answer;
+      std::getline(std::cin, answer);
+      if (answer == "n") {
+        fail("mt::fwrite() wrote less bytes than expected");
+      }
+      buffer = static_cast<const char*>(buffer) + result;
+      count -= result;
+    } else {
+      break;
+    }
+  }
+}
+
+inline void fseek(std::FILE* stream, long offset, int origin) {
+  const auto result = std::fseek(stream, offset, origin);
+  Check::isZero(result, "mt::fseek() failed");
+}
+
+inline std::uint64_t ftell(std::FILE* stream) {
+  const auto result = std::ftell(stream);
+  Check::notEqual(result, -1, "mt::ftell() failed because of '%s'", errnostr());
+  return result;
+}
+
+class DirectoryLockGuard {
+public:
+  static const char* DEFAULT_FILENAME;
+
+  DirectoryLockGuard() = default;
+
+  DirectoryLockGuard(const boost::filesystem::path& directory,
+                     const std::string& filename = DEFAULT_FILENAME);
+
+  DirectoryLockGuard(const DirectoryLockGuard&) = delete;
+  DirectoryLockGuard& operator=(const DirectoryLockGuard&) = delete;
+
+  DirectoryLockGuard(DirectoryLockGuard&& other);
+  DirectoryLockGuard& operator=(DirectoryLockGuard&& other);
+
+  ~DirectoryLockGuard();
+
+  const boost::filesystem::path& directory() const;
+
+  const std::string& filename() const;
+
+private:
+  boost::filesystem::path directory_;
+  std::string filename_;
+};
 
 struct Files {
   typedef std::vector<char> Bytes;
@@ -313,80 +552,6 @@ struct Files {
       ofs << '\n';
     }
   }
-};
-
-class AutoCloseFile {
-public:
-  AutoCloseFile() = default;
-
-  explicit AutoCloseFile(std::FILE* file);
-
-  ~AutoCloseFile();
-
-  AutoCloseFile(AutoCloseFile&& other);
-  AutoCloseFile& operator=(AutoCloseFile&& other);
-
-  AutoCloseFile(const AutoCloseFile&) = delete;
-  AutoCloseFile& operator=(const AutoCloseFile&) = delete;
-
-  std::FILE* get() const;
-
-  void reset(std::FILE* file = nullptr);
-
-private:
-  std::FILE* file_ = nullptr;
-};
-
-inline AutoCloseFile open(const boost::filesystem::path& file,
-                          const char* mode) {
-  return AutoCloseFile(std::fopen(file.c_str(), mode));
-}
-
-inline void read(std::FILE* stream, void* buffer, std::size_t count) {
-  const auto nbytes = std::fread(buffer, sizeof(char), count, stream);
-  Check::isEqual(nbytes, count, "mt::read() failed");
-}
-
-inline void write(std::FILE* stream, const void* buffer, std::size_t count) {
-  const auto nbytes = std::fwrite(buffer, sizeof(char), count, stream);
-  Check::isEqual(nbytes, count, "mt::write() failed");
-}
-
-inline void seek(std::FILE* stream, long offset, int origin) {
-  const auto status = std::fseek(stream, offset, origin);
-  Check::isZero(status, "mt::seek() failed");
-}
-
-inline std::size_t tell(std::FILE* stream) {
-  const auto status = std::ftell(stream);
-  Check::notEqual(status, -1, "mt::tell() failed");
-  return status;
-}
-
-class DirectoryLockGuard {
-public:
-  static const char* DEFAULT_FILENAME;
-
-  DirectoryLockGuard() = default;
-
-  DirectoryLockGuard(const boost::filesystem::path& directory,
-                     const std::string& filename = DEFAULT_FILENAME);
-
-  DirectoryLockGuard(const DirectoryLockGuard&) = delete;
-  DirectoryLockGuard& operator=(const DirectoryLockGuard&) = delete;
-
-  DirectoryLockGuard(DirectoryLockGuard&& other);
-  DirectoryLockGuard& operator=(DirectoryLockGuard&& other);
-
-  ~DirectoryLockGuard();
-
-  const boost::filesystem::path& directory() const;
-
-  const std::string& filename() const;
-
-private:
-  boost::filesystem::path directory_;
-  std::string filename_;
 };
 
 // -----------------------------------------------------------------------------
@@ -467,19 +632,23 @@ constexpr bool hasExpectedSize(std::size_t size_on_32_bit_system,
 //
 //   template <> inline void Bar<Unique>::mutate() { ... }
 //
-// However, when trying to compile code that calls mutate() on an instantiation
+// However, when trying to compile code that calls mutate() on an
+// instantiation
 // for which no implementation is given (the default case) the linker (!) will
 // complain:
 //
 //   undefined reference to `Bar<Shared>::mutate()'
 //
 // That means, for the compiler the class Bar<Shared> actually has a mutate()
-// method, it's only the implementation which is missing.  Although it prevents
-// the code to compile, which is what we want, the semantic is a different one.
+// method, it's only the implementation which is missing.  Although it
+// prevents
+// the code to compile, which is what we want, the semantic is a different
+// one.
 // Instead, we want the class Bar<Shared> to have no mutate() method at all.
 //
 // The macros enable the desired behavior by making use of the SFINAE
-// (Substitution Failure Is Not An Error) technique.  Now the compiler (!) will
+// (Substitution Failure Is Not An Error) technique.  Now the compiler (!)
+// will
 // complain:
 //
 //   no matching function for call to `Bar<Shared>::mutate()'

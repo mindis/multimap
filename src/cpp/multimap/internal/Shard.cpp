@@ -41,9 +41,9 @@ struct Entry : public std::pair<Bytes, List::Head> {
 
   static Entry readFromStream(std::FILE* stream, Arena* arena) {
     std::int32_t key_size;
-    mt::read(stream, &key_size, sizeof key_size);
+    mt::fread(stream, &key_size, sizeof key_size);
     const auto key_data = arena->allocate(key_size);
-    mt::read(stream, key_data, key_size);
+    mt::fread(stream, key_data, key_size);
     auto head = List::Head::readFromStream(stream);
     return Entry(Bytes(key_data, key_size), std::move(head));
   }
@@ -51,8 +51,8 @@ struct Entry : public std::pair<Bytes, List::Head> {
   void writeToStream(std::FILE* stream) const {
     MT_REQUIRE_LE(key().size(), Shard::Limits::getMaxKeySize());
     const std::int32_t key_size = key().size();
-    mt::write(stream, &key_size, sizeof key_size);
-    mt::write(stream, key().data(), key().size());
+    mt::fwrite(stream, &key_size, sizeof key_size);
+    mt::fwrite(stream, key().data(), key().size());
     head().writeToStream(stream);
   }
 };
@@ -118,19 +118,17 @@ const std::vector<std::string>& Shard::Stats::names() {
 
 Shard::Stats Shard::Stats::readFromFile(const boost::filesystem::path& file) {
   Stats stats;
-  const auto stream = mt::open(file.c_str(), "r");
-  mt::check(stream.get(), "Could not open '%s'", file.c_str());
-  mt::read(stream.get(), &stats, sizeof stats);
+  const auto stream = mt::fopen(file, "r");
+  mt::fread(stream.get(), &stats, sizeof stats);
   mt::check(stats.checksum == computeChecksum(stats), "Sanity check failed");
   return stats;
 }
 
 void Shard::Stats::writeToFile(const boost::filesystem::path& file) const {
-  const auto stream = mt::open(file.c_str(), "w");
-  mt::check(stream.get(), "Could not create '%s'", file.c_str());
   auto copy = *this;
   copy.checksum = computeChecksum(*this);
-  mt::write(stream.get(), &copy, sizeof copy);
+  const auto stream = mt::fopen(file.c_str(), "w");
+  mt::fwrite(stream.get(), &copy, sizeof copy);
 }
 
 Shard::Stats Shard::Stats::fromProperties(const mt::Properties& properties) {
@@ -241,12 +239,11 @@ Shard::Shard(const boost::filesystem::path& file_prefix,
              const Options& options) {
   const auto stats_file = getNameOfStatsFile(file_prefix.string());
   if (boost::filesystem::is_regular_file(stats_file)) {
-    mt::check(!options.error_if_exists, "Already exists");
+    mt::Check::isFalse(options.error_if_exists, "Shard already exists");
 
     stats_ = Stats::readFromFile(stats_file);
     const auto keys_file = getNameOfKeysFile(file_prefix.string());
-    const auto stream = mt::open(keys_file.c_str(), "r");
-    mt::check(stream.get(), "Could not open '%s'", keys_file.c_str());
+    const auto stream = mt::fopen(keys_file, "r");
     for (std::size_t i = 0; i != stats_.num_keys; ++i) {
       const auto entry = Entry::readFromStream(stream.get(), &arena_);
       map_[entry.key()].reset(new List(entry.head()));
@@ -268,14 +265,15 @@ Shard::Shard(const boost::filesystem::path& file_prefix,
              stats_file.c_str());
   }
 
-  Store::Options store_opts;
-  store_opts.block_size = options.block_size; // TODO stats_.block_size?
-  store_opts.buffer_size = options.buffer_size;
-  store_opts.create_if_missing = options.create_if_missing;
-  store_opts.error_if_exists = options.error_if_exists;
-  store_opts.readonly = options.readonly;
+  Store::Options store_options;
+  store_options.block_size = options.block_size; // TODO stats_.block_size?
+  store_options.buffer_size = options.buffer_size;
+  store_options.create_if_missing = options.create_if_missing;
+  store_options.error_if_exists = options.error_if_exists;
+  store_options.readonly = options.readonly;
+  store_options.quiet = options.quiet;
   const auto values_file = getNameOfValuesFile(file_prefix.string());
-  store_.reset(new Store(values_file, store_opts));
+  store_.reset(new Store(values_file, store_options));
   prefix_ = file_prefix;
 }
 
@@ -287,9 +285,7 @@ Shard::~Shard() {
       boost::filesystem::rename(keys_file, old_keys_file);
     }
 
-    const auto stream = mt::open(keys_file.c_str(), "w");
-    mt::check(stream.get(), "Could not create '%s", keys_file.c_str());
-
+    const auto stream = mt::fopen(keys_file, "w");
     const auto store_stats = store_->getStats();
     stats_.block_size = store_stats.block_size;
     stats_.num_blocks = store_stats.num_blocks;
@@ -502,7 +498,8 @@ SharedList Shard::getShared(const Bytes& key) const {
 }
 
 UniqueList Shard::getUnique(const Bytes& key) {
-  mt::check(!isReadOnly(), "Attempt to get write access to read-only list");
+  mt::Check::isFalse(isReadOnly(),
+                     "Attempt to get write access to read-only list");
 
   List* list = nullptr;
   {
@@ -517,9 +514,11 @@ UniqueList Shard::getUnique(const Bytes& key) {
 }
 
 UniqueList Shard::getUniqueOrCreate(const Bytes& key) {
-  mt::check(!isReadOnly(), "Attempt to get write access to read-only list");
-  mt::check(key.size() <= Limits::getMaxKeySize(),
-            "Reject key of %d bytes because it's too big", key.size());
+  mt::Check::isFalse(isReadOnly(),
+                     "Attempt to get write access to read-only list");
+  mt::Check::isLessEqual(key.size(), Limits::getMaxKeySize(),
+                         "Reject key of %d bytes because it's too big",
+                         key.size());
 
   List* list = nullptr;
   {

@@ -17,10 +17,6 @@
 
 #include "multimap/internal/Store.hpp"
 
-#include <fcntl.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
-#include <sys/types.h>
 #include <boost/filesystem/operations.hpp>
 
 namespace multimap {
@@ -30,29 +26,23 @@ namespace {
 
 Store::Stats readStatsFromTail(int fd) {
   Store::Stats stats;
-  const auto end_of_data = ::lseek(fd, -(sizeof stats), SEEK_END);
-  MT_ASSERT_NE(end_of_data, -1);
-
-  const auto status = ::read(fd, &stats, sizeof stats);
-  MT_ASSERT_NE(status, -1);
-  MT_ASSERT_EQ(static_cast<std::size_t>(status), sizeof stats);
+  mt::seek(fd, -(sizeof stats), SEEK_END);
+  mt::read(fd, &stats, sizeof stats);
   return stats;
 }
 
-void writeStatsToTail(const Store::Stats& stats, int fd) {
-  auto status = ::lseek(fd, 0, SEEK_END);
-  MT_ASSERT_NE(status, -1);
-
-  status = ::write(fd, &stats, sizeof stats);
-  MT_ASSERT_NE(status, -1);
-  MT_ASSERT_EQ(static_cast<std::size_t>(status), sizeof stats);
+void writeStatsToTail(const Store::Stats& stats, int fd, bool quiet) {
+  mt::seek(fd, 0, SEEK_END);
+  if (quiet) {
+    mt::write(fd, &stats, sizeof stats);
+  } else {
+    mt::writeOrPrompt(fd, &stats, sizeof stats);
+  }
 }
 
 void removeStatsFromTail(int fd) {
-  const auto end_of_data = ::lseek(fd, -sizeof(Store::Stats), SEEK_CUR);
-  MT_ASSERT_NE(end_of_data, -1);
-  const auto status = ::ftruncate(fd, end_of_data);
-  MT_ASSERT_ZERO(status);
+  const auto end_of_data = mt::seek(fd, -sizeof(Store::Stats), SEEK_CUR);
+  mt::truncate(fd, end_of_data);
 }
 
 } // namespace
@@ -78,21 +68,10 @@ Store::Store(const boost::filesystem::path& file, const Options& options) {
   if (boost::filesystem::is_regular_file(file)) {
     mt::Check::isFalse(options.error_if_exists, "Store already exists");
 
-    if (options.readonly) {
-      fd_ = ::open(file.c_str(), O_RDONLY);
-      mt::Check::notEqual(
-          fd_, -1, "Could not open '%s' in read-only mode because of '%s'",
-          file.c_str(), std::strerror(errno));
-    } else {
-      fd_ = ::open(file.c_str(), O_RDWR);
-      mt::Check::notEqual(
-          fd_, -1, "Could not open '%s' in read-write mode because of '%s'",
-          file.c_str(), std::strerror(errno));
-    }
-
-    stats_ = readStatsFromTail(fd_);
+    fd_ = mt::open(file, options.readonly ? O_RDONLY : O_RDWR);
+    stats_ = readStatsFromTail(fd_.get());
     if (!options.readonly) {
-      removeStatsFromTail(fd_);
+      removeStatsFromTail(fd_.get());
     }
 
     if (stats_.num_blocks != 0) {
@@ -101,10 +80,7 @@ Store::Store(const boost::filesystem::path& file, const Options& options) {
         prot |= PROT_WRITE;
       }
       const auto len = stats_.num_blocks * stats_.block_size;
-      mapped_.data = ::mmap(nullptr, len, prot, MAP_SHARED, fd_, 0);
-      mt::Check::notEqual(mapped_.data, MAP_FAILED,
-                          "mmap() failed for '%s' because of '%s'",
-                          file.c_str(), std::strerror(errno));
+      mapped_.data = mt::mmap(nullptr, len, prot, MAP_SHARED, fd_.get(), 0);
       mapped_.size = len;
     }
 
@@ -112,18 +88,7 @@ Store::Store(const boost::filesystem::path& file, const Options& options) {
     MT_REQUIRE_GT(options.buffer_size, options.block_size);
     MT_REQUIRE_ZERO(options.buffer_size % options.block_size);
 
-    if (options.readonly) {
-      fd_ = ::open(file.c_str(), O_RDONLY | O_CREAT, 0644);
-      // Creating a file in read-only mode sounds strange, but we'll try.
-      mt::Check::notEqual(
-          fd_, -1, "Could not create '%s' in read-only mode because of '%s'",
-          file.c_str(), std::strerror(errno));
-    } else {
-      fd_ = ::open(file.c_str(), O_RDWR | O_CREAT, 0644);
-      mt::Check::notEqual(
-          fd_, -1, "Could not create '%s' in read-write mode because of '%s'",
-          file.c_str(), std::strerror(errno));
-    }
+    fd_ = mt::open(file, O_RDWR | O_CREAT, 0644);
     stats_.block_size = options.block_size;
 
   } else {
@@ -134,28 +99,24 @@ Store::Store(const boost::filesystem::path& file, const Options& options) {
     buffer_.data.reset(new char[options.buffer_size]);
     buffer_.size = options.buffer_size;
   }
+  quiet_ = options.quiet;
 }
 
 Store::~Store() {
-  if (fd_ != -1) {
+  if (fd_.get() != -1) {
     if (mapped_.data) {
-      const auto status = ::munmap(mapped_.data, mapped_.size);
-      mt::Check::isZero(status, "munmap() failed because of '%s'",
-                        std::strerror(errno));
+      mt::munmap(mapped_.data, mapped_.size);
     }
     if (!buffer_.empty()) {
-      const auto nbytes = ::write(fd_, buffer_.data.get(), buffer_.offset);
-      mt::Check::notEqual(nbytes, -1, "write() failed because of '%s'",
-                          std::strerror(errno));
-      mt::Check::isEqual(static_cast<std::size_t>(nbytes), buffer_.offset,
-                         "write() wrote less data than expected");
+      if (quiet_) {
+        mt::write(fd_.get(), buffer_.data.get(), buffer_.offset);
+      } else {
+        mt::writeOrPrompt(fd_.get(), buffer_.data.get(), buffer_.offset);
+      }
     }
     if (!isReadOnly()) {
-      writeStatsToTail(getStats(), fd_);
+      writeStatsToTail(getStats(), fd_.get(), quiet_);
     }
-    const auto status = ::close(fd_);
-    mt::Check::isZero(status, "close() failed because of '%s'",
-                      std::strerror(errno));
   }
 }
 
@@ -176,11 +137,11 @@ void Store::adviseAccessPattern(AccessPattern pattern) const {
 std::uint32_t Store::putUnlocked(const char* block) {
   if (buffer_.offset == buffer_.size) {
     // Flush buffer
-    const auto nbytes = ::write(fd_, buffer_.data.get(), buffer_.size);
-    mt::Check::notEqual(nbytes, -1, "write() failed because of '%s'",
-                        std::strerror(errno));
-    mt::Check::isEqual(static_cast<std::size_t>(nbytes), buffer_.size,
-                       "write() wrote less data than expected");
+    if (quiet_) {
+      mt::write(fd_.get(), buffer_.data.get(), buffer_.size);
+    } else {
+      mt::writeOrPrompt(fd_.get(), buffer_.data.get(), buffer_.size);
+    }
     buffer_.offset = 0;
 
     // Remap file
@@ -193,16 +154,11 @@ std::uint32_t Store::putUnlocked(const char* block) {
       // In a unified virtual memory system, memory mappings and blocks of the
       // buffer cache share the same pages of physical memory. [kerrisk p1032]
       mapped_.data =
-          ::mremap(mapped_.data, mapped_.size, new_size, MREMAP_MAYMOVE);
-      mt::Check::notEqual(mapped_.data, MAP_FAILED,
-                          "mremap() failed because of '%s'",
-                          std::strerror(errno));
+          mt::mremap(mapped_.data, mapped_.size, new_size, MREMAP_MAYMOVE);
     } else {
       const auto prot = PROT_READ | PROT_WRITE;
-      mapped_.data = ::mmap(nullptr, new_size, prot, MAP_SHARED, fd_, 0);
-      mt::Check::notEqual(mapped_.data, MAP_FAILED,
-                          "mmap() failed because of '%s'",
-                          std::strerror(errno));
+      mapped_.data =
+          mt::mmap(nullptr, new_size, prot, MAP_SHARED, fd_.get(), 0);
     }
     mapped_.size = new_size;
   }
