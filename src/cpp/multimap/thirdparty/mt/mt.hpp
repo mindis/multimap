@@ -40,7 +40,7 @@
 
 namespace mt {
 
-static const std::size_t VERSION = 20151129;
+static const std::size_t VERSION = 20151130;
 
 // -----------------------------------------------------------------------------
 // COMMON
@@ -656,7 +656,7 @@ constexpr bool hasExpectedSize(std::size_t size_on_32_bit_system,
 // -----------------------------------------------------------------------------
 // CONTRACT-BASED PROGRAMMING
 
-class AssertionError : public std::runtime_error {
+class AssertionError : public std::logic_error {
 public:
   enum class Type { ASSERTION, PRECONDITION, POSTCONDITION };
 
@@ -727,8 +727,8 @@ template <typename Lhs, typename Rhs>
 AssertionError::AssertionError(const char* file, std::size_t line,
                                const char* expr, Lhs lhs_value, Rhs rhs_value,
                                Type type)
-    : std::runtime_error(internal::makeErrorMessage(file, line, expr, lhs_value,
-                                                    rhs_value, type, 4)) {}
+    : std::logic_error(internal::makeErrorMessage(file, line, expr, lhs_value,
+                                                  rhs_value, type, 4)) {}
 
 } // namespace mt
 

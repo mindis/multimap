@@ -375,16 +375,15 @@ void printStackTrace(std::size_t skip_head) {
 } // namespace internal
 
 AssertionError::AssertionError(const char* message)
-    : std::runtime_error(message) {}
+    : std::logic_error(message) {}
 
 AssertionError::AssertionError(const std::string& message)
-    : std::runtime_error(message) {}
+    : std::logic_error(message) {}
 
 AssertionError::AssertionError(const char* file, std::size_t line,
                                const char* expr,
                                AssertionError::Expected expected,
                                AssertionError::Type type)
-    : std::runtime_error(
-          makeErrorMessage(file, line, expr, expected, type, 5)) {}
+    : std::logic_error(makeErrorMessage(file, line, expr, expected, type, 5)) {}
 
 } // namespace mt
