@@ -61,20 +61,16 @@ mt::Properties Store::Stats::toProperties() const {
   return properties;
 }
 
-Store::Store(const boost::filesystem::path& filepath)
-    : Store(filepath, Options()) {}
+Store::Store(const boost::filesystem::path& file) : Store(file, Options()) {}
 
 Store::Store(const boost::filesystem::path& file, const Options& options) {
   if (boost::filesystem::is_regular_file(file)) {
-    mt::Check::isFalse(options.error_if_exists, "Store already exists");
-
     fd_ = mt::open(file, options.readonly ? O_RDONLY : O_RDWR);
     stats_ = readStatsFromTail(fd_.get());
     if (!options.readonly) {
       removeStatsFromTail(fd_.get());
     }
-
-    if (stats_.num_blocks != 0) {
+    if (stats_.num_blocks) {
       auto prot = PROT_READ;
       if (!options.readonly) {
         prot |= PROT_WRITE;
@@ -84,15 +80,13 @@ Store::Store(const boost::filesystem::path& file, const Options& options) {
       mapped_.size = len;
     }
 
-  } else if (options.create_if_missing) {
+  } else {
+    // Create new data file.
     MT_REQUIRE_GT(options.buffer_size, options.block_size);
     MT_REQUIRE_ZERO(options.buffer_size % options.block_size);
 
     fd_ = mt::open(file, O_RDWR | O_CREAT, 0644);
     stats_.block_size = options.block_size;
-
-  } else {
-    mt::fail("Could not open '%s' because it does not exist", file.c_str());
   }
 
   if (!options.readonly) {

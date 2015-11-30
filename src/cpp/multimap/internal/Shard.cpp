@@ -268,8 +268,6 @@ Shard::Shard(const boost::filesystem::path& file_prefix,
   Store::Options store_options;
   store_options.block_size = options.block_size; // TODO stats_.block_size?
   store_options.buffer_size = options.buffer_size;
-  store_options.create_if_missing = options.create_if_missing;
-  store_options.error_if_exists = options.error_if_exists;
   store_options.readonly = options.readonly;
   store_options.quiet = options.quiet;
   const auto values_file = getNameOfValuesFile(file_prefix.string());

@@ -33,8 +33,6 @@ public:
   struct Options {
     std::size_t block_size = 512;
     std::size_t buffer_size = mt::MiB(1);
-    bool create_if_missing = false;
-    bool error_if_exists = false;
     bool readonly = false;
     bool quiet = false;
   };
@@ -59,9 +57,9 @@ public:
                 "Store::Stats does not have expected size");
   // Use __attribute__((packed)) if 32- and 64-bit size differ.
 
-  Store(const boost::filesystem::path& filepath);
+  Store(const boost::filesystem::path& file);
 
-  Store(const boost::filesystem::path& filepath, const Options& options);
+  Store(const boost::filesystem::path& file, const Options& options);
 
   ~Store();
 
