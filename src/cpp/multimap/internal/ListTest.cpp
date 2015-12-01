@@ -107,10 +107,7 @@ struct ListTestIteration : testing::TestWithParam<std::uint32_t> {
     boost::filesystem::remove_all(directory);
     MT_ASSERT_TRUE(boost::filesystem::create_directory(directory));
 
-    Store::Options store_options;
-    store_options.create_if_missing = true;
-    store_options.error_if_exists = true;
-    store.reset(new Store(directory / "store", store_options));
+    store.reset(new Store(directory / "store"));
   }
 
   void TearDown() override {
@@ -434,9 +431,7 @@ struct ListIteratorTestWithParam : testing::TestWithParam<std::uint32_t> {
     boost::filesystem::remove_all(directory);
     MT_ASSERT_TRUE(boost::filesystem::create_directory(directory));
 
-    Shard::Options options;
-    options.create_if_missing = true;
-    shard.reset(new Shard(prefix, options));
+    shard.reset(new Shard(prefix));
 
     key = "key";
     for (std::size_t i = 0; i != GetParam(); ++i) {

@@ -235,14 +235,12 @@ Shard::Stats Shard::Stats::max(const std::vector<Stats>& stats) {
 Shard::Shard(const boost::filesystem::path& file_prefix)
     : Shard(file_prefix, Options()) {}
 
-Shard::Shard(const boost::filesystem::path& file_prefix,
-             const Options& options) {
-  const auto stats_file = getNameOfStatsFile(file_prefix.string());
+Shard::Shard(const boost::filesystem::path& file_prefix, const Options& options)
+    : prefix_(file_prefix) {
+  const auto stats_file = getNameOfStatsFile(prefix_.string());
   if (boost::filesystem::is_regular_file(stats_file)) {
-    mt::Check::isFalse(options.error_if_exists, "Shard already exists");
-
     stats_ = Stats::readFromFile(stats_file);
-    const auto keys_file = getNameOfKeysFile(file_prefix.string());
+    const auto keys_file = getNameOfKeysFile(prefix_.string());
     const auto stream = mt::fopen(keys_file, "r");
     for (std::size_t i = 0; i != stats_.num_keys; ++i) {
       const auto entry = Entry::readFromStream(stream.get(), &arena_);
@@ -256,23 +254,14 @@ Shard::Shard(const boost::filesystem::path& file_prefix,
     stats.num_values_put = stats_.num_values_put;
     stats.num_values_rmd = stats_.num_values_rmd;
     stats_ = stats;
-
-  } else if (options.create_if_missing) {
-    // Nothing to do here.
-
-  } else {
-    mt::fail("Could not open '%s' because it does not exist",
-             stats_file.c_str());
   }
 
   Store::Options store_options;
-  store_options.block_size = options.block_size; // TODO stats_.block_size?
+  store_options.block_size = options.block_size; // Ignored if already exists
   store_options.buffer_size = options.buffer_size;
   store_options.readonly = options.readonly;
   store_options.quiet = options.quiet;
-  const auto values_file = getNameOfValuesFile(file_prefix.string());
-  store_.reset(new Store(values_file, store_options));
-  prefix_ = file_prefix;
+  store_.reset(new Store(getNameOfValuesFile(prefix_.string()), store_options));
 }
 
 Shard::~Shard() {

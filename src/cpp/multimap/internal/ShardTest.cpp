@@ -48,9 +48,7 @@ struct ShardTestFixture : public testing::Test {
     boost::filesystem::create_directory(directory);
 
     prefix = directory / "shard";
-    Shard::Options options;
-    options.create_if_missing = true;
-    shard.reset(new Shard(prefix.string(), options));
+    shard.reset(new Shard(prefix.string()));
   }
 
   void TearDown() override {

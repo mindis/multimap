@@ -47,20 +47,14 @@ std::size_t Map::Limits::getMaxValueSize() {
   return internal::Shard::Limits::getMaxValueSize();
 }
 
-Map::Map(const boost::filesystem::path& directory, const Options& options) {
+Map::Map(const boost::filesystem::path& directory, const Options& options)
+    : lock_(directory, internal::getNameOfLockFile()) {
   checkOptions(options);
-  const auto abs_dir = boost::filesystem::absolute(directory);
-  mt::Check::isTrue(boost::filesystem::is_directory(abs_dir),
-                    "The path '%s' does not refer to a directory",
-                    abs_dir.c_str());
-
-  lock_ = mt::DirectoryLockGuard(abs_dir, internal::getNameOfLockFile());
-  const auto id_file = abs_dir / internal::getNameOfIdFile();
-
+  const auto id_file = directory / internal::getNameOfIdFile();
   if (boost::filesystem::is_regular_file(id_file)) {
     mt::Check::isFalse(options.error_if_exists,
                        "A Multimap in '%s' does already exist",
-                       abs_dir.c_str());
+                       boost::filesystem::canonical(directory).c_str());
 
     const auto id = internal::Id::readFromFile(id_file);
     internal::checkVersion(id.major_version, id.minor_version);
@@ -68,21 +62,18 @@ Map::Map(const boost::filesystem::path& directory, const Options& options) {
 
   } else {
     mt::Check::isTrue(options.create_if_missing, "No Multimap found in '%s'",
-                      abs_dir.c_str());
-
+                      boost::filesystem::canonical(directory).c_str());
     shards_.resize(mt::nextPrime(options.num_shards));
   }
 
   internal::Shard::Options shard_options;
   shard_options.block_size = options.block_size;
   shard_options.buffer_size = options.buffer_size;
-  shard_options.create_if_missing = options.create_if_missing;
-  shard_options.error_if_exists = options.error_if_exists;
   shard_options.readonly = options.readonly;
   shard_options.quiet = options.quiet;
 
   for (std::size_t i = 0; i != shards_.size(); ++i) {
-    const auto prefix = abs_dir / internal::getShardPrefix(i);
+    const auto prefix = directory / internal::getShardPrefix(i);
     shards_[i].reset(new internal::Shard(prefix, shard_options));
   }
 }
