@@ -80,6 +80,11 @@ Store::Store(const boost::filesystem::path& file, const Options& options) {
       mapped_.size = len;
     }
 
+  } else if (options.readonly) {
+    // If options.readonly is set we assume that the caller expects that
+    // the store already exists. It is an error if this is not the case.
+    mt::fail("Store does not exist, so it cannot be opened in readonly mode");
+
   } else {
     // Create new data file.
     MT_REQUIRE_GT(options.buffer_size, options.block_size);
@@ -88,7 +93,6 @@ Store::Store(const boost::filesystem::path& file, const Options& options) {
     fd_ = mt::open(file, O_RDWR | O_CREAT, 0644);
     stats_.block_size = options.block_size;
   }
-
   if (!options.readonly) {
     buffer_.data.reset(new char[options.buffer_size]);
     buffer_.size = options.buffer_size;
