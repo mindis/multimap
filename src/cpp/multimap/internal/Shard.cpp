@@ -465,6 +465,7 @@ void Shard::forEachEntry(const boost::filesystem::path& prefix,
   Store::Options store_options;
   store_options.readonly = true;
   Store store(getNameOfValuesFile(prefix.string()), store_options);
+  store.adviseAccessPattern(Store::AccessPattern::WILLNEED);
   const auto stats = Stats::readFromFile(getNameOfStatsFile(prefix.string()));
   const auto stream = mt::fopen(getNameOfKeysFile(prefix.string()), "r");
   for (std::size_t i = 0; i != stats.num_keys; ++i) {
