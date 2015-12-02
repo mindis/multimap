@@ -459,6 +459,21 @@ Shard::Stats Shard::getStats() const {
   return stats;
 }
 
+void Shard::forEachEntry(const boost::filesystem::path& prefix,
+                         Callables::BinaryProcedure action) {
+  Arena arena;
+  Store::Options store_options;
+  store_options.readonly = true;
+  Store store(getNameOfValuesFile(prefix.string()), store_options);
+  const auto stats = Stats::readFromFile(getNameOfStatsFile(prefix.string()));
+  const auto stream = mt::fopen(getNameOfKeysFile(prefix.string()), "r");
+  for (std::size_t i = 0; i != stats.num_keys; ++i) {
+    const auto entry = Entry::readFromStream(stream.get(), &arena);
+    List list(entry.head());
+    action(entry.key(), ListIterator(SharedList(list, store)));
+  }
+}
+
 std::string Shard::getNameOfKeysFile(const std::string& prefix) {
   return prefix + ".keys";
 }

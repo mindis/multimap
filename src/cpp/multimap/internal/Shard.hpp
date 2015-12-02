@@ -138,6 +138,9 @@ public:
 
   std::size_t getBlockSize() const { return store_->getBlockSize(); }
 
+  static void forEachEntry(const boost::filesystem::path& prefix,
+                           Callables::BinaryProcedure action);
+
   static std::string getNameOfKeysFile(const std::string& prefix);
   static std::string getNameOfStatsFile(const std::string& prefix);
   static std::string getNameOfValuesFile(const std::string& prefix);
