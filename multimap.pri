@@ -23,7 +23,6 @@ HEADERS += \
     $$PWD/src/cpp/multimap/Bytes.hpp \
     $$PWD/src/cpp/multimap/Callables.hpp \
     $$PWD/src/cpp/multimap/Map.hpp \
-    $$PWD/src/cpp/multimap/operations.hpp \
     $$PWD/src/cpp/multimap/Options.hpp
 
 SOURCES += \
@@ -36,7 +35,6 @@ SOURCES += \
     $$PWD/src/cpp/multimap/internal/Varint.cpp \
     $$PWD/src/cpp/multimap/thirdparty/mt/mt.cpp \
     $$PWD/src/cpp/multimap/thirdparty/xxhash/xxhash.c \
-    $$PWD/src/cpp/multimap/Map.cpp \
-    $$PWD/src/cpp/multimap/operations.cpp
+    $$PWD/src/cpp/multimap/Map.cpp
 
 unix|win32: LIBS += -lboost_filesystem -lboost_system -lboost_thread -pthread

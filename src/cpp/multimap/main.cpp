@@ -20,21 +20,21 @@
 #include <iostream>
 #include <boost/filesystem/operations.hpp>
 #include "multimap/thirdparty/mt/mt.hpp"
-#include "multimap/operations.hpp"
+#include "multimap/Map.hpp"
 
-const auto HELP = "help";
-const auto STATS = "stats";
-const auto IMPORT = "import";
-const auto EXPORT = "export";
+const auto HELP     = "help";
+const auto STATS    = "stats";
+const auto IMPORT   = "import";
+const auto EXPORT   = "export";
 const auto OPTIMIZE = "optimize";
 
-const auto BS = "--bs";
-const auto CREATE = "--create";
-const auto NSHARDS = "--nshards";
-const auto QUIET = "--quiet";
+const auto BS       = "--bs";
+const auto CREATE   = "--create";
+const auto NSHARDS  = "--nshards";
+const auto QUIET    = "--quiet";
 
 const auto COMMANDS = { HELP, STATS, IMPORT, EXPORT, OPTIMIZE };
-const auto OPTIONS = { BS, CREATE, NSHARDS, QUIET };
+const auto OPTIONS  = { BS, CREATE, NSHARDS, QUIET };
 
 struct CommandLine {
   struct Error : public std::runtime_error {
@@ -152,7 +152,7 @@ void runHelpCommand(const char* tool_name) {
 }
 
 void runStatsCommand(const CommandLine& cmd) {
-  const auto stats = multimap::stats(cmd.map);
+  const auto stats = multimap::Map::stats(cmd.map);
   const int first_column_width = std::to_string(stats.size()).size();
 
   const auto names = multimap::internal::Shard::Stats::names();
@@ -192,11 +192,11 @@ void runStatsCommand(const CommandLine& cmd) {
 
 void runImportCommand(const CommandLine& cmd) {
   const auto options = initOptions(cmd);
-  multimap::importFromBase64(cmd.map, cmd.path, options);
+  multimap::Map::importFromBase64(cmd.map, cmd.path, options);
 }
 
 void runExportCommand(const CommandLine& cmd) {
-  multimap::exportToBase64(cmd.map, cmd.path);
+  multimap::Map::exportToBase64(cmd.map, cmd.path);
 }
 
 void runOptimizeCommand(const CommandLine& cmd) {
@@ -211,7 +211,7 @@ void runOptimizeCommand(const CommandLine& cmd) {
     // If no NSHARDS is explicitly given set `num_shards` to zero to indicate
     // that the old number of shards should be used for the new optimized map.
   }
-  multimap::optimize(cmd.map, cmd.path, options);
+  multimap::Map::optimize(cmd.map, cmd.path, options);
 }
 
 int main(int argc, const char** argv) {
@@ -249,8 +249,8 @@ int main(int argc, const char** argv) {
     }
 
   } catch (CommandLine::Error& error) {
-    std::cerr << "Invalid command line: " << error.what() << "\nTry " << *argv
-              << ' ' << HELP << std::endl;
+    std::cerr << "Invalid command line: " << error.what()
+              << "\nTry " << *argv << ' ' << HELP << std::endl;
 
   } catch (std::exception& error) {
     std::cerr << error.what() << std::endl;
