@@ -35,10 +35,9 @@ public final class Callables {
    * and, depending on the outcome, control the path of execution. Consider iterating a list of
    * values to take action on only those values for which the predicate yields {@code true}.
    * 
-   * @see Map#deleteAll(byte[], Predicate)
-   * @see Map#deleteFirst(byte[], Predicate)
+   * @see Map#removeAll(byte[], Predicate)
+   * @see Map#removeFirst(byte[], Predicate)
    * @see Map#forEachValue(byte[], Predicate)
-   * @see Iterator#seekTo(Predicate)
    */
   public static abstract class Predicate {
 
@@ -62,7 +61,7 @@ public final class Callables {
      */
     protected abstract boolean callOnReadOnly(ByteBuffer bytes);
   }
-  
+
   /**
    * Processes a value not returning a result. However, since derived classes may have state, a
    * procedure can be used to collect information about the processed data. Thus, returning a result
@@ -126,8 +125,7 @@ public final class Callables {
    * Processes two values and determines their order. The {@code LessThan} comparator is a predicate
    * used for sorting purposes. Consider sorting a list of values in ascending or descending order.
    * 
-   * @see Map#Optimize(java.nio.file.Path, java.nio.file.Path, LessThan)
-   * @see Map#Optimize(java.nio.file.Path, java.nio.file.Path, LessThan, int)
+   * @see Map#optimize(java.nio.file.Path, java.nio.file.Path, Options)
    */
   public static abstract class LessThan {
 

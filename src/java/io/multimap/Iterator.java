@@ -19,23 +19,18 @@
 
 package io.multimap;
 
-import io.multimap.Callables.Predicate;
-
 import java.nio.ByteBuffer;
 
 /**
  * This abstract class represents a forward iterator on a list of values. In contrast to the
- * standard {@link Iterator} interface this class has the following properties:
+ * standard {@link java.util.Iterator} interface this class has the following properties:
  * 
  * <ul>
- * <li>Support for lazy initialization. An iterator does not perform any IO operation until
- * {@link Iterator#seekToFirst()}, {@link Iterator#seekTo(byte[])}, or
- * {@link Iterator#seekTo(Predicate)} has been called. This might be useful in cases where multiple
- * iterators have to be requested first to determine in which order they have to be processed.</li>
- * <li>The iterator can state the total number of the underlying values, even if
- * {@link Iterator#seekToFirst()} or one of its friends have not been called.</li>
- * <li>The iterator does not advance automatically. The current value can be retrieved multiple
- * times.</li>
+ * <li>Lazy initialization. An iterator does not perform any IO operation until {@link #next()} has
+ * been called. This might be useful in cases where multiple iterators have to be requested first
+ * to determine in which order they have to be processed.</li>
+ * <li>The iterator can tell the number of remaining values via {@link #available()}.</li>
+ * <li>The iterator can emit the next value without moving forward via {@link #peekNext()}.</li>
  * <li>The iterator must be closed if no longer needed to release native resources such as locks.
  * Not closing an iterator that implements a locking mechanism leaves the underlying list in locked
  * state which leads to deadlocks sooner or later.</li>

@@ -20,13 +20,11 @@
 package io.multimap;
 
 import io.multimap.Callables.Function;
-import io.multimap.Callables.LessThan;
 import io.multimap.Callables.Predicate;
 import io.multimap.Callables.Procedure;
 
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
-import java.util.TreeMap;
 
 /**
  * This class implements a 1:n key-value store where each key is associated with a list of values.
@@ -43,25 +41,26 @@ public class Map implements AutoCloseable {
       System.err.println(e);
     }
   }
-  
+
   static class Limits {
-    
+
     /**
      * Returns the maximum size, in number of bytes, of a key to put.
      */
     static int getMaxKeySize() {
       return Native.getMaxKeySize();
     }
-    
+
     /**
      * Returns the maximum size, in number of bytes, of a value to put.
      */
     static int getMaxValueSize() {
       return Native.getMaxValueSize();
     }
-    
+
     static class Native {
       static native int getMaxKeySize();
+
       static native int getMaxValueSize();
     }
   }
@@ -71,12 +70,12 @@ public class Map implements AutoCloseable {
    * {@link #remove()} operation will throw an {@link UnsupportedOperationException} if invoked.
    * Objects of this class hold a reader lock on the associated list so that multiple threads can
    * iterate the list at the same time, but no thread can modify it. If the iterator is not needed
-   * anymore {@link #close()} must be called in order to release the list's lock.
+   * anymore {@link #close()} must be called in order to release the reader lock.
    */
   static class ListIterator extends Iterator {
 
     private ByteBuffer self;
-    
+
     private ListIterator() {}
 
     private ListIterator(ByteBuffer nativePtr) {
@@ -99,7 +98,7 @@ public class Map implements AutoCloseable {
     public ByteBuffer next() {
       return Native.next(self).asReadOnlyBuffer();
     }
-    
+
     @Override
     public ByteBuffer peekNext() {
       return Native.peekNext(self).asReadOnlyBuffer();
@@ -121,9 +120,7 @@ public class Map implements AutoCloseable {
     @Override
     protected void finalize() throws Throwable {
       if (self != null) {
-        System.err.printf(
-            "WARNING %s.finalize() calls %s.close(), but should be called by the client.\n",
-            getClass().getName());
+        System.err.printf("WARNING %s.finalize() calls close()\n", getClass().getName());
         close();
       }
       super.finalize();
@@ -136,7 +133,7 @@ public class Map implements AutoCloseable {
       static native ByteBuffer peekNext(ByteBuffer self);
       static native void close(ByteBuffer self);
     }
-    
+
     /**
      * A constant that represents an empty iterator.
      */
@@ -169,14 +166,14 @@ public class Map implements AutoCloseable {
    * hold a writer lock on the associated list to ensure exclusive access to it. Other threads
    * trying to acquire a reader or writer lock on the same list will block until the lock is
    * released via {@link #close()}. If the iterator is not needed anymore {@link #close()} must be
-   * called in order to release the list's lock.
+   * called in order to release the writer lock.
    */
   static class MutableListIterator extends Iterator {
 
     private ByteBuffer self;
 
     private MutableListIterator() {}
-    
+
     private MutableListIterator(ByteBuffer nativePtr) {
       Check.notNull(nativePtr);
       Check.notZero(nativePtr.capacity());
@@ -197,7 +194,7 @@ public class Map implements AutoCloseable {
     public ByteBuffer next() {
       return Native.next(self).asReadOnlyBuffer();
     }
-    
+
     @Override
     public ByteBuffer peekNext() {
       return Native.peekNext(self).asReadOnlyBuffer();
@@ -219,9 +216,7 @@ public class Map implements AutoCloseable {
     @Override
     protected void finalize() throws Throwable {
       if (self != null) {
-        System.err.printf(
-            "WARNING %s.finalize() calls %s.close(), but should be called by the client.\n",
-            getClass().getName());
+        System.err.printf("WARNING %s.finalize() calls close()\n", getClass().getName());
         close();
       }
       super.finalize();
@@ -253,14 +248,15 @@ public class Map implements AutoCloseable {
    *         {@code options} are not met.
    */
   public Map(Path directory, Options options) throws Exception {
-    this(Native.newMap(directory.toString(), options));
+    this(Native.newMap(directory.toString(), options.impl));
   }
 
   /**
    * Appends {@code value} to the end of the list associated with {@code key}.
    * 
-   * @throws Exception if {@code key} or {@code value} are too long. See {@link #maxKeySize()} and
-   *         {@link #maxValueSize()} for more information.
+   * @throws Exception if {@code key} or {@code value} are too big. See
+   *         {@link Limits#getMaxKeySize()} and {@link Limits#getMaxValueSize()} for more
+   *         information.
    */
   public void put(byte[] key, byte[] value) throws Exception {
     Check.notNull(key);
@@ -269,9 +265,9 @@ public class Map implements AutoCloseable {
   }
 
   /**
-   * Returns an iterator to the list associated with {@code key}. If the key does not exist an
-   * empty iterator is returned to indicate an empty list. If the returned iterator is not needed
-   * anymore {@link Iterator#close()} must be called in order to release the list's lock.
+   * Returns an iterator to the list associated with {@code key}. If the key does not exist an empty
+   * iterator is returned to indicate an empty list. If the returned iterator is not needed anymore
+   * {@link Iterator#close()} must be called in order to release the reader lock.
    */
   @SuppressWarnings("resource")
   public Iterator get(byte[] key) {
@@ -282,8 +278,8 @@ public class Map implements AutoCloseable {
 
   /**
    * Returns a mutable iterator to the list associated with {@code key}. If the key does not exist
-   * an empty iterator is returned to indicate an empty list. If the returned iterator is not
-   * needed anymore {@link Iterator#close()} must be called in order to release the list's lock.
+   * an empty iterator is returned to indicate an empty list. If the returned iterator is not needed
+   * anymore {@link Iterator#close()} must be called in order to release the writer lock.
    */
   @SuppressWarnings("resource")
   public Iterator getMutable(byte[] key) {
@@ -324,7 +320,7 @@ public class Map implements AutoCloseable {
     Check.notNull(value);
     return Native.removeAllEqual(self, key, value);
   }
-  
+
   /**
    * Removes the first value in the list associated with {@code key} for which {@code predicate}
    * yields {@code true}.
@@ -376,7 +372,7 @@ public class Map implements AutoCloseable {
     Check.notNull(newValue);
     return Native.replaceAllEqual(self, key, oldValue, newValue);
   }
-  
+
   /**
    * Replaces the first value in the list associated with {@code key} by the result of invoking
    * {@code function}. If the result of {@code function} is {@code null} no replacement is
@@ -406,8 +402,8 @@ public class Map implements AutoCloseable {
   }
 
   /**
-   * Applies {@code action} to each key of the map whose associated list is not empty. For the
-   * time of execution the entire map is locked for read-only operations. It is possible to keep a
+   * Applies {@code action} to each key of the map whose associated list is not empty. For the time
+   * of execution the entire map is locked for read-only operations. It is possible to keep a
    * reference to the map itself within {@code action} and to call other read-only operations such
    * as {@link #get(byte[])}. However, trying to call mutable operations such as
    * {@link #getMutable(byte[])} will cause a deadlock.
@@ -437,19 +433,19 @@ public class Map implements AutoCloseable {
     Check.notNull(action);
     Native.forEachValue(self, key, action);
   }
-  
+
   /* The method `forEachEntry` as provided in the C++ version of this library is currently not
-   * supported. Please make a feature request on the project's website if you really need it.
+   * supported. Consider submitting a feature request if you really need it.
    */
-  
+
   /* The method `getStats` as provided in the C++ version of this library is currently not
-   * supported. Please make a feature request on the project's website if you really need it.
+   * supported. Consider submitting a feature request if you really need it.
    */
-  
+
   /* The method `getTotalStats` as provided in the C++ version of this library is currently not
-   * supported. Please make a feature request on the project's website if you really need it.
+   * supported. Consider submitting a feature request if you really need it.
    */
-  
+
   public boolean isReadOnly() {
     return Native.isReadOnly(self);
   }
@@ -464,13 +460,11 @@ public class Map implements AutoCloseable {
       self = null;
     }
   }
-  
+
   @Override
   protected void finalize() throws Throwable {
     if (self != null) {
-      System.err.printf(
-          "WARNING %s.finalize() calls close(), but should be called by the client.\n", getClass()
-              .getName());
+      System.err.printf("WARNING %s.finalize() calls close()\n", getClass().getName());
       close();
     }
     super.finalize();
@@ -479,17 +473,17 @@ public class Map implements AutoCloseable {
   // -----------------------------------------------------------------------------------------------
   // The following functions are long running operations also available via the command line tool.
   // -----------------------------------------------------------------------------------------------
-  
+
   /* The method `stats` as provided in the C++ version of this library is currently not supported.
-   * Please make a feature request on the project's website if you really need it.
+   * Consider submitting a feature request if you really need it.
    */
-  
+
   /**
    * Imports key-value pairs from Base64-encoded text file(s) denoted by {@code input} into the map
    * located in the directory denoted by {@code directory}. If {@code input} is a directory all
    * contained files will we imported recursively.
    * 
-   * @throws Exception if the directory or file does not exist, or the map is already open.
+   * @throws Exception if the directory or file does not exist, or the map is already in use.
    */
   public static void importFromBase64(Path directory, Path input) throws Exception {
     importFromBase64(directory, input, new Options());
@@ -498,122 +492,94 @@ public class Map implements AutoCloseable {
   /**
    * Same as {@link #importFromBase64(Path, Path)} but allows further configuration.
    */
-  public static void importFromBase64(Path directory, Path input, Options options)
-      throws Exception {
+  public static void importFromBase64(Path directory, Path input, Options options) throws Exception {
     Check.notNull(directory);
     Check.notNull(input);
     Check.notNull(options);
-    Native.importFromBase64(directory.toString(), input.toString(), options);
+    Native.importFromBase64(directory.toString(), input.toString(), options.impl);
   }
-  
+
   /**
    * Exports all key-value pairs from the map located in the directory denoted by {@code directory}
-   * to a Base64-encoded text file denoted by {@code output}. If the file already exists its
-   * content will be overwritten.
+   * to a Base64-encoded text file denoted by {@code output}. If the file already exists its content
+   * will be overwritten.
    * 
-   * @throws Exception if the directory does not exist, or the map is already open.
+   * @throws Exception if the directory does not exist, or the map is already in use.
    */
   public static void exportToBase64(Path directory, Path output) throws Exception {
     exportToBase64(directory, output, new Options());
   }
-  
+
   public static void exportToBase64(Path directory, Path output, Options options) throws Exception {
     Check.notNull(directory);
     Check.notNull(output);
     Check.notNull(options);
-    Native.exportToBase64(directory.toString(), output.toString(), options);
+    Native.exportToBase64(directory.toString(), output.toString(), options.impl);
   }
-  
-  
-  
-  
-  
-  
-  
-  
+
   /**
-   * Optimizes the map located in the directory denoted by {@code directory} performing the
-   * following tasks:
-   * 
+   * Optimizes a map performing the following tasks:
    * <ul>
    * <li>Defragmentation. All blocks which belong to the same list are written sequentially to disk
-   *     which improves locality and leads to better read performance.</li>
-   * <li>Garbage collection. Values marked as deleted will be removed physically which reduces the
-   *     size of the map and also improves locality.</li>
+   * which improves locality and leads to better read performance.</li>
+   * <li>Garbage collection. Values marked as removed will not be copied which reduces the size of
+   * the map and also improves locality.</li>
    * </ul>
    * 
-   * <b>Options</b>
-   * <ul>
-   * <li>Call {@code options.setNumShards(0)} to leave the number of shards unchanged.</li>
-   * <li>Call {@code options.setBlockSize(0)} to leave the block size unchanged.</li>
-   * </ul>
+   * @param source
+   *        <ul>
+   *        <li>Must refer to an existing directory containing a map.</li>
+   *        </ul>
+   * 
+   * @param target
+   *        <ul>
+   *        <li>Must refer to an existing directory that does not contain a map.</li>
+   *        </ul>
+   * 
+   * @param options
+   *        <ul>
+   *        <li>Call {@code options.keepNumShards()} to leave the number of shards unchanged.</li>
+   *        <li>Call {@code options.keepBlockSize()} to leave the block size unchanged.</li>
+   *        <li>{@code options.isCreateIfMissing()} is implicitly {@code true} and can be ignored.</li>
+   *        <li>{@code options.isErrorIfExists()} is implicitly {@code true} and can be ignored.</li>
+   *        <li>{@code options.isReadOnly()} is ignored.</li>
+   *        </ul>
    * 
    * @throws Exception if any of the following happens:
-   * 
-   * <ul>
-   * <li>Opening a map in {@code directory} failed.</li>
-   * <li>Creating a map in {@code output} failed.</li>
-   * <li>A runtime error, such as running out of disk space, occurred.</li>
-   * </ul>
+   *         <ul>
+   *         <li>Opening a map in {@code source} failed.</li>
+   *         <li>Creating a map in {@code target} failed.</li>
+   *         <li>A runtime error, such as running out of disk space, occurred.</li>
+   *         </ul>
    */
-  public static void optimize(Path directory, Path output, Options options) throws Exception {
-    Check.notNull(directory);
-    Check.notNull(output);
+  public static void optimize(Path source, Path target, Options options) throws Exception {
+    Check.notNull(source);
+    Check.notNull(target);
     Check.notNull(options);
-    Native.optimize(directory.toString(), output.toString(), options);
+    Native.optimize(source.toString(), target.toString(), options.impl);
   }
 
   static class Native {
-    static native ByteBuffer open(String directory, String options) throws Exception;
-
-    static native void close(ByteBuffer self);
-
+    static native ByteBuffer newMap(String directory, Options.Impl options) throws Exception;
     static native void put(ByteBuffer self, byte[] key, byte[] value) throws Exception;
-
     static native ByteBuffer get(ByteBuffer self, byte[] key);
-
     static native ByteBuffer getMutable(ByteBuffer self, byte[] key);
-
-    static native boolean contains(ByteBuffer self, byte[] key);
-
-    static native long delete(ByteBuffer self, byte[] key);
-
-    static native long deleteAll(ByteBuffer self, byte[] key, Predicate predicate);
-
-    static native long deleteAllEqual(ByteBuffer self, byte[] key, byte[] value);
-
-    static native boolean deleteFirst(ByteBuffer self, byte[] key, Predicate predicate);
-
-    static native boolean deleteFirstEqual(ByteBuffer self, byte[] key, byte[] value);
-
+    static native long remove(ByteBuffer self, byte[] key);
+    static native long removeAll(ByteBuffer self, byte[] key, Predicate predicate);
+    static native long removeAllEqual(ByteBuffer self, byte[] key, byte[] value);
+    static native boolean removeFirst(ByteBuffer self, byte[] key, Predicate predicate);
+    static native boolean removeFirstEqual(ByteBuffer self, byte[] key, byte[] value);
     static native long replaceAll(ByteBuffer self, byte[] key, Function function);
-
     static native long replaceAllEqual(ByteBuffer self, byte[] key, byte[] oldValue, byte[] newValue);
-
     static native boolean replaceFirst(ByteBuffer self, byte[] key, Function function);
-
-    static native boolean replaceFirstEqual(ByteBuffer self, byte[] key, byte[] oldValue,
-        byte[] newValue);
-    
-    static native void forEachKey(ByteBuffer self, Procedure procedure);
-
-    static native void forEachValue(ByteBuffer self, byte[] key, Procedure procedure);
-
-    static native void forEachValue(ByteBuffer self, byte[] key, Predicate predicate);
-
-    static native String getProperties(ByteBuffer self);
-
-    static native int maxKeySize(ByteBuffer self);
-
-    static native int maxValueSize(ByteBuffer self);
-
-    static native void Optimize(String from, String to, LessThan lessThan, int newBlockSize)
-        throws Exception;
-
-    static native void Import(String directory, String file, boolean createIfMissing, int blockSize)
-        throws Exception;
-
-    static native void Export(String directory, String file) throws Exception;
+    static native boolean replaceFirstEqual(ByteBuffer self, byte[] key, byte[] oldValue, byte[] newValue);
+    static native void forEachKey(ByteBuffer self, Procedure action);
+    static native void forEachValue(ByteBuffer self, byte[] key, Procedure action);
+    static native void forEachValue(ByteBuffer self, byte[] key, Predicate action);
+    static native boolean isReadOnly(ByteBuffer self);
+    static native void close(ByteBuffer self);
+    static native void importFromBase64(String directory, String input, Options.Impl options) throws Exception;
+    static native void exportToBase64(String directory, String output, Options.Impl options) throws Exception;
+    static native void optimize(String source, String target, Options.Impl options) throws Exception;
   }
-
 }

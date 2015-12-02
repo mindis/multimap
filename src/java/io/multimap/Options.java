@@ -25,29 +25,37 @@ package io.multimap;
  * @author Martin Trenkmann
  */
 public class Options {
-
-  private int numShards = 23;
-  private int blockSize = 512;
-  private boolean createIfMissing = false;
-  private boolean errorIfExists = false;
-  private boolean readonly = false;
-  private boolean quiet = false;
-  private Callables.LessThan lessThan = null;
+  
+  static class Impl {
+    public int numShards = 23;
+    public int blockSize = 512;
+    public boolean createIfMissing = false;
+    public boolean errorIfExists = false;
+    public boolean readonly = false;
+    public boolean quiet = false;
+    public Callables.LessThan lessThan = null;
+  }
+  
+  protected Impl impl;
   
   public int getNumShards() {
-    return numShards;
+    return impl.numShards;
   }
 
   public void setNumShards(int numShards) {
     Check.isPositive(numShards);
-    this.numShards = numShards;
+    impl.numShards = numShards;
+  }
+  
+  public void keepNumShards() {
+    impl.numShards = 0;
   }
 
   /**
    * Tells the block size.
    */
   public int getBlockSize() {
-    return blockSize;
+    return impl.blockSize;
   }
 
   /**
@@ -58,14 +66,18 @@ public class Options {
    */
   public void setBlockSize(int numBytes) {
     Check.isPositive(numBytes);
-    this.blockSize = numBytes;
+    impl.blockSize = numBytes;
+  }
+  
+  public void keepBlockSize() {
+    impl.blockSize = 0;
   }
   
   /**
    * Tells whether a {@link Map} should be created if it does not already exist.
    */
   public boolean isCreateIfMissing() {
-    return createIfMissing;
+    return impl.createIfMissing;
   }
 
   /**
@@ -73,14 +85,14 @@ public class Options {
    * is {@code false}.
    */
   public void setCreateIfMissing(boolean createIfMissing) {
-    this.createIfMissing = createIfMissing;
+    impl.createIfMissing = createIfMissing;
   }
 
   /**
    * Tells whether it is an error if a {@link Map} already exist.
    */
   public boolean isErrorIfExists() {
-    return errorIfExists;
+    return impl.errorIfExists;
   }
 
   /**
@@ -88,31 +100,31 @@ public class Options {
    * {@link #getCreateIfMissing()} is set to {@code true}. The default value is {@code false}.
    */
   public void setErrorIfExists(boolean errorIfExists) {
-    this.errorIfExists = errorIfExists;
+    impl.errorIfExists = errorIfExists;
   }
   
   public boolean isReadonly() {
-    return readonly;
+    return impl.readonly;
   }
 
   public void setReadonly(boolean readonly) {
-    this.readonly = readonly;
+    impl.readonly = readonly;
   }
 
   public boolean isQuiet() {
-    return quiet;
+    return impl.quiet;
   }
 
   public void setQuiet(boolean quiet) {
-    this.quiet = quiet;
+    impl.quiet = quiet;
   }
 
   public Callables.LessThan getLessThan() {
-    return lessThan;
+    return impl.lessThan;
   }
 
   public void setLessThan(Callables.LessThan lessThan) {
-    this.lessThan = lessThan;
+    impl.lessThan = lessThan;
   }
 
 }
