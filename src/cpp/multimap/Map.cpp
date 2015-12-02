@@ -39,6 +39,22 @@ internal::Shard& getShard(
 
 } // namespace
 
+Map::Id Map::Id::readFromDirectory(const boost::filesystem::path& directory) {
+  return readFromFile(directory / internal::getNameOfIdFile());
+}
+
+Map::Id Map::Id::readFromFile(const boost::filesystem::path& file) {
+  Id id;
+  const auto stream = mt::fopen(file, "r");
+  mt::fread(stream.get(), &id, sizeof id);
+  return id;
+}
+
+void Map::Id::writeToFile(const boost::filesystem::path& file) const {
+  const auto stream = mt::fopen(file, "w");
+  mt::fwrite(stream.get(), this, sizeof *this);
+}
+
 std::size_t Map::Limits::getMaxKeySize() {
   return internal::Shard::Limits::getMaxKeySize();
 }
@@ -56,7 +72,7 @@ Map::Map(const boost::filesystem::path& directory, const Options& options)
                        "A Multimap in '%s' does already exist",
                        boost::filesystem::canonical(directory).c_str());
 
-    const auto id = internal::Id::readFromFile(id_file);
+    const auto id = Id::readFromFile(id_file);
     internal::checkVersion(id.major_version, id.minor_version);
     shards_.resize(id.num_shards);
 
@@ -80,7 +96,8 @@ Map::Map(const boost::filesystem::path& directory, const Options& options)
 
 Map::~Map() {
   if (!shards_.empty()) {
-    internal::Id id;
+    Id id;
+    id.block_size = shards_.front()->getBlockSize();
     id.num_shards = shards_.size();
     id.writeToFile(lock_.directory() / internal::getNameOfIdFile());
   }
@@ -175,19 +192,7 @@ bool Map::isReadOnly() const {
 
 namespace internal {
 
-Id Id::readFromFile(const boost::filesystem::path& file) {
-  Id id;
-  const auto stream = mt::fopen(file, "r");
-  mt::fread(stream.get(), &id, sizeof id);
-  return id;
-}
-
-void Id::writeToFile(const boost::filesystem::path& file) const {
-  const auto stream = mt::fopen(file, "w");
-  mt::fwrite(stream.get(), this, sizeof *this);
-}
-
-const std::string getFilePrefix() { return "multimap"; }
+const std::string getFilePrefix() { return "multimap.map"; }
 
 const std::string getNameOfIdFile() { return getFilePrefix() + ".id"; }
 

@@ -35,6 +35,20 @@ class Map : mt::Resource {
   // Insanely fast 1:n key-value store.
 
 public:
+  struct Id {
+    std::uint64_t block_size = 0;
+    std::uint64_t num_shards = 0;
+    std::uint64_t major_version = MAJOR_VERSION;
+    std::uint64_t minor_version = MINOR_VERSION;
+
+    static Id readFromDirectory(const boost::filesystem::path& directory);
+    static Id readFromFile(const boost::filesystem::path& file);
+    void writeToFile(const boost::filesystem::path& file) const;
+  };
+
+  static_assert(mt::hasExpectedSize<Id>(32, 32),
+                "struct Id does not have expected size");
+
   struct Limits {
     // Provides static methods to request upper bounds.
 
@@ -199,15 +213,6 @@ private:
 };
 
 namespace internal {
-
-struct Id {
-  std::uint64_t num_shards = 0;
-  std::uint64_t major_version = MAJOR_VERSION;
-  std::uint64_t minor_version = MINOR_VERSION;
-
-  static Id readFromFile(const boost::filesystem::path& file);
-  void writeToFile(const boost::filesystem::path& file) const;
-};
 
 const std::string getFilePrefix();
 const std::string getNameOfIdFile();
