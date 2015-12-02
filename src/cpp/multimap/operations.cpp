@@ -26,27 +26,22 @@ namespace multimap {
 
 void forEachShard(
     const boost::filesystem::path& directory,
-    std::function<void(const internal::Shard&,
-                       std::size_t /* index */,
-                       std::size_t /* nshards */)> action) {
+    std::function<void(const boost::filesystem::path& /* prefix */,
+                       std::size_t /* index */, std::size_t /* nshards */)>
+        action) {
   mt::DirectoryLockGuard lock(directory, internal::getNameOfLockFile());
-  const auto id_file = directory / internal::getNameOfIdFile();
-  const auto id = internal::Id::readFromFile(id_file);
+  const auto id = Map::Id::readFromDirectory(directory);
   internal::checkVersion(id.major_version, id.minor_version);
   for (std::size_t i = 0; i != id.num_shards; ++i) {
     const auto prefix = directory / internal::getShardPrefix(i);
-    internal::Shard::Options options;
-    options.readonly = true;
-    internal::Shard shard(prefix, options);
-    action(shard, i, id.num_shards);
+    action(prefix, i, id.num_shards);
   }
 }
 
 std::vector<internal::Shard::Stats> stats(
     const boost::filesystem::path& directory) {
   mt::DirectoryLockGuard lock(directory, internal::getNameOfLockFile());
-  const auto id_file = directory / internal::getNameOfIdFile();
-  const auto id = internal::Id::readFromFile(id_file);
+  const auto id = Map::Id::readFromDirectory(directory);
   internal::checkVersion(id.major_version, id.minor_version);
   std::vector<internal::Shard::Stats> stats;
   for (std::size_t i = 0; i != id.num_shards; ++i) {
@@ -143,11 +138,11 @@ void exportToBase64(const boost::filesystem::path& directory,
   std::string base64_value;
   if (options.compare) {
     std::vector<std::string> sorted_values;
-    forEachShard(directory, [&](const internal::Shard& shard, std::size_t index,
-                                std::size_t nshards) {
+    forEachShard(directory, [&](const boost::filesystem::path& prefix,
+                                std::size_t index, std::size_t nshards) {
       print_status(index, nshards);
-      shard.forEachEntry([&](const Bytes& key, Map::ListIterator&& iter) {
-        // Sort values
+      internal::Shard::forEachEntry(prefix, [&](const Bytes& key,
+                                                Map::ListIterator&& iter) {
         sorted_values.clear();
         sorted_values.reserve(iter.available());
         while (iter.hasNext()) {
@@ -155,7 +150,6 @@ void exportToBase64(const boost::filesystem::path& directory,
         }
         std::sort(sorted_values.begin(), sorted_values.end(), options.compare);
 
-        // Write as Base64
         internal::Base64::encode(key, &base64_key);
         stream << base64_key;
         for (const auto& value : sorted_values) {
@@ -165,20 +159,21 @@ void exportToBase64(const boost::filesystem::path& directory,
         stream << '\n';
       });
     });
+
   } else {
-    forEachShard(directory, [&](const internal::Shard& shard, std::size_t index,
-                                std::size_t nshards) {
+    forEachShard(directory, [&](const boost::filesystem::path& prefix,
+                                std::size_t index, std::size_t nshards) {
       print_status(index, nshards);
-      shard.forEachEntry([&](const Bytes& key, Map::ListIterator&& iter) {
-        // Write as Base64
-        internal::Base64::encode(key, &base64_key);
-        stream << base64_key;
-        while (iter.hasNext()) {
-          internal::Base64::encode(iter.next(), &base64_value);
-          stream << ' ' << base64_value;
-        }
-        stream << '\n';
-      });
+      internal::Shard::forEachEntry(
+          prefix, [&](const Bytes& key, Map::ListIterator&& iter) {
+            internal::Base64::encode(key, &base64_key);
+            stream << base64_key;
+            while (iter.hasNext()) {
+              internal::Base64::encode(iter.next(), &base64_value);
+              stream << ' ' << base64_value;
+            }
+            stream << '\n';
+          });
     });
   }
 }
@@ -186,17 +181,18 @@ void exportToBase64(const boost::filesystem::path& directory,
 void optimize(const boost::filesystem::path& directory,
               const boost::filesystem::path& output, const Options& options) {
   std::unique_ptr<Map> new_map;
-  forEachShard(directory, [&](const internal::Shard& shard, std::size_t index,
-                              std::size_t nshards) {
+  forEachShard(directory, [&](const boost::filesystem::path& prefix,
+                              std::size_t index, std::size_t nshards) {
     if (index == 0) {
+      const auto old_id = Map::Id::readFromDirectory(directory);
       Options new_map_options = options;
       new_map_options.error_if_exists = true;
       new_map_options.create_if_missing = true;
       if (options.block_size == 0) {
-        new_map_options.block_size = shard.getBlockSize();
+        new_map_options.block_size = old_id.block_size;
       }
       if (options.num_shards == 0) {
-        new_map_options.num_shards = nshards;
+        new_map_options.num_shards = old_id.num_shards;
       }
       new_map.reset(new Map(output, new_map_options));
     }
@@ -208,7 +204,8 @@ void optimize(const boost::filesystem::path& directory,
 
     if (options.compare) {
       std::vector<std::string> sorted_values;
-      shard.forEachEntry([&](const Bytes& key, Map::ListIterator&& iter) {
+      internal::Shard::forEachEntry(prefix, [&](const Bytes& key,
+                                                Map::ListIterator&& iter) {
         sorted_values.clear();
         sorted_values.reserve(iter.available());
         while (iter.hasNext()) {
@@ -220,11 +217,12 @@ void optimize(const boost::filesystem::path& directory,
         }
       });
     } else {
-      shard.forEachEntry([&](const Bytes& key, Map::ListIterator&& iter) {
-        while (iter.hasNext()) {
-          new_map->put(key, iter.next());
-        }
-      });
+      internal::Shard::forEachEntry(
+          prefix, [&](const Bytes& key, Map::ListIterator&& iter) {
+            while (iter.hasNext()) {
+              new_map->put(key, iter.next());
+            }
+          });
     }
   });
 }
