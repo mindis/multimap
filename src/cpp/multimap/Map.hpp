@@ -216,7 +216,7 @@ public:
 
   static void importFromBase64(const boost::filesystem::path& directory,
                                const boost::filesystem::path& input);
-  // Imports key-value pairs from a Base64-encoded text file denoted by file
+  // Imports key-value pairs from a Base64-encoded text file denoted by input
   // into the map located in the directory denoted by directory.
   // Preconditions:
   //   * The content in file follows the format described in Import / Export.
