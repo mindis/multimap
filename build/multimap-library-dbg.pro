@@ -26,6 +26,6 @@ unix {
     multimap_thirdparty_xxhash.files += ../src/cpp/multimap/thirdparty/xxhash/*.h*
     INSTALLS += multimap_thirdparty_xxhash
 
-    target.path = /usr/lib
+    target.path = /usr/local/lib
     INSTALLS += target
 }

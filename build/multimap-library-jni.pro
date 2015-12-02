@@ -27,6 +27,6 @@ SOURCES += \
     ../src/cpp/multimap/jni/io_multimap_Map_MutableListIter.cpp
 
 unix {
-    target.path = /usr/lib
+    target.path = /usr/local/lib
     INSTALLS += target
 }
