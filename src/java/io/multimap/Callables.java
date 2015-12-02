@@ -31,34 +31,6 @@ public final class Callables {
   private Callables() {}
 
   /**
-   * Processes a value not returning a result. However, since derived classes may have state, a
-   * procedure can be used to collect information about the processed data. Thus, returning a result
-   * indirectly. Consider iterating a list of values completely to count certain occurrences.
-   * 
-   * @see Map#forEachKey(Procedure)
-   * @see Map#forEachValue(byte[], Procedure)
-   */
-  public static abstract class Procedure {
-
-    /**
-     * Applies the procedure to {@code bytes}. This is a wrapper around
-     * {@link #callOnReadOnly(ByteBuffer)} which marks the input as read-only.
-     * 
-     * @see #callOnReadOnly(ByteBuffer)
-     */
-    public void call(ByteBuffer bytes) {
-      Check.notNull(bytes);
-      callOnReadOnly(bytes.asReadOnlyBuffer());
-    }
-
-    /**
-     * Applies the procedure to {@code bytes}. The input is guaranteed to be read-only. Must be
-     * implemented in derived classes.
-     */
-    protected abstract void callOnReadOnly(ByteBuffer bytes);
-  }
-
-  /**
    * Processes a value and returns a boolean. Predicates are used to check a property of a value
    * and, depending on the outcome, control the path of execution. Consider iterating a list of
    * values to take action on only those values for which the predicate yields {@code true}.
@@ -89,6 +61,34 @@ public final class Callables {
      * @return {@code true} if the predicate matches, {@code false} otherwise.
      */
     protected abstract boolean callOnReadOnly(ByteBuffer bytes);
+  }
+  
+  /**
+   * Processes a value not returning a result. However, since derived classes may have state, a
+   * procedure can be used to collect information about the processed data. Thus, returning a result
+   * indirectly. Consider iterating a list of values completely to count certain occurrences.
+   * 
+   * @see Map#forEachKey(Procedure)
+   * @see Map#forEachValue(byte[], Procedure)
+   */
+  public static abstract class Procedure {
+
+    /**
+     * Applies the procedure to {@code bytes}. This is a wrapper around
+     * {@link #callOnReadOnly(ByteBuffer)} which marks the input as read-only.
+     * 
+     * @see #callOnReadOnly(ByteBuffer)
+     */
+    public void call(ByteBuffer bytes) {
+      Check.notNull(bytes);
+      callOnReadOnly(bytes.asReadOnlyBuffer());
+    }
+
+    /**
+     * Applies the procedure to {@code bytes}. The input is guaranteed to be read-only. Must be
+     * implemented in derived classes.
+     */
+    protected abstract void callOnReadOnly(ByteBuffer bytes);
   }
 
   /**

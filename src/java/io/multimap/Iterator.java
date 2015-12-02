@@ -44,72 +44,53 @@ import java.nio.ByteBuffer;
  * @author Martin Trenkmann
  */
 public abstract class Iterator implements AutoCloseable {
-
+  
   /**
-   * Returns the total number of values to iterate. This number does not change when the iterator
-   * moves forward. The method may be called at any time, even if {@link #seekToFirst()} or one of
-   * its friends have not been called.
+   * Returns the number of values left to iterate.
    */
-  public abstract long numValues();
+  public abstract long available();
 
   /**
-   * Initializes the iterator to point to the first value, if any. This process will trigger disk
-   * IO if necessary. The method can also be used to seek back to the beginning of the list at the
-   * end of an iteration.
+   * Tells whether the iterator has one more value.
    */
-  public abstract void seekToFirst();
+  public abstract boolean hasNext();
 
   /**
-   * Initializes the iterator to point to the first value in the list that is equal to
-   * {@code target}, if any. This process will trigger disk IO if necessary.
-   */
-  public abstract void seekTo(byte[] target);
-
-  /**
-   * Initializes the iterator to point to the first value for which {@code predicate} yields
-   * {@code true}, if any. This process will trigger disk IO if necessary.
-   */
-  public abstract void seekTo(Predicate predicate);
-
-  /**
-   * Tells whether the iterator points to a value. If the result is {@code true}, the iterator may
-   * be dereferenced via {@link #getValue()} or {@link #getValueAsByteArray()}.
-   */
-  public abstract boolean hasValue();
-
-  /**
-   * Returns the current value as {@link ByteBuffer}. The returned buffer is a direct one, i.e. it
+   * Returns the next value as {@link ByteBuffer}. The returned buffer is a direct one, i.e. it
    * wraps a pointer that points directly into native allocated memory not managed by the Java
    * Garbage Collector. This pointer is only valid as long as the iterator does not move forward.
-   * Therefore, the buffer should only be used to immediately parse information or some user-defined
-   * object out of it. Most serialization libraries should be able to consume a byte buffer. If a
-   * byte array is required or an independent copy of the value use {@link #getValueAsByteArray()}
-   * instead.
+   * Therefore, the buffer should only be used to immediately parse the original value out of it.
+   * Most serialization libraries should be able to consume this byte buffer. If a byte array is
+   * required or an independent copy of the value use {@link #nextAsByteArray()} instead.
    */
-  public abstract ByteBuffer getValue();
+  public abstract ByteBuffer next();
+
+  public abstract ByteBuffer peekNext();
 
   /**
-   * Returns the current value as byte array. The returned array contains a copy of the value's
-   * bytes and is managed by the Java Garbage Collector, in contrast to the outcome of
-   * {@link #getValue()}. It can be copied around or stored in a collection as any other Java
-   * object.
+   * Returns the next value as byte array. The returned array contains a copy of the value's bytes
+   * and is managed by the Java Garbage Collector, in contrast to the outcome of {@link #next()}. It
+   * can be copied around or stored in a collection as any other Java object.
    */
-  public byte[] getValueAsByteArray() {
-    ByteBuffer value = getValue();
+  public byte[] nextAsByteArray() {
+    ByteBuffer value = next();
+    byte[] copy = new byte[value.capacity()];
+    value.get(copy);
+    return copy;
+  }
+
+  public byte[] peekNextAsByteArray() {
+    ByteBuffer value = peekNext();
     byte[] copy = new byte[value.capacity()];
     value.get(copy);
     return copy;
   }
 
   /**
-   * Marks the value the iterator currently points to as deleted (optional operation).
+   * Removes the last value returned by this iterator (optional operation). This method can be
+   * called only once per call to {@link #next()} or {@link #nextAsByteArray()}.
    */
-  public abstract void deleteValue();
-
-  /**
-   * Moves the iterator to the next value, if any.
-   */
-  public abstract void next();
+  public abstract void remove();
 
   /**
    * A constant that represents an empty iterator.
@@ -117,38 +98,30 @@ public abstract class Iterator implements AutoCloseable {
   public static final Iterator EMPTY = new Iterator() {
 
     @Override
-    public long numValues() {
+    public long available() {
       return 0;
     }
 
     @Override
-    public void seekToFirst() {}
-
-    @Override
-    public void seekTo(byte[] target) {}
-
-    @Override
-    public void seekTo(Predicate predicate) {}
-
-    @Override
-    public boolean hasValue() {
+    public boolean hasNext() {
       return false;
     }
 
     @Override
-    public ByteBuffer getValue() {
+    public ByteBuffer next() {
       return null;
     }
 
     @Override
-    public void deleteValue() {}
-
+    public ByteBuffer peekNext() {
+      return null;
+    }
+    
     @Override
-    public void next() {}
+    public void remove() {}
 
     @Override
     public void close() {}
-
+    
   };
-
 }

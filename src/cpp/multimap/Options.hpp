@@ -54,6 +54,12 @@ struct Options {
   std::function<bool(const Bytes&, const Bytes&)> compare;
   // Optional: Compare function which returns `true` if the left operand is
   // less than the right operand. Returns `false` otherwise.
+
+  void keep_num_shards() { num_shards = 0; }
+  // Indicates to some operations to leave the number of shards unchanged.
+
+  void keep_block_size() { block_size = 0; }
+  // Indicates to some operations to leave the block size unchanged.
 };
 
 } // namespace multimap

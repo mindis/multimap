@@ -26,10 +26,22 @@ package io.multimap;
  */
 public class Options {
 
+  private int numShards = 23;
   private int blockSize = 512;
   private boolean createIfMissing = false;
   private boolean errorIfExists = false;
-  private boolean writeOnlyMode = false;
+  private boolean readonly = false;
+  private boolean quiet = false;
+  private Callables.LessThan lessThan = null;
+  
+  public int getNumShards() {
+    return numShards;
+  }
+
+  public void setNumShards(int numShards) {
+    Check.isPositive(numShards);
+    this.numShards = numShards;
+  }
 
   /**
    * Tells the block size.
@@ -41,18 +53,18 @@ public class Options {
   /**
    * Defines the block size for a newly created map. The value must be a power of two and is
    * typically 128, 256, 512, 1024, or even larger. The block size has direct impact on the memory
-   * usage and compactness of the {@link Map}, which in turn might affects the overall performance.
-   * The default value is {@code 512}. Visit the project's website for more information.
+   * usage of the {@link Map}, which in turn might affects the overall performance. The default
+   * value is {@code 512}. Visit the project's website for more information.
    */
   public void setBlockSize(int numBytes) {
     Check.isPositive(numBytes);
     this.blockSize = numBytes;
   }
-
+  
   /**
    * Tells whether a {@link Map} should be created if it does not already exist.
    */
-  public boolean getCreateIfMissing() {
+  public boolean isCreateIfMissing() {
     return createIfMissing;
   }
 
@@ -67,7 +79,7 @@ public class Options {
   /**
    * Tells whether it is an error if a {@link Map} already exist.
    */
-  public boolean getErrorIfExists() {
+  public boolean isErrorIfExists() {
     return errorIfExists;
   }
 
@@ -78,33 +90,29 @@ public class Options {
   public void setErrorIfExists(boolean errorIfExists) {
     this.errorIfExists = errorIfExists;
   }
-
-  /**
-   * Tells whether a {@link Map} should be opened or created in write-only mode.
-   */
-  public boolean getWriteOnlyMode() {
-    return writeOnlyMode;
+  
+  public boolean isReadonly() {
+    return readonly;
   }
 
-  /**
-   * Defines whether a {@link Map} should be opened or created in write-only mode. Setting this
-   * option to {@code true} might lead to better performance when only
-   * {@link Map#put(byte[], byte[])} is required. The default value is {@code false}.
-   */
-  public void setWriteOnlyMode(boolean writeOnlyMode) {
-    this.writeOnlyMode = writeOnlyMode;
+  public void setReadonly(boolean readonly) {
+    this.readonly = readonly;
   }
 
-  @Override
-  public String toString() {
-    char delim = '=';
-    char newline = '\n';
-    StringBuilder sb = new StringBuilder();
-    sb.append("block-size").append(delim).append(getBlockSize()).append(newline);
-    sb.append("create-if-missing").append(delim).append(getCreateIfMissing()).append(newline);
-    sb.append("error-if-exists").append(delim).append(getErrorIfExists()).append(newline);
-    sb.append("write-only-mode").append(delim).append(getWriteOnlyMode()).append(newline);
-    return sb.toString();
+  public boolean isQuiet() {
+    return quiet;
+  }
+
+  public void setQuiet(boolean quiet) {
+    this.quiet = quiet;
+  }
+
+  public Callables.LessThan getLessThan() {
+    return lessThan;
+  }
+
+  public void setLessThan(Callables.LessThan lessThan) {
+    this.lessThan = lessThan;
   }
 
 }
