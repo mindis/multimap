@@ -10,19 +10,21 @@ COMMON = multimap.pri
 CONFIG += debug
 
 unix {
-    multimap.path = /usr/include/multimap
+    INCLUDE_MULTIMAP = /usr/local/include/multimap
+
+    multimap.path = $$INCLUDE_MULTIMAP
     multimap.files += ../src/cpp/multimap/*.h*
     INSTALLS += multimap
 
-    multimap_internal.path = /usr/include/multimap/internal
+    multimap_internal.path = $$INCLUDE_MULTIMAP/internal
     multimap_internal.files += ../src/cpp/multimap/internal/*.h*
     INSTALLS += multimap_internal
 
-    multimap_thirdparty_mt.path = /usr/include/multimap/thirdparty/mt
+    multimap_thirdparty_mt.path = $$INCLUDE_MULTIMAP/thirdparty/mt
     multimap_thirdparty_mt.files += ../src/cpp/multimap/thirdparty/mt/*.h*
     INSTALLS += multimap_thirdparty_mt
 
-    multimap_thirdparty_xxhash.path = /usr/include/multimap/thirdparty/xxhash
+    multimap_thirdparty_xxhash.path = $$INCLUDE_MULTIMAP/thirdparty/xxhash
     multimap_thirdparty_xxhash.files += ../src/cpp/multimap/thirdparty/xxhash/*.h*
     INSTALLS += multimap_thirdparty_xxhash
 
