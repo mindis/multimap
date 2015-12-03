@@ -76,7 +76,7 @@ private:
   std::size_t maximum_size_;
 };
 
-std::size_t List::Limits::getMaxValueSize() {
+std::size_t List::Limits::maxValueSize() {
   return Varint::Limits::MAX_N4_WITH_FLAG;
 }
 
@@ -97,7 +97,7 @@ void List::Head::writeToStream(std::FILE* stream) const {
 List::List(const Head& head) : head_(head) {}
 
 void List::add(const Bytes& value, Store* store, Arena* arena) {
-  mt::Check::isLessEqual(value.size(), Limits::getMaxValueSize(),
+  mt::Check::isLessEqual(value.size(), Limits::maxValueSize(),
                          "Reject value because it's too large.");
 
   if (!block_.hasData()) {

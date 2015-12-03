@@ -35,8 +35,8 @@ namespace internal {
 class Shard : mt::Resource {
 public:
   struct Limits {
-    static std::size_t getMaxKeySize();
-    static std::size_t getMaxValueSize();
+    static std::size_t maxKeySize();
+    static std::size_t maxValueSize();
   };
 
   struct Options {

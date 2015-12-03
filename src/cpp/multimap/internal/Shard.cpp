@@ -49,7 +49,7 @@ struct Entry : public std::pair<Bytes, List::Head> {
   }
 
   void writeToStream(std::FILE* stream) const {
-    MT_REQUIRE_LE(key().size(), Shard::Limits::getMaxKeySize());
+    MT_REQUIRE_LE(key().size(), Shard::Limits::maxKeySize());
     const std::int32_t key_size = key().size();
     mt::fwrite(stream, &key_size, sizeof key_size);
     mt::fwrite(stream, key().data(), key().size());
@@ -101,10 +101,10 @@ std::size_t replaceValues(UniqueList&& list, Callables::Function function,
 
 } // namespace
 
-std::size_t Shard::Limits::getMaxKeySize() { return Varint::Limits::MAX_N4; }
+std::size_t Shard::Limits::maxKeySize() { return Varint::Limits::MAX_N4; }
 
-std::size_t Shard::Limits::getMaxValueSize() {
-  return List::Limits::getMaxValueSize();
+std::size_t Shard::Limits::maxValueSize() {
+  return List::Limits::maxValueSize();
 }
 
 const std::vector<std::string>& Shard::Stats::names() {
@@ -519,7 +519,7 @@ UniqueList Shard::getUnique(const Bytes& key) {
 UniqueList Shard::getUniqueOrCreate(const Bytes& key) {
   mt::Check::isFalse(isReadOnly(),
                      "Attempt to get write access to read-only list");
-  mt::Check::isLessEqual(key.size(), Limits::getMaxKeySize(),
+  mt::Check::isLessEqual(key.size(), Limits::maxKeySize(),
                          "Reject key of %d bytes because it's too big",
                          key.size());
 

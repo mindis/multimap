@@ -72,12 +72,12 @@ void Map::Id::writeToFile(const boost::filesystem::path& file) const {
   mt::fwrite(stream.get(), this, sizeof *this);
 }
 
-std::size_t Map::Limits::getMaxKeySize() {
-  return internal::Shard::Limits::getMaxKeySize();
+std::size_t Map::Limits::maxKeySize() {
+  return internal::Shard::Limits::maxKeySize();
 }
 
-std::size_t Map::Limits::getMaxValueSize() {
-  return internal::Shard::Limits::getMaxValueSize();
+std::size_t Map::Limits::maxValueSize() {
+  return internal::Shard::Limits::maxValueSize();
 }
 
 Map::Map(const boost::filesystem::path& directory, const Options& options)

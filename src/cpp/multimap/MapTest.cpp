@@ -95,7 +95,7 @@ TEST_F(MapTestFixture, PutValueWithMaxKeySize) {
   options.create_if_missing = true;
   Map map(directory, options);
   try {
-    std::string key(Map::Limits::getMaxKeySize(), 'k');
+    std::string key(Map::Limits::maxKeySize(), 'k');
     ASSERT_NO_THROW(map.put(key, "value"));
   } catch (...) {
     // Allocating `key` may fail.
@@ -107,7 +107,7 @@ TEST_F(MapTestFixture, PutValueWithTooLargeKeyThrows) {
   options.create_if_missing = true;
   Map map(directory, options);
   try {
-    std::string key(Map::Limits::getMaxKeySize() + 1, 'k');
+    std::string key(Map::Limits::maxKeySize() + 1, 'k');
     ASSERT_THROW(map.put(key, "value"), std::runtime_error);
   } catch (...) {
     // Allocating `key` may fail.
@@ -119,7 +119,7 @@ TEST_F(MapTestFixture, PutValueWithMaxValueSize) {
   options.create_if_missing = true;
   Map map(directory, options);
   try {
-    std::string value(Map::Limits::getMaxValueSize(), 'v');
+    std::string value(Map::Limits::maxValueSize(), 'v');
     ASSERT_NO_THROW(map.put("key", value));
   } catch (...) {
     // Allocating `value` may fail.
@@ -131,7 +131,7 @@ TEST_F(MapTestFixture, PutValueWithTooLargeValueThrows) {
   options.create_if_missing = true;
   Map map(directory, options);
   try {
-    std::string value(Map::Limits::getMaxValueSize() + 1, 'v');
+    std::string value(Map::Limits::maxValueSize() + 1, 'v');
     ASSERT_THROW(map.put("key", value), std::runtime_error);
   } catch (...) {
     // Allocating `value` may fail.

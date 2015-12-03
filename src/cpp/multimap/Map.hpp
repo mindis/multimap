@@ -52,8 +52,8 @@ public:
   struct Limits {
     // Provides static methods to request upper bounds.
 
-    static std::size_t getMaxKeySize();
-    static std::size_t getMaxValueSize();
+    static std::size_t maxKeySize();
+    static std::size_t maxValueSize();
   };
 
   typedef internal::Shard::Stats Stats;
