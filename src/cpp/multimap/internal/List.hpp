@@ -43,7 +43,7 @@ class List {
 
 public:
   struct Limits {
-    static std::size_t getMaxValueSize();
+    static std::size_t maxValueSize();
   };
 
   struct Head {
