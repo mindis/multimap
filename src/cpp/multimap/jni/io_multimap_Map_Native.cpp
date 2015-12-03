@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "multimap/jni/io_multimap_Map_Native.h"
+#include "multimap/jni/generated/io_multimap_Map_Native.h"
 
 #include <sstream>
 #include "multimap/jni/common.hpp"
