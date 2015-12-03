@@ -47,21 +47,20 @@ public class Map implements AutoCloseable {
     /**
      * Returns the maximum size, in number of bytes, of a key to put.
      */
-    static int getMaxKeySize() {
-      return Native.getMaxKeySize();
+    static int maxKeySize() {
+      return Native.maxKeySize();
     }
 
     /**
      * Returns the maximum size, in number of bytes, of a value to put.
      */
-    static int getMaxValueSize() {
-      return Native.getMaxValueSize();
+    static int maxValueSize() {
+      return Native.maxValueSize();
     }
 
     static class Native {
-      static native int getMaxKeySize();
-
-      static native int getMaxValueSize();
+      static native int maxKeySize();
+      static native int maxValueSize();
     }
   }
 
@@ -255,7 +254,7 @@ public class Map implements AutoCloseable {
    * Appends {@code value} to the end of the list associated with {@code key}.
    * 
    * @throws Exception if {@code key} or {@code value} are too big. See
-   *         {@link Limits#getMaxKeySize()} and {@link Limits#getMaxValueSize()} for more
+   *         {@link Limits#maxKeySize()} and {@link Limits#maxValueSize()} for more
    *         information.
    */
   public void put(byte[] key, byte[] value) throws Exception {

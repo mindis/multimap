@@ -9,18 +9,18 @@ extern "C" {
 #endif
 /*
  * Class:     io_multimap_Map_Limits_Native
- * Method:    getMaxKeySize
+ * Method:    maxKeySize
  * Signature: ()I
  */
-JNIEXPORT jint JNICALL Java_io_multimap_Map_00024Limits_00024Native_getMaxKeySize
+JNIEXPORT jint JNICALL Java_io_multimap_Map_00024Limits_00024Native_maxKeySize
   (JNIEnv *, jclass);
 
 /*
  * Class:     io_multimap_Map_Limits_Native
- * Method:    getMaxValueSize
+ * Method:    maxValueSize
  * Signature: ()I
  */
-JNIEXPORT jint JNICALL Java_io_multimap_Map_00024Limits_00024Native_getMaxValueSize
+JNIEXPORT jint JNICALL Java_io_multimap_Map_00024Limits_00024Native_maxValueSize
   (JNIEnv *, jclass);
 
 #ifdef __cplusplus
