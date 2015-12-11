@@ -16,16 +16,17 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "multimap/jni/generated/io_multimap_Map_ListIterator_Native.h"
+
 #include "multimap/jni/common.hpp"
 #include "multimap/thirdparty/mt/mt.hpp"
 
 namespace {
 
-typedef multimap::jni::Holder<multimap::Map::ListIterator> ListIteratorHolder;
+typedef multimap::jni::Owner<multimap::Map::ListIterator> IterOwner;
 
-inline ListIteratorHolder* toListIteratorHolder(JNIEnv* env, jobject self) {
+inline IterOwner* toIterOwner(JNIEnv* env, jobject self) {
   MT_REQUIRE_NOT_NULL(self);
-  return static_cast<ListIteratorHolder*>(env->GetDirectBufferAddress(self));
+  return static_cast<IterOwner*>(env->GetDirectBufferAddress(self));
 }
 
 } // namespace
@@ -39,7 +40,7 @@ JNIEXPORT jlong JNICALL
     Java_io_multimap_Map_00024ListIterator_00024Native_available(JNIEnv* env,
                                                                  jclass,
                                                                  jobject self) {
-  return toListIteratorHolder(env, self)->get().available();
+  return toIterOwner(env, self)->get().available();
 }
 
 /*
@@ -51,7 +52,7 @@ JNIEXPORT jboolean JNICALL
     Java_io_multimap_Map_00024ListIterator_00024Native_hasNext(JNIEnv* env,
                                                                jclass,
                                                                jobject self) {
-  return toListIteratorHolder(env, self)->get().hasNext();
+  return toIterOwner(env, self)->get().hasNext();
 }
 
 /*
@@ -62,8 +63,8 @@ JNIEXPORT jboolean JNICALL
 JNIEXPORT jobject JNICALL
     Java_io_multimap_Map_00024ListIterator_00024Native_next(JNIEnv* env, jclass,
                                                             jobject self) {
-  return multimap::jni::newByteBuffer(
-      env, toListIteratorHolder(env, self)->get().next());
+  return multimap::jni::newDirectByteBuffer(env,
+                                      toIterOwner(env, self)->get().next());
 }
 
 /*
@@ -75,8 +76,8 @@ JNIEXPORT jobject JNICALL
     Java_io_multimap_Map_00024ListIterator_00024Native_peekNext(JNIEnv* env,
                                                                 jclass,
                                                                 jobject self) {
-  return multimap::jni::newByteBuffer(
-      env, toListIteratorHolder(env, self)->get().peekNext());
+  return multimap::jni::newDirectByteBuffer(env,
+                                      toIterOwner(env, self)->get().peekNext());
 }
 
 /*
@@ -88,5 +89,5 @@ JNIEXPORT void JNICALL
     Java_io_multimap_Map_00024ListIterator_00024Native_close(JNIEnv* env,
                                                              jclass,
                                                              jobject self) {
-  delete toListIteratorHolder(env, self);
+  delete toIterOwner(env, self);
 }

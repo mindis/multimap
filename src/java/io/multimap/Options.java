@@ -26,36 +26,32 @@ package io.multimap;
  */
 public class Options {
   
-  static class Impl {
-    public int numShards = 23;
-    public int blockSize = 512;
-    public boolean createIfMissing = false;
-    public boolean errorIfExists = false;
-    public boolean readonly = false;
-    public boolean quiet = false;
-    public Callables.LessThan lessThan = null;
-  }
-  
-  protected Impl impl;
+  public int numShards = 23;
+  public int blockSize = 512;
+  public boolean createIfMissing = false;
+  public boolean errorIfExists = false;
+  public boolean readonly = false;
+  public boolean quiet = false;
+  public Callables.LessThan lessThan;
   
   public int getNumShards() {
-    return impl.numShards;
+    return numShards;
   }
 
   public void setNumShards(int numShards) {
     Check.isPositive(numShards);
-    impl.numShards = numShards;
+    this.numShards = numShards;
   }
   
   public void keepNumShards() {
-    impl.numShards = 0;
+    numShards = 0;
   }
 
   /**
    * Tells the block size.
    */
   public int getBlockSize() {
-    return impl.blockSize;
+    return blockSize;
   }
 
   /**
@@ -64,20 +60,20 @@ public class Options {
    * usage of the {@link Map}, which in turn might affects the overall performance. The default
    * value is {@code 512}. Visit the project's website for more information.
    */
-  public void setBlockSize(int numBytes) {
-    Check.isPositive(numBytes);
-    impl.blockSize = numBytes;
+  public void setBlockSize(int blockSize) {
+    Check.isPositive(blockSize);
+    this.blockSize = blockSize;
   }
   
   public void keepBlockSize() {
-    impl.blockSize = 0;
+    blockSize = 0;
   }
   
   /**
    * Tells whether a {@link Map} should be created if it does not already exist.
    */
   public boolean isCreateIfMissing() {
-    return impl.createIfMissing;
+    return createIfMissing;
   }
 
   /**
@@ -85,14 +81,14 @@ public class Options {
    * is {@code false}.
    */
   public void setCreateIfMissing(boolean createIfMissing) {
-    impl.createIfMissing = createIfMissing;
+    this.createIfMissing = createIfMissing;
   }
 
   /**
    * Tells whether it is an error if a {@link Map} already exist.
    */
   public boolean isErrorIfExists() {
-    return impl.errorIfExists;
+    return errorIfExists;
   }
 
   /**
@@ -100,31 +96,31 @@ public class Options {
    * {@link #getCreateIfMissing()} is set to {@code true}. The default value is {@code false}.
    */
   public void setErrorIfExists(boolean errorIfExists) {
-    impl.errorIfExists = errorIfExists;
+    this.errorIfExists = errorIfExists;
   }
   
   public boolean isReadonly() {
-    return impl.readonly;
+    return readonly;
   }
 
   public void setReadonly(boolean readonly) {
-    impl.readonly = readonly;
+    this.readonly = readonly;
   }
 
   public boolean isQuiet() {
-    return impl.quiet;
+    return quiet;
   }
 
   public void setQuiet(boolean quiet) {
-    impl.quiet = quiet;
+    this.quiet = quiet;
   }
 
-  public Callables.LessThan getLessThan() {
-    return impl.lessThan;
+  public Callables.LessThan getLessThanCallable() {
+    return lessThan;
   }
 
-  public void setLessThan(Callables.LessThan lessThan) {
-    impl.lessThan = lessThan;
+  public void setLessThanCallable(Callables.LessThan lessThan) {
+    this.lessThan = lessThan;
   }
 
 }

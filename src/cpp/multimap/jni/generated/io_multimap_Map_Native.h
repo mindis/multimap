@@ -10,7 +10,7 @@ extern "C" {
 /*
  * Class:     io_multimap_Map_Native
  * Method:    newMap
- * Signature: (Ljava/lang/String;Lio/multimap/Options/Impl;)Ljava/nio/ByteBuffer;
+ * Signature: (Ljava/lang/String;Lio/multimap/Options;)Ljava/nio/ByteBuffer;
  */
 JNIEXPORT jobject JNICALL Java_io_multimap_Map_00024Native_newMap
   (JNIEnv *, jclass, jstring, jobject);
@@ -154,7 +154,7 @@ JNIEXPORT void JNICALL Java_io_multimap_Map_00024Native_close
 /*
  * Class:     io_multimap_Map_Native
  * Method:    importFromBase64
- * Signature: (Ljava/lang/String;Ljava/lang/String;Lio/multimap/Options/Impl;)V
+ * Signature: (Ljava/lang/String;Ljava/lang/String;Lio/multimap/Options;)V
  */
 JNIEXPORT void JNICALL Java_io_multimap_Map_00024Native_importFromBase64
   (JNIEnv *, jclass, jstring, jstring, jobject);
@@ -162,7 +162,7 @@ JNIEXPORT void JNICALL Java_io_multimap_Map_00024Native_importFromBase64
 /*
  * Class:     io_multimap_Map_Native
  * Method:    exportToBase64
- * Signature: (Ljava/lang/String;Ljava/lang/String;Lio/multimap/Options/Impl;)V
+ * Signature: (Ljava/lang/String;Ljava/lang/String;Lio/multimap/Options;)V
  */
 JNIEXPORT void JNICALL Java_io_multimap_Map_00024Native_exportToBase64
   (JNIEnv *, jclass, jstring, jstring, jobject);
@@ -170,7 +170,7 @@ JNIEXPORT void JNICALL Java_io_multimap_Map_00024Native_exportToBase64
 /*
  * Class:     io_multimap_Map_Native
  * Method:    optimize
- * Signature: (Ljava/lang/String;Ljava/lang/String;Lio/multimap/Options/Impl;)V
+ * Signature: (Ljava/lang/String;Ljava/lang/String;Lio/multimap/Options;)V
  */
 JNIEXPORT void JNICALL Java_io_multimap_Map_00024Native_optimize
   (JNIEnv *, jclass, jstring, jstring, jobject);

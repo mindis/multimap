@@ -247,7 +247,7 @@ public class Map implements AutoCloseable {
    *         {@code options} are not met.
    */
   public Map(Path directory, Options options) throws Exception {
-    this(Native.newMap(directory.toString(), options.impl));
+    this(Native.newMap(directory.toString(), options));
   }
 
   /**
@@ -495,7 +495,7 @@ public class Map implements AutoCloseable {
     Check.notNull(directory);
     Check.notNull(input);
     Check.notNull(options);
-    Native.importFromBase64(directory.toString(), input.toString(), options.impl);
+    Native.importFromBase64(directory.toString(), input.toString(), options);
   }
 
   /**
@@ -513,7 +513,7 @@ public class Map implements AutoCloseable {
     Check.notNull(directory);
     Check.notNull(output);
     Check.notNull(options);
-    Native.exportToBase64(directory.toString(), output.toString(), options.impl);
+    Native.exportToBase64(directory.toString(), output.toString(), options);
   }
 
   /**
@@ -555,11 +555,11 @@ public class Map implements AutoCloseable {
     Check.notNull(source);
     Check.notNull(target);
     Check.notNull(options);
-    Native.optimize(source.toString(), target.toString(), options.impl);
+    Native.optimize(source.toString(), target.toString(), options);
   }
 
   static class Native {
-    static native ByteBuffer newMap(String directory, Options.Impl options) throws Exception;
+    static native ByteBuffer newMap(String directory, Options options) throws Exception;
     static native void put(ByteBuffer self, byte[] key, byte[] value) throws Exception;
     static native ByteBuffer get(ByteBuffer self, byte[] key);
     static native ByteBuffer getMutable(ByteBuffer self, byte[] key);
@@ -577,8 +577,8 @@ public class Map implements AutoCloseable {
     static native void forEachValue(ByteBuffer self, byte[] key, Predicate action);
     static native boolean isReadOnly(ByteBuffer self);
     static native void close(ByteBuffer self);
-    static native void importFromBase64(String directory, String input, Options.Impl options) throws Exception;
-    static native void exportToBase64(String directory, String output, Options.Impl options) throws Exception;
-    static native void optimize(String source, String target, Options.Impl options) throws Exception;
+    static native void importFromBase64(String directory, String input, Options options) throws Exception;
+    static native void exportToBase64(String directory, String output, Options options) throws Exception;
+    static native void optimize(String source, String target, Options options) throws Exception;
   }
 }

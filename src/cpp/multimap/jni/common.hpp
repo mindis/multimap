@@ -25,7 +25,8 @@
 namespace multimap {
 namespace jni {
 
-struct BytesRaiiHelper {
+struct BytesRaiiHelper : mt::Resource {
+
   BytesRaiiHelper(JNIEnv* env, jbyteArray array)
       : env_(env),
         array_(array),
@@ -40,43 +41,75 @@ struct BytesRaiiHelper {
     env_->ReleaseByteArrayElements(array_, elements, JNI_ABORT);
   }
 
-  BytesRaiiHelper(BytesRaiiHelper&&) = delete;
-  BytesRaiiHelper& operator=(BytesRaiiHelper&&) = delete;
-
-  BytesRaiiHelper(const BytesRaiiHelper&) = delete;
-  BytesRaiiHelper& operator=(const BytesRaiiHelper&) = delete;
-
-  const multimap::Bytes& get() const { return bytes_; }
+  const Bytes& get() const { return bytes_; }
 
 private:
   JNIEnv* env_;
   const jbyteArray array_;
-  const multimap::Bytes bytes_;
+  const Bytes bytes_;
 };
 
-template <typename T> struct Holder {
-  Holder(T&& element) : element_(std::move(element)) {}
+template <typename T> struct Owner : mt::Resource {
 
-  T& get() { return element_; }
+  Owner(T&& value) : value_(std::move(value)) {}
+
+  T& get() { return value_; }
 
 private:
-  T element_;
+  T value_;
 };
 
-template <typename T> Holder<T>* NewHolder(T&& element) {
-  return new Holder<T>(std::move(element));
+template <typename T> Owner<T>* newOwner(T&& value) {
+  return new Owner<T>(std::move(value));
 }
 
-inline Callables::Procedure makeProcedure(JNIEnv* env, jobject jprocedure) {
-  const auto cls = env->GetObjectClass(jprocedure);
+inline jobject newDirectByteBuffer(JNIEnv* env, const Bytes& bytes) {
+  return env->NewDirectByteBuffer(const_cast<char*>(bytes.data()),
+                                  bytes.size());
+}
+
+template <typename T> jobject toDirectByteBuffer(JNIEnv* env, T* ptr) {
+  MT_REQUIRE_NOT_NULL(ptr);
+  return env->NewDirectByteBuffer(ptr, sizeof ptr);
+}
+
+template <typename T> T* fromDirectByteBuffer(JNIEnv* env, jobject jbuf) {
+  MT_REQUIRE_NOT_NULL(jbuf);
+  return static_cast<T*>(env->GetDirectBufferAddress(jbuf));
+}
+
+inline void throwJavaException(JNIEnv* env, const char* message) {
+  const auto cls = env->FindClass("java/lang/Exception");
+  mt::Check::notNull(cls, "FindClass() failed");
+  env->ThrowNew(cls, message);
+}
+
+inline void propagateOrRethrow(JNIEnv* env, const std::exception& error) {
+  if (env->ExceptionOccurred()) {
+    // The Java code called before has thrown an exception.
+    // Not calling env->ExceptionClear() will propagate it to the JVM.
+  } else {
+    throwJavaException(env, error.what());
+  }
+}
+
+inline std::string toString(JNIEnv* env, jstring string) {
+  const auto chars = env->GetStringUTFChars(string, nullptr);
+  mt::Check::notNull(chars, "GetStringUTFChars() failed");
+  std::string result = chars;
+  env->ReleaseStringUTFChars(string, chars);
+  return result;
+}
+
+inline Callables::Procedure toProcedure(JNIEnv* env, jobject procedure) {
+  MT_REQUIRE_NOT_NULL(procedure);
+  const auto cls = env->GetObjectClass(procedure);
   const auto mid = env->GetMethodID(cls, "call", "(Ljava/nio/ByteBuffer;)V");
-  mt::Check::notNull(mid, "env->GetMethodID() failed");
+  mt::Check::notNull(mid, "GetMethodID() failed");
   return [=](const multimap::Bytes& bytes) {
     // Note: java.nio.ByteBuffer cannot wrap a pointer to const void.
     // However, on Java side we will call ByteBuffer.asReadOnlyBuffer().
-    env->CallVoidMethod(jprocedure, mid,
-                        env->NewDirectByteBuffer(
-                            const_cast<char*>(bytes.data()), bytes.size()));
+    env->CallVoidMethod(procedure, mid, newDirectByteBuffer(env, bytes));
     if (env->ExceptionOccurred()) {
       throw std::runtime_error("Exception in procedure passed via JNI");
       // This exception is to escape from the for-each loop.
@@ -86,16 +119,16 @@ inline Callables::Procedure makeProcedure(JNIEnv* env, jobject jprocedure) {
   };
 }
 
-inline Callables::Predicate makePredicate(JNIEnv* env, jobject jpredicate) {
-  const auto cls = env->GetObjectClass(jpredicate);
+inline Callables::Predicate toPredicate(JNIEnv* env, jobject predicate) {
+  MT_REQUIRE_NOT_NULL(predicate);
+  const auto cls = env->GetObjectClass(predicate);
   const auto mid = env->GetMethodID(cls, "call", "(Ljava/nio/ByteBuffer;)Z");
-  mt::Check::notNull(mid, "env->GetMethodID() failed");
+  mt::Check::notNull(mid, "GetMethodID() failed");
   return [=](const multimap::Bytes& bytes) {
     // Note: java.nio.ByteBuffer cannot wrap a pointer to const void.
     // However, on Java side we will call ByteBuffer.asReadOnlyBuffer().
-    const auto result = env->CallBooleanMethod(
-        jpredicate, mid, env->NewDirectByteBuffer(
-                             const_cast<char*>(bytes.data()), bytes.size()));
+    const auto result =
+        env->CallBooleanMethod(predicate, mid, newDirectByteBuffer(env, bytes));
     if (env->ExceptionOccurred()) {
       throw std::runtime_error("Exception in predicate passed via JNI");
       // This exception is to escape from the for-each loop.
@@ -106,16 +139,16 @@ inline Callables::Predicate makePredicate(JNIEnv* env, jobject jpredicate) {
   };
 }
 
-inline Callables::Function makeFunction(JNIEnv* env, jobject jfunction) {
-  const auto cls = env->GetObjectClass(jfunction);
+inline Callables::Function toFunction(JNIEnv* env, jobject function) {
+  MT_REQUIRE_NOT_NULL(function);
+  const auto cls = env->GetObjectClass(function);
   const auto mid = env->GetMethodID(cls, "call", "(Ljava/nio/ByteBuffer;)[B");
-  mt::Check::notNull(mid, "env->GetMethodID() failed");
+  mt::Check::notNull(mid, "GetMethodID() failed");
   return [=](const multimap::Bytes& bytes) {
     // Note: java.nio.ByteBuffer cannot wrap a pointer to const void.
     // However, on Java side we will call ByteBuffer.asReadOnlyBuffer().
-    const auto result = env->CallObjectMethod(
-        jfunction, mid, env->NewDirectByteBuffer(
-                            const_cast<char*>(bytes.data()), bytes.size()));
+    const auto result =
+        env->CallObjectMethod(function, mid, newDirectByteBuffer(env, bytes));
     if (env->ExceptionOccurred()) {
       throw std::runtime_error("Exception in function passed via JNI");
       // This exception is to escape from the for-each loop.
@@ -128,18 +161,18 @@ inline Callables::Function makeFunction(JNIEnv* env, jobject jfunction) {
   };
 }
 
-inline Callables::Compare makeCompare(JNIEnv* env, jobject jless_than) {
-  const auto cls = env->GetObjectClass(jless_than);
+inline Callables::Compare toCompare(JNIEnv* env, jobject less_than) {
+  MT_REQUIRE_NOT_NULL(less_than);
+  const auto cls = env->GetObjectClass(less_than);
   const auto mid = env->GetMethodID(
       cls, "call", "(Ljava/nio/ByteBuffer;Ljava/nio/ByteBuffer;)Z");
-  mt::Check::notNull(mid, "env->GetMethodID() failed");
+  mt::Check::notNull(mid, "GetMethodID() failed");
   return [=](const multimap::Bytes& lhs, const multimap::Bytes& rhs) {
     // Note: java.nio.ByteBuffer cannot wrap a pointer to const void.
     // However, on Java side we will call ByteBuffer.asReadOnlyBuffer().
-    const auto result = env->CallBooleanMethod(
-        jless_than, mid,
-        env->NewDirectByteBuffer(const_cast<char*>(lhs.data()), lhs.size()),
-        env->NewDirectByteBuffer(const_cast<char*>(rhs.data()), rhs.size()));
+    const auto result =
+        env->CallBooleanMethod(less_than, mid, newDirectByteBuffer(env, lhs),
+                               newDirectByteBuffer(env, rhs));
     if (env->ExceptionOccurred()) {
       throw std::runtime_error("Exception in comparator passed via JNI");
       // This exception is to escape from the for-each loop.
@@ -150,22 +183,45 @@ inline Callables::Compare makeCompare(JNIEnv* env, jobject jless_than) {
   };
 }
 
-inline std::string makeString(JNIEnv* env, jstring string) {
-  const auto chars = env->GetStringUTFChars(string, nullptr);
-  std::string str(chars);
-  env->ReleaseStringUTFChars(string, chars);
-  return str;
-}
+inline Options toOptions(JNIEnv* env, jobject options) {
+  MT_REQUIRE_NOT_NULL(options);
+  const auto cls = env->GetObjectClass(options);
+  mt::Check::notNull(cls, "GetObjectClass(options) failed");
 
-inline jobject newByteBuffer(JNIEnv* env, multimap::Bytes&& bytes) {
-  return env->NewDirectByteBuffer(const_cast<char*>(bytes.data()),
-                                  bytes.size());
-}
+  Options opts;
+  const auto fid_numShards = env->GetFieldID(cls, "numShards", "I");
+  mt::Check::notNull(fid_numShards, "GetFieldID(numShards) failed");
+  opts.num_shards = env->GetIntField(options, fid_numShards);
 
-inline void throwJavaException(JNIEnv* env, const char* message) {
-  /* static */ const auto clazz = env->FindClass("java/lang/Exception");
-  // static lets the VM crash.
-  env->ThrowNew(clazz, message);
+  const auto fid_blockSize = env->GetFieldID(cls, "blockSize", "I");
+  mt::Check::notNull(fid_blockSize, "GetFieldID(blockSize) failed");
+  opts.block_size = env->GetIntField(options, fid_blockSize);
+
+  const auto fid_createIfMissing = env->GetFieldID(cls, "createIfMissing", "Z");
+  mt::Check::notNull(fid_createIfMissing, "GetFieldID(createIfMissing) failed");
+  opts.create_if_missing = env->GetBooleanField(options, fid_createIfMissing);
+
+  const auto fid_errorIfExists = env->GetFieldID(cls, "errorIfExists", "Z");
+  mt::Check::notNull(fid_errorIfExists, "GetFieldID(errorIfExists) failed");
+  opts.error_if_exists = env->GetBooleanField(options, fid_errorIfExists);
+
+  const auto fid_readonly = env->GetFieldID(cls, "readonly", "Z");
+  mt::Check::notNull(fid_readonly, "GetFieldID(readonly) failed");
+  opts.readonly = env->GetBooleanField(options, fid_readonly);
+
+  const auto fid_quiet = env->GetFieldID(cls, "quiet", "Z");
+  mt::Check::notNull(fid_quiet, "GetFieldID(quiet) failed");
+  opts.quiet = env->GetBooleanField(options, fid_quiet);
+
+  const auto fid_lessThan =
+      env->GetFieldID(cls, "lessThan", "Lio/multimap/Callables/LessThan;");
+  mt::Check::notNull(fid_lessThan, "GetFieldID(lessThan) failed");
+  const auto less_than = env->GetObjectField(options, fid_lessThan);
+  if (less_than) {
+    opts.compare = toCompare(env, less_than);
+  }
+
+  return opts;
 }
 
 } // namespace jni
