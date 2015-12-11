@@ -48,24 +48,22 @@ struct BytesRaiiHelper {
 
   const multimap::Bytes& get() const { return bytes_; }
 
- private:
+private:
   JNIEnv* env_;
   const jbyteArray array_;
   const multimap::Bytes bytes_;
 };
 
-template <typename T>
-struct Holder {
+template <typename T> struct Holder {
   Holder(T&& element) : element_(std::move(element)) {}
 
   T& get() { return element_; }
 
- private:
+private:
   T element_;
 };
 
-template <typename T>
-Holder<T>* NewHolder(T&& element) {
+template <typename T> Holder<T>* NewHolder(T&& element) {
   return new Holder<T>(std::move(element));
 }
 
@@ -159,13 +157,18 @@ inline std::string makeString(JNIEnv* env, jstring string) {
   return str;
 }
 
+inline jobject newByteBuffer(JNIEnv* env, multimap::Bytes&& bytes) {
+  return env->NewDirectByteBuffer(const_cast<char*>(bytes.data()),
+                                  bytes.size());
+}
+
 inline void throwJavaException(JNIEnv* env, const char* message) {
   /* static */ const auto clazz = env->FindClass("java/lang/Exception");
   // static lets the VM crash.
   env->ThrowNew(clazz, message);
 }
 
-}  // namespace jni
-}  // namespace multimap
+} // namespace jni
+} // namespace multimap
 
-#endif  // MULTIMAP_JNI_COMMON_HPP_INCLUDED
+#endif // MULTIMAP_JNI_COMMON_HPP_INCLUDED
