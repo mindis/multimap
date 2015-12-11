@@ -26,13 +26,13 @@ package io.multimap;
  */
 public class Options {
   
-  public int numShards = 23;
-  public int blockSize = 512;
-  public boolean createIfMissing = false;
-  public boolean errorIfExists = false;
-  public boolean readonly = false;
-  public boolean quiet = false;
-  public Callables.LessThan lessThan;
+  private int numShards = 23;
+  private int blockSize = 512;
+  private boolean createIfMissing = false;
+  private boolean errorIfExists = false;
+  private boolean readonly = false;
+  private boolean quiet = false;
+  private Callables.LessThan lessThan;
   
   public int getNumShards() {
     return numShards;
