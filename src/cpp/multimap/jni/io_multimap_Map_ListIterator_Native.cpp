@@ -19,6 +19,7 @@
 
 #include "multimap/jni/common.hpp"
 #include "multimap/thirdparty/mt/mt.hpp"
+#include "multimap/Map.hpp"
 
 namespace {
 

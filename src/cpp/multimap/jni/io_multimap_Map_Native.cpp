@@ -18,6 +18,7 @@
 #include "multimap/jni/generated/io_multimap_Map_Native.h"
 
 #include "multimap/jni/common.hpp"
+#include "multimap/Map.hpp"
 
 // Bug in javah -jni (OpenJDK 1.7.0_79, Debian 7.8)
 //
