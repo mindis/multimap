@@ -17,7 +17,7 @@
 
 #include "multimap/jni/generated/io_multimap_Map_ListIterator_Native.h"
 #include "multimap/jni/common.hpp"
-#include <multimap/thirdparty/mt/mt.hpp>
+#include "multimap/thirdparty/mt/mt.hpp"
 
 namespace {
 
