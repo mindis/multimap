@@ -28,6 +28,7 @@
 #include <cstdarg>
 #include <cstdio>
 #include <fstream>
+#include <iostream>
 #include <iterator>
 #include <map>
 #include <ostream>
@@ -40,7 +41,7 @@
 
 namespace mt {
 
-static const std::size_t VERSION = 20151130;
+static const std::size_t VERSION = 20151212;
 
 // -----------------------------------------------------------------------------
 // COMMON
