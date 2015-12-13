@@ -110,12 +110,12 @@ public:
 
   bool removeFirstEqual(const Bytes& key, const Bytes& value);
 
-  std::size_t replaceAll(const Bytes& key, Callables::Function function);
+  std::size_t replaceAll(const Bytes& key, Callables::Function map);
 
   std::size_t replaceAllEqual(const Bytes& key, const Bytes& old_value,
                               const Bytes& new_value);
 
-  bool replaceFirst(const Bytes& key, Callables::Function function);
+  bool replaceFirst(const Bytes& key, Callables::Function map);
 
   bool replaceFirstEqual(const Bytes& key, const Bytes& old_value,
                          const Bytes& new_value);

@@ -134,7 +134,7 @@ public:
   // will block until a writer lock can be acquired.
   // Returns: true if a value was deleted, false otherwise.
 
-  std::size_t replaceAll(const Bytes& key, Callables::Function function);
+  std::size_t replaceAll(const Bytes& key, Callables::Function map);
   // Replaces all values in the list associated with key by the result of
   // invoking function. If the result of function is an empty string no
   // replacement is performed. A replacement does not happen in-place. Instead,
@@ -153,7 +153,7 @@ public:
   // until a writer lock can be acquired.
   // Returns: the number of replaced values.
 
-  bool replaceFirst(const Bytes& key, Callables::Function function);
+  bool replaceFirst(const Bytes& key, Callables::Function map);
   // Replaces the first value in the list associated with key by the result of
   // invoking function. If the result of function is an empty string no
   // replacement is performed. The replacement does not happen in-place.
