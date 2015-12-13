@@ -79,12 +79,12 @@ std::size_t removeValues(UniqueList&& list, Callables::Predicate predicate,
   return num_removed;
 }
 
-std::size_t replaceValues(UniqueList&& list, Callables::Function function,
+std::size_t replaceValues(UniqueList&& list, Callables::Function map,
                           bool exit_on_first_success) {
   std::vector<std::string> replaced_values;
   auto iter = list.iterator();
   while (iter.hasNext()) {
-    auto replaced_value = function(iter.next());
+    auto replaced_value = map(iter.next());
     if (!replaced_value.empty()) {
       replaced_values.push_back(std::move(replaced_value));
       iter.remove();
@@ -363,20 +363,19 @@ bool Shard::removeFirstEqual(const Bytes& key, const Bytes& value) {
   });
 }
 
-std::size_t Shard::replaceAll(const Bytes& key, Callables::Function function) {
-  return replaceValues(getUnique(key), function, false);
+std::size_t Shard::replaceAll(const Bytes& key, Callables::Function map) {
+  return replaceValues(getUnique(key), map, false);
 }
 
 std::size_t Shard::replaceAllEqual(const Bytes& key, const Bytes& old_value,
                                    const Bytes& new_value) {
-  return replaceAll(key, [&old_value, &new_value](const Bytes& current_value)
-                             -> std::string {
+  return replaceAll(key, [&old_value, &new_value](const Bytes& current_value) {
     return (current_value == old_value) ? new_value.toString() : std::string();
   });
 }
 
-bool Shard::replaceFirst(const Bytes& key, Callables::Function function) {
-  return replaceValues(getUnique(key), function, true);
+bool Shard::replaceFirst(const Bytes& key, Callables::Function map) {
+  return replaceValues(getUnique(key), map, true);
 }
 
 bool Shard::replaceFirstEqual(const Bytes& key, const Bytes& old_value,

@@ -152,8 +152,8 @@ bool Map::removeFirstEqual(const Bytes& key, const Bytes& value) {
   return getShard(shards_, key).removeFirstEqual(key, value);
 }
 
-std::size_t Map::replaceAll(const Bytes& key, Callables::Function function) {
-  return getShard(shards_, key).replaceAll(key, function);
+std::size_t Map::replaceAll(const Bytes& key, Callables::Function map) {
+  return getShard(shards_, key).replaceAll(key, map);
 }
 
 std::size_t Map::replaceAllEqual(const Bytes& key, const Bytes& old_value,
@@ -161,8 +161,8 @@ std::size_t Map::replaceAllEqual(const Bytes& key, const Bytes& old_value,
   return getShard(shards_, key).replaceAllEqual(key, old_value, new_value);
 }
 
-bool Map::replaceFirst(const Bytes& key, Callables::Function function) {
-  return getShard(shards_, key).replaceFirst(key, function);
+bool Map::replaceFirst(const Bytes& key, Callables::Function map) {
+  return getShard(shards_, key).replaceFirst(key, map);
 }
 
 bool Map::replaceFirstEqual(const Bytes& key, const Bytes& old_value,
