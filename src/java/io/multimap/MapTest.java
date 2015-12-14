@@ -20,7 +20,9 @@
 package io.multimap;
 
 import static org.junit.Assert.fail;
+import io.multimap.Callables.Function;
 import io.multimap.Callables.Predicate;
+import io.multimap.Callables.Procedure;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -30,6 +32,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.junit.After;
 import org.junit.AfterClass;
@@ -43,6 +47,21 @@ public class MapTest {
   // Real functional unit tests are implemented in the original C++ code base.
 
   static final Path DIRECTORY = Paths.get(MapTest.class.getName());
+  
+  static final Predicate IS_EVEN = new Predicate() {
+    @Override
+    protected boolean callOnReadOnly(ByteBuffer bytes) {
+      return getSuffix(bytes) % 2 == 0;
+    }
+  };
+  
+  static final Function NEXT_IF_EVEN = new Function() {
+    @Override
+    protected byte[] callOnReadOnly(ByteBuffer bytes) {
+      int suffix = getSuffix(bytes);
+      return (suffix % 2 == 0) ? makeValue(suffix + 1) : null;
+    }
+  };
 
   static void deleteDirectoryIfExists(Path directory) throws IOException {
     if (Files.isDirectory(directory)) {
@@ -65,11 +84,11 @@ public class MapTest {
     Options options = new Options();
     options.setCreateIfMissing(true);
     Map map = new Map(DIRECTORY, options);
-    put(map, numKeys, numValuesPerKey);
+    fill(map, numKeys, numValuesPerKey);
     return map;
   }
   
-  static void put(Map map, int numKeys, int numValuesPerKey) throws Exception {
+  static void fill(Map map, int numKeys, int numValuesPerKey) throws Exception {
     for (int i = 0; i < numKeys; ++i) {
       for (int j = 0; j < numValuesPerKey; ++j) {
         map.put(makeKey(i), makeValue(j));
@@ -140,7 +159,9 @@ public class MapTest {
 
   @Test
   public void testPut() throws Exception {
-    Map map = createAndFillMap(DIRECTORY, 1000, 1000);
+    int numKeys = 1000;
+    int numValuesPerKeys = 1000;
+    Map map = createAndFillMap(DIRECTORY, numKeys, numValuesPerKeys);
     map.close();
   }
 
@@ -224,16 +245,9 @@ public class MapTest {
     int numValuesPerKeys = 1000;
     Map map = createAndFillMap(DIRECTORY, numKeys, numValuesPerKeys);
 
-    Predicate isEven = new Predicate() {
-      @Override
-      protected boolean callOnReadOnly(ByteBuffer bytes) {
-        return getSuffix(bytes) % 2 == 0;
-      }
-    };
-
     for (int i = 0; i < numKeys; ++i) {
       long expectedNumRemoved = numValuesPerKeys / 2;
-      long actualNumRemoved = map.removeAll(makeKey(i), isEven);
+      long actualNumRemoved = map.removeAll(makeKey(i), IS_EVEN);
       Assert.assertEquals(expectedNumRemoved, actualNumRemoved);
     }
 
@@ -241,7 +255,9 @@ public class MapTest {
       Iterator iter = map.get(makeKey(i));
       for (int j = 0; j < numValuesPerKeys; ++j) {
         byte[] value = makeValue(j);
-        if (!isEven.call(ByteBuffer.wrap(value))) {
+        if (IS_EVEN.call(ByteBuffer.wrap(value))) {
+          // This value has been removed.
+        } else {
           Assert.assertTrue(iter.hasNext());
           Assert.assertArrayEquals(value, iter.nextAsByteArray());
         }
@@ -254,43 +270,243 @@ public class MapTest {
   }
 
   @Test
-  public void testRemoveAllEqual() {
-    fail("Not yet implemented"); // TODO
+  public void testRemoveAllEqual() throws Exception {
+    int numKeys = 1000;
+    int numValuesPerKeys = 1000;
+    Map map = createAndFillMap(DIRECTORY, numKeys, numValuesPerKeys);
+    
+    for (int i = 0; i < numKeys; ++i) {
+      long expectedNumRemoved = 1;
+      long actualNumRemoved = map.removeAllEqual(makeKey(i), makeValue(123));
+      Assert.assertEquals(expectedNumRemoved, actualNumRemoved);
+    }
+    
+    for (int i = 0; i < numKeys; ++i) {
+      Iterator iter = map.get(makeKey(i));
+      for (int j = 0; j < numValuesPerKeys; ++j) {
+        if (j == 123) {
+          // This value has been removed.
+        } else {
+          Assert.assertTrue(iter.hasNext());
+          Assert.assertArrayEquals(makeValue(j), iter.nextAsByteArray());
+        }
+      }
+      Assert.assertFalse(iter.hasNext());
+      Assert.assertEquals(0, iter.available());
+      iter.close();
+    }
+    map.close();
   }
 
   @Test
-  public void testRemoveFirst() {
-    fail("Not yet implemented"); // TODO
+  public void testRemoveFirst() throws Exception {
+    int numKeys = 1000;
+    int numValuesPerKeys = 1000;
+    Map map = createAndFillMap(DIRECTORY, numKeys, numValuesPerKeys);
+    
+    for (int i = 0; i < numKeys; ++i) {
+      boolean removed = map.removeFirst(makeKey(i), IS_EVEN);
+      Assert.assertTrue(removed);
+    }
+    
+    for (int i = 0; i < numKeys; ++i) {
+      Iterator iter = map.get(makeKey(i));
+      int j = 0;
+      for (; j < numValuesPerKeys; ++j) {
+        byte[] value = makeValue(j);
+        if (IS_EVEN.call(ByteBuffer.wrap(value))) {
+          // This value has been removed.
+          break;
+        } else {
+          Assert.assertTrue(iter.hasNext());
+          Assert.assertArrayEquals(value, iter.nextAsByteArray());
+        }
+      }
+      for (++j; j < numValuesPerKeys; ++j) {
+        Assert.assertTrue(iter.hasNext());
+        Assert.assertArrayEquals(makeValue(j), iter.nextAsByteArray());
+      }
+      Assert.assertFalse(iter.hasNext());
+      Assert.assertEquals(0, iter.available());
+      iter.close();
+    }
+    map.close();
   }
 
   @Test
-  public void testRemoveFirstEqual() {
-    fail("Not yet implemented"); // TODO
+  public void testRemoveFirstEqual() throws Exception {
+    int numKeys = 1000;
+    int numValuesPerKeys = 1000;
+    Map map = createAndFillMap(DIRECTORY, numKeys, numValuesPerKeys);
+    
+    for (int i = 0; i < numKeys; ++i) {
+      boolean removed = map.removeFirstEqual(makeKey(i), makeValue(123));
+      Assert.assertTrue(removed);
+    }
+    
+    for (int i = 0; i < numKeys; ++i) {
+      Iterator iter = map.get(makeKey(i));
+      int j = 0;
+      for (; j < numValuesPerKeys; ++j) {
+        if (j == 123) {
+          // This value has been removed.
+          break;
+        } else {
+          Assert.assertTrue(iter.hasNext());
+          Assert.assertArrayEquals(makeValue(j), iter.nextAsByteArray());
+        }
+      }
+      for (++j; j < numValuesPerKeys; ++j) {
+        Assert.assertTrue(iter.hasNext());
+        Assert.assertArrayEquals(makeValue(j), iter.nextAsByteArray());
+      }
+      Assert.assertFalse(iter.hasNext());
+      Assert.assertEquals(0, iter.available());
+      iter.close();
+    }
+    map.close();
   }
 
   @Test
-  public void testReplaceAll() {
-    fail("Not yet implemented"); // TODO
+  public void testReplaceAll() throws Exception {
+    int numKeys = 1000;
+    int numValuesPerKeys = 1000;
+    Map map = createAndFillMap(DIRECTORY, numKeys, numValuesPerKeys);
+
+    for (int i = 0; i < numKeys; ++i) {
+      long expectedNumReplaced = numValuesPerKeys / 2;
+      long actualNumReplaced = map.replaceAll(makeKey(i), NEXT_IF_EVEN);
+      Assert.assertEquals(expectedNumReplaced, actualNumReplaced);
+    }
+
+    for (int i = 0; i < numKeys; ++i) {
+      Iterator iter = map.get(makeKey(i));
+      for (int j = 1; j < numValuesPerKeys; j += 2) {
+        Assert.assertTrue(iter.hasNext());
+        Assert.assertArrayEquals(makeValue(j), iter.nextAsByteArray());
+      }
+      // Replaced values have been inserted at the end.
+      for (int j = 1; j < numValuesPerKeys; j += 2) {
+        Assert.assertTrue(iter.hasNext());
+        Assert.assertArrayEquals(makeValue(j), iter.nextAsByteArray());
+      }
+      Assert.assertFalse(iter.hasNext());
+      Assert.assertEquals(0, iter.available());
+      iter.close();
+    }
+    map.close();
   }
 
   @Test
-  public void testReplaceAllEqual() {
-    fail("Not yet implemented"); // TODO
+  public void testReplaceAllEqual() throws Exception {
+    int numKeys = 1000;
+    int numValuesPerKeys = 1000;
+    Map map = createAndFillMap(DIRECTORY, numKeys, numValuesPerKeys);
+    
+    for (int i = 0; i < numKeys; ++i) {
+      long expectedNumReplaced = 1;
+      long actualNumRemoved = map.replaceAllEqual(makeKey(i), makeValue(123), makeValue(124));
+      Assert.assertEquals(expectedNumReplaced, actualNumRemoved);
+    }
+    
+    for (int i = 0; i < numKeys; ++i) {
+      Iterator iter = map.get(makeKey(i));
+      for (int j = 0; j < numValuesPerKeys; ++j) {
+        if (j == 123) {
+          // This value has been removed.
+        } else {
+          Assert.assertTrue(iter.hasNext());
+          Assert.assertArrayEquals(makeValue(j), iter.nextAsByteArray());
+        }
+      }
+      // The last element is the replaced value.
+      Assert.assertTrue(iter.hasNext());
+      Assert.assertArrayEquals(makeValue(124), iter.nextAsByteArray());
+      Assert.assertFalse(iter.hasNext());
+      Assert.assertEquals(0, iter.available());
+      iter.close();
+    }
+    map.close();
   }
 
   @Test
-  public void testReplaceFirst() {
-    fail("Not yet implemented"); // TODO
+  public void testReplaceFirst() throws Exception {
+    int numKeys = 1000;
+    int numValuesPerKeys = 1000;
+    Map map = createAndFillMap(DIRECTORY, numKeys, numValuesPerKeys);
+
+    for (int i = 0; i < numKeys; ++i) {
+      boolean replaced = map.replaceFirst(makeKey(i), NEXT_IF_EVEN);
+      Assert.assertTrue(replaced);
+    }
+
+    for (int i = 0; i < numKeys; ++i) {
+      Iterator iter = map.get(makeKey(i));
+      for (int j = 1; j < numValuesPerKeys; ++j) {
+        Assert.assertTrue(iter.hasNext());
+        Assert.assertArrayEquals(makeValue(j), iter.nextAsByteArray());
+      }
+      // The last element is the replaced value.
+      Assert.assertTrue(iter.hasNext());
+      Assert.assertArrayEquals(makeValue(1), iter.nextAsByteArray());
+      Assert.assertFalse(iter.hasNext());
+      Assert.assertEquals(0, iter.available());
+      iter.close();
+    }
+    map.close();
   }
 
   @Test
-  public void testReplaceFirstEqual() {
-    fail("Not yet implemented"); // TODO
+  public void testReplaceFirstEqual() throws Exception {
+    int numKeys = 1000;
+    int numValuesPerKeys = 1000;
+    Map map = createAndFillMap(DIRECTORY, numKeys, numValuesPerKeys);
+    
+    for (int i = 0; i < numKeys; ++i) {
+      boolean replaced = map.replaceFirstEqual(makeKey(i), makeValue(123), makeValue(124));
+      Assert.assertTrue(replaced);
+    }
+    
+    for (int i = 0; i < numKeys; ++i) {
+      Iterator iter = map.get(makeKey(i));
+      for (int j = 0; j < numValuesPerKeys; ++j) {
+        if (j == 123) {
+          // This value has been removed.
+        } else {
+          Assert.assertTrue(iter.hasNext());
+          Assert.assertArrayEquals(makeValue(j), iter.nextAsByteArray());
+        }
+      }
+      // The last element is the replaced value.
+      Assert.assertTrue(iter.hasNext());
+      Assert.assertArrayEquals(makeValue(124), iter.nextAsByteArray());
+      Assert.assertFalse(iter.hasNext());
+      Assert.assertEquals(0, iter.available());
+      iter.close();
+    }
+    map.close();
   }
 
   @Test
-  public void testForEachKey() {
-    fail("Not yet implemented"); // TODO
+  public void testForEachKey() throws Exception {
+    int numKeys = 1000;
+    int numValuesPerKeys = 1000;
+    Map map = createAndFillMap(DIRECTORY, numKeys, numValuesPerKeys);
+    
+    final Set<Integer> keys = new HashSet<>();
+    map.forEachKey(new Procedure() {
+      @Override
+      protected void callOnReadOnly(ByteBuffer bytes) {
+        keys.add(getSuffix(bytes));
+      }
+    });
+    
+    Assert.assertEquals(numKeys, keys.size());
+    for (int i = 0; i < numKeys; ++i) {
+      Assert.assertTrue(keys.contains(i));
+    }
+    
+    // TODO Remove some keys
   }
 
   @Test
