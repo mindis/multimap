@@ -81,15 +81,7 @@ TEST_F(ShardTestFixture, PutAddsValueToList) {
   ASSERT_THAT(shard->getMutable(key1).available(), Eq(3));
 }
 
-TEST_F(ShardTestFixture, GetTwiceForSameListIsPossible) {
-  shard->put(key1, value);
-  const auto iter1 = shard->get(key1);
-  ASSERT_THAT(iter1.available(), Eq(1));
-  const auto iter2 = shard->get(key1);
-  ASSERT_THAT(iter2.available(), Eq(1));
-}
-
-TEST_F(ShardTestFixture, GetTwiceForDifferentListsIsPossible) {
+TEST_F(ShardTestFixture, GetTwiceForDifferentListsDoesNotBlock) {
   shard->put(key1, value);
   shard->put(key2, value);
   const auto iter1 = shard->get(key1);
@@ -98,7 +90,15 @@ TEST_F(ShardTestFixture, GetTwiceForDifferentListsIsPossible) {
   ASSERT_THAT(iter2.available(), Eq(1));
 }
 
-TEST_F(ShardTestFixture, GetMutableTwiceForDifferentListsIsPossible) {
+TEST_F(ShardTestFixture, GetTwiceForSameListDoesNotBlock) {
+  shard->put(key1, value);
+  const auto iter1 = shard->get(key1);
+  ASSERT_THAT(iter1.available(), Eq(1));
+  const auto iter2 = shard->get(key1);
+  ASSERT_THAT(iter2.available(), Eq(1));
+}
+
+TEST_F(ShardTestFixture, GetMutableTwiceForDifferentListsDoesNotBlock) {
   shard->put(key1, value);
   shard->put(key2, value);
   const auto iter1 = shard->getMutable(key1);
@@ -107,7 +107,7 @@ TEST_F(ShardTestFixture, GetMutableTwiceForDifferentListsIsPossible) {
   ASSERT_THAT(iter2.available(), Eq(1));
 }
 
-TEST_F(ShardTestFixture, GetMutableTwiceForSameListIsNotPossible) {
+TEST_F(ShardTestFixture, GetMutableTwiceForSameListBlocks) {
   shard->put(key1, value);
   bool other_thread_got_mutable_iter = false;
   {
@@ -127,7 +127,7 @@ TEST_F(ShardTestFixture, GetMutableTwiceForSameListIsNotPossible) {
   ASSERT_TRUE(other_thread_got_mutable_iter);
 }
 
-TEST_F(ShardTestFixture, GetAndThenGetMutableForSameListIsNotPossible) {
+TEST_F(ShardTestFixture, GetAndThenGetMutableForSameListBlocks) {
   shard->put(key1, value);
   bool other_thread_got_mutable_iter = false;
   {
@@ -147,7 +147,7 @@ TEST_F(ShardTestFixture, GetAndThenGetMutableForSameListIsNotPossible) {
   ASSERT_TRUE(other_thread_got_mutable_iter);
 }
 
-TEST_F(ShardTestFixture, GetMutableAndThenGetForSameListIsNotPossible) {
+TEST_F(ShardTestFixture, GetMutableAndThenGetForSameListBlocks) {
   shard->put(key1, value);
   bool other_thread_got_iter = false;
   {
@@ -172,7 +172,7 @@ TEST_F(ShardTestFixture, ForEachKeyIgnoresEmptyListsByDefault) {
   shard->put(key2, value);
   shard->put(key3, value);
 
-  shard->remove(key3);
+  shard->removeKey(key3);
 
   std::vector<std::string> keys;
   shard->forEachKey(

@@ -23,7 +23,7 @@
 #include <boost/filesystem/path.hpp>
 #include "multimap/internal/Shard.hpp"
 #include "multimap/thirdparty/mt/mt.hpp"
-#include "multimap/Callables.hpp"
+#include "multimap/callables.hpp"
 #include "multimap/Options.hpp"
 
 namespace multimap {
@@ -34,7 +34,7 @@ static const std::size_t MINOR_VERSION = 3;
 class Map : mt::Resource {
   // Insanely fast 1:n key-value store.
 
-public:
+ public:
   struct Id {
     std::uint64_t block_size = 0;
     std::uint64_t num_shards = 0;
@@ -80,13 +80,15 @@ public:
   //   * No list is in locked state, i.e. there is no iterator object pointing
   //     to an existing list.
 
-  void put(const Bytes& key, const Bytes& value);
+  void put(const Bytes& key, const Bytes& value) {
+    getShard(key).put(key, value);
+  }
   // Appends value to the end of the list associated with key.
   // Throws std::exception if:
   //   * key.size() > max_key_size()
   //   * value.size() > max_value_size()
 
-  ListIterator get(const Bytes& key) const;
+  ListIterator get(const Bytes& key) const { return getShard(key).get(key); }
   // Returns a read-only iterator to the list associated with key. If no such
   // mapping exists the list is considered to be empty. If the list is not
   // empty a reader lock will be acquired to synchronize concurrent access to
@@ -96,7 +98,9 @@ public:
   // locked exclusively by a writer lock, see getMutable(), the method will
   // block until the lock is released.
 
-  MutableListIterator getMutable(const Bytes& key);
+  MutableListIterator getMutable(const Bytes& key) {
+    return getShard(key).getMutable(key);
+  }
   // Returns a read-write iterator to the list associated with key. If no such
   // mapping exists the list is considered to be empty. If the list is not
   // empty a writer lock will be acquired to synchronize concurrent access to
@@ -106,54 +110,54 @@ public:
   // list is currently locked, either by a reader or writer lock, the method
   // will block until the lock is released.
 
-  std::size_t remove(const Bytes& key);
-  // Deletes all values for key by clearing the associated list. This method
-  // will block until a writer lock can be acquired.
-  // Returns: the number of deleted values.
+  bool removeKey(const Bytes& key) { return getShard(key).removeKey(key); }
+  // Removes all values associated with `key`. This method will block until a
+  // writer lock can be acquired for the associated list.
+  // Returns: true if the key was removed, false otherwise.
 
-  std::size_t removeAll(const Bytes& key, Callables::Predicate predicate);
-  // Deletes all values in the list associated with key for which predicate
-  // yields true. This method will block until a writer lock can be acquired.
-  // Returns: the number of deleted values.
+  template <typename Predicate>
+  std::size_t removeKeys(Predicate predicate) {
+    std::size_t num_removed = 0;
+    for (const auto& shard : shards_) {
+      num_removed += shard->removeKeys(predicate);
+    }
+    return num_removed;
+  }
+  // Removes all values that are associated with keys for which `predicate`
+  // yields `true`. This method will block until writer locks can be acquired
+  // for the associated lists.
+  // Returns: the number of removed keys.
 
-  std::size_t removeAllEqual(const Bytes& key, const Bytes& value);
-  // Deletes all values in the list associated with key which are equal to
-  // value according to operator==(const Bytes&, const Bytes&). This method
-  // will block until a writer lock can be acquired.
-  // Returns: the number of deleted values.
+  template <typename Predicate>
+  std::size_t removeKeys(Predicate predicate, std::try_to_lock_t try_lock) {
+    std::size_t num_removed = 0;
+    for (const auto& shard : shards_) {
+      num_removed += shard->removeKeys(predicate, try_lock);
+    }
+    return num_removed;
+  }
 
-  bool removeFirst(const Bytes& key, Callables::Predicate predicate);
+  template <typename Predicate>
+  bool removeValue(const Bytes& key, Predicate predicate) {
+    return getShard(key).removeValue(key, predicate);
+  }
   // Deletes the first value in the list associated with key for which
   // predicate yields true. This method will block until a writer lock can be
   // acquired.
   // Returns: true if a value was deleted, false otherwise.
 
-  bool removeFirstEqual(const Bytes& key, const Bytes& value);
-  // Deletes the first value in the list associated with key which is equal to
-  // value according to operator==(const Bytes&, const Bytes&). This method
-  // will block until a writer lock can be acquired.
-  // Returns: true if a value was deleted, false otherwise.
+  template <typename Predicate>
+  std::size_t removeValues(const Bytes& key, Predicate predicate) {
+    return getShard(key).removeValues(key, predicate);
+  }
+  // Deletes all values in the list associated with key for which predicate
+  // yields true. This method will block until a writer lock can be acquired.
+  // Returns: the number of deleted values.
 
-  std::size_t replaceAll(const Bytes& key, Callables::Function map);
-  // Replaces all values in the list associated with key by the result of
-  // invoking function. If the result of function is an empty string no
-  // replacement is performed. A replacement does not happen in-place. Instead,
-  // the old value is marked as deleted and the new value is appended to the
-  // end of the list. Future releases will support in-place replacements. This
-  // method will block until a writer lock can be acquired.
-  // Returns: the number of replaced values.
-
-  std::size_t replaceAllEqual(const Bytes& key, const Bytes& old_value,
-                              const Bytes& new_value);
-  // Replaces all values in the list associated with key which are equal to
-  // old_value according to operator==(const Bytes&, const Bytes&) by
-  // new_value. A replacement does not happen in-place. Instead, the old value
-  // is marked as deleted and the new value is appended to the end of the list.
-  // Future releases will support in-place replacements. This method will block
-  // until a writer lock can be acquired.
-  // Returns: the number of replaced values.
-
-  bool replaceFirst(const Bytes& key, Callables::Function map);
+  template <typename Function>
+  bool replaceValue(const Bytes& key, Function map) {
+    return getShard(key).replaceValue(key, map);
+  }
   // Replaces the first value in the list associated with key by the result of
   // invoking function. If the result of function is an empty string no
   // replacement is performed. The replacement does not happen in-place.
@@ -162,18 +166,41 @@ public:
   // replacements. This method will block until a writer lock can be acquired.
   // Returns: true if a value was replaced, false otherwise.
 
-  bool replaceFirstEqual(const Bytes& key, const Bytes& old_value,
-                         const Bytes& new_value);
-  // Replaces the first value in the list associated with key which is equal to
-  // old_value according to operator==(const Bytes&, const Bytes&) by
-  // new_value. The replacement does not happen in-place. Instead, the old
-  // value is marked as deleted and the new value is appended to the end of the
-  // list. Future releases will support in-place replacements. This method will
-  // block until a writer lock can be acquired.
-  // Returns: true if a value was replaced, false otherwise.
+  bool replaceValue(const Bytes& key, const Bytes& old_value,
+                    const Bytes& new_value) {
+    return replaceValue(key, [&old_value, &new_value](const Bytes& value) {
+      return (value == old_value) ? new_value.toString() : std::string();
+    });
+  }
+  // TODO Document this.
 
-  void forEachKey(Callables::Procedure action) const;
-  // Applies `procedure` to each key of the map whose associated list is not
+  template <typename Function>
+  std::size_t replaceValues(const Bytes& key, Function map) {
+    return getShard(key).replaceValues(key, map);
+  }
+  // Replaces all values in the list associated with key by the result of
+  // invoking function. If the result of function is an empty string no
+  // replacement is performed. A replacement does not happen in-place. Instead,
+  // the old value is marked as deleted and the new value is appended to the
+  // end of the list. Future releases will support in-place replacements. This
+  // method will block until a writer lock can be acquired.
+  // Returns: the number of replaced values.
+
+  std::size_t replaceValues(const Bytes& key, const Bytes& old_value,
+                            const Bytes& new_value) {
+    return replaceValues(key, [&old_value, &new_value](const Bytes& value) {
+      return (value == old_value) ? new_value.toString() : std::string();
+    });
+  }
+  // TODO Document this.
+
+  template <typename Procedure>
+  void forEachKey(Procedure process) const {
+    for (const auto& shard : shards_) {
+      shard->forEachKey(process);
+    }
+  }
+  // Applies `process` to each key of the map whose associated list is not
   // empty. The keys are visited in random order. Although it is possible to
   // emulate a for-each-entry iteration by keeping a `this` pointer of the map
   // within `procedure` plus calling `Get(key)`, this operation should be
@@ -183,32 +210,40 @@ public:
   // an optimal order before iterating them. During the time of execution the
   // entire map is locked for read-only operations.
 
-  void forEachValue(const Bytes& key, Callables::Procedure action) const;
-  // Applies procedure to each value in the list associated with key. This is a
+  template <typename Procedure>
+  void forEachValue(const Bytes& key, Procedure process) const {
+    getShard(key).forEachValue(key, process);
+  }
+  // Applies `process` to each value in the list associated with key. This is a
   // shorthand for requesting a read-only iterator via Get(key) followed by an
   // application of procedure to each value obtained via
   // ConstListIter::GetValue(). This method will block until a reader lock for
   // the list in question can be acquired.
 
-  void forEachValue(const Bytes& key, Callables::Predicate action) const;
-  // Applies predicate to each value in the list associated with key until
-  // predicate yields false. This is a shorthand for requesting a read-only
-  // iterator via Get(key) followed by an application of predicate to each
-  // value obtained via ConstListIter::GetValue() until predicate yields false.
-  // This method will block until a reader lock for the list in question can be
-  // acquired.
-
-  void forEachEntry(Callables::BinaryProcedure action) const;
+  template <typename BinaryProcedure>
+  void forEachEntry(BinaryProcedure process) const {
+    for (const auto& shard : shards_) {
+      shard->forEachEntry(process);
+    }
+  }
   // TODO Document this.
 
-  std::vector<Stats> getStats() const;
+  std::vector<Stats> getStats() const {
+    std::vector<Stats> stats;
+    for (const auto& shard : shards_) {
+      stats.push_back(shard->getStats());
+    }
+    return stats;
+  }
 
-  Stats getTotalStats() const;
+  Stats getTotalStats() const {
+    return internal::Shard::Stats::total(getStats());
+  }
 
-  bool isReadOnly() const;
+  bool isReadOnly() const { return shards_.front()->isReadOnly(); }
 
   // ---------------------------------------------------------------------------
-  // Free functions for long running opertions
+  // Static methods
   // ---------------------------------------------------------------------------
 
   static std::vector<internal::Shard::Stats> stats(
@@ -281,7 +316,15 @@ public:
   //   * `directory` is not writable.
   //   * `new_block_size` is not a power of two.
 
-private:
+ private:
+  internal::Shard& getShard(const Bytes& key) {
+    return *shards_[mt::fnv1aHash(key.data(), key.size()) % shards_.size()];
+  }
+
+  const internal::Shard& getShard(const Bytes& key) const {
+    return *shards_[mt::fnv1aHash(key.data(), key.size()) % shards_.size()];
+  }
+
   std::vector<std::unique_ptr<internal::Shard> > shards_;
   mt::DirectoryLockGuard lock_;
 };
@@ -297,7 +340,7 @@ const std::string getNameOfStatsFile(std::size_t index);
 const std::string getNameOfValuesFile(std::size_t index);
 void checkVersion(std::uint64_t major_version, std::uint64_t minor_version);
 
-} // namespace internal
-} // namespace multimap
+}  // namespace internal
+}  // namespace multimap
 
-#endif // MULTIMAP_MAP_HPP_INCLUDED
+#endif  // MULTIMAP_MAP_HPP_INCLUDED

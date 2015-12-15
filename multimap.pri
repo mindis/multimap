@@ -21,7 +21,7 @@ HEADERS += \
     $$PWD/src/cpp/multimap/thirdparty/mt/mt.hpp \
     $$PWD/src/cpp/multimap/thirdparty/xxhash/xxhash.h \
     $$PWD/src/cpp/multimap/Bytes.hpp \
-    $$PWD/src/cpp/multimap/Callables.hpp \
+    $$PWD/src/cpp/multimap/callables.hpp \
     $$PWD/src/cpp/multimap/Map.hpp \
     $$PWD/src/cpp/multimap/Options.hpp
 

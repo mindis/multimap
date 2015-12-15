@@ -33,28 +33,21 @@ void checkOptions(const Options& options) {
                     "Options::block_size must be a power of two");
 }
 
-internal::Shard& getShard(
-    const std::vector<std::unique_ptr<internal::Shard> >& shards,
-    const Bytes& key) {
-  MT_REQUIRE_FALSE(shards.empty());
-  return *shards[mt::fnv1aHash(key.data(), key.size()) % shards.size()];
-}
-
-void forEachShard(
-    const boost::filesystem::path& directory,
-    std::function<void(const boost::filesystem::path& /* prefix */,
-                       std::size_t /* index */, std::size_t /* nshards */)>
-        action) {
+template <typename Procdure>
+// Required interface:
+// void process(const boost::filesystem::path& prefix,
+//              std::size_t index, std::size_t nshards);
+void forEachShard(const boost::filesystem::path& directory, Procdure process) {
   mt::DirectoryLockGuard lock(directory, internal::getNameOfLockFile());
   const auto id = Map::Id::readFromDirectory(directory);
   internal::checkVersion(id.major_version, id.minor_version);
   for (std::size_t i = 0; i != id.num_shards; ++i) {
     const auto prefix = directory / internal::getShardPrefix(i);
-    action(prefix, i, id.num_shards);
+    process(prefix, i, id.num_shards);
   }
 }
 
-} // namespace
+}  // namespace
 
 Map::Id Map::Id::readFromDirectory(const boost::filesystem::path& directory) {
   return readFromFile(directory / internal::getNameOfIdFile());
@@ -118,93 +111,6 @@ Map::~Map() {
     id.num_shards = shards_.size();
     id.writeToFile(lock_.directory() / internal::getNameOfIdFile());
   }
-}
-
-void Map::put(const Bytes& key, const Bytes& value) {
-  getShard(shards_, key).put(key, value);
-}
-
-Map::ListIterator Map::get(const Bytes& key) const {
-  return getShard(shards_, key).get(key);
-}
-
-Map::MutableListIterator Map::getMutable(const Bytes& key) {
-  return getShard(shards_, key).getMutable(key);
-}
-
-std::size_t Map::remove(const Bytes& key) {
-  return getShard(shards_, key).remove(key);
-}
-
-std::size_t Map::removeAll(const Bytes& key, Callables::Predicate predicate) {
-  return getShard(shards_, key).removeAll(key, predicate);
-}
-
-std::size_t Map::removeAllEqual(const Bytes& key, const Bytes& value) {
-  return getShard(shards_, key).removeAllEqual(key, value);
-}
-
-bool Map::removeFirst(const Bytes& key, Callables::Predicate predicate) {
-  return getShard(shards_, key).removeFirst(key, predicate);
-}
-
-bool Map::removeFirstEqual(const Bytes& key, const Bytes& value) {
-  return getShard(shards_, key).removeFirstEqual(key, value);
-}
-
-std::size_t Map::replaceAll(const Bytes& key, Callables::Function map) {
-  return getShard(shards_, key).replaceAll(key, map);
-}
-
-std::size_t Map::replaceAllEqual(const Bytes& key, const Bytes& old_value,
-                                 const Bytes& new_value) {
-  return getShard(shards_, key).replaceAllEqual(key, old_value, new_value);
-}
-
-bool Map::replaceFirst(const Bytes& key, Callables::Function map) {
-  return getShard(shards_, key).replaceFirst(key, map);
-}
-
-bool Map::replaceFirstEqual(const Bytes& key, const Bytes& old_value,
-                            const Bytes& new_value) {
-  return getShard(shards_, key).replaceFirstEqual(key, old_value, new_value);
-}
-
-void Map::forEachKey(Callables::Procedure action) const {
-  for (const auto& shard : shards_) {
-    shard->forEachKey(action);
-  }
-}
-
-void Map::forEachValue(const Bytes& key, Callables::Procedure action) const {
-  getShard(shards_, key).forEachValue(key, action);
-}
-
-void Map::forEachValue(const Bytes& key, Callables::Predicate action) const {
-  getShard(shards_, key).forEachValue(key, action);
-}
-
-void Map::forEachEntry(Callables::BinaryProcedure action) const {
-  for (const auto& shard : shards_) {
-    shard->forEachEntry(action);
-  }
-}
-
-std::vector<Map::Stats> Map::getStats() const {
-  std::vector<Stats> stats;
-  for (const auto& shard : shards_) {
-    stats.push_back(shard->getStats());
-  }
-  return stats;
-}
-
-Map::Stats Map::getTotalStats() const {
-  return internal::Shard::Stats::total(getStats());
-}
-
-bool Map::isReadOnly() const {
-  MT_REQUIRE_FALSE(shards_.empty());
-  return shards_.front()->isReadOnly();
 }
 
 std::vector<internal::Shard::Stats> Map::stats(
@@ -429,5 +335,5 @@ void checkVersion(std::uint64_t major_version, std::uint64_t minor_version) {
             major_version, minor_version, MAJOR_VERSION, MINOR_VERSION);
 }
 
-} // namespace internal
-} // namespace multimap
+}  // namespace internal
+}  // namespace multimap

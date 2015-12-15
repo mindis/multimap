@@ -25,81 +25,13 @@ namespace internal {
 
 namespace {
 
-struct Entry : public std::pair<Bytes, List::Head> {
-
-  typedef std::pair<Bytes, List::Head> Base;
-
-  Entry(Bytes&& key, List::Head&& head) : Base(key, head) {}
-
-  Entry(const Bytes& key, const List::Head& head) : Base(key, head) {}
-
-  Bytes& key() { return first; }
-  const Bytes& key() const { return first; }
-
-  List::Head& head() { return second; }
-  const List::Head& head() const { return second; }
-
-  static Entry readFromStream(std::FILE* stream, Arena* arena) {
-    std::int32_t key_size;
-    mt::fread(stream, &key_size, sizeof key_size);
-    const auto key_data = arena->allocate(key_size);
-    mt::fread(stream, key_data, key_size);
-    auto head = List::Head::readFromStream(stream);
-    return Entry(Bytes(key_data, key_size), std::move(head));
-  }
-
-  void writeToStream(std::FILE* stream) const {
-    MT_REQUIRE_LE(key().size(), Shard::Limits::maxKeySize());
-    const std::int32_t key_size = key().size();
-    mt::fwrite(stream, &key_size, sizeof key_size);
-    mt::fwrite(stream, key().data(), key().size());
-    head().writeToStream(stream);
-  }
-};
-
 std::uint64_t computeChecksum(const Shard::Stats& stats) {
   auto copy = stats;
   copy.checksum = 0;
   return mt::crc32(&copy, sizeof copy);
 }
 
-std::size_t removeValues(UniqueList&& list, Callables::Predicate predicate,
-                         bool exit_on_first_success) {
-  std::size_t num_removed = 0;
-  auto iter = list.iterator();
-  while (iter.hasNext()) {
-    if (predicate(iter.next())) {
-      iter.remove();
-      ++num_removed;
-      if (exit_on_first_success) {
-        break;
-      }
-    }
-  }
-  return num_removed;
-}
-
-std::size_t replaceValues(UniqueList&& list, Callables::Function map,
-                          bool exit_on_first_success) {
-  std::vector<std::string> replaced_values;
-  auto iter = list.iterator();
-  while (iter.hasNext()) {
-    auto replaced_value = map(iter.next());
-    if (!replaced_value.empty()) {
-      replaced_values.push_back(std::move(replaced_value));
-      iter.remove();
-      if (exit_on_first_success) {
-        break;
-      }
-    }
-  }
-  for (const auto& value : replaced_values) {
-    list.add(value);
-  }
-  return replaced_values.size();
-}
-
-} // namespace
+}  // namespace
 
 std::size_t Shard::Limits::maxKeySize() { return Varint::Limits::MAX_N4; }
 
@@ -109,10 +41,9 @@ std::size_t Shard::Limits::maxValueSize() {
 
 const std::vector<std::string>& Shard::Stats::names() {
   static std::vector<std::string> names = {
-    "block_size",     "num_blocks",    "num_keys",     "num_values_put",
-    "num_values_rmd", "key_size_min",  "key_size_max", "key_size_avg",
-    "list_size_min",  "list_size_max", "list_size_avg"
-  };
+      "block_size",     "num_blocks",    "num_keys",     "num_values_put",
+      "num_values_rmd", "key_size_min",  "key_size_max", "key_size_avg",
+      "list_size_min",  "list_size_max", "list_size_avg"};
   return names;
 }
 
@@ -166,9 +97,9 @@ mt::Properties Shard::Stats::toProperties() const {
 }
 
 std::vector<std::uint64_t> Shard::Stats::toVector() const {
-  return { block_size,     num_blocks,    num_keys,     num_values_put,
-           num_values_rmd, key_size_min,  key_size_max, key_size_avg,
-           list_size_min,  list_size_max, list_size_avg };
+  return {block_size,     num_blocks,    num_keys,     num_values_put,
+          num_values_rmd, key_size_min,  key_size_max, key_size_avg,
+          list_size_min,  list_size_max, list_size_avg};
 }
 
 Shard::Stats Shard::Stats::total(const std::vector<Stats>& stats) {
@@ -257,7 +188,7 @@ Shard::Shard(const boost::filesystem::path& file_prefix, const Options& options)
   }
 
   Store::Options store_options;
-  store_options.block_size = options.block_size; // Ignored if already exists
+  store_options.block_size = options.block_size;  // Ignored if already exists
   store_options.buffer_size = options.buffer_size;
   store_options.readonly = options.readonly;
   store_options.quiet = options.quiet;
@@ -319,113 +250,6 @@ Shard::~Shard() {
   }
 }
 
-void Shard::put(const Bytes& key, const Bytes& value) {
-  getUniqueOrCreate(key).add(value);
-}
-
-Shard::ListIterator Shard::get(const Bytes& key) const {
-  return ListIterator(getShared(key));
-}
-
-Shard::MutableListIterator Shard::getMutable(const Bytes& key) {
-  return MutableListIterator(getUnique(key));
-}
-
-std::size_t Shard::remove(const Bytes& key) {
-  std::size_t num_removed = 0;
-  if (auto list = getUnique(key)) {
-    stats_.num_values_put += list.head().num_values_added;
-    stats_.num_values_rmd += list.head().num_values_added;
-    // Since the whole list is discarded, all added values count as removed.
-    num_removed = list.size();
-    list.clear();
-  }
-  return num_removed;
-}
-
-std::size_t Shard::removeAll(const Bytes& key, Callables::Predicate predicate) {
-  return removeValues(getUnique(key), predicate, false);
-}
-
-std::size_t Shard::removeAllEqual(const Bytes& key, const Bytes& value) {
-  return removeAll(key, [&value](const Bytes& current_value) {
-    return current_value == value;
-  });
-}
-
-bool Shard::removeFirst(const Bytes& key, Callables::Predicate predicate) {
-  return removeValues(getUnique(key), predicate, true);
-}
-
-bool Shard::removeFirstEqual(const Bytes& key, const Bytes& value) {
-  return removeFirst(key, [&value](const Bytes& current_value) {
-    return current_value == value;
-  });
-}
-
-std::size_t Shard::replaceAll(const Bytes& key, Callables::Function map) {
-  return replaceValues(getUnique(key), map, false);
-}
-
-std::size_t Shard::replaceAllEqual(const Bytes& key, const Bytes& old_value,
-                                   const Bytes& new_value) {
-  return replaceAll(key, [&old_value, &new_value](const Bytes& current_value) {
-    return (current_value == old_value) ? new_value.toString() : std::string();
-  });
-}
-
-bool Shard::replaceFirst(const Bytes& key, Callables::Function map) {
-  return replaceValues(getUnique(key), map, true);
-}
-
-bool Shard::replaceFirstEqual(const Bytes& key, const Bytes& old_value,
-                              const Bytes& new_value) {
-  return replaceFirst(key,
-                      [&old_value, &new_value](const Bytes& current_value) {
-    return (current_value == old_value) ? new_value.toString() : std::string();
-  });
-}
-
-void Shard::forEachKey(Callables::Procedure action,
-                       bool ignore_empty_lists) const {
-  boost::shared_lock<boost::shared_mutex> lock(mutex_);
-  for (const auto& entry : map_) {
-    SharedList list(*entry.second, *store_, std::try_to_lock);
-    if (list && !(ignore_empty_lists && list.empty())) {
-      action(entry.first);
-    }
-  }
-}
-
-void Shard::forEachValue(const Bytes& key, Callables::Procedure action) const {
-  auto iter = get(key);
-  while (iter.hasNext()) {
-    action(iter.next());
-  }
-}
-
-void Shard::forEachValue(const Bytes& key, Callables::Predicate action) const {
-  auto iter = get(key);
-  while (iter.hasNext()) {
-    if (!action(iter.next())) {
-      break;
-    }
-  }
-}
-
-void Shard::forEachEntry(Callables::BinaryProcedure action,
-                         bool ignore_empty_lists) const {
-  boost::shared_lock<boost::shared_mutex> lock(mutex_);
-  store_->adviseAccessPattern(Store::AccessPattern::WILLNEED);
-  for (const auto& entry : map_) {
-    SharedList list(*entry.second, *store_, std::try_to_lock);
-    if (list && !(ignore_empty_lists && list.empty())) {
-      action(entry.first, ListIterator(std::move(list)));
-    }
-  }
-  store_->adviseAccessPattern(Store::AccessPattern::NORMAL);
-}
-
 Shard::Stats Shard::getStats() const {
   Stats stats = stats_;
   const auto store_stats = store_->getStats();
@@ -458,22 +282,6 @@ Shard::Stats Shard::getStats() const {
   return stats;
 }
 
-void Shard::forEachEntry(const boost::filesystem::path& prefix,
-                         Callables::BinaryProcedure action) {
-  Arena arena;
-  Store::Options store_options;
-  store_options.readonly = true;
-  Store store(getNameOfValuesFile(prefix.string()), store_options);
-  store.adviseAccessPattern(Store::AccessPattern::WILLNEED);
-  const auto stats = Stats::readFromFile(getNameOfStatsFile(prefix.string()));
-  const auto stream = mt::fopen(getNameOfKeysFile(prefix.string()), "r");
-  for (std::size_t i = 0; i != stats.num_keys; ++i) {
-    const auto entry = Entry::readFromStream(stream.get(), &arena);
-    List list(entry.head());
-    action(entry.key(), ListIterator(SharedList(list, store)));
-  }
-}
-
 std::string Shard::getNameOfKeysFile(const std::string& prefix) {
   return prefix + ".keys";
 }
@@ -484,6 +292,23 @@ std::string Shard::getNameOfStatsFile(const std::string& prefix) {
 
 std::string Shard::getNameOfValuesFile(const std::string& prefix) {
   return prefix + ".values";
+}
+
+Shard::Entry Shard::Entry::readFromStream(std::FILE* stream, Arena* arena) {
+  std::int32_t key_size;
+  mt::fread(stream, &key_size, sizeof key_size);
+  const auto key_data = arena->allocate(key_size);
+  mt::fread(stream, key_data, key_size);
+  auto head = List::Head::readFromStream(stream);
+  return Entry(Bytes(key_data, key_size), std::move(head));
+}
+
+void Shard::Entry::writeToStream(std::FILE* stream) const {
+  MT_REQUIRE_LE(key().size(), Shard::Limits::maxKeySize());
+  const std::int32_t key_size = key().size();
+  mt::fwrite(stream, &key_size, sizeof key_size);
+  mt::fwrite(stream, key().data(), key().size());
+  head().writeToStream(stream);
 }
 
 SharedList Shard::getShared(const Bytes& key) const {
@@ -521,7 +346,6 @@ UniqueList Shard::getUniqueOrCreate(const Bytes& key) {
   mt::Check::isLessEqual(key.size(), Limits::maxKeySize(),
                          "Reject key of %d bytes because it's too big",
                          key.size());
-
   List* list = nullptr;
   {
     std::lock_guard<boost::shared_mutex> lock(mutex_);
@@ -541,5 +365,5 @@ UniqueList Shard::getUniqueOrCreate(const Bytes& key) {
   return UniqueList(list, store_.get(), &arena_);
 }
 
-} // namespace internal
-} // namespace multimap
+}  // namespace internal
+}  // namespace multimap

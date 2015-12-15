@@ -27,13 +27,12 @@
 #include "multimap/internal/Arena.hpp"
 #include "multimap/internal/List.hpp"
 #include "multimap/thirdparty/mt/mt.hpp"
-#include "multimap/Callables.hpp"
 
 namespace multimap {
 namespace internal {
 
 class Shard : mt::Resource {
-public:
+ public:
   struct Limits {
     static std::size_t maxKeySize();
     static std::size_t maxValueSize();
@@ -94,41 +93,117 @@ public:
 
   ~Shard();
 
-  void put(const Bytes& key, const Bytes& value);
+  void put(const Bytes& key, const Bytes& value) {
+    getUniqueOrCreate(key).add(value);
+  }
 
-  ListIterator get(const Bytes& key) const;
+  ListIterator get(const Bytes& key) const {
+    return ListIterator(getShared(key));
+  }
 
-  MutableListIterator getMutable(const Bytes& key);
+  MutableListIterator getMutable(const Bytes& key) {
+    return MutableListIterator(getUnique(key));
+  }
 
-  std::size_t remove(const Bytes& key);
+  bool removeKey(const Bytes& key) {
+    bool removed = false;
+    auto list = getUnique(key);
+    if (list && !list.empty()) {
+      stats_.num_values_put += list.head().num_values_added;
+      stats_.num_values_rmd += list.head().num_values_added;
+      removed = true;
+      list.clear();
+    }
+    return removed;
+  }
 
-  std::size_t removeAll(const Bytes& key, Callables::Predicate predicate);
+  template <typename Predicate>
+  std::size_t removeKeys(Predicate predicate) {
+    std::size_t num_removed = 0;
+    boost::shared_lock<boost::shared_mutex> lock(mutex_);
+    for (const auto& entry : map_) {
+      if (predicate(entry.first)) {
+        UniqueList list(entry.second.get(), store_.get(), &arena_);
+        if (!list.empty()) {
+          stats_.num_values_put += list.head().num_values_added;
+          stats_.num_values_rmd += list.head().num_values_added;
+          ++num_removed;
+          list.clear();
+        }
+      }
+    }
+    return num_removed;
+  }
 
-  std::size_t removeAllEqual(const Bytes& key, const Bytes& value);
+  template <typename Predicate>
+  std::size_t removeKeys(Predicate predicate, std::try_to_lock_t try_lock) {
+    std::size_t num_removed = 0;
+    boost::shared_lock<boost::shared_mutex> lock(mutex_);
+    for (const auto& entry : map_) {
+      if (predicate(entry.first)) {
+        UniqueList list(entry.second.get(), store_.get(), &arena_, try_lock);
+        if (list && !list.empty()) {
+          stats_.num_values_put += list.head().num_values_added;
+          stats_.num_values_rmd += list.head().num_values_added;
+          ++num_removed;
+          list.clear();
+        }
+      }
+    }
+    return num_removed;
+  }
 
-  bool removeFirst(const Bytes& key, Callables::Predicate predicate);
+  template <typename Predicate>
+  bool removeValue(const Bytes& key, Predicate predicate) {
+    return remove(key, predicate, true);
+  }
 
-  bool removeFirstEqual(const Bytes& key, const Bytes& value);
+  template <typename Predicate>
+  std::size_t removeValues(const Bytes& key, Predicate predicate) {
+    return remove(key, predicate, false);
+  }
 
-  std::size_t replaceAll(const Bytes& key, Callables::Function map);
+  template <typename Function>
+  bool replaceValue(const Bytes& key, Function map) {
+    return replace(key, map, true);
+  }
 
-  std::size_t replaceAllEqual(const Bytes& key, const Bytes& old_value,
-                              const Bytes& new_value);
+  template <typename Function>
+  std::size_t replaceValues(const Bytes& key, Function map) {
+    return replace(key, map, false);
+  }
 
-  bool replaceFirst(const Bytes& key, Callables::Function map);
+  template <typename Procedure>
+  void forEachKey(Procedure process, bool skip_if_empty = true) const {
+    boost::shared_lock<boost::shared_mutex> lock(mutex_);
+    for (const auto& entry : map_) {
+      SharedList list(*entry.second, *store_, std::try_to_lock);
+      if (list && !(skip_if_empty && list.empty())) {
+        process(entry.first);
+      }
+    }
+  }
 
-  bool replaceFirstEqual(const Bytes& key, const Bytes& old_value,
-                         const Bytes& new_value);
+  template <typename Procedure>
+  void forEachValue(const Bytes& key, Procedure process) const {
+    auto iter = get(key);
+    while (iter.hasNext()) {
+      process(iter.next());
+    }
+  }
 
-  void forEachKey(Callables::Procedure action,
-                  bool ignore_empty_lists = true) const;
-
-  void forEachValue(const Bytes& key, Callables::Procedure action) const;
-
-  void forEachValue(const Bytes& key, Callables::Predicate action) const;
-
-  void forEachEntry(Callables::BinaryProcedure action,
-                    bool ignore_empty_lists = true) const;
+  template <typename BinaryProcedure>
+  void forEachEntry(BinaryProcedure process, bool skip_if_empty = true) const {
+    boost::shared_lock<boost::shared_mutex> lock(mutex_);
+    store_->adviseAccessPattern(Store::AccessPattern::WILLNEED);
+    for (const auto& entry : map_) {
+      SharedList list(*entry.second, *store_, std::try_to_lock);
+      if (list && !(skip_if_empty && list.empty())) {
+        process(entry.first, ListIterator(std::move(list)));
+      }
+    }
+    store_->adviseAccessPattern(Store::AccessPattern::NORMAL);
+  }
 
   Stats getStats() const;
   // Returns various statistics about the shard.
@@ -138,17 +213,93 @@ public:
 
   std::size_t getBlockSize() const { return store_->getBlockSize(); }
 
+  // ---------------------------------------------------------------------------
+  // Static methods
+  // ---------------------------------------------------------------------------
+
+  template <typename BinaryProcedure>
   static void forEachEntry(const boost::filesystem::path& prefix,
-                           Callables::BinaryProcedure action);
+                           BinaryProcedure process) {
+    Arena arena;
+    Store::Options store_options;
+    store_options.readonly = true;
+    Store store(getNameOfValuesFile(prefix.string()), store_options);
+    store.adviseAccessPattern(Store::AccessPattern::WILLNEED);
+    const auto stats = Stats::readFromFile(getNameOfStatsFile(prefix.string()));
+    const auto stream = mt::fopen(getNameOfKeysFile(prefix.string()), "r");
+    for (std::size_t i = 0; i != stats.num_keys; ++i) {
+      const auto entry = Entry::readFromStream(stream.get(), &arena);
+      List list(entry.head());
+      process(entry.key(), ListIterator(SharedList(list, store)));
+    }
+  }
 
   static std::string getNameOfKeysFile(const std::string& prefix);
   static std::string getNameOfStatsFile(const std::string& prefix);
   static std::string getNameOfValuesFile(const std::string& prefix);
 
-private:
+ private:
+  struct Entry : public std::pair<Bytes, List::Head> {
+    typedef std::pair<Bytes, List::Head> Base;
+
+    Entry(Bytes&& key, List::Head&& head) : Base(key, head) {}
+
+    Entry(const Bytes& key, const List::Head& head) : Base(key, head) {}
+
+    Bytes& key() { return first; }
+    const Bytes& key() const { return first; }
+
+    List::Head& head() { return second; }
+    const List::Head& head() const { return second; }
+
+    static Entry readFromStream(std::FILE* stream, Arena* arena);
+
+    void writeToStream(std::FILE* stream) const;
+  };
+
   SharedList getShared(const Bytes& key) const;
   UniqueList getUnique(const Bytes& key);
   UniqueList getUniqueOrCreate(const Bytes& key);
+
+  template <typename Predicate>
+  std::size_t remove(const Bytes& key, Predicate predicate,
+                     bool exit_after_first_success) {
+    std::size_t num_removed = 0;
+    auto iter = getMutable(key);
+    while (iter.hasNext()) {
+      if (predicate(iter.next())) {
+        iter.remove();
+        ++num_removed;
+        if (exit_after_first_success) {
+          break;
+        }
+      }
+    }
+    return num_removed;
+  }
+
+  template <typename Function>
+  std::size_t replace(const Bytes& key, Function map,
+                      bool exit_after_first_success) {
+    std::vector<std::string> replaced_values;
+    if (auto list = getUnique(key)) {
+      auto iter = list.iterator();
+      while (iter.hasNext()) {
+        auto replaced_value = map(iter.next());
+        if (!replaced_value.empty()) {
+          replaced_values.push_back(std::move(replaced_value));
+          iter.remove();
+          if (exit_after_first_success) {
+            break;
+          }
+        }
+      }
+      for (const auto& value : replaced_values) {
+        list.add(value);
+      }
+    }
+    return replaced_values.size();
+  }
 
   mutable boost::shared_mutex mutex_;
   std::unordered_map<Bytes, std::unique_ptr<List> > map_;
@@ -158,7 +309,7 @@ private:
   boost::filesystem::path prefix_;
 };
 
-} // namespace internal
-} // namespace multimap
+}  // namespace internal
+}  // namespace multimap
 
-#endif // MULTIMAP_INTERNAL_SHARD_HPP_INCLUDED
+#endif  // MULTIMAP_INTERNAL_SHARD_HPP_INCLUDED

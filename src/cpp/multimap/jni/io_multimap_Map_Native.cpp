@@ -124,7 +124,7 @@ JNIEXPORT jlong JNICALL
     Java_io_multimap_Map_00024Native_remove(JNIEnv* env, jclass, jobject self,
                                             jbyteArray jkey) {
   multimap::jni::BytesRaiiHelper key(env, jkey);
-  return toMap(env, self)->remove(key.get());
+  return toMap(env, self)->removeKey(key.get());
 }
 
 /*
@@ -139,7 +139,7 @@ JNIEXPORT jlong JNICALL
   multimap::jni::BytesRaiiHelper key(env, jkey);
   const auto predicate = multimap::jni::toPredicate(env, jpredicate);
   try {
-    return toMap(env, self)->removeAll(key.get(), predicate);
+    return toMap(env, self)->removeValues(key.get(), predicate);
   } catch (std::exception& error) {
     multimap::jni::propagateOrRethrow(env, error);
     return 0;
@@ -155,7 +155,7 @@ JNIEXPORT jlong JNICALL Java_io_multimap_Map_00024Native_removeAllEqual(
     JNIEnv* env, jclass, jobject self, jbyteArray jkey, jbyteArray jvalue) {
   multimap::jni::BytesRaiiHelper key(env, jkey);
   multimap::jni::BytesRaiiHelper value(env, jvalue);
-  return toMap(env, self)->removeAllEqual(key.get(), value.get());
+  return toMap(env, self)->removeValues(key.get(), value.get());
 }
 
 /*
@@ -170,7 +170,7 @@ JNIEXPORT jboolean JNICALL
   multimap::jni::BytesRaiiHelper key(env, jkey);
   const auto predicate = multimap::jni::toPredicate(env, jpredicate);
   try {
-    return toMap(env, self)->removeFirst(key.get(), predicate);
+    return toMap(env, self)->removeValue(key.get(), predicate);
   } catch (std::exception& error) {
     multimap::jni::propagateOrRethrow(env, error);
     return false;
@@ -186,7 +186,7 @@ JNIEXPORT jboolean JNICALL Java_io_multimap_Map_00024Native_removeFirstEqual(
     JNIEnv* env, jclass, jobject self, jbyteArray jkey, jbyteArray jvalue) {
   multimap::jni::BytesRaiiHelper key(env, jkey);
   multimap::jni::BytesRaiiHelper value(env, jvalue);
-  return toMap(env, self)->removeFirstEqual(key.get(), value.get());
+  return toMap(env, self)->removeValue(key.get(), value.get());
 }
 
 /*
@@ -201,7 +201,7 @@ JNIEXPORT jlong JNICALL
   multimap::jni::BytesRaiiHelper key(env, jkey);
   const auto function = multimap::jni::toFunction(env, jfunction);
   try {
-    return toMap(env, self)->replaceAll(key.get(), function);
+    return toMap(env, self)->replaceValues(key.get(), function);
   } catch (std::exception& error) {
     multimap::jni::propagateOrRethrow(env, error);
     return 0;
@@ -220,7 +220,7 @@ JNIEXPORT jlong JNICALL Java_io_multimap_Map_00024Native_replaceAllEqual(
   multimap::jni::BytesRaiiHelper old_value(env, jold_value);
   multimap::jni::BytesRaiiHelper new_value(env, jnew_value);
   return toMap(env, self)
-      ->replaceAllEqual(key.get(), old_value.get(), new_value.get());
+      ->replaceValues(key.get(), old_value.get(), new_value.get());
 }
 
 /*
@@ -235,7 +235,7 @@ JNIEXPORT jboolean JNICALL
   multimap::jni::BytesRaiiHelper key(env, jkey);
   const auto function = multimap::jni::toFunction(env, jfunction);
   try {
-    return toMap(env, self)->replaceFirst(key.get(), function);
+    return toMap(env, self)->replaceValue(key.get(), function);
   } catch (std::exception& error) {
     multimap::jni::propagateOrRethrow(env, error);
     return false;
@@ -254,7 +254,7 @@ JNIEXPORT jboolean JNICALL Java_io_multimap_Map_00024Native_replaceFirstEqual(
   multimap::jni::BytesRaiiHelper old_value(env, jold_value);
   multimap::jni::BytesRaiiHelper new_value(env, jnew_value);
   return toMap(env, self)
-      ->replaceFirstEqual(key.get(), old_value.get(), new_value.get());
+      ->replaceValue(key.get(), old_value.get(), new_value.get());
 }
 
 /*
