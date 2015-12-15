@@ -41,75 +41,83 @@ JNIEXPORT jobject JNICALL Java_io_multimap_Map_00024Native_getMutable
 
 /*
  * Class:     io_multimap_Map_Native
- * Method:    remove
- * Signature: (Ljava/nio/ByteBuffer;[B)J
+ * Method:    removeKey
+ * Signature: (Ljava/nio/ByteBuffer;[B)Z
  */
-JNIEXPORT jlong JNICALL Java_io_multimap_Map_00024Native_remove
+JNIEXPORT jboolean JNICALL Java_io_multimap_Map_00024Native_removeKey
   (JNIEnv *, jclass, jobject, jbyteArray);
 
 /*
  * Class:     io_multimap_Map_Native
- * Method:    removeAll
- * Signature: (Ljava/nio/ByteBuffer;[BLio/multimap/Callables/Predicate;)J
+ * Method:    removeKeys
+ * Signature: (Ljava/nio/ByteBuffer;Lio/multimap/Callables/Predicate;Z)J
  */
-JNIEXPORT jlong JNICALL Java_io_multimap_Map_00024Native_removeAll
-  (JNIEnv *, jclass, jobject, jbyteArray, jobject);
+JNIEXPORT jlong JNICALL Java_io_multimap_Map_00024Native_removeKeys
+  (JNIEnv *, jclass, jobject, jobject, jboolean);
 
 /*
  * Class:     io_multimap_Map_Native
- * Method:    removeAllEqual
- * Signature: (Ljava/nio/ByteBuffer;[B[B)J
- */
-JNIEXPORT jlong JNICALL Java_io_multimap_Map_00024Native_removeAllEqual
-  (JNIEnv *, jclass, jobject, jbyteArray, jbyteArray);
-
-/*
- * Class:     io_multimap_Map_Native
- * Method:    removeFirst
- * Signature: (Ljava/nio/ByteBuffer;[BLio/multimap/Callables/Predicate;)Z
- */
-JNIEXPORT jboolean JNICALL Java_io_multimap_Map_00024Native_removeFirst
-  (JNIEnv *, jclass, jobject, jbyteArray, jobject);
-
-/*
- * Class:     io_multimap_Map_Native
- * Method:    removeFirstEqual
+ * Method:    removeValue
  * Signature: (Ljava/nio/ByteBuffer;[B[B)Z
  */
-JNIEXPORT jboolean JNICALL Java_io_multimap_Map_00024Native_removeFirstEqual
+JNIEXPORT jboolean JNICALL Java_io_multimap_Map_00024Native_removeValue__Ljava_nio_ByteBuffer_2_3B_3B
   (JNIEnv *, jclass, jobject, jbyteArray, jbyteArray);
 
 /*
  * Class:     io_multimap_Map_Native
- * Method:    replaceAll
- * Signature: (Ljava/nio/ByteBuffer;[BLio/multimap/Callables/Function;)J
+ * Method:    removeValue
+ * Signature: (Ljava/nio/ByteBuffer;[BLio/multimap/Callables/Predicate;)Z
  */
-JNIEXPORT jlong JNICALL Java_io_multimap_Map_00024Native_replaceAll
+JNIEXPORT jboolean JNICALL Java_io_multimap_Map_00024Native_removeValue__Ljava_nio_ByteBuffer_2_3BLio_multimap_Callables_Predicate_2
   (JNIEnv *, jclass, jobject, jbyteArray, jobject);
 
 /*
  * Class:     io_multimap_Map_Native
- * Method:    replaceAllEqual
- * Signature: (Ljava/nio/ByteBuffer;[B[B[B)J
+ * Method:    removeValues
+ * Signature: (Ljava/nio/ByteBuffer;[B[B)J
  */
-JNIEXPORT jlong JNICALL Java_io_multimap_Map_00024Native_replaceAllEqual
-  (JNIEnv *, jclass, jobject, jbyteArray, jbyteArray, jbyteArray);
+JNIEXPORT jlong JNICALL Java_io_multimap_Map_00024Native_removeValues__Ljava_nio_ByteBuffer_2_3B_3B
+  (JNIEnv *, jclass, jobject, jbyteArray, jbyteArray);
 
 /*
  * Class:     io_multimap_Map_Native
- * Method:    replaceFirst
- * Signature: (Ljava/nio/ByteBuffer;[BLio/multimap/Callables/Function;)Z
+ * Method:    removeValues
+ * Signature: (Ljava/nio/ByteBuffer;[BLio/multimap/Callables/Predicate;)J
  */
-JNIEXPORT jboolean JNICALL Java_io_multimap_Map_00024Native_replaceFirst
+JNIEXPORT jlong JNICALL Java_io_multimap_Map_00024Native_removeValues__Ljava_nio_ByteBuffer_2_3BLio_multimap_Callables_Predicate_2
   (JNIEnv *, jclass, jobject, jbyteArray, jobject);
 
 /*
  * Class:     io_multimap_Map_Native
- * Method:    replaceFirstEqual
+ * Method:    replaceValue
  * Signature: (Ljava/nio/ByteBuffer;[B[B[B)Z
  */
-JNIEXPORT jboolean JNICALL Java_io_multimap_Map_00024Native_replaceFirstEqual
+JNIEXPORT jboolean JNICALL Java_io_multimap_Map_00024Native_replaceValue__Ljava_nio_ByteBuffer_2_3B_3B_3B
   (JNIEnv *, jclass, jobject, jbyteArray, jbyteArray, jbyteArray);
+
+/*
+ * Class:     io_multimap_Map_Native
+ * Method:    replaceValue
+ * Signature: (Ljava/nio/ByteBuffer;[BLio/multimap/Callables/Function;)Z
+ */
+JNIEXPORT jboolean JNICALL Java_io_multimap_Map_00024Native_replaceValue__Ljava_nio_ByteBuffer_2_3BLio_multimap_Callables_Function_2
+  (JNIEnv *, jclass, jobject, jbyteArray, jobject);
+
+/*
+ * Class:     io_multimap_Map_Native
+ * Method:    replaceValues
+ * Signature: (Ljava/nio/ByteBuffer;[B[B[B)J
+ */
+JNIEXPORT jlong JNICALL Java_io_multimap_Map_00024Native_replaceValues__Ljava_nio_ByteBuffer_2_3B_3B_3B
+  (JNIEnv *, jclass, jobject, jbyteArray, jbyteArray, jbyteArray);
+
+/*
+ * Class:     io_multimap_Map_Native
+ * Method:    replaceValues
+ * Signature: (Ljava/nio/ByteBuffer;[BLio/multimap/Callables/Function;)J
+ */
+JNIEXPORT jlong JNICALL Java_io_multimap_Map_00024Native_replaceValues__Ljava_nio_ByteBuffer_2_3BLio_multimap_Callables_Function_2
+  (JNIEnv *, jclass, jobject, jbyteArray, jobject);
 
 /*
  * Class:     io_multimap_Map_Native
@@ -124,15 +132,7 @@ JNIEXPORT void JNICALL Java_io_multimap_Map_00024Native_forEachKey
  * Method:    forEachValue
  * Signature: (Ljava/nio/ByteBuffer;[BLio/multimap/Callables/Procedure;)V
  */
-JNIEXPORT void JNICALL Java_io_multimap_Map_00024Native_forEachValue__Ljava_nio_ByteBuffer_2_3BLio_multimap_Callables_Procedure_2
-  (JNIEnv *, jclass, jobject, jbyteArray, jobject);
-
-/*
- * Class:     io_multimap_Map_Native
- * Method:    forEachValue
- * Signature: (Ljava/nio/ByteBuffer;[BLio/multimap/Callables/Predicate;)V
- */
-JNIEXPORT void JNICALL Java_io_multimap_Map_00024Native_forEachValue__Ljava_nio_ByteBuffer_2_3BLio_multimap_Callables_Predicate_2
+JNIEXPORT void JNICALL Java_io_multimap_Map_00024Native_forEachValue
   (JNIEnv *, jclass, jobject, jbyteArray, jobject);
 
 /*

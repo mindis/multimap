@@ -253,9 +253,8 @@ public class Map implements AutoCloseable {
   /**
    * Appends {@code value} to the end of the list associated with {@code key}.
    * 
-   * @throws Exception if {@code key} or {@code value} are too big. See
-   *         {@link Limits#maxKeySize()} and {@link Limits#maxValueSize()} for more
-   *         information.
+   * @throws Exception if {@code key} or {@code value} are too big. See {@link Limits#maxKeySize()}
+   *         and {@link Limits#maxValueSize()} for more information.
    */
   public void put(byte[] key, byte[] value) throws Exception {
     Check.notNull(key);
@@ -290,34 +289,32 @@ public class Map implements AutoCloseable {
   /**
    * Removes all values in the list associated with {@code key}.
    * 
-   * @return The number of removed values.
+   * @return {@code true} if a key was removed, {@code false} otherwise.
    */
-  public long remove(byte[] key) {
+  public boolean removeKey(byte[] key) {
     Check.notNull(key);
-    return Native.remove(self, key);
+    return Native.removeKey(self, key);
   }
 
-  /**
-   * Removes all values in the list associated with {@code key} for which {@code predicate} yields
-   * {@code true}.
-   * 
-   * @return The number of removed values.
-   */
-  public long removeAll(byte[] key, Predicate predicate) {
-    Check.notNull(key);
+  public long removeKeys(Predicate predicate) {
+    return removeKeys(predicate, false);
+  }
+
+  public long removeKeys(Predicate predicate, boolean skipIfLocked) {
     Check.notNull(predicate);
-    return Native.removeAll(self, key, predicate);
+    return Native.removeKeys(self, predicate, skipIfLocked);
   }
 
   /**
-   * Removes all values in the list associated with {@code key} that are equal to {@code value}.
+   * Removes the first value in the list associated with {@code key} which is equal to {@code value}
+   * .
    * 
-   * @return The number of removed values.
+   * @return {@code true} if a value was removed, {@code false} otherwise.
    */
-  public long removeAllEqual(byte[] key, byte[] value) {
+  public boolean removeValue(byte[] key, byte[] value) {
     Check.notNull(key);
     Check.notNull(value);
-    return Native.removeAllEqual(self, key, value);
+    return Native.removeValue(self, key, value);
   }
 
   /**
@@ -326,64 +323,33 @@ public class Map implements AutoCloseable {
    * 
    * @return {@code true} if a value was removed, {@code false} otherwise.
    */
-  public boolean removeFirst(byte[] key, Predicate predicate) {
+  public boolean removeValue(byte[] key, Predicate predicate) {
     Check.notNull(key);
     Check.notNull(predicate);
-    return Native.removeFirst(self, key, predicate);
+    return Native.removeValue(self, key, predicate);
   }
 
   /**
-   * Removes the first value in the list associated with {@code key} which is equal to
-   * {@code value}.
+   * Removes all values in the list associated with {@code key} that are equal to {@code value}.
    * 
-   * @return {@code true} if a value was removed, {@code false} otherwise.
+   * @return The number of removed values.
    */
-  public boolean removeFirstEqual(byte[] key, byte[] value) {
+  public long removeValues(byte[] key, byte[] value) {
     Check.notNull(key);
     Check.notNull(value);
-    return Native.removeFirstEqual(self, key, value);
+    return Native.removeValues(self, key, value);
   }
 
   /**
-   * Replaces all values in the list associated with {@code key} by the result of invoking
-   * {@code function}. If the result of {@code function} is {@code null} no replacement is
-   * performed. A replacement does not happen in-place. Instead, the old value is marked as removed
-   * and the new value is appended to the end of the list.
+   * Removes all values in the list associated with {@code key} for which {@code predicate} yields
+   * {@code true}.
    * 
-   * @return The number of replaced values.
+   * @return The number of removed values.
    */
-  public long replaceAll(byte[] key, Function function) {
+  public long removeValues(byte[] key, Predicate predicate) {
     Check.notNull(key);
-    Check.notNull(function);
-    return Native.replaceAll(self, key, function);
-  }
-
-  /**
-   * Replaces all values in the list associated with {@code key} which are equal to {@code oldValue}
-   * by {@code newValue}. A replacement does not happen in-place. Instead, the old value is marked
-   * as removed and the new value is appended to the end of the list.
-   * 
-   * @return The number of replaced values.
-   */
-  public long replaceAllEqual(byte[] key, byte[] oldValue, byte[] newValue) {
-    Check.notNull(key);
-    Check.notNull(oldValue);
-    Check.notNull(newValue);
-    return Native.replaceAllEqual(self, key, oldValue, newValue);
-  }
-
-  /**
-   * Replaces the first value in the list associated with {@code key} by the result of invoking
-   * {@code function}. If the result of {@code function} is {@code null} no replacement is
-   * performed. The replacement does not happen in-place. Instead, the old value is marked as
-   * removed and the new value is appended to the end of the list.
-   * 
-   * @return {@code true} if a value was replaced, {@code false} otherwise.
-   */
-  public boolean replaceFirst(byte[] key, Function function) {
-    Check.notNull(key);
-    Check.notNull(function);
-    return Native.replaceFirst(self, key, function);
+    Check.notNull(predicate);
+    return Native.removeValues(self, key, predicate);
   }
 
   /**
@@ -393,55 +359,89 @@ public class Map implements AutoCloseable {
    * 
    * @return {@code true} if a value was replaced, {@code false} otherwise.
    */
-  public boolean replaceFirstEqual(byte[] key, byte[] oldValue, byte[] newValue) {
+  public boolean replaceValue(byte[] key, byte[] oldValue, byte[] newValue) {
     Check.notNull(key);
     Check.notNull(oldValue);
     Check.notNull(newValue);
-    return Native.replaceFirstEqual(self, key, oldValue, newValue);
+    return Native.replaceValue(self, key, oldValue, newValue);
   }
 
   /**
-   * Applies {@code action} to each key of the map whose associated list is not empty. For the time
+   * Replaces the first value in the list associated with {@code key} by the result of invoking
+   * {@code map}. If the result of {@code map} is {@code null} no replacement is performed. The
+   * replacement does not happen in-place. Instead, the old value is marked as removed and the new
+   * value is appended to the end of the list.
+   * 
+   * @return {@code true} if a value was replaced, {@code false} otherwise.
+   */
+  public boolean replaceValue(byte[] key, Function map) {
+    Check.notNull(key);
+    Check.notNull(map);
+    return Native.replaceValue(self, key, map);
+  }
+
+  /**
+   * Replaces all values in the list associated with {@code key} which are equal to {@code oldValue}
+   * by {@code newValue}. A replacement does not happen in-place. Instead, the old value is marked
+   * as removed and the new value is appended to the end of the list.
+   * 
+   * @return The number of replaced values.
+   */
+  public long replaceValues(byte[] key, byte[] oldValue, byte[] newValue) {
+    Check.notNull(key);
+    Check.notNull(oldValue);
+    Check.notNull(newValue);
+    return Native.replaceValues(self, key, oldValue, newValue);
+  }
+
+  /**
+   * Replaces all values in the list associated with {@code key} by the result of invoking
+   * {@code map}. If the result of {@code map} is {@code null} no replacement is performed. A
+   * replacement does not happen in-place. Instead, the old value is marked as removed and the new
+   * value is appended to the end of the list.
+   * 
+   * @return The number of replaced values.
+   */
+  public long replaceValues(byte[] key, Function map) {
+    Check.notNull(key);
+    Check.notNull(map);
+    return Native.replaceValues(self, key, map);
+  }
+
+  /**
+   * Applies {@code process} to each key of the map whose associated list is not empty. For the time
    * of execution the entire map is locked for read-only operations. It is possible to keep a
-   * reference to the map itself within {@code action} and to call other read-only operations such
+   * reference to the map itself within {@code process} and to call other read-only operations such
    * as {@link #get(byte[])}. However, trying to call mutable operations such as
    * {@link #getMutable(byte[])} will cause a deadlock.
    */
-  public void forEachKey(Procedure action) {
-    Check.notNull(action);
-    Native.forEachKey(self, action);
+  public void forEachKey(Procedure process) {
+    Check.notNull(process);
+    Native.forEachKey(self, process);
   }
 
   /**
-   * Applies {@code action} to each value in the list associated with {@code key}. This is a
+   * Applies {@code process} to each value in the list associated with {@code key}. This is a
    * shorthand for requesting a read-only iterator via {@link #get(byte[])} followed by an
-   * application of {@code action} to each value obtained via {@link Iterator#next()}.
+   * application of {@code process} to each value obtained via {@link Iterator#next()}.
    */
-  public void forEachValue(byte[] key, Procedure action) {
-    Check.notNull(action);
-    Native.forEachValue(self, key, action);
+  public void forEachValue(byte[] key, Procedure process) {
+    Check.notNull(process);
+    Native.forEachValue(self, key, process);
   }
 
-  /**
-   * Applies {@code action} to each value in the list associated with {@code key} until
-   * {@code action} yields {@code false}. This is a shorthand for requesting a read-only iterator
-   * via {@link #get(byte[])} followed by an application of {@code action} to each value obtained
-   * via {@link Iterator#next()} until {@code action} yields {@code false}.
-   */
-  public void forEachValue(byte[] key, Predicate action) {
-    Check.notNull(action);
-    Native.forEachValue(self, key, action);
-  }
-
-  /* The method `forEachEntry` as provided in the C++ version of this library is currently not
+  /*
+   * The method `forEachEntry` as provided in the C++ version of this library is currently not
    * supported. Consider submitting a feature request if you really need it.
    */
 
-  /* The method `getStats` as provided in the C++ version of this library is currently not
+  /*
+   * The method `getStats` as provided in the C++ version of this library is currently not
    * supported. Consider submitting a feature request if you really need it.
    */
 
-  /* The method `getTotalStats` as provided in the C++ version of this library is currently not
+  /*
+   * The method `getTotalStats` as provided in the C++ version of this library is currently not
    * supported. Consider submitting a feature request if you really need it.
    */
 
@@ -473,7 +473,8 @@ public class Map implements AutoCloseable {
   // The following functions are long running operations also available via the command line tool.
   // -----------------------------------------------------------------------------------------------
 
-  /* The method `stats` as provided in the C++ version of this library is currently not supported.
+  /*
+   * The method `stats` as provided in the C++ version of this library is currently not supported.
    * Consider submitting a feature request if you really need it.
    */
 
@@ -525,18 +526,15 @@ public class Map implements AutoCloseable {
    * the map and also improves locality.</li>
    * </ul>
    * 
-   * @param source
-   *        <ul>
+   * @param source <ul>
    *        <li>Must refer to an existing directory containing a map.</li>
    *        </ul>
    * 
-   * @param target
-   *        <ul>
+   * @param target <ul>
    *        <li>Must refer to an existing directory that does not contain a map.</li>
    *        </ul>
    * 
-   * @param options
-   *        <ul>
+   * @param options <ul>
    *        <li>Call {@code options.keepNumShards()} to leave the number of shards unchanged.</li>
    *        <li>Call {@code options.keepBlockSize()} to leave the block size unchanged.</li>
    *        <li>{@code options.isCreateIfMissing()} is implicitly {@code true} and can be ignored.</li>
@@ -563,18 +561,18 @@ public class Map implements AutoCloseable {
     static native void put(ByteBuffer self, byte[] key, byte[] value) throws Exception;
     static native ByteBuffer get(ByteBuffer self, byte[] key);
     static native ByteBuffer getMutable(ByteBuffer self, byte[] key);
-    static native long remove(ByteBuffer self, byte[] key);
-    static native long removeAll(ByteBuffer self, byte[] key, Predicate predicate);
-    static native long removeAllEqual(ByteBuffer self, byte[] key, byte[] value);
-    static native boolean removeFirst(ByteBuffer self, byte[] key, Predicate predicate);
-    static native boolean removeFirstEqual(ByteBuffer self, byte[] key, byte[] value);
-    static native long replaceAll(ByteBuffer self, byte[] key, Function function);
-    static native long replaceAllEqual(ByteBuffer self, byte[] key, byte[] oldValue, byte[] newValue);
-    static native boolean replaceFirst(ByteBuffer self, byte[] key, Function function);
-    static native boolean replaceFirstEqual(ByteBuffer self, byte[] key, byte[] oldValue, byte[] newValue);
+    static native boolean removeKey(ByteBuffer self, byte[] key);
+    static native long removeKeys(ByteBuffer self, Predicate predicate, boolean skipIfLocked);
+    static native boolean removeValue(ByteBuffer self, byte[] key, byte[] value);
+    static native boolean removeValue(ByteBuffer self, byte[] key, Predicate predicate);
+    static native long removeValues(ByteBuffer self, byte[] key, byte[] value);
+    static native long removeValues(ByteBuffer self, byte[] key, Predicate predicate);
+    static native boolean replaceValue(ByteBuffer self, byte[] key, byte[] oldValue, byte[] newValue);
+    static native boolean replaceValue(ByteBuffer self, byte[] key, Function function);
+    static native long replaceValues(ByteBuffer self, byte[] key, byte[] oldValue, byte[] newValue);
+    static native long replaceValues(ByteBuffer self, byte[] key, Function function);
     static native void forEachKey(ByteBuffer self, Procedure action);
     static native void forEachValue(ByteBuffer self, byte[] key, Procedure action);
-    static native void forEachValue(ByteBuffer self, byte[] key, Predicate action);
     static native boolean isReadOnly(ByteBuffer self);
     static native void close(ByteBuffer self);
     static native void importFromBase64(String directory, String input, Options options) throws Exception;

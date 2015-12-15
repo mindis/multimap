@@ -136,24 +136,6 @@ class Shard : mt::Resource {
   }
 
   template <typename Predicate>
-  std::size_t removeKeys(Predicate predicate, std::try_to_lock_t try_lock) {
-    std::size_t num_removed = 0;
-    boost::shared_lock<boost::shared_mutex> lock(mutex_);
-    for (const auto& entry : map_) {
-      if (predicate(entry.first)) {
-        UniqueList list(entry.second.get(), store_.get(), &arena_, try_lock);
-        if (list && !list.empty()) {
-          stats_.num_values_put += list.head().num_values_added;
-          stats_.num_values_rmd += list.head().num_values_added;
-          ++num_removed;
-          list.clear();
-        }
-      }
-    }
-    return num_removed;
-  }
-
-  template <typename Predicate>
   bool removeValue(const Bytes& key, Predicate predicate) {
     return remove(key, predicate, true);
   }
@@ -174,11 +156,11 @@ class Shard : mt::Resource {
   }
 
   template <typename Procedure>
-  void forEachKey(Procedure process, bool skip_if_empty = true) const {
+  void forEachKey(Procedure process) const {
     boost::shared_lock<boost::shared_mutex> lock(mutex_);
     for (const auto& entry : map_) {
-      SharedList list(*entry.second, *store_, std::try_to_lock);
-      if (list && !(skip_if_empty && list.empty())) {
+      SharedList list(*entry.second, *store_);
+      if (!list.empty()) {
         process(entry.first);
       }
     }
@@ -193,12 +175,12 @@ class Shard : mt::Resource {
   }
 
   template <typename BinaryProcedure>
-  void forEachEntry(BinaryProcedure process, bool skip_if_empty = true) const {
+  void forEachEntry(BinaryProcedure process) const {
     boost::shared_lock<boost::shared_mutex> lock(mutex_);
     store_->adviseAccessPattern(Store::AccessPattern::WILLNEED);
     for (const auto& entry : map_) {
-      SharedList list(*entry.second, *store_, std::try_to_lock);
-      if (list && !(skip_if_empty && list.empty())) {
+      SharedList list(*entry.second, *store_);
+      if (!list.empty()) {
         process(entry.first, ListIterator(std::move(list)));
       }
     }

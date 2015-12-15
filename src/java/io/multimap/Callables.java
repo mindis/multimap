@@ -35,8 +35,8 @@ public final class Callables {
    * and, depending on the outcome, control the path of execution. Consider iterating a list of
    * values to take action on only those values for which the predicate yields {@code true}.
    * 
-   * @see Map#removeAll(byte[], Predicate)
-   * @see Map#removeFirst(byte[], Predicate)
+   * @see Map#removeValues(byte[], Predicate)
+   * @see Map#removeValue(byte[], Predicate)
    * @see Map#forEachValue(byte[], Predicate)
    */
   public static abstract class Predicate {
@@ -95,8 +95,8 @@ public final class Callables {
    * value or, if permitted {@code null}. Consider iterating a list of values where all or some of
    * them should be replaced.
    * 
-   * @see Map#replaceAll(byte[], Function)
-   * @see Map#replaceFirst(byte[], Function)
+   * @see Map#replaceValues(byte[], Function)
+   * @see Map#replaceValue(byte[], Function)
    */
   public static abstract class Function {
 

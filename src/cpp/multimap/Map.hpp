@@ -129,15 +129,6 @@ class Map : mt::Resource {
   // Returns: the number of removed keys.
 
   template <typename Predicate>
-  std::size_t removeKeys(Predicate predicate, std::try_to_lock_t try_lock) {
-    std::size_t num_removed = 0;
-    for (const auto& shard : shards_) {
-      num_removed += shard->removeKeys(predicate, try_lock);
-    }
-    return num_removed;
-  }
-
-  template <typename Predicate>
   bool removeValue(const Bytes& key, Predicate predicate) {
     return getShard(key).removeValue(key, predicate);
   }
@@ -154,6 +145,14 @@ class Map : mt::Resource {
   // yields true. This method will block until a writer lock can be acquired.
   // Returns: the number of deleted values.
 
+  bool replaceValue(const Bytes& key, const Bytes& old_value,
+                    const Bytes& new_value) {
+    return replaceValue(key, [&old_value, &new_value](const Bytes& value) {
+      return (value == old_value) ? new_value.toString() : std::string();
+    });
+  }
+  // TODO Document this.
+
   template <typename Function>
   bool replaceValue(const Bytes& key, Function map) {
     return getShard(key).replaceValue(key, map);
@@ -166,9 +165,9 @@ class Map : mt::Resource {
   // replacements. This method will block until a writer lock can be acquired.
   // Returns: true if a value was replaced, false otherwise.
 
-  bool replaceValue(const Bytes& key, const Bytes& old_value,
-                    const Bytes& new_value) {
-    return replaceValue(key, [&old_value, &new_value](const Bytes& value) {
+  std::size_t replaceValues(const Bytes& key, const Bytes& old_value,
+                            const Bytes& new_value) {
+    return replaceValues(key, [&old_value, &new_value](const Bytes& value) {
       return (value == old_value) ? new_value.toString() : std::string();
     });
   }
@@ -185,14 +184,6 @@ class Map : mt::Resource {
   // end of the list. Future releases will support in-place replacements. This
   // method will block until a writer lock can be acquired.
   // Returns: the number of replaced values.
-
-  std::size_t replaceValues(const Bytes& key, const Bytes& old_value,
-                            const Bytes& new_value) {
-    return replaceValues(key, [&old_value, &new_value](const Bytes& value) {
-      return (value == old_value) ? new_value.toString() : std::string();
-    });
-  }
-  // TODO Document this.
 
   template <typename Procedure>
   void forEachKey(Procedure process) const {

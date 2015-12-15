@@ -223,7 +223,7 @@ public class MapTest {
     int numValuesPerKeys = 1000;
     Map map = createAndFillMap(DIRECTORY, numKeys, numValuesPerKeys);
     for (int i = 0; i < numKeys; i += 2) {
-      Assert.assertEquals(numValuesPerKeys, map.remove(makeKey(i)));
+      Assert.assertEquals(numValuesPerKeys, map.removeKey(makeKey(i)));
     }
     for (int i = 0; i < numKeys; ++i) {
       Iterator iter = map.get(makeKey(i));
@@ -247,7 +247,7 @@ public class MapTest {
 
     for (int i = 0; i < numKeys; ++i) {
       long expectedNumRemoved = numValuesPerKeys / 2;
-      long actualNumRemoved = map.removeAll(makeKey(i), IS_EVEN);
+      long actualNumRemoved = map.removeValues(makeKey(i), IS_EVEN);
       Assert.assertEquals(expectedNumRemoved, actualNumRemoved);
     }
 
@@ -277,7 +277,7 @@ public class MapTest {
     
     for (int i = 0; i < numKeys; ++i) {
       long expectedNumRemoved = 1;
-      long actualNumRemoved = map.removeAllEqual(makeKey(i), makeValue(123));
+      long actualNumRemoved = map.removeValues(makeKey(i), makeValue(123));
       Assert.assertEquals(expectedNumRemoved, actualNumRemoved);
     }
     
@@ -305,7 +305,7 @@ public class MapTest {
     Map map = createAndFillMap(DIRECTORY, numKeys, numValuesPerKeys);
     
     for (int i = 0; i < numKeys; ++i) {
-      boolean removed = map.removeFirst(makeKey(i), IS_EVEN);
+      boolean removed = map.removeValue(makeKey(i), IS_EVEN);
       Assert.assertTrue(removed);
     }
     
@@ -340,7 +340,7 @@ public class MapTest {
     Map map = createAndFillMap(DIRECTORY, numKeys, numValuesPerKeys);
     
     for (int i = 0; i < numKeys; ++i) {
-      boolean removed = map.removeFirstEqual(makeKey(i), makeValue(123));
+      boolean removed = map.removeValue(makeKey(i), makeValue(123));
       Assert.assertTrue(removed);
     }
     
@@ -375,7 +375,7 @@ public class MapTest {
 
     for (int i = 0; i < numKeys; ++i) {
       long expectedNumReplaced = numValuesPerKeys / 2;
-      long actualNumReplaced = map.replaceAll(makeKey(i), NEXT_IF_EVEN);
+      long actualNumReplaced = map.replaceValues(makeKey(i), NEXT_IF_EVEN);
       Assert.assertEquals(expectedNumReplaced, actualNumReplaced);
     }
 
@@ -405,7 +405,7 @@ public class MapTest {
     
     for (int i = 0; i < numKeys; ++i) {
       long expectedNumReplaced = 1;
-      long actualNumRemoved = map.replaceAllEqual(makeKey(i), makeValue(123), makeValue(124));
+      long actualNumRemoved = map.replaceValues(makeKey(i), makeValue(123), makeValue(124));
       Assert.assertEquals(expectedNumReplaced, actualNumRemoved);
     }
     
@@ -436,7 +436,7 @@ public class MapTest {
     Map map = createAndFillMap(DIRECTORY, numKeys, numValuesPerKeys);
 
     for (int i = 0; i < numKeys; ++i) {
-      boolean replaced = map.replaceFirst(makeKey(i), NEXT_IF_EVEN);
+      boolean replaced = map.replaceValue(makeKey(i), NEXT_IF_EVEN);
       Assert.assertTrue(replaced);
     }
 
@@ -463,7 +463,7 @@ public class MapTest {
     Map map = createAndFillMap(DIRECTORY, numKeys, numValuesPerKeys);
     
     for (int i = 0; i < numKeys; ++i) {
-      boolean replaced = map.replaceFirstEqual(makeKey(i), makeValue(123), makeValue(124));
+      boolean replaced = map.replaceValue(makeKey(i), makeValue(123), makeValue(124));
       Assert.assertTrue(replaced);
     }
     

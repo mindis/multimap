@@ -52,7 +52,7 @@ struct ShardTestFixture : public testing::Test {
   }
 
   void TearDown() override {
-    shard.reset(); // Destructor flushes all data to disk.
+    shard.reset();  // Destructor flushes all data to disk.
     boost::filesystem::remove_all(directory);
   }
 
@@ -167,7 +167,7 @@ TEST_F(ShardTestFixture, GetMutableAndThenGetForSameListBlocks) {
   ASSERT_TRUE(other_thread_got_iter);
 }
 
-TEST_F(ShardTestFixture, ForEachKeyIgnoresEmptyListsByDefault) {
+TEST_F(ShardTestFixture, ForEachKeyIgnoresEmptyLists) {
   shard->put(key1, value);
   shard->put(key2, value);
   shard->put(key3, value);
@@ -178,16 +178,11 @@ TEST_F(ShardTestFixture, ForEachKeyIgnoresEmptyListsByDefault) {
   shard->forEachKey(
       [&keys](const Bytes& key) { keys.push_back(key.toString()); });
   ASSERT_THAT(keys, UnorderedElementsAre(key1, key2));
-
-  keys.clear();
-  shard->forEachKey(
-      [&keys](const Bytes& key) { keys.push_back(key.toString()); }, false);
-  ASSERT_THAT(keys, UnorderedElementsAre(key1, key2, key3));
 }
 
 TEST_F(ShardTestFixture, PutValuesInTwoSessions) {
   shard->put(key1, value);
-  shard.reset(); // Closes the shard before trying to reopen.
+  shard.reset();  // Closes the shard before trying to reopen.
   shard.reset(new Shard(prefix, Shard::Options()));
   shard->put(key1, value);
 
@@ -207,5 +202,5 @@ TEST(ShardStatsTest, NamesAndToVectorHaveSameDimension) {
   ASSERT_THAT(names.size(), Eq(vector.size()));
 }
 
-} // namespace internal
-} // namespace multimap
+}  // namespace internal
+}  // namespace multimap
