@@ -266,6 +266,11 @@ public class Map implements AutoCloseable {
    * Returns an iterator to the list associated with {@code key}. If the key does not exist an empty
    * iterator is returned to indicate an empty list. If the returned iterator is not needed anymore
    * {@link Iterator#close()} must be called in order to release the reader lock.
+   * 
+   * <p>Never write code like this, because it does not close the iterator:<ul>
+   * <li><code>boolean contains = map.get(key).hasNext();</code></li>
+   * <li><code>long numValues = map.get(key).available();</code></li>
+   * </ul></p>
    */
   @SuppressWarnings("resource")
   public Iterator get(byte[] key) {
@@ -278,12 +283,25 @@ public class Map implements AutoCloseable {
    * Returns a mutable iterator to the list associated with {@code key}. If the key does not exist
    * an empty iterator is returned to indicate an empty list. If the returned iterator is not needed
    * anymore {@link Iterator#close()} must be called in order to release the writer lock.
+   * 
+   * <p>Never write code like this, because it does not close the iterator:<ul>
+   * <li><code>boolean contains = map.getMutable(key).hasNext();</code></li>
+   * <li><code>long numValues = map.getMutable(key).available();</code></li>
+   * </ul></p>
    */
   @SuppressWarnings("resource")
   public Iterator getMutable(byte[] key) {
     Check.notNull(key);
     ByteBuffer nativePtr = Native.getMutable(self, key);
     return (nativePtr != null) ? new MutableListIterator(nativePtr) : Iterator.EMPTY;
+  }
+  
+  /**
+   * Returns {@code true} if this map contains a mapping for the specified key.
+   */
+  public boolean containsKey(byte[] key) {
+    Check.notNull(key);
+    return Native.containsKey(self, key);
   }
 
   /**
@@ -556,6 +574,7 @@ public class Map implements AutoCloseable {
     static native void put(ByteBuffer self, byte[] key, byte[] value) throws Exception;
     static native ByteBuffer get(ByteBuffer self, byte[] key);
     static native ByteBuffer getMutable(ByteBuffer self, byte[] key);
+    static native boolean containsKey(ByteBuffer self, byte[] key);
     static native boolean removeKey(ByteBuffer self, byte[] key);
     static native long removeKeys(ByteBuffer self, Predicate predicate);
     static native boolean removeValue(ByteBuffer self, byte[] key, byte[] value);

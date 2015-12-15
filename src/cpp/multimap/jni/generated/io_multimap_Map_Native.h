@@ -41,6 +41,14 @@ JNIEXPORT jobject JNICALL Java_io_multimap_Map_00024Native_getMutable
 
 /*
  * Class:     io_multimap_Map_Native
+ * Method:    containsKey
+ * Signature: (Ljava/nio/ByteBuffer;[B)Z
+ */
+JNIEXPORT jboolean JNICALL Java_io_multimap_Map_00024Native_containsKey
+  (JNIEnv *, jclass, jobject, jbyteArray);
+
+/*
+ * Class:     io_multimap_Map_Native
  * Method:    removeKey
  * Signature: (Ljava/nio/ByteBuffer;[B)Z
  */

@@ -117,6 +117,19 @@ JNIEXPORT jobject JNICALL
 
 /*
  * Class:     io_multimap_Map_Native
+ * Method:    containsKey
+ * Signature: (Ljava/nio/ByteBuffer;[B)Z
+ */
+JNIEXPORT jboolean JNICALL
+    Java_io_multimap_Map_00024Native_containsKey(JNIEnv* env, jclass,
+                                                 jobject self,
+                                                 jbyteArray jkey) {
+  multimap::jni::BytesRaiiHelper key(env, jkey);
+  return toMap(env, self)->get(key.get()).hasNext();
+}
+
+/*
+ * Class:     io_multimap_Map_Native
  * Method:    removeKey
  * Signature: (Ljava/nio/ByteBuffer;[B)Z
  */
