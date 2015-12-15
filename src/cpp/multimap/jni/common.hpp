@@ -22,14 +22,12 @@
 #include <exception>
 #include "multimap/thirdparty/mt/mt.hpp"
 #include "multimap/Bytes.hpp"
-#include "multimap/callables.hpp"
 #include "multimap/Options.hpp"
 
 namespace multimap {
 namespace jni {
 
 struct BytesRaiiHelper : mt::Resource {
-
   BytesRaiiHelper(JNIEnv* env, jbyteArray array)
       : env_(env),
         array_(array),
@@ -46,23 +44,24 @@ struct BytesRaiiHelper : mt::Resource {
 
   const Bytes& get() const { return bytes_; }
 
-private:
+ private:
   JNIEnv* env_;
   const jbyteArray array_;
   const Bytes bytes_;
 };
 
-template <typename T> struct Owner : mt::Resource {
-
+template <typename T>
+struct Owner : mt::Resource {
   Owner(T&& value) : value_(std::move(value)) {}
 
   T& get() { return value_; }
 
-private:
+ private:
   T value_;
 };
 
-template <typename T> Owner<T>* newOwner(T&& value) {
+template <typename T>
+Owner<T>* newOwner(T&& value) {
   return new Owner<T>(std::move(value));
 }
 
@@ -71,33 +70,132 @@ inline jobject newDirectByteBuffer(JNIEnv* env, const Bytes& bytes) {
                                   bytes.size());
 }
 
-template <typename T> jobject toDirectByteBuffer(JNIEnv* env, T* ptr) {
+template <typename T>
+jobject toDirectByteBuffer(JNIEnv* env, T* ptr) {
   MT_REQUIRE_NOT_NULL(ptr);
   return env->NewDirectByteBuffer(ptr, sizeof ptr);
 }
 
-template <typename T> T* fromDirectByteBuffer(JNIEnv* env, jobject jbuf) {
+template <typename T>
+T* fromDirectByteBuffer(JNIEnv* env, jobject jbuf) {
   MT_REQUIRE_NOT_NULL(jbuf);
   return static_cast<T*>(env->GetDirectBufferAddress(jbuf));
 }
+
+class JavaCallable {
+ public:
+  JavaCallable(JNIEnv* env, jobject obj, const char* signature)
+      : env_(env), obj_(obj) {
+    const auto cls = env->GetObjectClass(obj);
+    mid_ = env->GetMethodID(cls, "call", signature);
+    mt::Check::notNull(mid_, "GetMethodID() failed");
+  }
+
+ protected:
+  JNIEnv* env_;
+  jobject obj_;
+  jmethodID mid_;
+};
+
+class JavaCompare : public JavaCallable {
+ public:
+  typedef JavaCallable Base;
+
+  JavaCompare(JNIEnv* env, jobject obj)
+      : Base(env, obj, "(Ljava/nio/ByteBuffer;Ljava/nio/ByteBuffer;)Z") {}
+
+  bool operator()(const multimap::Bytes& lhs,
+                  const multimap::Bytes& rhs) const {
+    // Note: java.nio.ByteBuffer cannot wrap a pointer to const void.
+    // However, on Java side we will call ByteBuffer.asReadOnlyBuffer().
+    const auto result =
+        env_->CallBooleanMethod(obj_, mid_, newDirectByteBuffer(env_, lhs),
+                                newDirectByteBuffer(env_, rhs));
+    if (env_->ExceptionOccurred()) {
+      throw std::runtime_error("Exception in comparator passed via JNI");
+      // This exception is to escape from the for-each loop.
+      // Since env->ExceptionClear() is not called the actual exception
+      // is passed to the Java exception-handling process of the Java client.
+    }
+    return result;
+  }
+};
+
+class JavaFunction : public JavaCallable {
+ public:
+  typedef JavaCallable Base;
+
+  JavaFunction(JNIEnv* env, jobject obj)
+      : Base(env, obj, "(Ljava/nio/ByteBuffer;)[B") {}
+
+  std::string operator()(const multimap::Bytes& bytes) const {
+    // Note: java.nio.ByteBuffer cannot wrap a pointer to const void.
+    // However, on Java side we will call ByteBuffer.asReadOnlyBuffer().
+    const auto result =
+        env_->CallObjectMethod(obj_, mid_, newDirectByteBuffer(env_, bytes));
+    if (env_->ExceptionOccurred()) {
+      throw std::runtime_error("Exception in function passed via JNI");
+      // This exception is to escape from the for-each loop.
+      // Since env->ExceptionClear() is not called the actual exception
+      // is passed to the Java exception-handling process of the Java client.
+    }
+    // result is a jbyteArray that is copied into a std::string.
+    return (result != nullptr) ? BytesRaiiHelper(env_, result).get().toString()
+                               : std::string();
+  }
+};
+
+class JavaPredicate : public JavaCallable {
+ public:
+  typedef JavaCallable Base;
+
+  JavaPredicate(JNIEnv* env, jobject obj)
+      : Base(env, obj, "(Ljava/nio/ByteBuffer;)Z") {}
+
+  bool operator()(const multimap::Bytes& bytes) const {
+    // Note: java.nio.ByteBuffer cannot wrap a pointer to const void.
+    // However, on Java side we will call ByteBuffer.asReadOnlyBuffer().
+    const auto result =
+        env_->CallBooleanMethod(obj_, mid_, newDirectByteBuffer(env_, bytes));
+    if (env_->ExceptionOccurred()) {
+      throw std::runtime_error("Exception in predicate passed via JNI");
+      // This exception is to escape from the for-each loop.
+      // Since env->ExceptionClear() is not called the actual exception
+      // is passed to the Java exception-handling process of the Java client.
+    }
+    return result;
+  }
+};
+
+class JavaProcedure : public JavaCallable {
+ public:
+  typedef JavaCallable Base;
+
+  JavaProcedure(JNIEnv* env, jobject obj)
+      : Base(env, obj, "(Ljava/nio/ByteBuffer;)V") {}
+
+  void operator()(const multimap::Bytes& bytes) const {
+    // Note: java.nio.ByteBuffer cannot wrap a pointer to const void.
+    // However, on Java side we will call ByteBuffer.asReadOnlyBuffer().
+    env_->CallVoidMethod(obj_, mid_, newDirectByteBuffer(env_, bytes));
+    if (env_->ExceptionOccurred()) {
+      throw std::runtime_error("Exception in procedure passed via JNI");
+      // This exception is to escape from the for-each loop.
+      // Since env->ExceptionClear() is not called the actual exception
+      // is passed to the Java exception-handling process of the Java client.
+    }
+  }
+};
 
 void propagateOrRethrow(JNIEnv* env, const std::exception& error);
 
 void throwJavaException(JNIEnv* env, const char* message);
 
-std::string toString(JNIEnv* env, jstring string);
+std::string makeString(JNIEnv* env, jstring string);
 
-Options toOptions(JNIEnv* env, jobject options);
+Options makeOptions(JNIEnv* env, jobject options);
 
-Callables::Compare toCompare(JNIEnv* env, jobject less_than);
+}  // namespace jni
+}  // namespace multimap
 
-Callables::Function toFunction(JNIEnv* env, jobject function);
-
-Callables::Predicate toPredicate(JNIEnv* env, jobject predicate);
-
-Callables::Procedure toProcedure(JNIEnv* env, jobject procedure);
-
-} // namespace jni
-} // namespace multimap
-
-#endif // MULTIMAP_JNI_COMMON_HPP_INCLUDED
+#endif  // MULTIMAP_JNI_COMMON_HPP_INCLUDED

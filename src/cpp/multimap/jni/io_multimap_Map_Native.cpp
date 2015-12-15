@@ -42,7 +42,7 @@ inline multimap::Map* toMap(JNIEnv* env, jobject jbuf) {
   return multimap::jni::fromDirectByteBuffer<multimap::Map>(env, jbuf);
 }
 
-} // namespace
+}  // namespace
 
 /*
  * Class:     io_multimap_Map_Native
@@ -53,8 +53,8 @@ JNIEXPORT jobject JNICALL
     Java_io_multimap_Map_00024Native_newMap(JNIEnv* env, jclass,
                                             jstring jdirectory,
                                             jobject joptions) {
-  const auto directory = multimap::jni::toString(env, jdirectory);
-  const auto options = multimap::jni::toOptions(env, joptions);
+  const auto directory = multimap::jni::makeString(env, jdirectory);
+  const auto options = multimap::jni::makeOptions(env, joptions);
   try {
     const auto map = new multimap::Map(directory, options);
     return multimap::jni::toDirectByteBuffer(env, map);
@@ -117,29 +117,28 @@ JNIEXPORT jobject JNICALL
 
 /*
  * Class:     io_multimap_Map_Native
- * Method:    remove
- * Signature: (Ljava/nio/ByteBuffer;[B)J
+ * Method:    removeKey
+ * Signature: (Ljava/nio/ByteBuffer;[B)Z
  */
-JNIEXPORT jlong JNICALL
-    Java_io_multimap_Map_00024Native_remove(JNIEnv* env, jclass, jobject self,
-                                            jbyteArray jkey) {
+JNIEXPORT jboolean JNICALL
+    Java_io_multimap_Map_00024Native_removeKey(JNIEnv* env, jclass,
+                                               jobject self, jbyteArray jkey) {
   multimap::jni::BytesRaiiHelper key(env, jkey);
   return toMap(env, self)->removeKey(key.get());
 }
 
 /*
  * Class:     io_multimap_Map_Native
- * Method:    removeAll
- * Signature: (Ljava/nio/ByteBuffer;[BLio/multimap/Callables/Predicate;)J
+ * Method:    removeKeys
+ * Signature: (Ljava/nio/ByteBuffer;Lio/multimap/Callables/Predicate;)J
  */
 JNIEXPORT jlong JNICALL
-    Java_io_multimap_Map_00024Native_removeAll(JNIEnv* env, jclass,
-                                               jobject self, jbyteArray jkey,
-                                               jobject jpredicate) {
-  multimap::jni::BytesRaiiHelper key(env, jkey);
-  const auto predicate = multimap::jni::toPredicate(env, jpredicate);
+    Java_io_multimap_Map_00024Native_removeKeys(JNIEnv* env, jclass,
+                                                jobject self,
+                                                jobject jpredicate) {
   try {
-    return toMap(env, self)->removeValues(key.get(), predicate);
+    return toMap(env, self)->removeKeys(
+          multimap::jni::JavaPredicate(env, jpredicate));
   } catch (std::exception& error) {
     multimap::jni::propagateOrRethrow(env, error);
     return 0;
@@ -148,29 +147,30 @@ JNIEXPORT jlong JNICALL
 
 /*
  * Class:     io_multimap_Map_Native
- * Method:    removeAllEqual
- * Signature: (Ljava/nio/ByteBuffer;[B[B)J
+ * Method:    removeValue
+ * Signature: (Ljava/nio/ByteBuffer;[B[B)Z
  */
-JNIEXPORT jlong JNICALL Java_io_multimap_Map_00024Native_removeAllEqual(
-    JNIEnv* env, jclass, jobject self, jbyteArray jkey, jbyteArray jvalue) {
+JNIEXPORT jboolean JNICALL
+    Java_io_multimap_Map_00024Native_removeValue__Ljava_nio_ByteBuffer_2_3B_3B(
+        JNIEnv* env, jclass, jobject self, jbyteArray jkey, jbyteArray jvalue) {
   multimap::jni::BytesRaiiHelper key(env, jkey);
   multimap::jni::BytesRaiiHelper value(env, jvalue);
-  return toMap(env, self)->removeValues(key.get(), value.get());
+  return toMap(env, self)->removeValue(key.get(), multimap::Equal(value.get()));
 }
 
 /*
  * Class:     io_multimap_Map_Native
- * Method:    removeFirst
+ * Method:    removeValue
  * Signature: (Ljava/nio/ByteBuffer;[BLio/multimap/Callables/Predicate;)Z
  */
 JNIEXPORT jboolean JNICALL
-    Java_io_multimap_Map_00024Native_removeFirst(JNIEnv* env, jclass,
-                                                 jobject self, jbyteArray jkey,
-                                                 jobject jpredicate) {
+    Java_io_multimap_Map_00024Native_removeValue__Ljava_nio_ByteBuffer_2_3BLio_multimap_Callables_Predicate_2(
+        JNIEnv* env, jclass, jobject self, jbyteArray jkey,
+        jobject jpredicate) {
   multimap::jni::BytesRaiiHelper key(env, jkey);
-  const auto predicate = multimap::jni::toPredicate(env, jpredicate);
   try {
-    return toMap(env, self)->removeValue(key.get(), predicate);
+    return toMap(env, self)->removeValue(
+          key.get(), multimap::jni::JavaPredicate(env, jpredicate));
   } catch (std::exception& error) {
     multimap::jni::propagateOrRethrow(env, error);
     return false;
@@ -179,29 +179,31 @@ JNIEXPORT jboolean JNICALL
 
 /*
  * Class:     io_multimap_Map_Native
- * Method:    removeFirstEqual
- * Signature: (Ljava/nio/ByteBuffer;[B[B)Z
+ * Method:    removeValues
+ * Signature: (Ljava/nio/ByteBuffer;[B[B)J
  */
-JNIEXPORT jboolean JNICALL Java_io_multimap_Map_00024Native_removeFirstEqual(
-    JNIEnv* env, jclass, jobject self, jbyteArray jkey, jbyteArray jvalue) {
+JNIEXPORT jlong JNICALL
+    Java_io_multimap_Map_00024Native_removeValues__Ljava_nio_ByteBuffer_2_3B_3B(
+        JNIEnv* env, jclass, jobject self, jbyteArray jkey, jbyteArray jvalue) {
   multimap::jni::BytesRaiiHelper key(env, jkey);
   multimap::jni::BytesRaiiHelper value(env, jvalue);
-  return toMap(env, self)->removeValue(key.get(), value.get());
+  return toMap(env, self)->removeValues(
+        key.get(), multimap::Equal(value.get()));
 }
 
 /*
  * Class:     io_multimap_Map_Native
- * Method:    replaceAll
- * Signature: (Ljava/nio/ByteBuffer;[BLio/multimap/Callables/Function;)J
+ * Method:    removeValues
+ * Signature: (Ljava/nio/ByteBuffer;[BLio/multimap/Callables/Predicate;)J
  */
 JNIEXPORT jlong JNICALL
-    Java_io_multimap_Map_00024Native_replaceAll(JNIEnv* env, jclass,
-                                                jobject self, jbyteArray jkey,
-                                                jobject jfunction) {
+    Java_io_multimap_Map_00024Native_removeValues__Ljava_nio_ByteBuffer_2_3BLio_multimap_Callables_Predicate_2(
+        JNIEnv* env, jclass, jobject self, jbyteArray jkey,
+        jobject jpredicate) {
   multimap::jni::BytesRaiiHelper key(env, jkey);
-  const auto function = multimap::jni::toFunction(env, jfunction);
   try {
-    return toMap(env, self)->replaceValues(key.get(), function);
+    return toMap(env, self)->removeValues(
+        key.get(), multimap::jni::JavaPredicate(env, jpredicate));
   } catch (std::exception& error) {
     multimap::jni::propagateOrRethrow(env, error);
     return 0;
@@ -210,32 +212,32 @@ JNIEXPORT jlong JNICALL
 
 /*
  * Class:     io_multimap_Map_Native
- * Method:    replaceAllEqual
- * Signature: (Ljava/nio/ByteBuffer;[B[B[B)J
+ * Method:    replaceValue
+ * Signature: (Ljava/nio/ByteBuffer;[B[B[B)Z
  */
-JNIEXPORT jlong JNICALL Java_io_multimap_Map_00024Native_replaceAllEqual(
-    JNIEnv* env, jclass, jobject self, jbyteArray jkey, jbyteArray jold_value,
-    jbyteArray jnew_value) {
+JNIEXPORT jboolean JNICALL
+    Java_io_multimap_Map_00024Native_replaceValue__Ljava_nio_ByteBuffer_2_3B_3B_3B(
+        JNIEnv* env, jclass, jobject self, jbyteArray jkey,
+        jbyteArray jold_value, jbyteArray jnew_value) {
   multimap::jni::BytesRaiiHelper key(env, jkey);
   multimap::jni::BytesRaiiHelper old_value(env, jold_value);
   multimap::jni::BytesRaiiHelper new_value(env, jnew_value);
-  return toMap(env, self)
-      ->replaceValues(key.get(), old_value.get(), new_value.get());
+  return toMap(env, self)->replaceValue(
+        key.get(), old_value.get(), new_value.get());
 }
 
 /*
  * Class:     io_multimap_Map_Native
- * Method:    replaceFirst
+ * Method:    replaceValue
  * Signature: (Ljava/nio/ByteBuffer;[BLio/multimap/Callables/Function;)Z
  */
 JNIEXPORT jboolean JNICALL
-    Java_io_multimap_Map_00024Native_replaceFirst(JNIEnv* env, jclass,
-                                                  jobject self, jbyteArray jkey,
-                                                  jobject jfunction) {
+    Java_io_multimap_Map_00024Native_replaceValue__Ljava_nio_ByteBuffer_2_3BLio_multimap_Callables_Function_2(
+        JNIEnv* env, jclass, jobject self, jbyteArray jkey, jobject jfunction) {
   multimap::jni::BytesRaiiHelper key(env, jkey);
-  const auto function = multimap::jni::toFunction(env, jfunction);
   try {
-    return toMap(env, self)->replaceValue(key.get(), function);
+    return toMap(env, self)->replaceValue(
+          key.get(), multimap::jni::JavaFunction(env, jfunction));
   } catch (std::exception& error) {
     multimap::jni::propagateOrRethrow(env, error);
     return false;
@@ -244,17 +246,36 @@ JNIEXPORT jboolean JNICALL
 
 /*
  * Class:     io_multimap_Map_Native
- * Method:    replaceFirstEqual
- * Signature: (Ljava/nio/ByteBuffer;[B[B[B)Z
+ * Method:    replaceValues
+ * Signature: (Ljava/nio/ByteBuffer;[B[B[B)J
  */
-JNIEXPORT jboolean JNICALL Java_io_multimap_Map_00024Native_replaceFirstEqual(
-    JNIEnv* env, jclass, jobject self, jbyteArray jkey, jbyteArray jold_value,
-    jbyteArray jnew_value) {
+JNIEXPORT jlong JNICALL
+    Java_io_multimap_Map_00024Native_replaceValues__Ljava_nio_ByteBuffer_2_3B_3B_3B(
+        JNIEnv* env, jclass, jobject self, jbyteArray jkey,
+        jbyteArray jold_value, jbyteArray jnew_value) {
   multimap::jni::BytesRaiiHelper key(env, jkey);
   multimap::jni::BytesRaiiHelper old_value(env, jold_value);
   multimap::jni::BytesRaiiHelper new_value(env, jnew_value);
-  return toMap(env, self)
-      ->replaceValue(key.get(), old_value.get(), new_value.get());
+  return toMap(env, self)->replaceValues(
+        key.get(), old_value.get(), new_value.get());
+}
+
+/*
+ * Class:     io_multimap_Map_Native
+ * Method:    replaceValues
+ * Signature: (Ljava/nio/ByteBuffer;[BLio/multimap/Callables/Function;)J
+ */
+JNIEXPORT jlong JNICALL
+    Java_io_multimap_Map_00024Native_replaceValues__Ljava_nio_ByteBuffer_2_3BLio_multimap_Callables_Function_2(
+        JNIEnv* env, jclass, jobject self, jbyteArray jkey, jobject jfunction) {
+  multimap::jni::BytesRaiiHelper key(env, jkey);
+  try {
+    return toMap(env, self)->replaceValues(
+          key.get(), multimap::jni::JavaFunction(env, jfunction));
+  } catch (std::exception& error) {
+    multimap::jni::propagateOrRethrow(env, error);
+    return 0;
+  }
 }
 
 /*
@@ -266,9 +287,8 @@ JNIEXPORT void JNICALL
     Java_io_multimap_Map_00024Native_forEachKey(JNIEnv* env, jclass,
                                                 jobject self,
                                                 jobject jprocedure) {
-  const auto procedure = multimap::jni::toProcedure(env, jprocedure);
   try {
-    toMap(env, self)->forEachKey(procedure);
+    toMap(env, self)->forEachKey(multimap::jni::JavaProcedure(env, jprocedure));
   } catch (std::exception& error) {
     multimap::jni::propagateOrRethrow(env, error);
   }
@@ -280,31 +300,13 @@ JNIEXPORT void JNICALL
  * Signature: (Ljava/nio/ByteBuffer;[BLio/multimap/Callables/Procedure;)V
  */
 JNIEXPORT void JNICALL
-    Java_io_multimap_Map_00024Native_forEachValue__Ljava_nio_ByteBuffer_2_3BLio_multimap_Callables_Procedure_2(
-        JNIEnv* env, jclass, jobject self, jbyteArray jkey,
-        jobject jprocedure) {
+    Java_io_multimap_Map_00024Native_forEachValue(JNIEnv* env, jclass,
+                                                  jobject self, jbyteArray jkey,
+                                                  jobject jprocedure) {
   multimap::jni::BytesRaiiHelper key(env, jkey);
-  const auto procedure = multimap::jni::toProcedure(env, jprocedure);
   try {
-    toMap(env, self)->forEachValue(key.get(), procedure);
-  } catch (std::exception& error) {
-    multimap::jni::propagateOrRethrow(env, error);
-  }
-}
-
-/*
- * Class:     io_multimap_Map_Native
- * Method:    forEachValue
- * Signature: (Ljava/nio/ByteBuffer;[BLio/multimap/Callables/Predicate;)V
- */
-JNIEXPORT void JNICALL
-    Java_io_multimap_Map_00024Native_forEachValue__Ljava_nio_ByteBuffer_2_3BLio_multimap_Callables_Predicate_2(
-        JNIEnv* env, jclass, jobject self, jbyteArray jkey,
-        jobject jpredicate) {
-  multimap::jni::BytesRaiiHelper key(env, jkey);
-  const auto predicate = multimap::jni::toPredicate(env, jpredicate);
-  try {
-    toMap(env, self)->forEachValue(key.get(), predicate);
+    toMap(env, self)->forEachValue(
+        key.get(), multimap::jni::JavaProcedure(env, jprocedure));
   } catch (std::exception& error) {
     multimap::jni::propagateOrRethrow(env, error);
   }
@@ -338,9 +340,9 @@ JNIEXPORT void JNICALL
  */
 JNIEXPORT void JNICALL Java_io_multimap_Map_00024Native_importFromBase64(
     JNIEnv* env, jclass, jstring jdirectory, jstring jinput, jobject joptions) {
-  const auto directory = multimap::jni::toString(env, jdirectory);
-  const auto input = multimap::jni::toString(env, jinput);
-  const auto options = multimap::jni::toOptions(env, joptions);
+  const auto directory = multimap::jni::makeString(env, jdirectory);
+  const auto input = multimap::jni::makeString(env, jinput);
+  const auto options = multimap::jni::makeOptions(env, joptions);
   try {
     multimap::Map::importFromBase64(directory, input, options);
   } catch (std::exception& error) {
@@ -358,9 +360,9 @@ JNIEXPORT void JNICALL
                                                     jstring jdirectory,
                                                     jstring joutput,
                                                     jobject joptions) {
-  const auto directory = multimap::jni::toString(env, jdirectory);
-  const auto output = multimap::jni::toString(env, joutput);
-  const auto options = multimap::jni::toOptions(env, joptions);
+  const auto directory = multimap::jni::makeString(env, jdirectory);
+  const auto output = multimap::jni::makeString(env, joutput);
+  const auto options = multimap::jni::makeOptions(env, joptions);
   try {
     multimap::Map::exportToBase64(directory, output, options);
   } catch (std::exception& error) {
@@ -377,9 +379,9 @@ JNIEXPORT void JNICALL
     Java_io_multimap_Map_00024Native_optimize(JNIEnv* env, jclass,
                                               jstring jsource, jstring jtarget,
                                               jobject joptions) {
-  const auto source = multimap::jni::toString(env, jsource);
-  const auto target = multimap::jni::toString(env, jtarget);
-  const auto options = multimap::jni::toOptions(env, joptions);
+  const auto source = multimap::jni::makeString(env, jsource);
+  const auto target = multimap::jni::makeString(env, jtarget);
+  const auto options = multimap::jni::makeOptions(env, joptions);
   try {
     multimap::Map::optimize(source, target, options);
   } catch (std::exception& error) {
