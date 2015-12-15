@@ -68,7 +68,7 @@ JNIEXPORT jboolean JNICALL Java_io_multimap_Map_00024Native_removeValue__Ljava_n
  * Method:    removeValue
  * Signature: (Ljava/nio/ByteBuffer;[BLio/multimap/Callables/Predicate;)Z
  */
-JNIEXPORT jboolean JNICALL Java_io_multimap_Map_00024Native_removeValue__Ljava_nio_ByteBuffer_2_3BLio_multimap_Callables_Predicate_2
+JNIEXPORT jboolean JNICALL Java_io_multimap_Map_00024Native_removeValue__Ljava_nio_ByteBuffer_2_3BLio_multimap_Callables_00024Predicate_2
   (JNIEnv *, jclass, jobject, jbyteArray, jobject);
 
 /*
@@ -84,7 +84,7 @@ JNIEXPORT jlong JNICALL Java_io_multimap_Map_00024Native_removeValues__Ljava_nio
  * Method:    removeValues
  * Signature: (Ljava/nio/ByteBuffer;[BLio/multimap/Callables/Predicate;)J
  */
-JNIEXPORT jlong JNICALL Java_io_multimap_Map_00024Native_removeValues__Ljava_nio_ByteBuffer_2_3BLio_multimap_Callables_Predicate_2
+JNIEXPORT jlong JNICALL Java_io_multimap_Map_00024Native_removeValues__Ljava_nio_ByteBuffer_2_3BLio_multimap_Callables_00024Predicate_2
   (JNIEnv *, jclass, jobject, jbyteArray, jobject);
 
 /*
@@ -100,7 +100,7 @@ JNIEXPORT jboolean JNICALL Java_io_multimap_Map_00024Native_replaceValue__Ljava_
  * Method:    replaceValue
  * Signature: (Ljava/nio/ByteBuffer;[BLio/multimap/Callables/Function;)Z
  */
-JNIEXPORT jboolean JNICALL Java_io_multimap_Map_00024Native_replaceValue__Ljava_nio_ByteBuffer_2_3BLio_multimap_Callables_Function_2
+JNIEXPORT jboolean JNICALL Java_io_multimap_Map_00024Native_replaceValue__Ljava_nio_ByteBuffer_2_3BLio_multimap_Callables_00024Function_2
   (JNIEnv *, jclass, jobject, jbyteArray, jobject);
 
 /*
@@ -116,7 +116,7 @@ JNIEXPORT jlong JNICALL Java_io_multimap_Map_00024Native_replaceValues__Ljava_ni
  * Method:    replaceValues
  * Signature: (Ljava/nio/ByteBuffer;[BLio/multimap/Callables/Function;)J
  */
-JNIEXPORT jlong JNICALL Java_io_multimap_Map_00024Native_replaceValues__Ljava_nio_ByteBuffer_2_3BLio_multimap_Callables_Function_2
+JNIEXPORT jlong JNICALL Java_io_multimap_Map_00024Native_replaceValues__Ljava_nio_ByteBuffer_2_3BLio_multimap_Callables_00024Function_2
   (JNIEnv *, jclass, jobject, jbyteArray, jobject);
 
 /*
