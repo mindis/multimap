@@ -297,12 +297,7 @@ public class Map implements AutoCloseable {
   }
 
   public long removeKeys(Predicate predicate) {
-    return removeKeys(predicate, false);
-  }
-
-  public long removeKeys(Predicate predicate, boolean skipIfLocked) {
-    Check.notNull(predicate);
-    return Native.removeKeys(self, predicate, skipIfLocked);
+    return Native.removeKeys(self, predicate);
   }
 
   /**
@@ -562,7 +557,7 @@ public class Map implements AutoCloseable {
     static native ByteBuffer get(ByteBuffer self, byte[] key);
     static native ByteBuffer getMutable(ByteBuffer self, byte[] key);
     static native boolean removeKey(ByteBuffer self, byte[] key);
-    static native long removeKeys(ByteBuffer self, Predicate predicate, boolean skipIfLocked);
+    static native long removeKeys(ByteBuffer self, Predicate predicate);
     static native boolean removeValue(ByteBuffer self, byte[] key, byte[] value);
     static native boolean removeValue(ByteBuffer self, byte[] key, Predicate predicate);
     static native long removeValues(ByteBuffer self, byte[] key, byte[] value);

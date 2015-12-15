@@ -50,10 +50,10 @@ JNIEXPORT jboolean JNICALL Java_io_multimap_Map_00024Native_removeKey
 /*
  * Class:     io_multimap_Map_Native
  * Method:    removeKeys
- * Signature: (Ljava/nio/ByteBuffer;Lio/multimap/Callables/Predicate;Z)J
+ * Signature: (Ljava/nio/ByteBuffer;Lio/multimap/Callables/Predicate;)J
  */
 JNIEXPORT jlong JNICALL Java_io_multimap_Map_00024Native_removeKeys
-  (JNIEnv *, jclass, jobject, jobject, jboolean);
+  (JNIEnv *, jclass, jobject, jobject);
 
 /*
  * Class:     io_multimap_Map_Native
