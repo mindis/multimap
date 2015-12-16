@@ -20,7 +20,10 @@
 #include "multimap/jni/common.hpp"
 #include "multimap/Map.hpp"
 
-// Bug in javah -jni (OpenJDK 1.7.0_79, Debian 7.8)
+// Bug in javah.
+// java version "1.7.0_79"
+// OpenJDK Runtime Environment (IcedTea 2.5.6) (7u79-2.5.6-1~deb7u1)
+// OpenJDK 64-Bit Server VM (build 24.79-b02, mixed mode)
 //
 // Generated function names with inner Java classes are possibly wrong.
 //
