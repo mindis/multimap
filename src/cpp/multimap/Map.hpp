@@ -64,8 +64,14 @@ class Map : mt::Resource {
   typedef internal::UniqueListIterator MutableListIterator;
   // An iterator type to iterate a mutable list.
 
+  Map(const boost::filesystem::path& directory);
+  // Opens a map located in directory. The map must already exist.
+  // Throws std::exception if:
+  //   * directory does not exist.
+  //   * directory does not contain a map.
+
   Map(const boost::filesystem::path& directory, const Options& options);
-  // Opens the map located in directory. If the map does not exist and
+  // Opens a map located in directory. If the map does not exist and
   // options.create_if_missing is set to true a new map will be created.
   // Throws std::exception if:
   //   * directory does not exist.
@@ -286,6 +292,24 @@ class Map : mt::Resource {
                              const boost::filesystem::path& output,
                              const Options& options);
   // TODO Document this.
+
+  static void optimize(const boost::filesystem::path& directory,
+                       const boost::filesystem::path& output);
+  // Optimizes the map located in the directory denoted by `directory`
+  // performing the following tasks:
+  //
+  //   * Defragmentation. All blocks which belong to the same list are written
+  //     sequentially to disk which improves locality and leads to better read
+  //     performance.
+  //   * Garbage collection. Values marked as deleted will be removed physically
+  //     which reduces the size of the map and also improves locality.
+  //
+  // Throws `std::exception` if:
+  //
+  //   * `directory` is not a directory.
+  //   * `directory` does not contain a map.
+  //   * the map in `directory` is locked.
+  //   * `directory` is not writable.
 
   static void optimize(const boost::filesystem::path& directory,
                        const boost::filesystem::path& output,

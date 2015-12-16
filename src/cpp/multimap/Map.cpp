@@ -73,6 +73,9 @@ std::size_t Map::Limits::maxValueSize() {
   return internal::Shard::Limits::maxValueSize();
 }
 
+Map::Map(const boost::filesystem::path& directory)
+    : Map(directory, Options()) {}
+
 Map::Map(const boost::filesystem::path& directory, const Options& options)
     : lock_(directory, internal::getNameOfLockFile()) {
   checkOptions(options);
@@ -251,6 +254,14 @@ void Map::exportToBase64(const boost::filesystem::path& directory,
           });
     });
   }
+}
+
+void Map::optimize(const boost::filesystem::path& directory,
+                   const boost::filesystem::path& output) {
+  Options options;
+  options.keep_block_size();
+  options.keep_num_shards();
+  optimize(directory, output, options);
 }
 
 void Map::optimize(const boost::filesystem::path& directory,
