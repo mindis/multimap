@@ -691,6 +691,12 @@ public class MapTest {
     map.close();
   }
 
+  @Test
+  public void testExportToBase64FromEmptyMapShouldNotThrow() throws Exception {
+    createAndFillMap(DIRECTORY, 0, 0).close();
+    Map.exportToBase64(DIRECTORY, DATAFILE);
+  }
+
   @Test (expected = Exception.class)
   public void testOptimizeShouldThrowIfSourceNotExists() throws Exception {
     Map.optimize(DIRECTORY, DIRECTORY2);
