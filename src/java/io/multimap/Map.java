@@ -240,6 +240,15 @@ public class Map implements AutoCloseable {
   }
 
   /**
+   * Opens a map in {@code directory}.
+   * 
+   * @throws Exception if the directory or the map inside does not exist.
+   */
+  public Map(Path directory) throws Exception {
+    this(directory, new Options());
+  }
+  
+  /**
    * Opens or creates a map in {@code directory}. The directory must already exist. See
    * {@link Options} for more information.
    * 
@@ -530,6 +539,37 @@ public class Map implements AutoCloseable {
     Native.exportToBase64(directory.toString(), output.toString(), options);
   }
 
+  /**
+   * Optimizes a map performing the following tasks:
+   * <ul>
+   * <li>Defragmentation. All blocks which belong to the same list are written sequentially to disk
+   * which improves locality and leads to better read performance.</li>
+   * <li>Garbage collection. Values marked as removed will not be copied which reduces the size of
+   * the map and also improves locality.</li>
+   * </ul>
+   * 
+   * @param source <ul>
+   *        <li>Must refer to an existing directory containing a map.</li>
+   *        </ul>
+   * 
+   * @param target <ul>
+   *        <li>Must refer to an existing directory that does not contain a map.</li>
+   *        </ul>
+   * 
+   * @throws Exception if any of the following happens:
+   *         <ul>
+   *         <li>Opening a map in {@code source} failed.</li>
+   *         <li>Creating a map in {@code target} failed.</li>
+   *         <li>A runtime error, such as running out of disk space, occurred.</li>
+   *         </ul>
+   */
+  public static void optimize(Path source, Path target) throws Exception {
+    Options options = new Options();
+    options.keepBlockSize();
+    options.keepNumShards();
+    optimize(source, target, options);
+  }
+  
   /**
    * Optimizes a map performing the following tasks:
    * <ul>
