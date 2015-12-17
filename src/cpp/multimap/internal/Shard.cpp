@@ -168,6 +168,7 @@ Shard::Shard(const boost::filesystem::path& file_prefix)
 
 Shard::Shard(const boost::filesystem::path& file_prefix, const Options& options)
     : prefix_(file_prefix) {
+  Store::Options store_options;
   const auto stats_file = getNameOfStatsFile(prefix_.string());
   if (boost::filesystem::is_regular_file(stats_file)) {
     stats_ = Stats::readFromFile(stats_file);
@@ -185,10 +186,16 @@ Shard::Shard(const boost::filesystem::path& file_prefix, const Options& options)
     stats.num_values_put = stats_.num_values_put;
     stats.num_values_rmd = stats_.num_values_rmd;
     stats_ = stats;
+
+  } else {
+    mt::Check::isTrue(options.create_if_missing,
+                      "Shard with prefix '%s' does not exist",
+                      boost::filesystem::absolute(file_prefix).c_str());
+
+    store_options.block_size = options.block_size;
+    store_options.create_if_missing = true;
   }
 
-  Store::Options store_options;
-  store_options.block_size = options.block_size;  // Ignored if already exists
   store_options.buffer_size = options.buffer_size;
   store_options.readonly = options.readonly;
   store_options.quiet = options.quiet;

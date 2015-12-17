@@ -34,6 +34,8 @@ struct Options {
   // sets, up to 1M, the default value should be appropriate.  For larger key
   // sets the block size can be reduced to lower the overall memory usage.
 
+  std::size_t buffer_size = mt::MiB(1);
+
   bool create_if_missing = false;
   // Determines whether a map has to be created if it does not exist.
 
@@ -48,8 +50,6 @@ struct Options {
 
   bool quiet = false;
   // Prints out status messages for long running jobs from `operations.hpp`.
-
-  std::size_t buffer_size = mt::MiB(1);
 
   std::function<bool(const Bytes&, const Bytes&)> compare;
   // Optional: Compare function which returns `true` if the left operand is

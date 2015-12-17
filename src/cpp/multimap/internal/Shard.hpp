@@ -41,6 +41,7 @@ class Shard : mt::Resource {
   struct Options {
     std::size_t block_size = 512;
     std::size_t buffer_size = mt::MiB(1);
+    bool create_if_missing = false;
     bool readonly = false;
     bool quiet = false;
   };
@@ -87,7 +88,7 @@ class Shard : mt::Resource {
 
   typedef UniqueListIterator MutableListIterator;
 
-  Shard(const boost::filesystem::path& file_prefix);
+  explicit Shard(const boost::filesystem::path& file_prefix);
 
   Shard(const boost::filesystem::path& file_prefix, const Options& options);
 
