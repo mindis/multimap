@@ -64,7 +64,7 @@ class Map : mt::Resource {
   typedef internal::UniqueListIterator MutableListIterator;
   // An iterator type to iterate a mutable list.
 
-  Map(const boost::filesystem::path& directory);
+  explicit Map(const boost::filesystem::path& directory);
   // Opens a map located in directory. The map must already exist.
   // Throws std::exception if:
   //   * directory does not exist.
