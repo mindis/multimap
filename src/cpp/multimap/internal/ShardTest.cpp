@@ -25,6 +25,7 @@ namespace multimap {
 namespace internal {
 
 using testing::Eq;
+using testing::ElementsAre;
 using testing::UnorderedElementsAre;
 
 std::unique_ptr<Shard> openOrCreateShard(
@@ -101,6 +102,45 @@ TEST_F(ShardTestFixture, PutAppendsValuesToList) {
     ASSERT_THAT(iter.next().toString(), Eq(v3));
     ASSERT_FALSE(iter.hasNext());
   }
+}
+
+TEST_F(ShardTestFixture, PutValuesWithReopen) {
+  {
+    auto shard = openOrCreateShard(prefix);
+    shard->put(k1, v1);
+    shard->put(k2, v1);
+    shard->put(k3, v1);
+  }
+  {
+    auto shard = openOrCreateShard(prefix);
+    shard->put(k1, v2);
+    shard->put(k2, v2);
+    shard->put(k3, v2);
+  }
+  {
+    auto shard = openOrCreateShard(prefix);
+    shard->put(k1, v3);
+    shard->put(k2, v3);
+    shard->put(k3, v3);
+  }
+  auto shard = openOrCreateShard(prefix);
+  auto iter1 = shard->get(k1);
+  ASSERT_THAT(iter1.next().toString(), Eq(v1));
+  ASSERT_THAT(iter1.next().toString(), Eq(v2));
+  ASSERT_THAT(iter1.next().toString(), Eq(v3));
+  ASSERT_FALSE(iter1.hasNext());
+
+  auto iter2 = shard->get(k2);
+  ASSERT_THAT(iter2.next().toString(), Eq(v1));
+  ASSERT_THAT(iter2.next().toString(), Eq(v2));
+  ASSERT_THAT(iter2.next().toString(), Eq(v3));
+  ASSERT_FALSE(iter2.hasNext());
+
+  auto iter3 = shard->get(k3);
+  ASSERT_THAT(iter3.next().toString(), Eq(v1));
+  ASSERT_THAT(iter3.next().toString(), Eq(v2));
+  ASSERT_THAT(iter3.next().toString(), Eq(v3));
+  ASSERT_FALSE(iter3.hasNext());
 }
 
 TEST_F(ShardTestFixture, GetReturnsEmptyListForNonExistingKey) {
@@ -201,57 +241,259 @@ TEST_F(ShardTestFixture, GetMutableAndThenGetForSameListBlocks) {
   ASSERT_TRUE(other_thread_got_iter);
 }
 
+TEST_F(ShardTestFixture, RemoveKeyRemovesMappedValues) {
+  auto shard = openOrCreateShard(prefix);
+  shard->put(k1, v1);
+  shard->put(k2, v1);
+  shard->put(k3, v1);
+  ASSERT_TRUE(shard->removeKey(k1));
+  ASSERT_TRUE(shard->removeKey(k2));
+  ASSERT_FALSE(shard->get(k1).hasNext());
+  ASSERT_FALSE(shard->get(k2).hasNext());
+  ASSERT_TRUE(shard->get(k3).hasNext());
+}
+
+TEST_F(ShardTestFixture, RemoveKeysRemovesMappedValues) {
+  auto shard = openOrCreateShard(prefix);
+  shard->put(k1, v1);
+  shard->put(k2, v1);
+  shard->put(k3, v1);
+  auto is_k1_or_k2 = [&](const Bytes& key) { return key == k1 || key == k2; };
+  ASSERT_THAT(shard->removeKeys(is_k1_or_k2), Eq(2));
+  ASSERT_FALSE(shard->get(k1).hasNext());
+  ASSERT_FALSE(shard->get(k2).hasNext());
+  ASSERT_TRUE(shard->get(k3).hasNext());
+}
+
+TEST_F(ShardTestFixture, RemoveValueRemovesOnlyFirstMatch) {
+  auto shard = openOrCreateShard(prefix);
+  shard->put(k1, v1);
+  shard->put(k1, v2);
+  shard->put(k1, v3);
+  auto is_any_value = [&](const Bytes& /* value */) { return true; };
+  ASSERT_TRUE(shard->removeValue(k1, is_any_value));
+  auto iter = shard->get(k1);
+  ASSERT_THAT(iter.next(), Eq(v2));
+  ASSERT_THAT(iter.next(), Eq(v3));
+  ASSERT_FALSE(iter.hasNext());
+
+  shard->put(k2, v1);
+  shard->put(k2, v2);
+  shard->put(k2, v3);
+  auto is_v2_or_v3 =
+      [&](const Bytes& value) { return value == v2 || value == v3; };
+  ASSERT_TRUE(shard->removeValue(k2, is_v2_or_v3));
+  iter = shard->get(k2);
+  ASSERT_THAT(iter.next(), Eq(v1));
+  ASSERT_THAT(iter.next(), Eq(v3));
+  ASSERT_FALSE(iter.hasNext());
+}
+
+TEST_F(ShardTestFixture, RemoveValuesRemovesAllMatches) {
+  auto shard = openOrCreateShard(prefix);
+  shard->put(k1, v1);
+  shard->put(k1, v2);
+  shard->put(k1, v3);
+  auto is_any_value = [&](const Bytes& /* value */) { return true; };
+  ASSERT_THAT(shard->removeValues(k1, is_any_value), Eq(3));
+  auto iter = shard->get(k1);
+  ASSERT_FALSE(iter.hasNext());
+
+  shard->put(k2, v1);
+  shard->put(k2, v2);
+  shard->put(k2, v3);
+  auto is_v2_or_v3 =
+      [&](const Bytes& value) { return value == v2 || value == v3; };
+  ASSERT_TRUE(shard->removeValues(k2, is_v2_or_v3));
+  iter = shard->get(k2);
+  ASSERT_THAT(iter.next(), Eq(v1));
+  ASSERT_FALSE(iter.hasNext());
+}
+
+TEST_F(ShardTestFixture, ReplaceValueReplacesOnlyFirstMatch) {
+  auto shard = openOrCreateShard(prefix);
+  shard->put(k1, v1);
+  shard->put(k1, v2);
+  shard->put(k1, v3);
+  auto rotate_any = [&](const Bytes& value) {
+    if (value == v1) return v2;
+    if (value == v2) return v3;
+    if (value == v3) return v1;
+    return std::string();
+  };
+  ASSERT_TRUE(shard->replaceValue(k1, rotate_any));
+  auto iter = shard->get(k1);
+  ASSERT_THAT(iter.next(), Eq(v2));
+  ASSERT_THAT(iter.next(), Eq(v3));
+  ASSERT_THAT(iter.next(), Eq(v2));  // v1 replacement
+  ASSERT_FALSE(iter.hasNext());
+
+  shard->put(k2, v1);
+  shard->put(k2, v2);
+  shard->put(k2, v3);
+  auto rotate_v2_or_v3 = [&](const Bytes& value) {
+    if (value == v2) return v3;
+    if (value == v3) return v1;
+    return std::string();
+  };
+  ASSERT_TRUE(shard->replaceValue(k2, rotate_v2_or_v3));
+  iter = shard->get(k2);
+  ASSERT_THAT(iter.next(), Eq(v1));
+  ASSERT_THAT(iter.next(), Eq(v3));
+  ASSERT_THAT(iter.next(), Eq(v3));  // v2 replacement
+  ASSERT_FALSE(iter.hasNext());
+}
+
+TEST_F(ShardTestFixture, ReplaceValuesReplacesAllMatches) {
+  auto shard = openOrCreateShard(prefix);
+  shard->put(k1, v1);
+  shard->put(k1, v2);
+  shard->put(k1, v3);
+  auto rotate_any = [&](const Bytes& value) {
+    if (value == v1) return v2;
+    if (value == v2) return v3;
+    if (value == v3) return v1;
+    return std::string();
+  };
+  ASSERT_THAT(shard->replaceValues(k1, rotate_any), Eq(3));
+  auto iter = shard->get(k1);
+  ASSERT_THAT(iter.next(), Eq(v2));  // v1 replacement
+  ASSERT_THAT(iter.next(), Eq(v3));  // v2 replacement
+  ASSERT_THAT(iter.next(), Eq(v1));  // v3 replacement
+  ASSERT_FALSE(iter.hasNext());
+
+  shard->put(k2, v1);
+  shard->put(k2, v2);
+  shard->put(k2, v3);
+  auto rotate_v2_or_v3 = [&](const Bytes& value) {
+    if (value == v2) return v3;
+    if (value == v3) return v1;
+    return std::string();
+  };
+  ASSERT_THAT(shard->replaceValues(k2, rotate_v2_or_v3), Eq(2));
+  iter = shard->get(k2);
+  ASSERT_THAT(iter.next(), Eq(v1));
+  ASSERT_THAT(iter.next(), Eq(v3));  // v2 replacement
+  ASSERT_THAT(iter.next(), Eq(v1));  // v3 replacement
+  ASSERT_FALSE(iter.hasNext());
+}
+
 TEST_F(ShardTestFixture, ForEachKeyIgnoresEmptyLists) {
   auto shard = openOrCreateShard(prefix);
   shard->put(k1, v1);
   shard->put(k2, v1);
   shard->put(k3, v1);
-
-  shard->removeKey(k3);
-
   std::vector<std::string> keys;
-  shard->forEachKey(
-      [&keys](const Bytes& key) { keys.push_back(key.toString()); });
-  ASSERT_THAT(keys, UnorderedElementsAre(k1, k2));
+  auto collect = [&](const Bytes& key) { keys.push_back(key.toString()); };
+  shard->forEachKey(collect);
+  ASSERT_THAT(keys, UnorderedElementsAre(k1, k2, k3));
+
+  keys.clear();
+  shard->removeKey(k1);
+  shard->forEachKey(collect);
+  ASSERT_THAT(keys, UnorderedElementsAre(k2, k3));
+
+  keys.clear();
+  shard->removeKey(k2);
+  shard->forEachKey(collect);
+  ASSERT_THAT(keys, UnorderedElementsAre(k3));
+
+  keys.clear();
+  shard->removeKey(k3);
+  shard->forEachKey(collect);
+  ASSERT_TRUE(keys.empty());
+
+  shard->put(k1, v1);
+  shard->put(k2, v1);
+  shard->put(k3, v1);
+  shard->forEachKey(collect);
+  ASSERT_THAT(keys, UnorderedElementsAre(k1, k2, k3));
+
+  auto any_value = [](const Bytes& /* value */) { return true; };
+
+  keys.clear();
+  shard->removeValues(k1, any_value);
+  shard->forEachKey(collect);
+  ASSERT_THAT(keys, UnorderedElementsAre(k2, k3));
+
+  keys.clear();
+  shard->removeValues(k2, any_value);
+  shard->forEachKey(collect);
+  ASSERT_THAT(keys, UnorderedElementsAre(k3));
+
+  keys.clear();
+  shard->removeValues(k3, any_value);
+  shard->forEachKey(collect);
+  ASSERT_TRUE(keys.empty());
 }
 
-TEST_F(ShardTestFixture, PutValuesWithReopen) {
-  {
-    auto shard = openOrCreateShard(prefix);
-    shard->put(k1, v1);
-    shard->put(k2, v1);
-    shard->put(k3, v1);
-  }
-  {
-    auto shard = openOrCreateShard(prefix);
-    shard->put(k1, v2);
-    shard->put(k2, v2);
-    shard->put(k3, v2);
-  }
-  {
-    auto shard = openOrCreateShard(prefix);
-    shard->put(k1, v3);
-    shard->put(k2, v3);
-    shard->put(k3, v3);
-  }
+TEST_F(ShardTestFixture, ForEachValueVisitsAllValues) {
   auto shard = openOrCreateShard(prefix);
-  auto iter1 = shard->get(k1);
-  ASSERT_THAT(iter1.next().toString(), Eq(v1));
-  ASSERT_THAT(iter1.next().toString(), Eq(v2));
-  ASSERT_THAT(iter1.next().toString(), Eq(v3));
-  ASSERT_FALSE(iter1.hasNext());
+  shard->put(k1, v1);
+  shard->put(k2, v1);
+  shard->put(k2, v2);
+  std::vector<std::string> values;
+  auto collect = [&](const Bytes& val) { values.push_back(val.toString()); };
+  shard->forEachValue(k1, collect);
+  ASSERT_THAT(values, UnorderedElementsAre(v1));
 
-  auto iter2 = shard->get(k2);
-  ASSERT_THAT(iter2.next().toString(), Eq(v1));
-  ASSERT_THAT(iter2.next().toString(), Eq(v2));
-  ASSERT_THAT(iter2.next().toString(), Eq(v3));
-  ASSERT_FALSE(iter2.hasNext());
+  values.clear();
+  shard->forEachValue(k2, collect);
+  ASSERT_THAT(values, UnorderedElementsAre(v1, v2));
 
-  auto iter3 = shard->get(k3);
-  ASSERT_THAT(iter3.next().toString(), Eq(v1));
-  ASSERT_THAT(iter3.next().toString(), Eq(v2));
-  ASSERT_THAT(iter3.next().toString(), Eq(v3));
-  ASSERT_FALSE(iter3.hasNext());
+  values.clear();
+  shard->forEachValue(k3, collect);
+  ASSERT_TRUE(values.empty());
+}
+
+TEST_F(ShardTestFixture, ForEachEntryIgnoresEmptyLists) {
+  auto shard = openOrCreateShard(prefix);
+  shard->put(k1, v1);
+  shard->put(k2, v1);
+  shard->put(k2, v2);
+  shard->put(k3, v1);
+  shard->put(k3, v2);
+  shard->put(k3, v3);
+  std::map<std::string, std::vector<std::string>> mapping;
+  auto collect = [&](const Bytes& key, SharedListIterator&& iter) {
+    while (iter.hasNext()) {
+      mapping[key.toString()].push_back(iter.next().toString());
+    }
+  };
+  shard->forEachEntry(collect);
+  ASSERT_THAT(mapping.size(), Eq(3));
+  ASSERT_THAT(mapping.at(k1), ElementsAre(v1));
+  ASSERT_THAT(mapping.at(k2), ElementsAre(v1, v2));
+  ASSERT_THAT(mapping.at(k3), ElementsAre(v1, v2, v3));
+
+  mapping.clear();
+  shard->removeValues(k2, [](const Bytes& /* value */) { return true; });
+  shard->forEachEntry(collect);
+  ASSERT_THAT(mapping.size(), Eq(2));
+  ASSERT_THAT(mapping.at(k1), ElementsAre(v1));
+  ASSERT_THAT(mapping.at(k3), ElementsAre(v1, v2, v3));
+}
+
+TEST_F(ShardTestFixture, GetStatsReturnsCorrectValues) {
+  auto shard = openOrCreateShard(prefix);
+  shard->put("k", "vvv");
+  shard->put("kk", "vv");
+  shard->put("kk", "vv");
+  shard->put("kkk", "v");
+  shard->put("kkk", "v");
+  shard->put("kkk", "v");
+  const Shard::Stats stats = shard->getStats();
+  ASSERT_THAT(stats.block_size, Eq(Shard::Options().block_size));
+  ASSERT_THAT(stats.key_size_avg, Eq(2));
+  ASSERT_THAT(stats.key_size_max, Eq(3));
+  ASSERT_THAT(stats.key_size_min, Eq(1));
+  ASSERT_THAT(stats.list_size_avg, Eq(2));
+  ASSERT_THAT(stats.list_size_max, Eq(3));
+  ASSERT_THAT(stats.list_size_min, Eq(1));
+  ASSERT_THAT(stats.num_blocks, Eq(0));
+  ASSERT_THAT(stats.num_keys, Eq(3));
+  ASSERT_THAT(stats.num_values_put, Eq(6));
+  ASSERT_THAT(stats.num_values_rmd, Eq(0));
 }
 
 // -----------------------------------------------------------------------------
