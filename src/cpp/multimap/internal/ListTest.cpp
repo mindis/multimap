@@ -21,7 +21,6 @@
 #include "gmock/gmock.h"
 #include "multimap/internal/Generator.hpp"
 #include "multimap/internal/List.hpp"
-#include "multimap/internal/Shard.hpp"
 
 namespace multimap {
 namespace internal {
@@ -434,32 +433,31 @@ TEST(SharedListIteratorTest, DefaultConstructedHasProperState) {
 
 struct ListIteratorTestWithParam : testing::TestWithParam<std::uint32_t> {
   void SetUp() override {
-    directory = "/tmp/multimap.ListIteratorTestWithParam";
-    prefix = directory / "shard";
-    boost::filesystem::remove_all(directory);
-    MT_ASSERT_TRUE(boost::filesystem::create_directory(directory));
+    boost::filesystem::remove_all(dir);
+    MT_ASSERT_TRUE(boost::filesystem::create_directory(dir));
 
-    shard.reset(new Shard(prefix));
+    Store::Options options;
+    options.create_if_missing = true;
+    store.reset(new Store(boost::filesystem::path(dir) / "store", options));
 
-    key = "key";
     for (std::size_t i = 0; i != GetParam(); ++i) {
-      shard->put(key, std::to_string(i));
+      list.add(std::to_string(i), store.get(), &arena);
     }
   }
 
-  void TearDown() override {
-    shard.reset();
-    MT_ASSERT_TRUE(boost::filesystem::remove_all(directory));
-  }
+  void TearDown() override { boost::filesystem::remove_all(dir); }
 
-  boost::filesystem::path directory;
-  boost::filesystem::path prefix;
-  std::unique_ptr<Shard> shard;
-  std::string key;
+  const std::string dir = "/tmp/multimap.ListIteratorTestWithParam";
+  const std::string key = "key";
+  std::unique_ptr<Store> store;
+  Arena arena;
+  List list;
 };
 
 struct SharedListIteratorTestWithParam : public ListIteratorTestWithParam {
-  SharedListIterator getIterator() { return shard->get(key); }
+  SharedListIterator getIterator() {
+    return SharedListIterator(SharedList(list, *store));
+  }
 };
 
 TEST_P(SharedListIteratorTestWithParam, Iterate) {
@@ -501,7 +499,9 @@ TEST(UniqueListIteratorTest, DefaultConstructedHasProperState) {
 }
 
 struct UniqueListIteratorTestWithParam : public ListIteratorTestWithParam {
-  UniqueListIterator getIterator() { return shard->getMutable(key); }
+  UniqueListIterator getIterator() {
+    return UniqueListIterator(UniqueList(&list, store.get(), &arena));
+  }
 };
 
 TEST_P(UniqueListIteratorTestWithParam, Iterate) {
