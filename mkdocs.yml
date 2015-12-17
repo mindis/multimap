@@ -2,16 +2,20 @@ site_name: Multimap
 docs_dir: doc
 theme_dir: doc/theme
 pages:
-  - Home: 'index.md'
-  - Overview: 'overview.md'
+  - Home: index.md
+  - Overview: overview.md
   - Tutorials:
-    - 'For C++ Developers': 'cpptutorial.md'
-    - 'For Java Developers': 'javatutorial.md'
+    - C++:
+      - 'Basics': cpptutorial.md
+      - 'Use with Protobuf': cpptutorial.md
+    - Java:
+      - 'Basics': javatutorial.md
+      - 'Use with Protobuf': javatutorial.md
   - Reference:
-    - 'For C++ Developers': 'cppreference.md'
-    - 'For Java Developers': 'javareference.md'
+    - 'For C++ Developers': cppreference.md
+    - 'For Java Developers': javareference.md
   - Downloads:
-    - 'Release 0.3': 'downloadv03.md'
-    - 'Release 0.2': 'downloadv02.md'
-    - 'Release 0.1': 'downloadv01.md'
-    - 'Changelog': 'changelog.md'
+    - 'Release 0.3': downloadv03.md
+    - 'Release 0.2': downloadv02.md
+    - 'Release 0.1': downloadv01.md
+    - 'Changelog': changelog.md

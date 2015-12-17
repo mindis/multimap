@@ -56,9 +56,18 @@
                   <a href="#">{{ nav_item.title }} <span class="caret"></span></a>
                   <ul class="dropdown-menu">
                     {% for nav_item in nav_item.children %}
-                      <li {% if nav_item.active %} class="active" {% endif %}>
-                        <a href="{{ nav_item.url }}">{{ nav_item.title }}</a>
-                      </li>
+                      {% if nav_item.children %}
+                        <li class="dropdown-header">{{ nav_item.title }}</li>
+                        {% for nav_item in nav_item.children %}
+                          <li {% if nav_item.active %} class="active" {% endif %}>
+                            <a href="{{ nav_item.url }}">{{ nav_item.title }}</a>
+                          </li>
+                        {% endfor %}
+                      {% else %}
+                        <li {% if nav_item.active %} class="active" {% endif %}>
+                          <a href="{{ nav_item.url }}">{{ nav_item.title }}</a>
+                        </li>
+                      {% endif %}
                     {% endfor %}
                   </ul>
                 </li>

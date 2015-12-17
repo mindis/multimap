@@ -1198,6 +1198,7 @@ html {
 body {
   font-family: "Fira Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-size: 16px;
+  font-weight: 300;
   line-height: 1.5;
   color: #333;
   background-color: #fff;
@@ -3754,9 +3755,10 @@ tbody.collapse.in {
 }
 .dropdown-header {
   display: block;
-  padding: 3px 20px;
-  font-size: 12px;
-  line-height: 1.42857143;
+  padding: 3px 15px;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
   color: #777;
   white-space: nowrap;
 }
