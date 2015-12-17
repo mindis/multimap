@@ -25,6 +25,7 @@ namespace internal {
 
 // -----------------------------------------------------------------------------
 // class BasicBlock
+// -----------------------------------------------------------------------------
 
 TEST(ReadOnlyBlockTest, IsDefaultConstructible) {
   ASSERT_TRUE(std::is_default_constructible<ReadOnlyBlock>::value);
@@ -209,6 +210,7 @@ TEST(ReadWriteBlockTest, WriteValuesAndFlipFlags) {
 
 // -----------------------------------------------------------------------------
 // class ExtendedBasicBlock
+// -----------------------------------------------------------------------------
 
 TEST(ExtendedReadOnlyBlockTest, IsDefaultConstructible) {
   ASSERT_TRUE(std::is_default_constructible<ExtendedReadOnlyBlock>::value);

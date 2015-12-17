@@ -30,6 +30,7 @@ using testing::Eq;
 
 // -----------------------------------------------------------------------------
 // class List::Iterator
+// -----------------------------------------------------------------------------
 
 TEST(ListIteratorTest, IsDefaultConstructible) {
   ASSERT_TRUE(std::is_default_constructible<List::Iterator>::value);
@@ -52,6 +53,7 @@ TEST(ListIteratorTest, DefaultConstructedHasProperState) {
 
 // -----------------------------------------------------------------------------
 // class List::MutableIterator
+// -----------------------------------------------------------------------------
 
 TEST(ListMutableIteratorTest, IsDefaultConstructible) {
   ASSERT_TRUE(std::is_default_constructible<List::MutableIterator>::value);
@@ -74,6 +76,7 @@ TEST(ListMutableIteratorTest, DefaultConstructedHasProperState) {
 
 // -----------------------------------------------------------------------------
 // class List
+// -----------------------------------------------------------------------------
 
 TEST(ListTest, IsDefaultConstructible) {
   ASSERT_TRUE(std::is_default_constructible<List>::value);
@@ -100,6 +103,7 @@ TEST(ListTest, DefaultConstructedHasProperState) {
 
 // -----------------------------------------------------------------------------
 // class List / Iteration
+// -----------------------------------------------------------------------------
 
 struct ListTestIteration : testing::TestWithParam<std::uint32_t> {
   void SetUp() override {
@@ -111,14 +115,14 @@ struct ListTestIteration : testing::TestWithParam<std::uint32_t> {
   }
 
   void TearDown() override {
-    store.reset(); // Destructor flushes all data to disk.
+    store.reset();  // Destructor flushes all data to disk.
     MT_ASSERT_TRUE(boost::filesystem::remove_all(directory));
   }
 
   Store* getStore() { return store.get(); }
   Arena* getArena() { return &arena; }
 
-private:
+ private:
   boost::filesystem::path directory;
   std::unique_ptr<Store> store;
   Arena arena;
@@ -249,6 +253,7 @@ INSTANTIATE_TEST_CASE_P(Parameterized, ListTestIteration,
 
 // -----------------------------------------------------------------------------
 // class List / Locking
+// -----------------------------------------------------------------------------
 
 TEST(ListTest, LockUniqueFailsIfAlreadyLockedUnique) {
   List list;
@@ -361,6 +366,7 @@ TEST(ListTest, TryLockSharedSucceedsIfAlreadyLockedShared) {
 
 // -----------------------------------------------------------------------------
 // class SharedList
+// -----------------------------------------------------------------------------
 
 TEST(SharedListTest, IsDefaultConstructible) {
   ASSERT_TRUE(std::is_default_constructible<SharedList>::value);
@@ -382,6 +388,7 @@ TEST(SharedListTest, DefaultConstructedHasProperState) {
 
 // -----------------------------------------------------------------------------
 // class UniqueList
+// -----------------------------------------------------------------------------
 
 TEST(UniqueListTest, IsDefaultConstructible) {
   ASSERT_TRUE(std::is_default_constructible<UniqueList>::value);
@@ -403,6 +410,7 @@ TEST(UniqueListTest, DefaultConstructedHasProperState) {
 
 // -----------------------------------------------------------------------------
 // class SharedListIterator
+// -----------------------------------------------------------------------------
 
 TEST(SharedListIteratorTest, IsDefaultConstructible) {
   ASSERT_TRUE(std::is_default_constructible<SharedListIterator>::value);
@@ -470,6 +478,7 @@ INSTANTIATE_TEST_CASE_P(Parameterized, SharedListIteratorTestWithParam,
 
 // -----------------------------------------------------------------------------
 // class UniqueListIterator
+// -----------------------------------------------------------------------------
 
 TEST(UniqueListIteratorTest, IsDefaultConstructible) {
   ASSERT_TRUE(std::is_default_constructible<UniqueListIterator>::value);
@@ -551,5 +560,5 @@ TEST_P(UniqueListIteratorTestWithParam,
 INSTANTIATE_TEST_CASE_P(Parameterized, UniqueListIteratorTestWithParam,
                         testing::Values(0, 1, 2, 10, 100, 1000, 1000000));
 
-} // namespace internal
-} // namespace multimap
+}  // namespace internal
+}  // namespace multimap
