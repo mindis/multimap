@@ -79,24 +79,25 @@ Map::Map(const boost::filesystem::path& directory)
 Map::Map(const boost::filesystem::path& directory, const Options& options)
     : lock_(directory, internal::getNameOfLockFile()) {
   checkOptions(options);
+  internal::Shard::Options shard_options;
   const auto id_file = directory / internal::getNameOfIdFile();
   if (boost::filesystem::is_regular_file(id_file)) {
-    mt::Check::isFalse(options.error_if_exists,
-                       "A Multimap in '%s' does already exist",
-                       boost::filesystem::canonical(directory).c_str());
+    mt::Check::isFalse(options.error_if_exists, "Map in '%s' already exists",
+                       boost::filesystem::absolute(directory).c_str());
 
     const auto id = Id::readFromFile(id_file);
     internal::checkVersion(id.major_version, id.minor_version);
     shards_.resize(id.num_shards);
 
   } else {
-    mt::Check::isTrue(options.create_if_missing, "No Multimap found in '%s'",
-                      boost::filesystem::canonical(directory).c_str());
+    mt::Check::isTrue(options.create_if_missing, "Map in '%s' does not exist",
+                      boost::filesystem::absolute(directory).c_str());
+
+    shard_options.block_size = options.block_size;
+    shard_options.create_if_missing = true;
     shards_.resize(mt::nextPrime(options.num_shards));
   }
 
-  internal::Shard::Options shard_options;
-  shard_options.block_size = options.block_size;
   shard_options.buffer_size = options.buffer_size;
   shard_options.readonly = options.readonly;
   shard_options.quiet = options.quiet;
