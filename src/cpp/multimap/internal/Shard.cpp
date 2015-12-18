@@ -41,9 +41,10 @@ std::size_t Shard::Limits::maxValueSize() {
 
 const std::vector<std::string>& Shard::Stats::names() {
   static std::vector<std::string> names = {
-      "block_size",     "num_blocks",    "num_keys",     "num_values_put",
-      "num_values_rmd", "key_size_min",  "key_size_max", "key_size_avg",
-      "list_size_min",  "list_size_max", "list_size_avg"};
+      "block_size",     "num_blocks",       "num_keys_total",
+      "num_keys_valid", "num_values_total", "num_values_valid",
+      "key_size_min",   "key_size_max",     "key_size_avg",
+      "list_size_min",  "list_size_max",    "list_size_avg"};
   return names;
 }
 
@@ -66,9 +67,10 @@ Shard::Stats Shard::Stats::fromProperties(const mt::Properties& properties) {
   Stats stats;
   stats.block_size = std::stoul(properties.at("block_size"));
   stats.num_blocks = std::stoul(properties.at("num_blocks"));
-  stats.num_keys = std::stoul(properties.at("num_keys"));
-  stats.num_values_put = std::stoul(properties.at("num_values_put"));
-  stats.num_values_rmd = std::stoul(properties.at("num_values_rmd"));
+  stats.num_keys_total = std::stoul(properties.at("num_keys_total"));
+  stats.num_keys_valid = std::stoul(properties.at("num_keys_valid"));
+  stats.num_values_total = std::stoul(properties.at("num_values_total"));
+  stats.num_values_valid = std::stoul(properties.at("num_values_valid"));
   stats.key_size_min = std::stoul(properties.at("key_size_min"));
   stats.key_size_max = std::stoul(properties.at("key_size_max"));
   stats.key_size_avg = std::stoul(properties.at("key_size_avg"));
@@ -83,9 +85,10 @@ mt::Properties Shard::Stats::toProperties() const {
   mt::Properties properties;
   properties["block_size"] = std::to_string(block_size);
   properties["num_blocks"] = std::to_string(num_blocks);
-  properties["num_keys"] = std::to_string(num_keys);
-  properties["num_values_put"] = std::to_string(num_values_put);
-  properties["num_values_rmd"] = std::to_string(num_values_rmd);
+  properties["num_keys_total"] = std::to_string(num_keys_total);
+  properties["num_keys_valid"] = std::to_string(num_keys_valid);
+  properties["num_values_total"] = std::to_string(num_values_total);
+  properties["num_values_valid"] = std::to_string(num_values_valid);
   properties["key_size_min"] = std::to_string(key_size_min);
   properties["key_size_max"] = std::to_string(key_size_max);
   properties["key_size_avg"] = std::to_string(key_size_avg);
@@ -97,9 +100,9 @@ mt::Properties Shard::Stats::toProperties() const {
 }
 
 std::vector<std::uint64_t> Shard::Stats::toVector() const {
-  return {block_size,     num_blocks,    num_keys,     num_values_put,
-          num_values_rmd, key_size_min,  key_size_max, key_size_avg,
-          list_size_min,  list_size_max, list_size_avg};
+  return {block_size,       num_blocks,       num_keys_total, num_keys_valid,
+          num_values_total, num_values_valid, key_size_min,   key_size_max,
+          key_size_avg,     list_size_min,    list_size_max,  list_size_avg};
 }
 
 Shard::Stats Shard::Stats::total(const std::vector<Stats>& stats) {
@@ -111,9 +114,10 @@ Shard::Stats Shard::Stats::total(const std::vector<Stats>& stats) {
       MT_ASSERT_EQ(total.block_size, stat.block_size);
     }
     total.num_blocks += stat.num_blocks;
-    total.num_keys += stat.num_keys;
-    total.num_values_put += stat.num_values_put;
-    total.num_values_rmd += stat.num_values_rmd;
+    total.num_keys_total += stat.num_keys_total;
+    total.num_keys_valid += stat.num_keys_valid;
+    total.num_values_total += stat.num_values_total;
+    total.num_values_valid += stat.num_values_valid;
     total.key_size_max = std::max(total.key_size_max, stat.key_size_max);
     if (stat.key_size_min) {
       total.key_size_min = total.key_size_min
@@ -127,13 +131,13 @@ Shard::Stats Shard::Stats::total(const std::vector<Stats>& stats) {
                               : stat.list_size_min;
     }
   }
-  if (total.num_keys != 0) {
+  if (total.num_keys_valid != 0) {
     double key_size_avg = 0;
     double list_size_avg = 0;
     for (const auto& stat : stats) {
-      const auto weight = stat.num_keys / static_cast<double>(total.num_keys);
-      key_size_avg += weight * stat.key_size_avg;
-      list_size_avg += weight * stat.list_size_avg;
+      auto w = stat.num_keys_valid / static_cast<double>(total.num_keys_valid);
+      key_size_avg += w * stat.key_size_avg;
+      list_size_avg += w * stat.list_size_avg;
     }
     total.key_size_avg = key_size_avg;
     total.list_size_avg = list_size_avg;
@@ -146,9 +150,12 @@ Shard::Stats Shard::Stats::max(const std::vector<Stats>& stats) {
   for (const auto& stat : stats) {
     max.block_size = std::max(max.block_size, stat.block_size);
     max.num_blocks = std::max(max.num_blocks, stat.num_blocks);
-    max.num_keys = std::max(max.num_keys, stat.num_keys);
-    max.num_values_put = std::max(max.num_values_put, stat.num_values_put);
-    max.num_values_rmd = std::max(max.num_values_rmd, stat.num_values_rmd);
+    max.num_keys_total = std::max(max.num_keys_total, stat.num_keys_total);
+    max.num_keys_valid = std::max(max.num_keys_valid, stat.num_keys_valid);
+    max.num_values_total =
+        std::max(max.num_values_total, stat.num_values_total);
+    max.num_values_valid =
+        std::max(max.num_values_valid, stat.num_values_valid);
     max.key_size_avg = std::max(max.key_size_avg, stat.key_size_avg);
     max.key_size_max = std::max(max.key_size_max, stat.key_size_max);
     if (stat.key_size_min) {
@@ -174,17 +181,17 @@ Shard::Shard(const boost::filesystem::path& file_prefix, const Options& options)
     stats_ = Stats::readFromFile(stats_file);
     const auto keys_file = getNameOfKeysFile(prefix_.string());
     const auto stream = mt::fopen(keys_file, "r");
-    for (std::size_t i = 0; i != stats_.num_keys; ++i) {
+    for (std::size_t i = 0; i != stats_.num_keys_total; ++i) {
       const auto entry = Entry::readFromStream(stream.get(), &arena_);
       map_[entry.key()].reset(new List(entry.head()));
-      stats_.num_values_put -= entry.head().num_values_added;
-      stats_.num_values_rmd -= entry.head().num_values_removed;
+      stats_.num_values_total -= entry.head().num_values_total;
+      stats_.num_values_valid -= entry.head().num_values_valid();
     }
 
-    // Reset stats, but preserve number of values put and removed.
+    // Reset stats, but preserve number of total/valid values.
     Stats stats;
-    stats.num_values_put = stats_.num_values_put;
-    stats.num_values_rmd = stats_.num_values_rmd;
+    stats.num_values_total = stats_.num_values_total;
+    stats.num_values_valid = stats_.num_values_valid;
     stats_ = stats;
 
   } else {
@@ -214,6 +221,7 @@ Shard::~Shard() {
     const auto store_stats = store_->getStats();
     stats_.block_size = store_stats.block_size;
     stats_.num_blocks = store_stats.num_blocks;
+    stats_.num_keys_total = map_.size();
     for (const auto& entry : map_) {
       const auto& key = entry.first;
       const auto& list = entry.second.get();
@@ -226,10 +234,10 @@ Shard::~Shard() {
       // We do not skip or even throw if a list is still locked to prevent data
       // loss. However, this causes a race which could let the program crash...
       list->flush(store_.get());
-      stats_.num_values_put += list->head().num_values_added;
-      stats_.num_values_rmd += list->head().num_values_removed;
+      stats_.num_values_total += list->head().num_values_total;
+      stats_.num_values_valid += list->head().num_values_valid();
       if (!list->empty()) {
-        ++stats_.num_keys;
+        ++stats_.num_keys_valid;
         stats_.key_size_avg += key.size();
         stats_.key_size_max = mt::max(stats_.key_size_max, key.size());
         stats_.key_size_min = stats_.key_size_min
@@ -243,10 +251,9 @@ Shard::~Shard() {
         Entry(key, list->head()).writeToStream(stream.get());
       }
     }
-
-    if (stats_.num_keys) {
-      stats_.key_size_avg /= stats_.num_keys;
-      stats_.list_size_avg /= stats_.num_keys;
+    if (stats_.num_keys_valid) {
+      stats_.key_size_avg /= stats_.num_keys_valid;
+      stats_.list_size_avg /= stats_.num_keys_valid;
     }
     stats_.writeToFile(getNameOfStatsFile(prefix_.string()));
 
@@ -263,28 +270,30 @@ Shard::Stats Shard::getStats() const {
   stats.block_size = store_stats.block_size;
   stats.num_blocks = store_stats.num_blocks;
   boost::shared_lock<boost::shared_mutex> lock(mutex_);
+  stats.num_keys_total = map_.size();
   for (const auto& entry : map_) {
-    const auto& key = entry.first;
-    SharedList list(*entry.second, *store_, std::try_to_lock);
-    if (list) {
-      ++stats.num_keys;
-      stats.num_values_put += list.head().num_values_added;
-      stats.num_values_rmd += list.head().num_values_removed;
-      stats.key_size_avg += key.size();
-      stats.key_size_max = mt::max(stats.key_size_max, key.size());
-      stats.key_size_min = stats.key_size_min
-                               ? mt::min(stats.key_size_min, key.size())
-                               : key.size();
-      stats.list_size_avg += list.size();
-      stats.list_size_max = mt::max(stats.list_size_max, list.size());
-      stats.list_size_min = stats.list_size_min
-                                ? mt::min(stats.list_size_min, list.size())
-                                : list.size();
+    if (auto list = SharedList(*entry.second, *store_, std::try_to_lock)) {
+      stats.num_values_total += list.head().num_values_total;
+      stats.num_values_valid += list.head().num_values_valid();
+      if (!list.empty()) {
+        const auto& key = entry.first;
+        ++stats.num_keys_valid;
+        stats.key_size_avg += key.size();
+        stats.key_size_max = mt::max(stats.key_size_max, key.size());
+        stats.key_size_min = stats.key_size_min
+                                 ? mt::min(stats.key_size_min, key.size())
+                                 : key.size();
+        stats.list_size_avg += list.size();
+        stats.list_size_max = mt::max(stats.list_size_max, list.size());
+        stats.list_size_min = stats.list_size_min
+                                  ? mt::min(stats.list_size_min, list.size())
+                                  : list.size();
+      }
     }
   }
-  if (stats.num_keys) {
-    stats.key_size_avg /= stats.num_keys;
-    stats.list_size_avg /= stats.num_keys;
+  if (stats.num_keys_valid) {
+    stats.key_size_avg /= stats.num_keys_valid;
+    stats.list_size_avg /= stats.num_keys_valid;
   }
   return stats;
 }

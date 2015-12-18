@@ -49,9 +49,10 @@ class Shard : mt::Resource {
   struct Stats {
     std::uint64_t block_size = 0;
     std::uint64_t num_blocks = 0;
-    std::uint64_t num_keys = 0;
-    std::uint64_t num_values_put = 0;
-    std::uint64_t num_values_rmd = 0;
+    std::uint64_t num_keys_total = 0;
+    std::uint64_t num_keys_valid = 0;
+    std::uint64_t num_values_total = 0;
+    std::uint64_t num_values_valid = 0;
     std::uint64_t key_size_min = 0;
     std::uint64_t key_size_max = 0;
     std::uint64_t key_size_avg = 0;
@@ -80,9 +81,9 @@ class Shard : mt::Resource {
   static_assert(std::is_standard_layout<Stats>::value,
                 "Shard::Stats is no standard layout type");
 
-  static_assert(mt::hasExpectedSize<Stats>(96, 96),
+  static_assert(mt::hasExpectedSize<Stats>(104, 104),
                 "Shard::Stats does not have expected size");
-  // Use __attribute__((packed)) if 32- and 64-bit sizes differ.
+  // sizeof(Stats) must be equal on 32- and 64-bit systems to be portable.
 
   typedef SharedListIterator ListIterator;
 
@@ -110,8 +111,7 @@ class Shard : mt::Resource {
     bool removed = false;
     auto list = getUnique(key);
     if (list && !list.empty()) {
-      stats_.num_values_put += list.head().num_values_added;
-      stats_.num_values_rmd += list.head().num_values_added;
+      stats_.num_values_total += list.head().num_values_total;
       removed = true;
       list.clear();
     }
@@ -126,8 +126,7 @@ class Shard : mt::Resource {
       if (predicate(entry.first)) {
         UniqueList list(entry.second.get(), store_.get(), &arena_);
         if (!list.empty()) {
-          stats_.num_values_put += list.head().num_values_added;
-          stats_.num_values_rmd += list.head().num_values_added;
+          stats_.num_values_total += list.head().num_values_total;
           ++num_removed;
           list.clear();
         }
@@ -210,7 +209,7 @@ class Shard : mt::Resource {
     store.adviseAccessPattern(Store::AccessPattern::WILLNEED);
     const auto stats = Stats::readFromFile(getNameOfStatsFile(prefix.string()));
     const auto stream = mt::fopen(getNameOfKeysFile(prefix.string()), "r");
-    for (std::size_t i = 0; i != stats.num_keys; ++i) {
+    for (std::size_t i = 0; i != stats.num_keys_valid; ++i) {
       const auto entry = Entry::readFromStream(stream.get(), &arena);
       List list(entry.head());
       process(entry.key(), ListIterator(SharedList(list, store)));
