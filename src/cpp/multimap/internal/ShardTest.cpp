@@ -20,6 +20,7 @@
 #include <boost/filesystem/operations.hpp>
 #include "gmock/gmock.h"
 #include "multimap/internal/Shard.hpp"
+#include "multimap/callables.hpp"
 
 namespace multimap {
 namespace internal {
@@ -31,6 +32,14 @@ using testing::UnorderedElementsAre;
 std::unique_ptr<Shard> openOrCreateShard(
     const boost::filesystem::path& prefix) {
   Shard::Options options;
+  options.create_if_missing = true;
+  return std::unique_ptr<Shard>(new Shard(prefix, options));
+}
+
+std::unique_ptr<Shard> openOrCreateShardAsReadOnly(
+    const boost::filesystem::path& prefix) {
+  Shard::Options options;
+  options.readonly = true;
   options.create_if_missing = true;
   return std::unique_ptr<Shard>(new Shard(prefix, options));
 }
@@ -88,20 +97,11 @@ TEST_F(ShardTestFixture, PutAppendsValuesToList) {
   shard->put(k1, v1);
   shard->put(k1, v2);
   shard->put(k1, v3);
-  {
-    auto iter = shard->get(k1);
-    ASSERT_THAT(iter.next().toString(), Eq(v1));
-    ASSERT_THAT(iter.next().toString(), Eq(v2));
-    ASSERT_THAT(iter.next().toString(), Eq(v3));
-    ASSERT_FALSE(iter.hasNext());
-  }
-  {
-    auto iter = shard->getMutable(k1);
-    ASSERT_THAT(iter.next().toString(), Eq(v1));
-    ASSERT_THAT(iter.next().toString(), Eq(v2));
-    ASSERT_THAT(iter.next().toString(), Eq(v3));
-    ASSERT_FALSE(iter.hasNext());
-  }
+  auto iter = shard->get(k1);
+  ASSERT_THAT(iter.next().toString(), Eq(v1));
+  ASSERT_THAT(iter.next().toString(), Eq(v2));
+  ASSERT_THAT(iter.next().toString(), Eq(v3));
+  ASSERT_FALSE(iter.hasNext());
 }
 
 TEST_F(ShardTestFixture, PutValuesWithReopen) {
@@ -146,99 +146,6 @@ TEST_F(ShardTestFixture, PutValuesWithReopen) {
 TEST_F(ShardTestFixture, GetReturnsEmptyListForNonExistingKey) {
   auto shard = openOrCreateShard(prefix);
   ASSERT_FALSE(shard->get(k1).hasNext());
-  ASSERT_FALSE(shard->getMutable(k1).hasNext());
-}
-
-TEST_F(ShardTestFixture, GetTwiceForDifferentListsDoesNotBlock) {
-  auto shard = openOrCreateShard(prefix);
-  shard->put(k1, v1);
-  shard->put(k2, v1);
-  auto iter1 = shard->get(k1);
-  ASSERT_TRUE(iter1.hasNext());
-  auto iter2 = shard->get(k2);
-  ASSERT_TRUE(iter2.hasNext());
-}
-
-TEST_F(ShardTestFixture, GetTwiceForSameListDoesNotBlock) {
-  auto shard = openOrCreateShard(prefix);
-  shard->put(k1, v1);
-  auto iter1 = shard->get(k1);
-  ASSERT_TRUE(iter1.hasNext());
-  auto iter2 = shard->get(k1);
-  ASSERT_TRUE(iter2.hasNext());
-}
-
-TEST_F(ShardTestFixture, GetMutableTwiceForDifferentListsDoesNotBlock) {
-  auto shard = openOrCreateShard(prefix);
-  shard->put(k1, v1);
-  shard->put(k2, v1);
-  auto iter1 = shard->getMutable(k1);
-  ASSERT_TRUE(iter1.hasNext());
-  auto iter2 = shard->getMutable(k2);
-  ASSERT_TRUE(iter2.hasNext());
-}
-
-TEST_F(ShardTestFixture, GetMutableTwiceForSameListBlocks) {
-  auto shard = openOrCreateShard(prefix);
-  shard->put(k1, v1);
-  bool other_thread_got_mutable_iter = false;
-  {
-    auto iter = shard->getMutable(k1);
-    ASSERT_TRUE(iter.hasNext());
-    // We don't have `getMutable(key, wait_for_some_time)` yet,
-    // so we start a new thread that tries to acquire the lock.
-    std::thread thread([&] {
-      shard->getMutable(k1);
-      other_thread_got_mutable_iter = true;
-    });
-    thread.detach();
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    ASSERT_FALSE(other_thread_got_mutable_iter);
-  }
-  std::this_thread::sleep_for(std::chrono::milliseconds(10));
-  ASSERT_TRUE(other_thread_got_mutable_iter);
-}
-
-TEST_F(ShardTestFixture, GetAndThenGetMutableForSameListBlocks) {
-  auto shard = openOrCreateShard(prefix);
-  shard->put(k1, v1);
-  bool other_thread_got_mutable_iter = false;
-  {
-    auto iter = shard->get(k1);
-    ASSERT_TRUE(iter.hasNext());
-    // We don't have `get(key, wait_for_some_time)` yet,
-    // so we start a new thread that tries to acquire the lock.
-    std::thread thread([&] {
-      shard->getMutable(k1);
-      other_thread_got_mutable_iter = true;
-    });
-    thread.detach();
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    ASSERT_FALSE(other_thread_got_mutable_iter);
-  }
-  std::this_thread::sleep_for(std::chrono::milliseconds(10));
-  ASSERT_TRUE(other_thread_got_mutable_iter);
-}
-
-TEST_F(ShardTestFixture, GetMutableAndThenGetForSameListBlocks) {
-  auto shard = openOrCreateShard(prefix);
-  shard->put(k1, v1);
-  bool other_thread_got_iter = false;
-  {
-    auto iter = shard->getMutable(k1);
-    ASSERT_TRUE(iter.hasNext());
-    // We don't have `getMutable(key, wait_for_some_time)` yet,
-    // so we start a new thread that tries to acquire the lock.
-    std::thread thread([&] {
-      shard->get(k1);
-      other_thread_got_iter = true;
-    });
-    thread.detach();
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    ASSERT_FALSE(other_thread_got_iter);
-  }
-  std::this_thread::sleep_for(std::chrono::milliseconds(10));
-  ASSERT_TRUE(other_thread_got_iter);
 }
 
 TEST_F(ShardTestFixture, RemoveKeyRemovesMappedValues) {
@@ -491,6 +398,7 @@ TEST_F(ShardTestFixture, GetStatsReturnsCorrectValues) {
   shard->put("kkkkk", "v");
   shard->put("kkkkk", "v");
   shard->put("kkkkk", "v");
+
   auto stats = shard->getStats();
   ASSERT_THAT(stats.block_size, Eq(Shard::Options().block_size));
   ASSERT_THAT(stats.key_size_avg, Eq(3));
@@ -519,6 +427,238 @@ TEST_F(ShardTestFixture, GetStatsReturnsCorrectValues) {
   ASSERT_THAT(stats.num_keys_valid, Eq(4));
   ASSERT_THAT(stats.num_values_total, Eq(15));
   ASSERT_THAT(stats.num_values_valid, Eq(10));
+}
+
+TEST_F(ShardTestFixture, IsReadOnlyReturnsCorrectValue) {
+  {
+    auto shard = openOrCreateShard(prefix);
+    ASSERT_FALSE(shard->isReadOnly());
+  }
+  {
+    auto shard = openOrCreateShardAsReadOnly(prefix);
+    ASSERT_TRUE(shard->isReadOnly());
+  }
+}
+
+TEST_F(ShardTestFixture, PutThrowsIfOpenedAsReadOnly) {
+  auto shard = openOrCreateShardAsReadOnly(prefix);
+  ASSERT_THROW(shard->put(k1, v1), mt::AssertionError);
+}
+
+TEST_F(ShardTestFixture, RemoveKeyThrowsIfOpenedAsReadOnly) {
+  auto shard = openOrCreateShardAsReadOnly(prefix);
+  ASSERT_THROW(shard->removeKey(k1), mt::AssertionError);
+}
+
+TEST_F(ShardTestFixture, RemoveKeysThrowsIfOpenedAsReadOnly) {
+  auto shard = openOrCreateShardAsReadOnly(prefix);
+  ASSERT_THROW(shard->removeKeys([](const Bytes& /* key */) { return true; }),
+               mt::AssertionError);
+}
+
+TEST_F(ShardTestFixture, RemoveValueThrowsIfOpenedAsReadOnly) {
+  auto shard = openOrCreateShardAsReadOnly(prefix);
+  ASSERT_THROW(shard->removeValue(k1, Equal(v1)), mt::AssertionError);
+}
+
+TEST_F(ShardTestFixture, RemoveValuesThrowsIfOpenedAsReadOnly) {
+  auto shard = openOrCreateShardAsReadOnly(prefix);
+  ASSERT_THROW(shard->removeValues(k1, Equal(v1)), mt::AssertionError);
+}
+
+TEST_F(ShardTestFixture, ReplaceValueThrowsIfOpenedAsReadOnly) {
+  auto shard = openOrCreateShardAsReadOnly(prefix);
+  ASSERT_THROW(shard->replaceValue(k1, v1, v2), mt::AssertionError);
+}
+
+TEST_F(ShardTestFixture, ReplaceValuesThrowsIfOpenedAsReadOnly) {
+  auto shard = openOrCreateShardAsReadOnly(prefix);
+  ASSERT_THROW(shard->replaceValues(k1, v1, v2), mt::AssertionError);
+}
+
+TEST_F(ShardTestFixture, GetBlockSizeReturnsCorrectValue) {
+  auto shard = openOrCreateShard(prefix);
+  ASSERT_THAT(shard->getBlockSize(), Eq(Shard::Options().block_size));
+}
+
+// -----------------------------------------------------------------------------
+// class Shard / Concurrency
+// -----------------------------------------------------------------------------
+
+const auto NULL_PROCEDURE = [](const Bytes&) {};
+const auto TRUE_PREDICATE = [](const Bytes&) { return true; };
+const auto EMPTY_FUNCTION = [](const Bytes&) { return std::string(); };
+
+TEST_F(ShardTestFixture, GetDifferentListsDoesNotBlock) {
+  auto shard = openOrCreateShard(prefix);
+  shard->put(k1, v1);
+  shard->put(k2, v1);
+  auto iter1 = shard->get(k1);
+  ASSERT_TRUE(iter1.hasNext());
+  auto iter2 = shard->get(k2);
+  ASSERT_TRUE(iter2.hasNext());
+}
+
+TEST_F(ShardTestFixture, GetSameListTwiceDoesNotBlock) {
+  auto shard = openOrCreateShard(prefix);
+  shard->put(k1, v1);
+  auto iter1 = shard->get(k1);
+  ASSERT_TRUE(iter1.hasNext());
+  auto iter2 = shard->get(k1);
+  ASSERT_TRUE(iter2.hasNext());
+}
+
+TEST_F(ShardTestFixture, RemoveKeyBlocksIfListIsLocked) {
+  auto shard = openOrCreateShard(prefix);
+  shard->put(k1, v1);
+  auto thread_is_running = true;
+  {
+    auto iter = shard->get(k1);
+    ASSERT_TRUE(iter.hasNext());
+    std::thread thread([&] {
+      shard->removeKey(k1);
+      thread_is_running = false;
+    });
+    thread.detach();
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    ASSERT_TRUE(thread_is_running);
+  }
+  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  ASSERT_FALSE(thread_is_running);
+}
+
+TEST_F(ShardTestFixture, RemoveKeysBlocksIfListIsLocked) {
+  auto shard = openOrCreateShard(prefix);
+  shard->put(k1, v1);
+  auto thread_is_running = true;
+  {
+    auto iter = shard->get(k1);
+    ASSERT_TRUE(iter.hasNext());
+    std::thread thread([&] {
+      shard->removeKeys(TRUE_PREDICATE);
+      thread_is_running = false;
+    });
+    thread.detach();
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    ASSERT_TRUE(thread_is_running);
+  }
+  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  ASSERT_FALSE(thread_is_running);
+}
+
+TEST_F(ShardTestFixture, RemoveValueBlocksIfListIsLocked) {
+  auto shard = openOrCreateShard(prefix);
+  shard->put(k1, v1);
+  auto thread_is_running = true;
+  {
+    auto iter = shard->get(k1);
+    ASSERT_TRUE(iter.hasNext());
+    std::thread thread([&] {
+      shard->removeValue(k1, TRUE_PREDICATE);
+      thread_is_running = false;
+    });
+    thread.detach();
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    ASSERT_TRUE(thread_is_running);
+  }
+  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  ASSERT_FALSE(thread_is_running);
+}
+
+TEST_F(ShardTestFixture, RemoveValuesBlocksIfListIsLocked) {
+  auto shard = openOrCreateShard(prefix);
+  shard->put(k1, v1);
+  auto thread_is_running = true;
+  {
+    auto iter = shard->get(k1);
+    ASSERT_TRUE(iter.hasNext());
+    std::thread thread([&] {
+      shard->removeValues(k1, TRUE_PREDICATE);
+      thread_is_running = false;
+    });
+    thread.detach();
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    ASSERT_TRUE(thread_is_running);
+  }
+  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  ASSERT_FALSE(thread_is_running);
+}
+
+TEST_F(ShardTestFixture, ReplaceValueBlocksIfListIsLocked) {
+  auto shard = openOrCreateShard(prefix);
+  shard->put(k1, v1);
+  auto thread_is_running = true;
+  {
+    auto iter = shard->get(k1);
+    ASSERT_TRUE(iter.hasNext());
+    std::thread thread([&] {
+      shard->replaceValue(k1, EMPTY_FUNCTION);
+      thread_is_running = false;
+    });
+    thread.detach();
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    ASSERT_TRUE(thread_is_running);
+  }
+  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  ASSERT_FALSE(thread_is_running);
+}
+
+TEST_F(ShardTestFixture, ReplaceValuesBlocksIfListIsLocked) {
+  auto shard = openOrCreateShard(prefix);
+  shard->put(k1, v1);
+  auto thread_is_running = true;
+  {
+    auto iter = shard->get(k1);
+    ASSERT_TRUE(iter.hasNext());
+    std::thread thread([&] {
+      shard->replaceValues(k1, EMPTY_FUNCTION);
+      thread_is_running = false;
+    });
+    thread.detach();
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    ASSERT_TRUE(thread_is_running);
+  }
+  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  ASSERT_FALSE(thread_is_running);
+}
+
+TEST_F(ShardTestFixture, ForEachKeyDoesNotBlockIfListIsLocked) {
+  auto shard = openOrCreateShard(prefix);
+  shard->put(k1, v1);
+  auto thread_is_running = true;
+  std::thread thread([&] {
+    shard->forEachKey(NULL_PROCEDURE);
+    thread_is_running = false;
+  });
+  thread.detach();
+  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  ASSERT_FALSE(thread_is_running);
+}
+
+TEST_F(ShardTestFixture, ForEachValueDoesNotBlockIfListIsLocked) {
+  auto shard = openOrCreateShard(prefix);
+  shard->put(k1, v1);
+  auto thread_is_running = true;
+  std::thread thread([&] {
+    shard->forEachValue(k1, NULL_PROCEDURE);
+    thread_is_running = false;
+  });
+  thread.detach();
+  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  ASSERT_FALSE(thread_is_running);
+}
+
+TEST_F(ShardTestFixture, ForEachEntryDoesNotBlockIfListIsLocked) {
+  auto shard = openOrCreateShard(prefix);
+  shard->put(k1, v1);
+  auto thread_is_running = true;
+  std::thread thread([&] {
+    shard->forEachEntry([](const Bytes&, Shard::Iterator&&) {});
+    thread_is_running = false;
+  });
+  thread.detach();
+  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  ASSERT_FALSE(thread_is_running);
 }
 
 // -----------------------------------------------------------------------------
