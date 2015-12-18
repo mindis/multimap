@@ -29,8 +29,7 @@ const auto TRUE_PREDICATE = [](const Bytes&) { return true; };
 const auto FALSE_PREDICATE = [](const Bytes&) { return false; };
 const auto EMPTY_FUNCTION = [](const Bytes&) { return std::string(); };
 const auto NULL_BINARY_PROCEDURE = [](const Bytes&, Map::Iterator&&) {};
-const auto IS_EVEN =
-    [](const Bytes& bytes) { return std::stoul(bytes.toString()) % 2 == 0; };
+const auto IS_ODD = [](const Bytes& b) { return std::stoul(b.toString()) % 2; };
 
 std::unique_ptr<Map> openOrCreateMap(const boost::filesystem::path& directory) {
   Options options;
@@ -116,7 +115,7 @@ TEST_P(MapTestWithParam, PutDataThenReadAll) {
     auto iter = map->get(std::to_string(k));
     ASSERT_THAT(iter.available(), Eq(GetParam()));
     for (auto v = 0; iter.hasNext(); ++v) {
-      ASSERT_THAT(iter.next().toString(), Eq(std::to_string(v)));
+      ASSERT_THAT(iter.next(), Eq(std::to_string(v)));
     }
     ASSERT_THAT(iter.available(), Eq(0));
     ASSERT_FALSE(iter.hasNext());
@@ -138,7 +137,7 @@ TEST_P(MapTestWithParam, PutDataThenReopenThenReadAll) {
       auto iter = map->get(std::to_string(k));
       ASSERT_THAT(iter.available(), Eq(GetParam()));
       for (auto v = 0; iter.hasNext(); ++v) {
-        ASSERT_THAT(iter.next().toString(), Eq(std::to_string(v)));
+        ASSERT_THAT(iter.next(), Eq(std::to_string(v)));
       }
       ASSERT_THAT(iter.available(), Eq(0));
       ASSERT_FALSE(iter.hasNext());
@@ -185,7 +184,7 @@ TEST_P(MapTestWithParam, GetTotalStatsReturnsCorrectValuesAfterRemovingKeys) {
     }
 
     const auto num_keys_removed =
-        map->removeKey(std::to_string(0)) + map->removeKeys(IS_EVEN);
+        map->removeKey(std::to_string(0)) + map->removeKeys(IS_ODD);
 
     stats_backup = map->getTotalStats();
     ASSERT_THAT(stats_backup.num_keys_total, Eq(GetParam()));
@@ -219,7 +218,7 @@ TEST_P(MapTestWithParam, GetTotalStatsReturnsCorrectValuesAfterRemovingValues) {
     const auto key = std::to_string(0);
     const auto val = std::to_string(0);
     const auto num_values_removed =
-        map->removeValue(key, Equal(val)) + map->removeValues(key, IS_EVEN);
+        map->removeValue(key, Equal(val)) + map->removeValues(key, IS_ODD);
 
     stats_backup = map->getTotalStats();
     const auto exp_num_values_total = GetParam() * GetParam();
