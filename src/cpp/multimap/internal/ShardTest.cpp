@@ -596,6 +596,118 @@ TEST_F(ShardTestFixture, GetBlockSizeReturnsCorrectValue) {
 }
 
 // -----------------------------------------------------------------------------
+// class Shard / Mutability
+// -----------------------------------------------------------------------------
+
+struct ShardTestWithParam : public testing::TestWithParam<int> {
+  void SetUp() override {
+    boost::filesystem::remove_all(directory);
+    boost::filesystem::create_directory(directory);
+  }
+
+  void TearDown() override { boost::filesystem::remove_all(directory); }
+
+  const boost::filesystem::path directory = "/tmp/multimap.ShardTestWithParam";
+  const boost::filesystem::path prefix = directory / "shard";
+};
+
+TEST_P(ShardTestWithParam, PutDataThenReadAll) {
+  {
+    auto shard = openOrCreateShard(prefix);
+    for (auto k = 0; k != GetParam(); ++k) {
+      for (auto v = 0; v != GetParam(); ++v) {
+        shard->put(std::to_string(k), std::to_string(v));
+      }
+    }
+
+    for (auto k = 0; k != GetParam(); ++k) {
+      auto iter = shard->get(std::to_string(k));
+      for (auto v = 0; v != GetParam(); ++v) {
+        ASSERT_TRUE(iter.hasNext());
+        ASSERT_THAT(iter.next(), std::to_string(v));
+      }
+      ASSERT_FALSE(iter.hasNext());
+    }
+  }
+
+  auto shard = openOrCreateShard(prefix);
+  for (auto k = 0; k != GetParam(); ++k) {
+    auto iter = shard->get(std::to_string(k));
+    for (auto v = 0; v != GetParam(); ++v) {
+      ASSERT_TRUE(iter.hasNext());
+      ASSERT_THAT(iter.next(), std::to_string(v));
+    }
+    ASSERT_FALSE(iter.hasNext());
+  }
+}
+
+TEST_P(ShardTestWithParam, PutDataThenRemoveSomeThenReadAll) {
+  const auto is_even =
+      [](const Bytes& bytes) { return std::stoul(bytes.toString()) % 2 == 0; };
+  {
+    auto shard = openOrCreateShard(prefix);
+    for (auto k = 0; k != GetParam(); ++k) {
+      for (auto v = 0; v != GetParam(); ++v) {
+        shard->put(std::to_string(k), std::to_string(v));
+      }
+    }
+
+    for (auto k = 0; k < GetParam(); k += 2) {
+      shard->removeValues(std::to_string(k), is_even);
+    }
+
+    for (auto k = 0; k != GetParam(); ++k) {
+      auto iter = shard->get(std::to_string(k));
+      if (k % 2 == 0) {
+        for (auto v = 0; v != GetParam(); ++v) {
+          if (is_even(std::to_string(v))) {
+            // This value must have been removed.
+          } else {
+            ASSERT_TRUE(iter.hasNext());
+            ASSERT_THAT(iter.next(), std::to_string(v));
+          }
+        }
+        ASSERT_FALSE(iter.hasNext());
+      } else {
+        for (auto v = 0; v != GetParam(); ++v) {
+          ASSERT_TRUE(iter.hasNext());
+          ASSERT_THAT(iter.next(), std::to_string(v));
+        }
+        ASSERT_FALSE(iter.hasNext());
+      }
+    }
+  }
+
+  auto shard = openOrCreateShard(prefix);
+  for (auto k = 0; k != GetParam(); ++k) {
+    auto iter = shard->get(std::to_string(k));
+    if (k % 2 == 0) {
+      for (auto v = 0; v != GetParam(); ++v) {
+        if (is_even(std::to_string(v))) {
+          // This value must have been removed.
+        } else {
+          ASSERT_TRUE(iter.hasNext());
+          ASSERT_THAT(iter.next(), std::to_string(v));
+        }
+      }
+      ASSERT_FALSE(iter.hasNext());
+    } else {
+      for (auto v = 0; v != GetParam(); ++v) {
+        ASSERT_TRUE(iter.hasNext());
+        ASSERT_THAT(iter.next(), std::to_string(v));
+      }
+      ASSERT_FALSE(iter.hasNext());
+    }
+  }
+}
+
+INSTANTIATE_TEST_CASE_P(Parameterized, ShardTestWithParam,
+                        testing::Values(0, 1, 2, 10, 100, 1000));
+
+// INSTANTIATE_TEST_CASE_P(ParameterizedLongRunning, ShardTestWithParam,
+//                         testing::Values(10000, 100000));
+
+// -----------------------------------------------------------------------------
 // class Shard / Concurrency
 // -----------------------------------------------------------------------------
 

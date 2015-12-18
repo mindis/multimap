@@ -98,13 +98,13 @@ inline bool operator==(const Bytes& lhs, const Bytes& rhs) {
 // identity (pointer comparison). Returns `true` if the bytes in `lhs` and `rhs`
 // are equal, `false` otherwise.
 
-inline bool operator==(const Bytes& lhs, const char* rhs) {
-  return lhs == Bytes(rhs);
-}
+// inline bool operator==(const Bytes& lhs, const char* rhs) {
+//  return lhs == Bytes(rhs);
+//}
 
-inline bool operator==(const char* lhs, const Bytes& rhs) {
-  return Bytes(lhs) == rhs;
-}
+// inline bool operator==(const char* lhs, const Bytes& rhs) {
+//  return Bytes(lhs) == rhs;
+//}
 
 inline bool operator!=(const Bytes& lhs, const Bytes& rhs) {
   return !(lhs == rhs);
@@ -112,13 +112,13 @@ inline bool operator!=(const Bytes& lhs, const Bytes& rhs) {
 // Returns true if the bytes wrapped by lhs and rhs are not equal after
 // byte-wise comparison. Returns false otherwise.
 
-inline bool operator!=(const Bytes& lhs, const char* rhs) {
-  return !(lhs == rhs);
-}
+// inline bool operator!=(const Bytes& lhs, const char* rhs) {
+//  return !(lhs == rhs);
+//}
 
-inline bool operator!=(const char* lhs, const Bytes& rhs) {
-  return !(lhs == rhs);
-}
+// inline bool operator!=(const char* lhs, const Bytes& rhs) {
+//  return !(lhs == rhs);
+//}
 
 inline bool operator<(const Bytes& lhs, const Bytes& rhs) {
   const auto min_size = std::min(lhs.size(), rhs.size());
@@ -129,13 +129,13 @@ inline bool operator<(const Bytes& lhs, const Bytes& rhs) {
 // otherwise. If lhs and rhs do not wrap the same number of bytes, only the
 // first std::min(lhs.size(), rhs.size()) bytes will be compared.
 
-inline bool operator<(const Bytes& lhs, const char* rhs) {
-  return lhs < Bytes(rhs);
-}
+// inline bool operator<(const Bytes& lhs, const char* rhs) {
+//  return lhs < Bytes(rhs);
+//}
 
-inline bool operator<(const char* lhs, const Bytes& rhs) {
-  return Bytes(lhs) < rhs;
-}
+// inline bool operator<(const char* lhs, const Bytes& rhs) {
+//  return Bytes(lhs) < rhs;
+//}
 
 }  // namespace multimap
 

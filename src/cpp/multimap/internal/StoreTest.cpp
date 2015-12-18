@@ -36,5 +36,5 @@ TEST(StoreTest, IsNotMoveConstructibleOrAssignable) {
   ASSERT_FALSE(std::is_move_assignable<Store>::value);
 }
 
-} // namespace internal
-} // namespace multimap
+}  // namespace internal
+}  // namespace multimap
