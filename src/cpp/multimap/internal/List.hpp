@@ -41,19 +41,19 @@ class List {
   //   * Dependency injection, e.g. for `List::add()`.
   //   * `List::mutex_` is allocated only on demand.
 
-public:
+ public:
   struct Limits {
     static std::size_t maxValueSize();
   };
 
   struct Head {
-    std::uint32_t num_values_added = 0;
+    std::uint32_t num_values_total = 0;
     std::uint32_t num_values_removed = 0;
     UintVector block_ids;
 
-    std::size_t num_values_not_removed() const {
-      MT_ASSERT_GE(num_values_added, num_values_removed);
-      return num_values_added - num_values_removed;
+    std::size_t num_values_valid() const {
+      MT_ASSERT_GE(num_values_total, num_values_removed);
+      return num_values_total - num_values_removed;
     }
 
     static Head readFromStream(std::FILE* file);
@@ -64,10 +64,10 @@ public:
   static_assert(mt::hasExpectedSize<Head>(20, 24),
                 "class Head does not have expected size");
 
-  template <bool IsMutable> class Iter {
-
+  template <bool IsMutable>
+  class Iter {
     class Stream : mt::Resource {
-    public:
+     public:
       static const std::size_t BLOCK_CACHE_SIZE = 1024;
 
       MT_ENABLE_IF(IsMutable)
@@ -132,7 +132,7 @@ public:
             size -= nbytes;
 
           } else {
-            loadNextBlocks(false); // Keeps target of `size_with_flag_ptr_`.
+            loadNextBlocks(false);  // Keeps target of `size_with_flag_ptr_`.
           }
         } while (size > 0);
       }
@@ -150,7 +150,7 @@ public:
         }
       }
 
-    private:
+     private:
       void loadNextBlocks(bool replace_current_blocks) {
         const auto block_size = store_->getBlockSize();
         if (replace_current_blocks) {
@@ -211,19 +211,19 @@ public:
       Arena arena_;
     };
 
-  public:
+   public:
     Iter() : list_(nullptr) {}
 
     MT_ENABLE_IF(IsMutable)
     Iter(List* list, Store* store)
         : list_(list), stream_(new Stream(list, store)) {
-      stats_.available = list->head_.num_values_not_removed();
+      stats_.available = list->head_.num_values_valid();
     }
 
     MT_DISABLE_IF(IsMutable)
     Iter(const List& list, const Store& store)
         : list_(&list), stream_(new Stream(list, store)) {
-      stats_.available = list.head_.num_values_not_removed();
+      stats_.available = list.head_.num_values_valid();
     }
 
     Iter(Iter&&) = default;
@@ -269,7 +269,7 @@ public:
     // Preconditions:
     //  * `next()` must have been called.
 
-  private:
+   private:
     struct Stats {
       std::uint32_t available = 0;
       bool load_next_value = true;
@@ -297,7 +297,7 @@ public:
 
   const Head& head() const { return head_; }
 
-  std::size_t size() const { return head_.num_values_not_removed(); }
+  std::size_t size() const { return head_.num_values_valid(); }
 
   bool empty() const { return size() == 0; }
 
@@ -334,7 +334,7 @@ public:
     MutexPoolConfig() = delete;
   };
 
-private:
+ private:
   void createMutexUnlocked() const;
   void deleteMutexUnlocked() const;
 
@@ -354,7 +354,7 @@ static_assert(mt::hasExpectedSize<List>(36, 48),
 
 inline bool operator==(const List::Head& lhs, const List::Head& rhs) {
   return (lhs.block_ids == rhs.block_ids) &&
-         (lhs.num_values_added == rhs.num_values_added) &&
+         (lhs.num_values_total == rhs.num_values_total) &&
          (lhs.num_values_removed == rhs.num_values_removed);
 }
 
@@ -362,7 +362,8 @@ inline bool operator!=(const List::Head& lhs, const List::Head& rhs) {
   return !(lhs == rhs);
 }
 
-template <> inline void List::Iter<true>::Stream::writeBackMutatedBlocks() {
+template <>
+inline void List::Iter<true>::Stream::writeBackMutatedBlocks() {
   if (store_) {
     store_->replace(blocks_);
   }
@@ -372,7 +373,7 @@ template <> inline void List::Iter<true>::Stream::writeBackMutatedBlocks() {
 // class SharedList
 
 class SharedList {
-public:
+ public:
   typedef List::Iterator Iterator;
 
   SharedList() = default;
@@ -419,7 +420,7 @@ public:
 
   bool empty() const { return list_->empty(); }
 
-private:
+ private:
   const List* release() {
     auto list = list_;
     list_ = nullptr;
@@ -436,7 +437,7 @@ private:
 // class SharedListIterator
 
 class SharedListIterator {
-public:
+ public:
   SharedListIterator() = default;
 
   SharedListIterator(SharedList&& list) : list_(std::move(list)) {
@@ -456,7 +457,7 @@ public:
 
   Bytes peekNext() { return iter_.peekNext(); }
 
-private:
+ private:
   List::Iterator iter_;
   SharedList list_;
 };
@@ -465,7 +466,7 @@ private:
 // class UniqueList
 
 class UniqueList {
-public:
+ public:
   typedef List::MutableIterator Iterator;
 
   UniqueList() = default;
@@ -516,7 +517,7 @@ public:
 
   void clear() { list_->clear(); }
 
-private:
+ private:
   List* release() {
     auto list = list_;
     list_ = nullptr;
@@ -534,7 +535,7 @@ private:
 // class UniqueListIterator
 
 class UniqueListIterator {
-public:
+ public:
   UniqueListIterator() = default;
 
   UniqueListIterator(UniqueList&& list) : list_(std::move(list)) {
@@ -556,12 +557,12 @@ public:
 
   void remove() { iter_.remove(); }
 
-private:
+ private:
   List::MutableIterator iter_;
   UniqueList list_;
 };
 
-} // namespace internal
-} // namespace multimap
+}  // namespace internal
+}  // namespace multimap
 
-#endif // MULTIMAP_INTERNAL_LIST_HPP_INCLUDED
+#endif  // MULTIMAP_INTERNAL_LIST_HPP_INCLUDED

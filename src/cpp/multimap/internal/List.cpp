@@ -82,14 +82,14 @@ std::size_t List::Limits::maxValueSize() {
 
 List::Head List::Head::readFromStream(std::FILE* stream) {
   Head head;
-  mt::fread(stream, &head.num_values_added, sizeof head.num_values_added);
+  mt::fread(stream, &head.num_values_total, sizeof head.num_values_total);
   mt::fread(stream, &head.num_values_removed, sizeof head.num_values_removed);
   head.block_ids = UintVector::readFromStream(stream);
   return head;
 }
 
 void List::Head::writeToStream(std::FILE* stream) const {
-  mt::fwrite(stream, &num_values_added, sizeof num_values_added);
+  mt::fwrite(stream, &num_values_total, sizeof num_values_total);
   mt::fwrite(stream, &num_values_removed, sizeof num_values_removed);
   block_ids.writeToStream(stream);
 }
@@ -144,7 +144,7 @@ void List::add(const Bytes& value, Store* store, Arena* arena) {
     }
   }
 
-  ++head_.num_values_added;
+  ++head_.num_values_total;
 }
 
 void List::flush(Store* store) {

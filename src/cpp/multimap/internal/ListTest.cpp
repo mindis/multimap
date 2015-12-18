@@ -94,7 +94,7 @@ TEST(ListTest, IsMoveConstructibleAndAssignable) {
 TEST(ListTest, DefaultConstructedHasProperState) {
   ASSERT_THAT(List().head().block_ids.empty(), Eq(true));
   ASSERT_THAT(List().head().num_values_removed, Eq(0));
-  ASSERT_THAT(List().head().num_values_added, Eq(0));
+  ASSERT_THAT(List().head().num_values_total, Eq(0));
   ASSERT_THAT(List().size(), Eq(0));
   ASSERT_THAT(List().empty(), Eq(true));
   ASSERT_THAT(List().is_locked(), Eq(false));
@@ -133,7 +133,7 @@ TEST_P(ListTestIteration, AddSmallValuesAndIterateOnce) {
     const auto value = std::to_string(i);
     list.add(value, getStore(), getArena());
     ASSERT_EQ(list.head().num_values_removed, 0);
-    ASSERT_EQ(list.head().num_values_added, i + 1);
+    ASSERT_EQ(list.head().num_values_total, i + 1);
   }
   ASSERT_EQ(list.size(), GetParam());
 
@@ -153,7 +153,7 @@ TEST_P(ListTestIteration, AddSmallValuesAndIterateTwice) {
     const auto value = std::to_string(i);
     list.add(value, getStore(), getArena());
     ASSERT_EQ(list.head().num_values_removed, 0);
-    ASSERT_EQ(list.head().num_values_added, i + 1);
+    ASSERT_EQ(list.head().num_values_total, i + 1);
   }
   ASSERT_EQ(list.size(), GetParam());
 
@@ -183,7 +183,7 @@ TEST_P(ListTestIteration, AddLargeValuesAndIterateOnce) {
   for (std::size_t i = 0; i != GetParam(); ++i) {
     list.add(gen.generate(size), getStore(), getArena());
     ASSERT_EQ(list.head().num_values_removed, 0);
-    ASSERT_EQ(list.head().num_values_added, i + 1);
+    ASSERT_EQ(list.head().num_values_total, i + 1);
   }
   ASSERT_EQ(list.size(), GetParam());
 
@@ -205,7 +205,7 @@ TEST_P(ListTestIteration, AddLargeValuesAndIterateTwice) {
   for (std::size_t i = 0; i != GetParam(); ++i) {
     list.add(gen.generate(size), getStore(), getArena());
     ASSERT_EQ(list.head().num_values_removed, 0);
-    ASSERT_EQ(list.head().num_values_added, i + 1);
+    ASSERT_EQ(list.head().num_values_total, i + 1);
   }
   ASSERT_EQ(list.size(), GetParam());
 
