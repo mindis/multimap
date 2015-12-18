@@ -104,7 +104,47 @@ TEST_F(ShardTestFixture, PutAppendsValuesToList) {
   ASSERT_FALSE(iter.hasNext());
 }
 
-TEST_F(ShardTestFixture, PutValuesWithReopen) {
+TEST_F(ShardTestFixture, PutMaxKeyDoesNotThrow) {
+  auto shard = openOrCreateShard(prefix);
+  try {
+    std::string key(Shard::Limits::maxKeySize(), 'k');
+    ASSERT_NO_THROW(shard->put(key, v1));
+  } catch (...) {
+    // Allocating key itself may fail.
+  }
+}
+
+TEST_F(ShardTestFixture, PutTooBigKeyThrows) {
+  auto shard = openOrCreateShard(prefix);
+  try {
+    std::string key(Shard::Limits::maxKeySize() + 1, 'k');
+    ASSERT_THROW(shard->put(key, v1), mt::AssertionError);
+  } catch (...) {
+    // Allocating key itself may fail.
+  }
+}
+
+TEST_F(ShardTestFixture, PutMaxValueDoesNotThrow) {
+  auto shard = openOrCreateShard(prefix);
+  try {
+    std::string value(Shard::Limits::maxValueSize(), 'v');
+    ASSERT_NO_THROW(shard->put(k1, value));
+  } catch (...) {
+    // Allocating value itself may fail.
+  }
+}
+
+TEST_F(ShardTestFixture, PutTooBigValueThrows) {
+  auto shard = openOrCreateShard(prefix);
+  try {
+    std::string value(Shard::Limits::maxValueSize() + 1, 'v');
+    ASSERT_THROW(shard->put(k1, value), mt::AssertionError);
+  } catch (...) {
+    // Allocating value itself may fail.
+  }
+}
+
+TEST_F(ShardTestFixture, PutValuesAndReopenInBetween) {
   {
     auto shard = openOrCreateShard(prefix);
     shard->put(k1, v1);
@@ -427,6 +467,80 @@ TEST_F(ShardTestFixture, GetStatsReturnsCorrectValues) {
   ASSERT_THAT(stats.num_keys_valid, Eq(4));
   ASSERT_THAT(stats.num_values_total, Eq(15));
   ASSERT_THAT(stats.num_values_valid, Eq(10));
+}
+
+TEST_F(ShardTestFixture, GetStatsReturnsCorrectValuesAfterRemovingKeys) {
+  {
+    auto shard = openOrCreateShard(prefix);
+    shard->put("k", "vvvvv");
+    shard->put("kk", "vvvv");
+    shard->put("kk", "vvvv");
+    shard->put("kkk", "vvv");
+    shard->put("kkk", "vvv");
+    shard->put("kkk", "vvv");
+    shard->put("kkkk", "vv");
+    shard->put("kkkk", "vv");
+    shard->put("kkkk", "vv");
+    shard->put("kkkk", "vv");
+    shard->put("kkkkk", "v");
+    shard->put("kkkkk", "v");
+    shard->put("kkkkk", "v");
+    shard->put("kkkkk", "v");
+    shard->put("kkkkk", "v");
+
+    shard->removeKey("k");
+    shard->removeKeys([](const Bytes& key) { return key.toString() == "kk"; });
+
+    const auto stats = shard->getStats();
+    ASSERT_THAT(stats.num_keys_total, Eq(5));
+    ASSERT_THAT(stats.num_keys_valid, Eq(3));
+    ASSERT_THAT(stats.num_values_total, Eq(15));
+    ASSERT_THAT(stats.num_values_valid, Eq(12));
+  }
+
+  auto shard = openOrCreateShard(prefix);
+  const auto stats = shard->getStats();
+  ASSERT_THAT(stats.num_keys_total, Eq(3));
+  ASSERT_THAT(stats.num_keys_valid, Eq(3));
+  ASSERT_THAT(stats.num_values_total, Eq(15));
+  ASSERT_THAT(stats.num_values_valid, Eq(12));
+}
+
+TEST_F(ShardTestFixture, GetStatsReturnsCorrectValuesAfterRemovingValues) {
+  {
+    auto shard = openOrCreateShard(prefix);
+    shard->put("k", "vvvvv");
+    shard->put("kk", "vvvv");
+    shard->put("kk", "vvvv");
+    shard->put("kkk", "vvv");
+    shard->put("kkk", "vvv");
+    shard->put("kkk", "vvv");
+    shard->put("kkkk", "vv");
+    shard->put("kkkk", "vv");
+    shard->put("kkkk", "vv");
+    shard->put("kkkk", "vv");
+    shard->put("kkkkk", "v");
+    shard->put("kkkkk", "v");
+    shard->put("kkkkk", "v");
+    shard->put("kkkkk", "v");
+    shard->put("kkkkk", "v");
+
+    shard->removeValue("k", Equal("vvvvv"));
+    shard->removeValues("kk", [](const Bytes& val) { return val == "vvvv"; });
+
+    const auto stats = shard->getStats();
+    ASSERT_THAT(stats.num_keys_total, Eq(5));
+    ASSERT_THAT(stats.num_keys_valid, Eq(3));
+    ASSERT_THAT(stats.num_values_total, Eq(15));
+    ASSERT_THAT(stats.num_values_valid, Eq(12));
+  }
+
+  auto shard = openOrCreateShard(prefix);
+  const auto stats = shard->getStats();
+  ASSERT_THAT(stats.num_keys_total, Eq(3));
+  ASSERT_THAT(stats.num_keys_valid, Eq(3));
+  ASSERT_THAT(stats.num_values_total, Eq(15));
+  ASSERT_THAT(stats.num_values_valid, Eq(12));
 }
 
 TEST_F(ShardTestFixture, IsReadOnlyReturnsCorrectValue) {
