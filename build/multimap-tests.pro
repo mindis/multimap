@@ -80,4 +80,5 @@ SOURCES += \
     ../src/cpp/multimap/thirdparty/googletest/src/gtest-test-part.cc \
     ../src/cpp/multimap/thirdparty/googletest/src/gtest-typed-test.cc \
     ../src/cpp/multimap/thirdparty/googletest/src/gtest.cc \
+    ../src/cpp/multimap/BytesTest.cpp \
     ../src/cpp/multimap/MapTest.cpp
