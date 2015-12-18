@@ -45,7 +45,7 @@ void removeStatsFromTail(int fd) {
   mt::truncate(fd, end_of_data);
 }
 
-} // namespace
+}  // namespace
 
 Store::Stats Store::Stats::fromProperties(const mt::Properties& properties) {
   Stats stats;
@@ -79,11 +79,6 @@ Store::Store(const boost::filesystem::path& file, const Options& options) {
       mapped_.data = mt::mmap(nullptr, len, prot, MAP_SHARED, fd_.get(), 0);
       mapped_.size = len;
     }
-
-  } else if (options.readonly) {
-    // If options.readonly is set we assume that the caller expects that
-    // the store already exists. It is an error if this is not the case.
-    mt::fail("Store does not exist, so it cannot be opened in readonly mode");
 
   } else {
     // Create new data file.
@@ -197,5 +192,5 @@ char* Store::getAddressOf(std::uint32_t id) const {
   }
 }
 
-} // namespace internal
-} // namespace multimap
+}  // namespace internal
+}  // namespace multimap
