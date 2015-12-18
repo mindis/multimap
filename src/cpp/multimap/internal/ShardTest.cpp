@@ -476,24 +476,49 @@ TEST_F(ShardTestFixture, ForEachEntryIgnoresEmptyLists) {
 
 TEST_F(ShardTestFixture, GetStatsReturnsCorrectValues) {
   auto shard = openOrCreateShard(prefix);
-  shard->put("k", "vvv");
-  shard->put("kk", "vv");
-  shard->put("kk", "vv");
-  shard->put("kkk", "v");
-  shard->put("kkk", "v");
-  shard->put("kkk", "v");
-  const Shard::Stats stats = shard->getStats();
+  shard->put("k", "vvvvv");
+  shard->put("kk", "vvvv");
+  shard->put("kk", "vvvv");
+  shard->put("kkk", "vvv");
+  shard->put("kkk", "vvv");
+  shard->put("kkk", "vvv");
+  shard->put("kkkk", "vv");
+  shard->put("kkkk", "vv");
+  shard->put("kkkk", "vv");
+  shard->put("kkkk", "vv");
+  shard->put("kkkkk", "v");
+  shard->put("kkkkk", "v");
+  shard->put("kkkkk", "v");
+  shard->put("kkkkk", "v");
+  shard->put("kkkkk", "v");
+  auto stats = shard->getStats();
   ASSERT_THAT(stats.block_size, Eq(Shard::Options().block_size));
-  ASSERT_THAT(stats.key_size_avg, Eq(2));
-  ASSERT_THAT(stats.key_size_max, Eq(3));
+  ASSERT_THAT(stats.key_size_avg, Eq(3));
+  ASSERT_THAT(stats.key_size_max, Eq(5));
   ASSERT_THAT(stats.key_size_min, Eq(1));
-  ASSERT_THAT(stats.list_size_avg, Eq(2));
-  ASSERT_THAT(stats.list_size_max, Eq(3));
+  ASSERT_THAT(stats.list_size_avg, Eq(3));
+  ASSERT_THAT(stats.list_size_max, Eq(5));
   ASSERT_THAT(stats.list_size_min, Eq(1));
   ASSERT_THAT(stats.num_blocks, Eq(0));
-  ASSERT_THAT(stats.num_keys, Eq(3));
-  ASSERT_THAT(stats.num_values_put, Eq(6));
-  ASSERT_THAT(stats.num_values_rmd, Eq(0));
+  ASSERT_THAT(stats.num_keys_total, Eq(5));
+  ASSERT_THAT(stats.num_keys_valid, Eq(5));
+  ASSERT_THAT(stats.num_values_total, Eq(15));
+  ASSERT_THAT(stats.num_values_valid, Eq(15));
+
+  shard->removeKey("kkkkk");
+  stats = shard->getStats();
+  ASSERT_THAT(stats.block_size, Eq(Shard::Options().block_size));
+  ASSERT_THAT(stats.key_size_avg, Eq(2));
+  ASSERT_THAT(stats.key_size_max, Eq(4));
+  ASSERT_THAT(stats.key_size_min, Eq(1));
+  ASSERT_THAT(stats.list_size_avg, Eq(2));
+  ASSERT_THAT(stats.list_size_max, Eq(4));
+  ASSERT_THAT(stats.list_size_min, Eq(1));
+  ASSERT_THAT(stats.num_blocks, Eq(0));
+  ASSERT_THAT(stats.num_keys_total, Eq(5));
+  ASSERT_THAT(stats.num_keys_valid, Eq(4));
+  ASSERT_THAT(stats.num_values_total, Eq(15));
+  ASSERT_THAT(stats.num_values_valid, Eq(10));
 }
 
 // -----------------------------------------------------------------------------
