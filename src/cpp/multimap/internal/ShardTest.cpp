@@ -98,9 +98,9 @@ TEST_F(ShardTestFixture, PutAppendsValuesToList) {
   shard->put(k1, v2);
   shard->put(k1, v3);
   auto iter = shard->get(k1);
-  ASSERT_THAT(iter.next().toString(), Eq(v1));
-  ASSERT_THAT(iter.next().toString(), Eq(v2));
-  ASSERT_THAT(iter.next().toString(), Eq(v3));
+  ASSERT_THAT(iter.next(), Eq(v1));
+  ASSERT_THAT(iter.next(), Eq(v2));
+  ASSERT_THAT(iter.next(), Eq(v3));
   ASSERT_FALSE(iter.hasNext());
 }
 
@@ -165,21 +165,21 @@ TEST_F(ShardTestFixture, PutValuesAndReopenInBetween) {
   }
   auto shard = openOrCreateShard(prefix);
   auto iter1 = shard->get(k1);
-  ASSERT_THAT(iter1.next().toString(), Eq(v1));
-  ASSERT_THAT(iter1.next().toString(), Eq(v2));
-  ASSERT_THAT(iter1.next().toString(), Eq(v3));
+  ASSERT_THAT(iter1.next(), Eq(v1));
+  ASSERT_THAT(iter1.next(), Eq(v2));
+  ASSERT_THAT(iter1.next(), Eq(v3));
   ASSERT_FALSE(iter1.hasNext());
 
   auto iter2 = shard->get(k2);
-  ASSERT_THAT(iter2.next().toString(), Eq(v1));
-  ASSERT_THAT(iter2.next().toString(), Eq(v2));
-  ASSERT_THAT(iter2.next().toString(), Eq(v3));
+  ASSERT_THAT(iter2.next(), Eq(v1));
+  ASSERT_THAT(iter2.next(), Eq(v2));
+  ASSERT_THAT(iter2.next(), Eq(v3));
   ASSERT_FALSE(iter2.hasNext());
 
   auto iter3 = shard->get(k3);
-  ASSERT_THAT(iter3.next().toString(), Eq(v1));
-  ASSERT_THAT(iter3.next().toString(), Eq(v2));
-  ASSERT_THAT(iter3.next().toString(), Eq(v3));
+  ASSERT_THAT(iter3.next(), Eq(v1));
+  ASSERT_THAT(iter3.next(), Eq(v2));
+  ASSERT_THAT(iter3.next(), Eq(v3));
   ASSERT_FALSE(iter3.hasNext());
 }
 
@@ -489,7 +489,7 @@ TEST_F(ShardTestFixture, GetStatsReturnsCorrectValuesAfterRemovingKeys) {
     shard->put("kkkkk", "v");
 
     shard->removeKey("k");
-    shard->removeKeys([](const Bytes& key) { return key.toString() == "kk"; });
+    shard->removeKeys([](const Bytes& key) { return key == "kk"; });
 
     const auto stats = shard->getStats();
     ASSERT_THAT(stats.num_keys_total, Eq(5));
@@ -642,8 +642,7 @@ TEST_P(ShardTestWithParam, PutDataThenReadAll) {
 }
 
 TEST_P(ShardTestWithParam, PutDataThenRemoveSomeThenReadAll) {
-  const auto is_even =
-      [](const Bytes& bytes) { return std::stoul(bytes.toString()) % 2 == 0; };
+  auto is_odd = [](const Bytes& b) { return std::stoul(b.toString()) % 2; };
   {
     auto shard = openOrCreateShard(prefix);
     for (auto k = 0; k != GetParam(); ++k) {
@@ -652,26 +651,31 @@ TEST_P(ShardTestWithParam, PutDataThenRemoveSomeThenReadAll) {
       }
     }
 
-    for (auto k = 0; k < GetParam(); k += 2) {
-      shard->removeValues(std::to_string(k), is_even);
+    for (auto k = 0; k != GetParam(); ++k) {
+      const auto key = std::to_string(k);
+      if (is_odd(key)) {
+        shard->removeValues(key, is_odd);
+      }
     }
 
     for (auto k = 0; k != GetParam(); ++k) {
-      auto iter = shard->get(std::to_string(k));
-      if (k % 2 == 0) {
+      const auto key = std::to_string(k);
+      auto iter = shard->get(key);
+      if (is_odd(key)) {
         for (auto v = 0; v != GetParam(); ++v) {
-          if (is_even(std::to_string(v))) {
+          const auto value = std::to_string(v);
+          if (is_odd(value)) {
             // This value must have been removed.
           } else {
             ASSERT_TRUE(iter.hasNext());
-            ASSERT_THAT(iter.next(), std::to_string(v));
+            ASSERT_THAT(iter.next(), Eq(value));
           }
         }
         ASSERT_FALSE(iter.hasNext());
       } else {
         for (auto v = 0; v != GetParam(); ++v) {
           ASSERT_TRUE(iter.hasNext());
-          ASSERT_THAT(iter.next(), std::to_string(v));
+          ASSERT_THAT(iter.next(), Eq(std::to_string(v)));
         }
         ASSERT_FALSE(iter.hasNext());
       }
@@ -680,21 +684,23 @@ TEST_P(ShardTestWithParam, PutDataThenRemoveSomeThenReadAll) {
 
   auto shard = openOrCreateShard(prefix);
   for (auto k = 0; k != GetParam(); ++k) {
-    auto iter = shard->get(std::to_string(k));
-    if (k % 2 == 0) {
+    const auto key = std::to_string(k);
+    auto iter = shard->get(key);
+    if (is_odd(key)) {
       for (auto v = 0; v != GetParam(); ++v) {
-        if (is_even(std::to_string(v))) {
+        const auto value = std::to_string(v);
+        if (is_odd(value)) {
           // This value must have been removed.
         } else {
           ASSERT_TRUE(iter.hasNext());
-          ASSERT_THAT(iter.next(), std::to_string(v));
+          ASSERT_THAT(iter.next(), Eq(value));
         }
       }
       ASSERT_FALSE(iter.hasNext());
     } else {
       for (auto v = 0; v != GetParam(); ++v) {
         ASSERT_TRUE(iter.hasNext());
-        ASSERT_THAT(iter.next(), std::to_string(v));
+        ASSERT_THAT(iter.next(), Eq(std::to_string(v)));
       }
       ASSERT_FALSE(iter.hasNext());
     }
