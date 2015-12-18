@@ -24,12 +24,12 @@ namespace {
 
 std::mutex list_mutex_allocation_mutex;
 
-} // namespace
+}  // namespace
 
 class MutexPool {
   // This singleton is not thread-safe by design and needs external locking.
 
-public:
+ public:
   typedef List::RefCountedMutex Mutex;
 
   static MutexPool& instance() {
@@ -69,7 +69,7 @@ public:
     }
   }
 
-private:
+ private:
   MutexPool() { setMaximumSize(getDefaultSize()); }
 
   std::vector<std::unique_ptr<Mutex> > mutexes_;
@@ -97,8 +97,7 @@ void List::Head::writeToStream(std::FILE* stream) const {
 List::List(const Head& head) : head_(head) {}
 
 void List::add(const Bytes& value, Store* store, Arena* arena) {
-  mt::Check::isLessEqual(value.size(), Limits::maxValueSize(),
-                         "Reject value because it's too large.");
+  MT_REQUIRE_LE(value.size(), Limits::maxValueSize());
 
   if (!block_.hasData()) {
     const auto block_size = store->getBlockSize();
@@ -257,5 +256,5 @@ void List::MutexPoolConfig::setMaximumSize(std::size_t size) {
   return MutexPool::instance().setMaximumSize(size);
 }
 
-} // namespace internal
-} // namespace multimap
+}  // namespace internal
+}  // namespace multimap
