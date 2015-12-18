@@ -141,7 +141,7 @@ TEST_P(ListTestIteration, AddSmallValuesAndIterateOnce) {
   for (std::size_t i = 0; i != GetParam(); ++i) {
     ASSERT_TRUE(iter.hasNext());
     ASSERT_EQ(iter.available(), GetParam() - i);
-    ASSERT_EQ(iter.next().toString(), std::to_string(i));
+    ASSERT_EQ(iter.next(), std::to_string(i));
   }
   ASSERT_FALSE(iter.hasNext());
   ASSERT_EQ(iter.available(), 0);
@@ -161,7 +161,7 @@ TEST_P(ListTestIteration, AddSmallValuesAndIterateTwice) {
   for (std::size_t i = 0; i != GetParam(); ++i) {
     ASSERT_TRUE(iter.hasNext());
     ASSERT_EQ(iter.available(), GetParam() - i);
-    ASSERT_EQ(iter.next().toString(), std::to_string(i));
+    ASSERT_EQ(iter.next(), std::to_string(i));
   }
   ASSERT_FALSE(iter.hasNext());
   ASSERT_EQ(iter.available(), 0);
@@ -170,7 +170,7 @@ TEST_P(ListTestIteration, AddSmallValuesAndIterateTwice) {
   for (std::size_t i = 0; i != GetParam(); ++i) {
     ASSERT_TRUE(iter.hasNext());
     ASSERT_EQ(iter.available(), GetParam() - i);
-    ASSERT_EQ(iter.next().toString(), std::to_string(i));
+    ASSERT_EQ(iter.next(), std::to_string(i));
   }
   ASSERT_FALSE(iter.hasNext());
   ASSERT_EQ(iter.available(), 0);
@@ -192,7 +192,7 @@ TEST_P(ListTestIteration, AddLargeValuesAndIterateOnce) {
   for (std::size_t i = 0; i != GetParam(); ++i) {
     ASSERT_TRUE(iter.hasNext());
     ASSERT_EQ(iter.available(), GetParam() - i);
-    ASSERT_EQ(iter.next().toString(), gen.generate(size));
+    ASSERT_EQ(iter.next(), gen.generate(size));
   }
   ASSERT_FALSE(iter.hasNext());
   ASSERT_EQ(iter.available(), 0);
@@ -214,7 +214,7 @@ TEST_P(ListTestIteration, AddLargeValuesAndIterateTwice) {
   for (std::size_t i = 0; i != GetParam(); ++i) {
     ASSERT_TRUE(iter.hasNext());
     ASSERT_EQ(iter.available(), GetParam() - i);
-    ASSERT_EQ(iter.next().toString(), gen.generate(size));
+    ASSERT_EQ(iter.next(), gen.generate(size));
   }
   ASSERT_FALSE(iter.hasNext());
   ASSERT_EQ(iter.available(), 0);
@@ -224,7 +224,7 @@ TEST_P(ListTestIteration, AddLargeValuesAndIterateTwice) {
   for (std::size_t i = 0; i != GetParam(); ++i) {
     ASSERT_TRUE(iter.hasNext());
     ASSERT_EQ(iter.available(), GetParam() - i);
-    ASSERT_EQ(iter.next().toString(), gen.generate(size));
+    ASSERT_EQ(iter.next(), gen.generate(size));
   }
   ASSERT_FALSE(iter.hasNext());
   ASSERT_EQ(iter.available(), 0);
