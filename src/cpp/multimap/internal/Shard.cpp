@@ -181,7 +181,7 @@ Shard::Shard(const boost::filesystem::path& file_prefix, const Options& options)
     stats_ = Stats::readFromFile(stats_file);
     const auto keys_file = getNameOfKeysFile(prefix_.string());
     const auto stream = mt::fopen(keys_file, "r");
-    for (std::size_t i = 0; i != stats_.num_keys_total; ++i) {
+    for (std::size_t i = 0; i != stats_.num_keys_valid; ++i) {
       const auto entry = Entry::readFromStream(stream.get(), &arena_);
       map_[entry.key()].reset(new List(entry.head()));
       stats_.num_values_total -= entry.head().num_values_total;
@@ -354,8 +354,7 @@ UniqueList Shard::getUniqueList(const Bytes& key) {
 }
 
 UniqueList Shard::getOrCreateUniqueList(const Bytes& key) {
-  mt::check(key.size() <= Limits::maxKeySize(),
-            "Reject key of %d bytes because it's too big", key.size());
+  MT_REQUIRE_LE(key.size(), Limits::maxKeySize());
   List* list = nullptr;
   {
     std::lock_guard<boost::shared_mutex> lock(mutex_);
