@@ -221,7 +221,7 @@ void Map::exportToBase64(const boost::filesystem::path& directory,
                                 std::size_t index, std::size_t nshards) {
       print_status(index, nshards);
       internal::Shard::forEachEntry(prefix, [&](const Bytes& key,
-                                                Map::ListIterator&& iter) {
+                                                Map::Iterator&& iter) {
         sorted_values.clear();
         sorted_values.reserve(iter.available());
         while (iter.hasNext()) {
@@ -244,7 +244,7 @@ void Map::exportToBase64(const boost::filesystem::path& directory,
                                 std::size_t index, std::size_t nshards) {
       print_status(index, nshards);
       internal::Shard::forEachEntry(
-          prefix, [&](const Bytes& key, Map::ListIterator&& iter) {
+          prefix, [&](const Bytes& key, Map::Iterator&& iter) {
             internal::Base64::encode(key, &base64_key);
             stream << base64_key;
             while (iter.hasNext()) {
@@ -293,7 +293,7 @@ void Map::optimize(const boost::filesystem::path& directory,
     if (options.compare) {
       std::vector<std::string> sorted_values;
       internal::Shard::forEachEntry(prefix, [&](const Bytes& key,
-                                                Map::ListIterator&& iter) {
+                                                Map::Iterator&& iter) {
         sorted_values.clear();
         sorted_values.reserve(iter.available());
         while (iter.hasNext()) {
@@ -306,7 +306,7 @@ void Map::optimize(const boost::filesystem::path& directory,
       });
     } else {
       internal::Shard::forEachEntry(
-          prefix, [&](const Bytes& key, Map::ListIterator&& iter) {
+          prefix, [&](const Bytes& key, Map::Iterator&& iter) {
             while (iter.hasNext()) {
               new_map->put(key, iter.next());
             }

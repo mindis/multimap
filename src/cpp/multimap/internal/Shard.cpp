@@ -327,7 +327,7 @@ void Shard::Entry::writeToStream(std::FILE* stream) const {
   head().writeToStream(stream);
 }
 
-SharedList Shard::getShared(const Bytes& key) const {
+SharedList Shard::getSharedList(const Bytes& key) const {
   List* list = nullptr;
   {
     boost::shared_lock<boost::shared_mutex> lock(mutex_);
@@ -340,10 +340,7 @@ SharedList Shard::getShared(const Bytes& key) const {
   return list ? SharedList(*list, *store_) : SharedList();
 }
 
-UniqueList Shard::getUnique(const Bytes& key) {
-  mt::Check::isFalse(isReadOnly(),
-                     "Attempt to get write access to read-only list");
-
+UniqueList Shard::getUniqueList(const Bytes& key) {
   List* list = nullptr;
   {
     boost::shared_lock<boost::shared_mutex> lock(mutex_);
@@ -356,12 +353,9 @@ UniqueList Shard::getUnique(const Bytes& key) {
   return list ? UniqueList(list, store_.get(), &arena_) : UniqueList();
 }
 
-UniqueList Shard::getUniqueOrCreate(const Bytes& key) {
-  mt::Check::isFalse(isReadOnly(),
-                     "Attempt to get write access to read-only list");
-  mt::Check::isLessEqual(key.size(), Limits::maxKeySize(),
-                         "Reject key of %d bytes because it's too big",
-                         key.size());
+UniqueList Shard::getOrCreateUniqueList(const Bytes& key) {
+  mt::check(key.size() <= Limits::maxKeySize(),
+            "Reject key of %d bytes because it's too big", key.size());
   List* list = nullptr;
   {
     std::lock_guard<boost::shared_mutex> lock(mutex_);

@@ -28,7 +28,7 @@ const auto TRUE_PREDICATE = [](const Bytes&) { return true; };
 const auto FALSE_PREDICATE = [](const Bytes&) { return false; };
 const auto NULL_PROCEDURE = [](const Bytes&) {};
 const auto NULL_FUNCTION = [](const Bytes&) { return std::string(); };
-const auto NULL_BINARY_PROCEDURE = [](const Bytes&, Map::ListIterator&&) {};
+const auto NULL_BINARY_PROCEDURE = [](const Bytes&, Map::Iterator&&) {};
 
 TEST(MapTest, IsNotDefaultConstructible) {
   ASSERT_FALSE(std::is_default_constructible<Map>::value);
@@ -162,7 +162,6 @@ TEST_F(MapTestFixture, ReadOnlyModeDoesNotAllowUpdates) {
   ASSERT_NO_THROW(map.getStats());
 
   const auto value = std::to_string(42);
-  ASSERT_THROW(map.getMutable(key), std::runtime_error);
   ASSERT_THROW(map.put(key, value), std::runtime_error);
   ASSERT_THROW(map.removeKey(key), std::runtime_error);
   ASSERT_THROW(map.removeValues(key, TRUE_PREDICATE), std::runtime_error);
@@ -524,37 +523,38 @@ TEST_F(MapTestFixture, ReplaceValuesApplyingMapReplacesAllMatches) {
   ASSERT_EQ(iter.available(), 0);
 }
 
-TEST_F(MapTestFixture, IteratorWritesBackMutatedBlocks) {
-  Options options;
-  options.create_if_missing = true;
-  Map map(directory, options);
+// Move that into ShardTest
+//TEST_F(MapTestFixture, IteratorWritesBackMutatedBlocks) {
+//  Options options;
+//  options.create_if_missing = true;
+//  Map map(directory, options);
 
-  const std::size_t num_values = 100000;
-  for (std::size_t i = 0; i != num_values; ++i) {
-    map.put("key", "value" + std::to_string(i));
-  }
+//  const std::size_t num_values = 100000;
+//  for (std::size_t i = 0; i != num_values; ++i) {
+//    map.put("key", "value" + std::to_string(i));
+//  }
 
-  {
-    auto iter = map.getMutable("key");
-    ASSERT_EQ(iter.available(), num_values);
-    for (std::size_t i = 0; i != num_values / 2; ++i) {
-      if (i == 113) {
-        ASSERT_TRUE(iter.hasNext());
-        ASSERT_EQ(iter.next().toString(), "value" + std::to_string(i));
-      } else {
-        ASSERT_TRUE(iter.hasNext());
-        ASSERT_EQ(iter.next().toString(), "value" + std::to_string(i));
-      }
-      iter.remove();
-    }
-  }
+//  {
+//    auto iter = map.getMutable("key");
+//    ASSERT_EQ(iter.available(), num_values);
+//    for (std::size_t i = 0; i != num_values / 2; ++i) {
+//      if (i == 113) {
+//        ASSERT_TRUE(iter.hasNext());
+//        ASSERT_EQ(iter.next().toString(), "value" + std::to_string(i));
+//      } else {
+//        ASSERT_TRUE(iter.hasNext());
+//        ASSERT_EQ(iter.next().toString(), "value" + std::to_string(i));
+//      }
+//      iter.remove();
+//    }
+//  }
 
-  auto iter = map.get("key");
-  ASSERT_EQ(iter.available(), num_values / 2);
-  for (std::size_t i = num_values / 2; i != num_values; ++i) {
-    ASSERT_TRUE(iter.hasNext());
-    ASSERT_EQ(iter.next().toString(), "value" + std::to_string(i));
-  }
-}
+//  auto iter = map.get("key");
+//  ASSERT_EQ(iter.available(), num_values / 2);
+//  for (std::size_t i = num_values / 2; i != num_values; ++i) {
+//    ASSERT_TRUE(iter.hasNext());
+//    ASSERT_EQ(iter.next().toString(), "value" + std::to_string(i));
+//  }
+//}
 
 }  // namespace multimap

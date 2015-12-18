@@ -58,11 +58,8 @@ class Map : mt::Resource {
 
   typedef internal::Shard::Stats Stats;
 
-  typedef internal::SharedListIterator ListIterator;
+  typedef internal::Shard::Iterator Iterator;
   // An iterator type to iterate an immutable list.
-
-  typedef internal::UniqueListIterator MutableListIterator;
-  // An iterator type to iterate a mutable list.
 
   explicit Map(const boost::filesystem::path& directory);
   // Opens a map located in directory. The map must already exist.
@@ -94,7 +91,7 @@ class Map : mt::Resource {
   //   * key.size() > max_key_size()
   //   * value.size() > max_value_size()
 
-  ListIterator get(const Bytes& key) const { return getShard(key).get(key); }
+  Iterator get(const Bytes& key) const { return getShard(key).get(key); }
   // Returns a read-only iterator to the list associated with key. If no such
   // mapping exists the list is considered to be empty. If the list is not
   // empty a reader lock will be acquired to synchronize concurrent access to
@@ -103,18 +100,6 @@ class Map : mt::Resource {
   // iterator ends and its destructor is called. If the list is currently
   // locked exclusively by a writer lock, see getMutable(), the method will
   // block until the lock is released.
-
-  MutableListIterator getMutable(const Bytes& key) {
-    return getShard(key).getMutable(key);
-  }
-  // Returns a read-write iterator to the list associated with key. If no such
-  // mapping exists the list is considered to be empty. If the list is not
-  // empty a writer lock will be acquired to synchronize concurrent access to
-  // it. Only one thread can acquire a writer lock at a time, since it requires
-  // exclusive access. Once acquired, the lock is automatically released when
-  // the lifetime of the iterator ends and its destructor is called. If the
-  // list is currently locked, either by a reader or writer lock, the method
-  // will block until the lock is released.
 
   bool removeKey(const Bytes& key) { return getShard(key).removeKey(key); }
   // Removes all values associated with `key`. This method will block until a
@@ -153,9 +138,7 @@ class Map : mt::Resource {
 
   bool replaceValue(const Bytes& key, const Bytes& old_value,
                     const Bytes& new_value) {
-    return replaceValue(key, [&old_value, &new_value](const Bytes& value) {
-      return (value == old_value) ? new_value.toString() : std::string();
-    });
+    return getShard(key).replaceValue(key, old_value, new_value);
   }
   // TODO Document this.
 
@@ -173,9 +156,7 @@ class Map : mt::Resource {
 
   std::size_t replaceValues(const Bytes& key, const Bytes& old_value,
                             const Bytes& new_value) {
-    return replaceValues(key, [&old_value, &new_value](const Bytes& value) {
-      return (value == old_value) ? new_value.toString() : std::string();
-    });
+    return getShard(key).replaceValues(key, old_value, new_value);
   }
   // TODO Document this.
 

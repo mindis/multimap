@@ -85,9 +85,7 @@ class Shard : mt::Resource {
                 "Shard::Stats does not have expected size");
   // sizeof(Stats) must be equal on 32- and 64-bit systems to be portable.
 
-  typedef SharedListIterator ListIterator;
-
-  typedef UniqueListIterator MutableListIterator;
+  typedef SharedListIterator Iterator;
 
   explicit Shard(const boost::filesystem::path& file_prefix);
 
@@ -96,20 +94,16 @@ class Shard : mt::Resource {
   ~Shard();
 
   void put(const Bytes& key, const Bytes& value) {
-    getUniqueOrCreate(key).add(value);
+    MT_REQUIRE_FALSE(isReadOnly());
+    getOrCreateUniqueList(key).add(value);
   }
 
-  ListIterator get(const Bytes& key) const {
-    return ListIterator(getShared(key));
-  }
-
-  MutableListIterator getMutable(const Bytes& key) {
-    return MutableListIterator(getUnique(key));
-  }
+  Iterator get(const Bytes& key) const { return Iterator(getSharedList(key)); }
 
   bool removeKey(const Bytes& key) {
+    MT_REQUIRE_FALSE(isReadOnly());
     bool removed = false;
-    auto list = getUnique(key);
+    auto list = getUniqueList(key);
     if (list && !list.empty()) {
       stats_.num_values_total += list.head().num_values_total;
       removed = true;
@@ -120,6 +114,7 @@ class Shard : mt::Resource {
 
   template <typename Predicate>
   std::size_t removeKeys(Predicate predicate) {
+    MT_REQUIRE_FALSE(isReadOnly());
     std::size_t num_removed = 0;
     boost::shared_lock<boost::shared_mutex> lock(mutex_);
     for (const auto& entry : map_) {
@@ -137,21 +132,39 @@ class Shard : mt::Resource {
 
   template <typename Predicate>
   bool removeValue(const Bytes& key, Predicate predicate) {
+    MT_REQUIRE_FALSE(isReadOnly());
     return remove(key, predicate, true);
   }
 
   template <typename Predicate>
   std::size_t removeValues(const Bytes& key, Predicate predicate) {
+    MT_REQUIRE_FALSE(isReadOnly());
     return remove(key, predicate, false);
+  }
+
+  bool replaceValue(const Bytes& key, const Bytes& old_value,
+                    const Bytes& new_value) {
+    return replaceValue(key, [&old_value, &new_value](const Bytes& value) {
+      return (value == old_value) ? new_value.toString() : std::string();
+    });
   }
 
   template <typename Function>
   bool replaceValue(const Bytes& key, Function map) {
+    MT_REQUIRE_FALSE(isReadOnly());
     return replace(key, map, true);
+  }
+
+  std::size_t replaceValues(const Bytes& key, const Bytes& old_value,
+                            const Bytes& new_value) {
+    return replaceValues(key, [&old_value, &new_value](const Bytes& value) {
+      return (value == old_value) ? new_value.toString() : std::string();
+    });
   }
 
   template <typename Function>
   std::size_t replaceValues(const Bytes& key, Function map) {
+    MT_REQUIRE_FALSE(isReadOnly());
     return replace(key, map, false);
   }
 
@@ -181,7 +194,7 @@ class Shard : mt::Resource {
     for (const auto& entry : map_) {
       SharedList list(*entry.second, *store_);
       if (!list.empty()) {
-        process(entry.first, ListIterator(std::move(list)));
+        process(entry.first, Iterator(std::move(list)));
       }
     }
     store_->adviseAccessPattern(Store::AccessPattern::NORMAL);
@@ -212,7 +225,7 @@ class Shard : mt::Resource {
     for (std::size_t i = 0; i != stats.num_keys_valid; ++i) {
       const auto entry = Entry::readFromStream(stream.get(), &arena);
       List list(entry.head());
-      process(entry.key(), ListIterator(SharedList(list, store)));
+      process(entry.key(), Iterator(SharedList(list, store)));
     }
   }
 
@@ -239,15 +252,25 @@ class Shard : mt::Resource {
     void writeToStream(std::FILE* stream) const;
   };
 
-  SharedList getShared(const Bytes& key) const;
-  UniqueList getUnique(const Bytes& key);
-  UniqueList getUniqueOrCreate(const Bytes& key);
+  SharedList getSharedList(const Bytes& key) const;
+
+  SharedListIterator getSharedListIterator(const Bytes& key) const {
+    return SharedListIterator(getSharedList(key));
+  }
+
+  UniqueList getUniqueList(const Bytes& key);
+
+  UniqueListIterator getUniqueListIterator(const Bytes& key) {
+    return UniqueListIterator(getUniqueList(key));
+  }
+
+  UniqueList getOrCreateUniqueList(const Bytes& key);
 
   template <typename Predicate>
   std::size_t remove(const Bytes& key, Predicate predicate,
                      bool exit_after_first_success) {
     std::size_t num_removed = 0;
-    auto iter = getMutable(key);
+    auto iter = getUniqueListIterator(key);
     while (iter.hasNext()) {
       if (predicate(iter.next())) {
         iter.remove();
@@ -264,7 +287,7 @@ class Shard : mt::Resource {
   std::size_t replace(const Bytes& key, Function map,
                       bool exit_after_first_success) {
     std::vector<std::string> replaced_values;
-    if (auto list = getUnique(key)) {
+    if (auto list = getUniqueList(key)) {
       auto iter = list.iterator();
       while (iter.hasNext()) {
         auto replaced_value = map(iter.next());
