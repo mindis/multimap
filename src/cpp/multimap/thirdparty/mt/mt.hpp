@@ -41,24 +41,24 @@
 
 namespace mt {
 
-static const std::size_t VERSION = 20151212;
+static const size_t VERSION = 20151212;
 
 // -----------------------------------------------------------------------------
 // COMMON
 // -----------------------------------------------------------------------------
 
-bool isPrime(std::size_t number);
+bool isPrime(size_t number);
 // Returns `true` if `number` is prime, `false` otherwise.
 
-std::size_t nextPrime(std::size_t number);
+size_t nextPrime(size_t number);
 // Returns the next prime number that is greater than or equal to `number`.
 
-constexpr bool isPowerOfTwo(std::size_t num) { return (num & (num - 1)) == 0; }
+constexpr bool isPowerOfTwo(size_t num) { return (num & (num - 1)) == 0; }
 
-constexpr std::size_t MiB(std::size_t mebibytes) { return mebibytes << 20; }
+constexpr size_t MiB(size_t mebibytes) { return mebibytes << 20; }
 // Converts a number in mebibytes to the equivalent number in bytes.
 
-constexpr std::size_t GiB(std::size_t gibibytes) { return gibibytes << 30; }
+constexpr size_t GiB(size_t gibibytes) { return gibibytes << 30; }
 // Converts a number in gibibytes to the equivalent number in bytes.
 
 constexpr bool is32BitSystem() { return sizeof(void*) == 4; }
@@ -80,27 +80,27 @@ struct Resource {
 // ALGORITHM
 // -----------------------------------------------------------------------------
 
-std::size_t crc32(const std::string& str);
+size_t crc32(const std::string& str);
 // Computes and returns the 32-bit CRC checksum for `str`.
 
-std::size_t crc32(const void* data, std::size_t size);
+size_t crc32(const void* data, size_t size);
 // Computes and returns the 32-bit CRC checksum for `[data, data + size)`.
 
-std::uint32_t fnv1aHash32(const void* buf, std::size_t len);
+uint32_t fnv1aHash32(const void* buf, size_t len);
 // Computes and returns a 32-bit hash value of the given byte array.
 // Source: http://www.isthe.com/chongo/src/fnv/fnv.h
 // Changes:
 //  * Parameter hashval removed, internally set to FNV1_32A_INIT.
 //  * More C++ like coding style.
 
-std::uint64_t fnv1aHash64(const void* buf, std::size_t len);
+uint64_t fnv1aHash64(const void* buf, size_t len);
 // Computes and returns a 64-bit hash value of the given byte array.
 // Source: http://www.isthe.com/chongo/src/fnv/fnv.h
 // Changes:
 //  * Parameter hashval removed, internally set to FNV1A_64_INIT.
 //  * More C++ like coding style.
 
-inline std::size_t fnv1aHash(const void* buf, std::size_t len) {
+inline size_t fnv1aHash(const void* buf, size_t len) {
   return is64BitSystem() ? fnv1aHash64(buf, len) : fnv1aHash32(buf, len);
   // The compiler will optimize away branching here.
 }
@@ -347,26 +347,26 @@ inline AutoCloseFd open(const boost::filesystem::path& file, int flags,
   return AutoCloseFd(result);
 }
 
-inline void read(int fd, void* buffer, std::size_t count) {
+inline void read(int fd, void* buffer, size_t count) {
   const auto result = ::read(fd, buffer, count);
   Check::notEqual(result, -1, "mt::read() failed because of '%s'", errnostr());
-  Check::isEqual(static_cast<std::size_t>(result), count,
+  Check::isEqual(static_cast<size_t>(result), count,
                  "mt::read() read less bytes than expected");
 }
 
-inline void write(int fd, const void* buffer, std::size_t count) {
+inline void write(int fd, const void* buffer, size_t count) {
   const auto result = ::write(fd, buffer, count);
   Check::notEqual(result, -1, "mt::write() failed because of '%s'", errnostr());
-  Check::isEqual(static_cast<std::size_t>(result), count,
+  Check::isEqual(static_cast<size_t>(result), count,
                  "mt::write() wrote less bytes than expected");
 }
 
-inline void writeOrPrompt(int fd, const void* buffer, std::size_t count) {
+inline void writeOrPrompt(int fd, const void* buffer, size_t count) {
   while (true) {
     const auto result = ::write(fd, buffer, count);
     Check::notEqual(result, -1, "mt::write() failed because of '%s'",
                     errnostr());
-    if (static_cast<std::size_t>(result) < count) {
+    if (static_cast<size_t>(result) < count) {
       std::cout << "Write operation failed because only " << result << " of "
                 << count << " bytes could be written.\nIn case you ran out of "
                             "disk space you can do some cleanup now and then "
@@ -385,20 +385,20 @@ inline void writeOrPrompt(int fd, const void* buffer, std::size_t count) {
   }
 }
 
-inline std::uint64_t seek(int fd, std::int64_t offset, int whence) {
+inline uint64_t seek(int fd, std::int64_t offset, int whence) {
   const auto result = ::lseek(fd, offset, whence);
   Check::notEqual(result, -1, "mt::seek() failed because of '%s'", errnostr());
   return result;
 }
 
-inline std::uint64_t tell(int fd) { return seek(fd, 0, SEEK_CUR); }
+inline uint64_t tell(int fd) { return seek(fd, 0, SEEK_CUR); }
 
-inline void truncate(int fd, std::uint64_t length) {
+inline void truncate(int fd, uint64_t length) {
   const auto result = ::ftruncate(fd, length);
   Check::isZero(result, "mt::truncate() failed because of '%s'", errnostr());
 }
 
-inline void* mmap(void* addr, std::uint64_t length, int prot, int flags, int fd,
+inline void* mmap(void* addr, uint64_t length, int prot, int flags, int fd,
                   off_t offset) {
   const auto result = ::mmap(addr, length, prot, flags, fd, offset);
   Check::notEqual(result, MAP_FAILED, "mt::mmap() failed because of '%s'",
@@ -406,7 +406,7 @@ inline void* mmap(void* addr, std::uint64_t length, int prot, int flags, int fd,
   return result;
 }
 
-inline void* mremap(void* old_addr, std::size_t old_size, std::size_t new_size,
+inline void* mremap(void* old_addr, size_t old_size, size_t new_size,
                     int flags) {
   const auto result = ::mremap(old_addr, old_size, new_size, flags);
   Check::notEqual(result, MAP_FAILED, "mt::mremap() failed because of '%s'",
@@ -414,7 +414,7 @@ inline void* mremap(void* old_addr, std::size_t old_size, std::size_t new_size,
   return result;
 }
 
-inline void munmap(void* addr, std::size_t length) {
+inline void munmap(void* addr, size_t length) {
   const auto result = ::munmap(addr, length);
   Check::isZero(result, "mt::munmap() failed because of '%s'", errnostr());
 }
@@ -460,18 +460,18 @@ inline AutoCloseFile fopen(const boost::filesystem::path& file,
   return AutoCloseFile(result);
 }
 
-inline void fread(std::FILE* stream, void* buffer, std::size_t count) {
+inline void fread(std::FILE* stream, void* buffer, size_t count) {
   const auto result = std::fread(buffer, sizeof(char), count, stream);
   Check::isEqual(result, count, "mt::fread() failed");
 }
 
-inline void fwrite(std::FILE* stream, const void* buffer, std::size_t count) {
+inline void fwrite(std::FILE* stream, const void* buffer, size_t count) {
   const auto result = std::fwrite(buffer, sizeof(char), count, stream);
   Check::isEqual(result, count, "mt::fwrite() failed");
 }
 
 inline void fwriteOrPrompt(std::FILE* stream, const void* buffer,
-                           std::size_t count) {
+                           size_t count) {
   while (true) {
     const auto result = std::fwrite(buffer, sizeof(char), count, stream);
     if (result < count) {
@@ -498,7 +498,7 @@ inline void fseek(std::FILE* stream, long offset, int origin) {
   Check::isZero(result, "mt::fseek() failed");
 }
 
-inline std::uint64_t ftell(std::FILE* stream) {
+inline uint64_t ftell(std::FILE* stream) {
   const auto result = std::ftell(stream);
   Check::notEqual(result, -1, "mt::ftell() failed because of '%s'", errnostr());
   return result;
@@ -576,8 +576,8 @@ void writePropertiesToFile(const Properties& properties,
 // -----------------------------------------------------------------------------
 
 template <typename T>
-constexpr bool hasExpectedSize(std::size_t size_on_32_bit_system,
-                               std::size_t size_on_64_bit_system) {
+constexpr bool hasExpectedSize(size_t size_on_32_bit_system,
+                               size_t size_on_64_bit_system) {
   return sizeof(T) ==
          (is32BitSystem() ? size_on_32_bit_system : size_on_64_bit_system);
 }
@@ -675,27 +675,27 @@ class AssertionError : public std::logic_error {
 
   explicit AssertionError(const std::string& message);
 
-  AssertionError(const char* file, std::size_t line, const char* expr,
+  AssertionError(const char* file, size_t line, const char* expr,
                  Expected expected, Type type = Type::ASSERTION);
 
   template <typename Lhs, typename Rhs>
-  AssertionError(const char* file, std::size_t line, const char* expr,
-                 Lhs lhs_value, Rhs rhs_value, Type type = Type::ASSERTION);
+  AssertionError(const char* file, size_t line, const char* expr, Lhs lhs_value,
+                 Rhs rhs_value, Type type = Type::ASSERTION);
 };
 
 namespace internal {
 
-std::vector<std::string> getStackTrace(std::size_t skip_head = 1);
+std::vector<std::string> getStackTrace(size_t skip_head = 1);
 
-void printStackTraceTo(std::ostream& os, std::size_t skip_head = 2);
+void printStackTraceTo(std::ostream& os, size_t skip_head = 2);
 
-void printStackTrace(std::size_t skip_head = 3);
+void printStackTrace(size_t skip_head = 3);
 
 template <typename Lhs, typename Rhs>
-std::string makeErrorMessage(const char* file, std::size_t line,
-                             const char* expr, Lhs lhs_value, Rhs rhs_value,
+std::string makeErrorMessage(const char* file, size_t line, const char* expr,
+                             Lhs lhs_value, Rhs rhs_value,
                              AssertionError::Type type,
-                             std::size_t skip_head_from_stacktrace) {
+                             size_t skip_head_from_stacktrace) {
   std::ostringstream oss;
   switch (type) {
     case AssertionError::Type::ASSERTION:
@@ -718,24 +718,23 @@ std::string makeErrorMessage(const char* file, std::size_t line,
   return oss.str();
 }
 
-inline void throwError(const char* file, std::size_t line, const char* expr,
+inline void throwError(const char* file, size_t line, const char* expr,
                        AssertionError::Expected expected,
                        AssertionError::Type type) {
   throw AssertionError(file, line, expr, expected, type);
 }
 
 template <typename Lhs, typename Rhs>
-void throwError(const char* file, std::size_t line, const char* expr,
-                Lhs lhs_value, Rhs rhs_value, AssertionError::Type type) {
+void throwError(const char* file, size_t line, const char* expr, Lhs lhs_value,
+                Rhs rhs_value, AssertionError::Type type) {
   throw AssertionError(file, line, expr, lhs_value, rhs_value, type);
 }
 
 }  // namespace internal
 
 template <typename Lhs, typename Rhs>
-AssertionError::AssertionError(const char* file, std::size_t line,
-                               const char* expr, Lhs lhs_value, Rhs rhs_value,
-                               Type type)
+AssertionError::AssertionError(const char* file, size_t line, const char* expr,
+                               Lhs lhs_value, Rhs rhs_value, Type type)
     : std::logic_error(internal::makeErrorMessage(file, line, expr, lhs_value,
                                                   rhs_value, type, 4)) {}
 
@@ -858,9 +857,9 @@ AssertionError::AssertionError(const char* file, std::size_t line,
 #define MT_ASSERT_NOT_ZERO(expr) __MT_ASSERT_NOT_ZERO(expr)
 #define MT_ASSERT_EQ(a, b) __MT_ASSERT_COMPARE(a == b, a, b)
 #define MT_ASSERT_NE(a, b) __MT_ASSERT_COMPARE(a != b, a, b)
-#define MT_ASSERT_LT(a, b) __MT_ASSERT_COMPARE(a <  b, a, b)
+#define MT_ASSERT_LT(a, b) __MT_ASSERT_COMPARE(a < b, a, b)
 #define MT_ASSERT_LE(a, b) __MT_ASSERT_COMPARE(a <= b, a, b)
-#define MT_ASSERT_GT(a, b) __MT_ASSERT_COMPARE(a >  b, a, b)
+#define MT_ASSERT_GT(a, b) __MT_ASSERT_COMPARE(a > b, a, b)
 #define MT_ASSERT_GE(a, b) __MT_ASSERT_COMPARE(a >= b, a, b)
 
 #define MT_REQUIRE_TRUE(expr) __MT_REQUIRE_TRUE(expr)
@@ -871,9 +870,9 @@ AssertionError::AssertionError(const char* file, std::size_t line,
 #define MT_REQUIRE_NOT_ZERO(expr) __MT_REQUIRE_NOT_ZERO(expr)
 #define MT_REQUIRE_EQ(a, b) __MT_REQUIRE_COMPARE(a == b, a, b)
 #define MT_REQUIRE_NE(a, b) __MT_REQUIRE_COMPARE(a != b, a, b)
-#define MT_REQUIRE_LT(a, b) __MT_REQUIRE_COMPARE(a <  b, a, b)
+#define MT_REQUIRE_LT(a, b) __MT_REQUIRE_COMPARE(a < b, a, b)
 #define MT_REQUIRE_LE(a, b) __MT_REQUIRE_COMPARE(a <= b, a, b)
-#define MT_REQUIRE_GT(a, b) __MT_REQUIRE_COMPARE(a >  b, a, b)
+#define MT_REQUIRE_GT(a, b) __MT_REQUIRE_COMPARE(a > b, a, b)
 #define MT_REQUIRE_GE(a, b) __MT_REQUIRE_COMPARE(a >= b, a, b)
 
 #define MT_ENSURE_TRUE(expr) __MT_ENSURE_TRUE(expr)
@@ -884,9 +883,9 @@ AssertionError::AssertionError(const char* file, std::size_t line,
 #define MT_ENSURE_NOT_ZERO(expr) __MT_ENSURE_NOT_ZERO(expr)
 #define MT_ENSURE_EQ(a, b) __MT_ENSURE_COMPARE(a == b, a, b)
 #define MT_ENSURE_NE(a, b) __MT_ENSURE_COMPARE(a != b, a, b)
-#define MT_ENSURE_LT(a, b) __MT_ENSURE_COMPARE(a <  b, a, b)
+#define MT_ENSURE_LT(a, b) __MT_ENSURE_COMPARE(a < b, a, b)
 #define MT_ENSURE_LE(a, b) __MT_ENSURE_COMPARE(a <= b, a, b)
-#define MT_ENSURE_GT(a, b) __MT_ENSURE_COMPARE(a >  b, a, b)
+#define MT_ENSURE_GT(a, b) __MT_ENSURE_COMPARE(a > b, a, b)
 #define MT_ENSURE_GE(a, b) __MT_ENSURE_COMPARE(a >= b, a, b)
 
 #endif  // MT_MT_HPP_INCLUDED

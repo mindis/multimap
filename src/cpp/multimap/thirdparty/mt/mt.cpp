@@ -100,7 +100,7 @@ void demangle(std::string& symbol) {
 std::string makeErrorMessage(const char* file, unsigned line, const char* expr,
                              AssertionError::Expected expected,
                              AssertionError::Type type,
-                             std::size_t skip_head_from_stacktrace) {
+                             size_t skip_head_from_stacktrace) {
   std::ostringstream oss;
   switch (type) {
     case AssertionError::Type::ASSERTION:
@@ -145,12 +145,12 @@ std::string makeErrorMessage(const char* file, unsigned line, const char* expr,
 
 }  // namespace
 
-bool isPrime(std::size_t number) {
+bool isPrime(size_t number) {
   if (number % 2 == 0) {
     return false;
   }
-  const std::size_t max = std::sqrt(number);
-  for (std::size_t i = 3; i <= max; i += 2) {
+  const size_t max = std::sqrt(number);
+  for (size_t i = 3; i <= max; i += 2) {
     if (number % i == 0) {
       return false;
     }
@@ -158,28 +158,26 @@ bool isPrime(std::size_t number) {
   return true;
 }
 
-std::size_t nextPrime(std::size_t number) {
+size_t nextPrime(size_t number) {
   while (!isPrime(number)) {
     ++number;
   }
   return number;
 }
 
-std::size_t crc32(const std::string& str) {
-  return crc32(str.data(), str.size());
-}
+size_t crc32(const std::string& str) { return crc32(str.data(), str.size()); }
 
-std::size_t crc32(const void* data, std::size_t size) {
+size_t crc32(const void* data, size_t size) {
   boost::crc_32_type crc;
   crc.process_bytes(data, size);
   return crc.checksum();
 }
 
 // Source: http://www.isthe.com/chongo/src/fnv/hash_32a.c
-std::uint32_t fnv1aHash32(const void* buf, std::size_t len) {
-  std::uint32_t h = 0x811c9dc5;  // FNV1_32A_INIT
+uint32_t fnv1aHash32(const void* buf, size_t len) {
+  uint32_t h = 0x811c9dc5;  // FNV1_32A_INIT
   const auto ptr = reinterpret_cast<const std::uint8_t*>(buf);
-  for (std::size_t i = 0; i != len; ++i) {
+  for (size_t i = 0; i != len; ++i) {
     h ^= ptr[i];
     h += (h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24);
   }
@@ -187,10 +185,10 @@ std::uint32_t fnv1aHash32(const void* buf, std::size_t len) {
 }
 
 // Source: http://www.isthe.com/chongo/src/fnv/hash_64a.c
-std::uint64_t fnv1aHash64(const void* buf, std::size_t len) {
-  std::uint64_t h = 0xcbf29ce484222325ULL;  // FNV1A_64_INIT
+uint64_t fnv1aHash64(const void* buf, size_t len) {
+  uint64_t h = 0xcbf29ce484222325ULL;  // FNV1A_64_INIT
   const auto ptr = reinterpret_cast<const std::uint8_t*>(buf);
-  for (std::size_t i = 0; i != len; ++i) {
+  for (size_t i = 0; i != len; ++i) {
     h ^= ptr[i];
     h += (h << 1) + (h << 4) + (h << 5) + (h << 7) + (h << 8) + (h << 40);
   }
@@ -232,7 +230,7 @@ Files::Bytes Files::readAllBytes(const boost::filesystem::path& filepath) {
 
   Bytes bytes(boost::filesystem::file_size(filepath));
   ifs.read(bytes.data(), bytes.size());
-  MT_ENSURE_EQ(static_cast<std::size_t>(ifs.gcount()), bytes.size());
+  MT_ENSURE_EQ(static_cast<size_t>(ifs.gcount()), bytes.size());
   return bytes;
 }
 
@@ -344,11 +342,11 @@ void toString(const char* format, va_list args, std::string* output) {
   output->assign(buffer.data(), buffer.size());
 }
 
-std::vector<std::string> getStackTrace(std::size_t skip_head) {
+std::vector<std::string> getStackTrace(size_t skip_head) {
   std::vector<std::string> result;
   std::array<void*, 23> frames;
   const auto size = backtrace(frames.data(), frames.size());
-  if (static_cast<std::size_t>(size) > skip_head) {
+  if (static_cast<size_t>(size) > skip_head) {
     const auto symbols = backtrace_symbols(frames.data(), size);
     result.assign(symbols + skip_head, symbols + size);
     std::for_each(result.begin(), result.end(), demangle);
@@ -357,13 +355,13 @@ std::vector<std::string> getStackTrace(std::size_t skip_head) {
   return result;
 }
 
-void printStackTraceTo(std::ostream& os, std::size_t skip_head) {
+void printStackTraceTo(std::ostream& os, size_t skip_head) {
   const auto stacktrace = getStackTrace(skip_head);
   std::copy(stacktrace.begin(), stacktrace.end(),
             std::ostream_iterator<std::string>(os, "\n"));
 }
 
-void printStackTrace(std::size_t skip_head) {
+void printStackTrace(size_t skip_head) {
   printStackTraceTo(std::cerr, skip_head);
 }
 
@@ -375,8 +373,7 @@ AssertionError::AssertionError(const char* message)
 AssertionError::AssertionError(const std::string& message)
     : std::logic_error(message) {}
 
-AssertionError::AssertionError(const char* file, std::size_t line,
-                               const char* expr,
+AssertionError::AssertionError(const char* file, size_t line, const char* expr,
                                AssertionError::Expected expected,
                                AssertionError::Type type)
     : std::logic_error(makeErrorMessage(file, line, expr, expected, type, 5)) {}
