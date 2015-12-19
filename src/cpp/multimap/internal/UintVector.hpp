@@ -38,9 +38,9 @@ class UintVector {
 
   void writeToStream(std::FILE* stream) const;
 
-  std::vector<std::uint32_t> unpack() const;
+  std::vector<uint32_t> unpack() const;
 
-  bool add(std::uint32_t value);
+  bool add(uint32_t value);
 
   bool empty() const { return offset_ == 0; }
 
@@ -64,11 +64,11 @@ class UintVector {
 
   char* current() const { return data_.get() + offset_; }
 
-  std::size_t remaining() const { return size_ - offset_; }
+  size_t remaining() const { return size_ - offset_; }
 
   std::unique_ptr<char[]> data_;
-  std::uint32_t offset_ = 0;
-  std::uint32_t size_ = 0;
+  uint32_t offset_ = 0;
+  uint32_t size_ = 0;
 };
 
 static_assert(mt::hasExpectedSize<UintVector>(12, 16),

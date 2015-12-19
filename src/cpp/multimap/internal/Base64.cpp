@@ -43,7 +43,7 @@ void Base64::encode(const std::string& binary, std::string* base64) {
   encode(binary.data(), binary.size(), base64);
 }
 
-void Base64::encode(const char* data, std::size_t size, std::string* base64) {
+void Base64::encode(const char* data, size_t size, std::string* base64) {
   MT_REQUIRE_NOT_NULL(data);
 
   base64->assign(ToBase64Iter(data), ToBase64Iter(data + size));

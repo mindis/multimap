@@ -36,7 +36,7 @@ class BasicBlock {
  public:
   BasicBlock() = default;
 
-  BasicBlock(char* data, std::size_t size) : data_(data), size_(size) {
+  BasicBlock(char* data, size_t size) : data_(data), size_(size) {
     MT_REQUIRE_NOT_NULL(data_);
   }
 
@@ -49,15 +49,15 @@ class BasicBlock {
 
   const char* data() const { return data_; }
 
-  std::size_t size() const { return size_; }
+  size_t size() const { return size_; }
 
-  std::size_t offset() const { return offset_; }
+  size_t offset() const { return offset_; }
 
-  std::size_t remaining() const { return size_ - offset_; }
+  size_t remaining() const { return size_ - offset_; }
 
   void rewind() { offset_ = 0; }
 
-  std::size_t readData(char* target, std::size_t size) {
+  size_t readData(char* target, size_t size) {
     MT_REQUIRE_NOT_NULL(data_);
     const auto nbytes = std::min(size, remaining());
     std::memcpy(target, current(), nbytes);
@@ -68,7 +68,7 @@ class BasicBlock {
   // Returns the number of bytes actually copied which may be less than `size`.
   // Returns 0 if nothing could be extracted.
 
-  std::size_t readSizeWithFlag(std::uint32_t* size, bool* flag) {
+  size_t readSizeWithFlag(uint32_t* size, bool* flag) {
     MT_REQUIRE_NOT_NULL(data_);
     const auto nbytes =
         Varint::readUintWithFlag(current(), remaining(), size, flag);
@@ -84,7 +84,7 @@ class BasicBlock {
   // ---------------------------------------------------------------------------
 
   MT_ENABLE_IF(IsReadOnly)
-  BasicBlock(const char* data, std::size_t size) : data_(data), size_(size) {
+  BasicBlock(const char* data, size_t size) : data_(data), size_(size) {
     MT_REQUIRE_NOT_NULL(data_);
   }
 
@@ -99,7 +99,7 @@ class BasicBlock {
   void fillUpWithZeros() { std::memset(current(), 0, remaining()); }
 
   MT_DISABLE_IF(IsReadOnly)
-  std::size_t writeData(const char* data, std::size_t size) {
+  size_t writeData(const char* data, size_t size) {
     MT_REQUIRE_NOT_NULL(data_);
     const auto nbytes = std::min(size, remaining());
     std::memcpy(current(), data, nbytes);
@@ -108,7 +108,7 @@ class BasicBlock {
   }
 
   MT_DISABLE_IF(IsReadOnly)
-  std::size_t writeSizeWithFlag(std::uint32_t size, bool flag) {
+  size_t writeSizeWithFlag(uint32_t size, bool flag) {
     MT_REQUIRE_NOT_NULL(data_);
     const auto nbytes =
         Varint::writeUintWithFlag(size, flag, current(), remaining());
@@ -117,7 +117,7 @@ class BasicBlock {
   }
 
   MT_DISABLE_IF(IsReadOnly)
-  void writeFlagAt(bool flag, std::size_t offset) {
+  void writeFlagAt(bool flag, size_t offset) {
     MT_REQUIRE_NOT_NULL(data_);
     Varint::writeFlag(flag, data_ + offset, size_ - offset);
   }
@@ -128,8 +128,8 @@ class BasicBlock {
   Char* current() const { return data_ + offset_; }
 
   Char* data_ = nullptr;
-  std::uint32_t size_ = 0;
-  std::uint32_t offset_ = 0;
+  uint32_t size_ = 0;
+  uint32_t offset_ = 0;
 };
 
 template <bool IsReadOnly>
@@ -143,19 +143,19 @@ struct ExtendedBasicBlock : public BasicBlock<IsReadOnly> {
 
   ExtendedBasicBlock(const BasicBlock<IsReadOnly>& base) : Base(base) {}
 
-  ExtendedBasicBlock(char* data, std::size_t size) : Base(data, size) {}
+  ExtendedBasicBlock(char* data, size_t size) : Base(data, size) {}
 
-  ExtendedBasicBlock(char* data, std::size_t size, std::uint32_t id)
+  ExtendedBasicBlock(char* data, size_t size, uint32_t id)
       : Base(data, size), id(id) {}
 
   MT_ENABLE_IF(IsReadOnly)
-  ExtendedBasicBlock(const char* data, std::size_t size) : Base(data, size) {}
+  ExtendedBasicBlock(const char* data, size_t size) : Base(data, size) {}
 
   MT_ENABLE_IF(IsReadOnly)
-  ExtendedBasicBlock(const char* data, std::size_t size, std::uint32_t id)
+  ExtendedBasicBlock(const char* data, size_t size, uint32_t id)
       : Base(data, size), id(id) {}
 
-  std::uint32_t id = -1;
+  uint32_t id = -1;
   bool ignore = false;
 };
 

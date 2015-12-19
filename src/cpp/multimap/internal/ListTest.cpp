@@ -104,7 +104,7 @@ TEST(ListTest, DefaultConstructedHasProperState) {
 // class List / Iteration
 // -----------------------------------------------------------------------------
 
-struct ListTestIteration : testing::TestWithParam<std::uint32_t> {
+struct ListTestIteration : testing::TestWithParam<uint32_t> {
   void SetUp() override {
     directory = "/tmp/multimap.ListTestIteration";
     boost::filesystem::remove_all(directory);
@@ -129,7 +129,7 @@ struct ListTestIteration : testing::TestWithParam<std::uint32_t> {
 
 TEST_P(ListTestIteration, AddSmallValuesAndIterateOnce) {
   List list;
-  for (std::size_t i = 0; i != GetParam(); ++i) {
+  for (size_t i = 0; i != GetParam(); ++i) {
     const auto value = std::to_string(i);
     list.add(value, getStore(), getArena());
     ASSERT_EQ(list.head().num_values_removed, 0);
@@ -138,7 +138,7 @@ TEST_P(ListTestIteration, AddSmallValuesAndIterateOnce) {
   ASSERT_EQ(list.size(), GetParam());
 
   auto iter = list.iterator(*getStore());
-  for (std::size_t i = 0; i != GetParam(); ++i) {
+  for (size_t i = 0; i != GetParam(); ++i) {
     ASSERT_TRUE(iter.hasNext());
     ASSERT_EQ(iter.available(), GetParam() - i);
     ASSERT_EQ(iter.next(), std::to_string(i));
@@ -149,7 +149,7 @@ TEST_P(ListTestIteration, AddSmallValuesAndIterateOnce) {
 
 TEST_P(ListTestIteration, AddSmallValuesAndIterateTwice) {
   List list;
-  for (std::size_t i = 0; i != GetParam(); ++i) {
+  for (size_t i = 0; i != GetParam(); ++i) {
     const auto value = std::to_string(i);
     list.add(value, getStore(), getArena());
     ASSERT_EQ(list.head().num_values_removed, 0);
@@ -158,7 +158,7 @@ TEST_P(ListTestIteration, AddSmallValuesAndIterateTwice) {
   ASSERT_EQ(list.size(), GetParam());
 
   auto iter = list.iterator(*getStore());
-  for (std::size_t i = 0; i != GetParam(); ++i) {
+  for (size_t i = 0; i != GetParam(); ++i) {
     ASSERT_TRUE(iter.hasNext());
     ASSERT_EQ(iter.available(), GetParam() - i);
     ASSERT_EQ(iter.next(), std::to_string(i));
@@ -167,7 +167,7 @@ TEST_P(ListTestIteration, AddSmallValuesAndIterateTwice) {
   ASSERT_EQ(iter.available(), 0);
 
   iter = list.iterator(*getStore());
-  for (std::size_t i = 0; i != GetParam(); ++i) {
+  for (size_t i = 0; i != GetParam(); ++i) {
     ASSERT_TRUE(iter.hasNext());
     ASSERT_EQ(iter.available(), GetParam() - i);
     ASSERT_EQ(iter.next(), std::to_string(i));
@@ -179,8 +179,8 @@ TEST_P(ListTestIteration, AddSmallValuesAndIterateTwice) {
 TEST_P(ListTestIteration, AddLargeValuesAndIterateOnce) {
   List list;
   SequenceGenerator gen;
-  const std::size_t size = getStore()->getBlockSize() * 2.5;
-  for (std::size_t i = 0; i != GetParam(); ++i) {
+  const size_t size = getStore()->getBlockSize() * 2.5;
+  for (size_t i = 0; i != GetParam(); ++i) {
     list.add(gen.generate(size), getStore(), getArena());
     ASSERT_EQ(list.head().num_values_removed, 0);
     ASSERT_EQ(list.head().num_values_total, i + 1);
@@ -189,7 +189,7 @@ TEST_P(ListTestIteration, AddLargeValuesAndIterateOnce) {
 
   gen.reset();
   auto iter = list.iterator(*getStore());
-  for (std::size_t i = 0; i != GetParam(); ++i) {
+  for (size_t i = 0; i != GetParam(); ++i) {
     ASSERT_TRUE(iter.hasNext());
     ASSERT_EQ(iter.available(), GetParam() - i);
     ASSERT_EQ(iter.next(), gen.generate(size));
@@ -201,8 +201,8 @@ TEST_P(ListTestIteration, AddLargeValuesAndIterateOnce) {
 TEST_P(ListTestIteration, AddLargeValuesAndIterateTwice) {
   List list;
   SequenceGenerator gen;
-  const std::size_t size = getStore()->getBlockSize() * 2.5;
-  for (std::size_t i = 0; i != GetParam(); ++i) {
+  const size_t size = getStore()->getBlockSize() * 2.5;
+  for (size_t i = 0; i != GetParam(); ++i) {
     list.add(gen.generate(size), getStore(), getArena());
     ASSERT_EQ(list.head().num_values_removed, 0);
     ASSERT_EQ(list.head().num_values_total, i + 1);
@@ -211,7 +211,7 @@ TEST_P(ListTestIteration, AddLargeValuesAndIterateTwice) {
 
   gen.reset();
   auto iter = list.iterator(*getStore());
-  for (std::size_t i = 0; i != GetParam(); ++i) {
+  for (size_t i = 0; i != GetParam(); ++i) {
     ASSERT_TRUE(iter.hasNext());
     ASSERT_EQ(iter.available(), GetParam() - i);
     ASSERT_EQ(iter.next(), gen.generate(size));
@@ -221,7 +221,7 @@ TEST_P(ListTestIteration, AddLargeValuesAndIterateTwice) {
 
   gen.reset();
   iter = list.iterator(*getStore());
-  for (std::size_t i = 0; i != GetParam(); ++i) {
+  for (size_t i = 0; i != GetParam(); ++i) {
     ASSERT_TRUE(iter.hasNext());
     ASSERT_EQ(iter.available(), GetParam() - i);
     ASSERT_EQ(iter.next(), gen.generate(size));
@@ -233,7 +233,7 @@ TEST_P(ListTestIteration, AddLargeValuesAndIterateTwice) {
 TEST_P(ListTestIteration, FlushValuesBetweenAddingThemAndIterate) {
   List list;
   const auto part_size = 1 + GetParam() / 5;
-  for (std::size_t i = 0; i != GetParam(); ++i) {
+  for (size_t i = 0; i != GetParam(); ++i) {
     list.add(std::to_string(i), getStore(), getArena());
     if (list.size() % part_size == 0) {
       list.flush(getStore());
@@ -241,7 +241,7 @@ TEST_P(ListTestIteration, FlushValuesBetweenAddingThemAndIterate) {
   }
 
   auto iter = list.iterator(getStore());
-  for (std::size_t i = 0; i != GetParam(); ++i) {
+  for (size_t i = 0; i != GetParam(); ++i) {
     ASSERT_TRUE(iter.hasNext());
     ASSERT_THAT(iter.next(), Eq(std::to_string(i)));
   }
@@ -431,7 +431,7 @@ TEST(SharedListIteratorTest, DefaultConstructedHasProperState) {
   // Calling `next()` or `peekNext()` or `remove()` is undefined behavior.
 }
 
-struct ListIteratorTestWithParam : testing::TestWithParam<std::uint32_t> {
+struct ListIteratorTestWithParam : testing::TestWithParam<uint32_t> {
   void SetUp() override {
     boost::filesystem::remove_all(dir);
     MT_ASSERT_TRUE(boost::filesystem::create_directory(dir));
@@ -440,7 +440,7 @@ struct ListIteratorTestWithParam : testing::TestWithParam<std::uint32_t> {
     options.create_if_missing = true;
     store.reset(new Store(boost::filesystem::path(dir) / "store", options));
 
-    for (std::size_t i = 0; i != GetParam(); ++i) {
+    for (size_t i = 0; i != GetParam(); ++i) {
       list.add(std::to_string(i), store.get(), &arena);
     }
   }
@@ -463,7 +463,7 @@ struct SharedListIteratorTestWithParam : public ListIteratorTestWithParam {
 TEST_P(SharedListIteratorTestWithParam, Iterate) {
   SharedListIterator iter = getIterator();
   ASSERT_EQ(iter.available(), GetParam());
-  for (std::size_t i = 0; iter.hasNext(); ++i) {
+  for (size_t i = 0; iter.hasNext(); ++i) {
     ASSERT_EQ(iter.available(), GetParam() - i);
     ASSERT_EQ(iter.next(), std::to_string(i));
   }
@@ -507,7 +507,7 @@ struct UniqueListIteratorTestWithParam : public ListIteratorTestWithParam {
 TEST_P(UniqueListIteratorTestWithParam, Iterate) {
   UniqueListIterator iter = getIterator();
   ASSERT_EQ(iter.available(), GetParam());
-  for (std::size_t i = 0; iter.hasNext(); ++i) {
+  for (size_t i = 0; iter.hasNext(); ++i) {
     ASSERT_EQ(iter.available(), GetParam() - i);
     ASSERT_EQ(iter.next(), std::to_string(i));
   }
@@ -517,8 +517,8 @@ TEST_P(UniqueListIteratorTestWithParam, Iterate) {
 
 TEST_P(UniqueListIteratorTestWithParam, IterateOnceAndRemoveEvery23thValue) {
   UniqueListIterator iter = getIterator();
-  std::size_t num_removed = 0;
-  for (std::size_t i = 0; iter.hasNext(); ++i) {
+  size_t num_removed = 0;
+  for (size_t i = 0; iter.hasNext(); ++i) {
     ASSERT_EQ(iter.next(), std::to_string(i));
     if (i % 23 == 0) {
       iter.remove();
@@ -531,10 +531,10 @@ TEST_P(UniqueListIteratorTestWithParam, IterateOnceAndRemoveEvery23thValue) {
 
 TEST_P(UniqueListIteratorTestWithParam,
        IterateTwiceAndRemoveEvery23thValueIn1stRun) {
-  std::size_t num_removed = 0;
+  size_t num_removed = 0;
   {
     UniqueListIterator iter = getIterator();
-    for (std::size_t i = 0; iter.hasNext(); ++i) {
+    for (size_t i = 0; iter.hasNext(); ++i) {
       iter.next();
       if (i % 23 == 0) {
         iter.remove();
@@ -547,7 +547,7 @@ TEST_P(UniqueListIteratorTestWithParam,
   {
     UniqueListIterator iter = getIterator();
     ASSERT_EQ(iter.available(), GetParam() - num_removed);
-    for (std::size_t i = 0; iter.hasNext(); ++i) {
+    for (size_t i = 0; iter.hasNext(); ++i) {
       if (i % 23 != 0) {
         ASSERT_NE(std::stoi(iter.next().toString()) % 23, 0);
       }

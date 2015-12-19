@@ -28,18 +28,18 @@
 
 namespace multimap {
 
-static const std::size_t MAJOR_VERSION = 0;
-static const std::size_t MINOR_VERSION = 3;
+static const size_t MAJOR_VERSION = 0;
+static const size_t MINOR_VERSION = 3;
 
 class Map : mt::Resource {
   // Insanely fast 1:n key-value store.
 
  public:
   struct Id {
-    std::uint64_t block_size = 0;
-    std::uint64_t num_shards = 0;
-    std::uint64_t major_version = MAJOR_VERSION;
-    std::uint64_t minor_version = MINOR_VERSION;
+    uint64_t block_size = 0;
+    uint64_t num_shards = 0;
+    uint64_t major_version = MAJOR_VERSION;
+    uint64_t minor_version = MINOR_VERSION;
 
     static Id readFromDirectory(const boost::filesystem::path& directory);
     static Id readFromFile(const boost::filesystem::path& file);
@@ -52,8 +52,8 @@ class Map : mt::Resource {
   struct Limits {
     // Provides static methods to request upper bounds.
 
-    static std::size_t maxKeySize();
-    static std::size_t maxValueSize();
+    static size_t maxKeySize();
+    static size_t maxValueSize();
   };
 
   typedef internal::Shard::Stats Stats;
@@ -107,8 +107,8 @@ class Map : mt::Resource {
   // Returns: true if the key was removed, false otherwise.
 
   template <typename Predicate>
-  std::size_t removeKeys(Predicate predicate) {
-    std::size_t num_removed = 0;
+  size_t removeKeys(Predicate predicate) {
+    size_t num_removed = 0;
     for (const auto& shard : shards_) {
       num_removed += shard->removeKeys(predicate);
     }
@@ -129,7 +129,7 @@ class Map : mt::Resource {
   // Returns: true if a value was deleted, false otherwise.
 
   template <typename Predicate>
-  std::size_t removeValues(const Bytes& key, Predicate predicate) {
+  size_t removeValues(const Bytes& key, Predicate predicate) {
     return getShard(key).removeValues(key, predicate);
   }
   // Deletes all values in the list associated with key for which predicate
@@ -154,14 +154,14 @@ class Map : mt::Resource {
   // replacements. This method will block until a writer lock can be acquired.
   // Returns: true if a value was replaced, false otherwise.
 
-  std::size_t replaceValues(const Bytes& key, const Bytes& old_value,
-                            const Bytes& new_value) {
+  size_t replaceValues(const Bytes& key, const Bytes& old_value,
+                       const Bytes& new_value) {
     return getShard(key).replaceValues(key, old_value, new_value);
   }
   // TODO Document this.
 
   template <typename Function>
-  std::size_t replaceValues(const Bytes& key, Function map) {
+  size_t replaceValues(const Bytes& key, Function map) {
     return getShard(key).replaceValues(key, map);
   }
   // Replaces all values in the list associated with key by the result of
@@ -330,11 +330,11 @@ namespace internal {
 const std::string getFilePrefix();
 const std::string getNameOfIdFile();
 const std::string getNameOfLockFile();
-const std::string getShardPrefix(std::size_t index);
-const std::string getNameOfKeysFile(std::size_t index);
-const std::string getNameOfStatsFile(std::size_t index);
-const std::string getNameOfValuesFile(std::size_t index);
-void checkVersion(std::uint64_t major_version, std::uint64_t minor_version);
+const std::string getShardPrefix(size_t index);
+const std::string getNameOfKeysFile(size_t index);
+const std::string getNameOfStatsFile(size_t index);
+const std::string getNameOfValuesFile(size_t index);
+void checkVersion(uint64_t major_version, uint64_t minor_version);
 
 }  // namespace internal
 }  // namespace multimap

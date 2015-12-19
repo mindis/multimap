@@ -52,13 +52,13 @@ class MutexPool {
     }
   }
 
-  std::size_t getDefaultSize() { return 1024; }
+  size_t getDefaultSize() { return 1024; }
 
-  std::size_t getCurrentSize() { return mutexes_.size(); }
+  size_t getCurrentSize() { return mutexes_.size(); }
 
-  std::size_t getMaximumSize() { return maximum_size_; }
+  size_t getMaximumSize() { return maximum_size_; }
 
-  void setMaximumSize(std::size_t size) {
+  void setMaximumSize(size_t size) {
     maximum_size_ = size;
     if (maximum_size_ < mutexes_.size()) {
       mutexes_.resize(size);
@@ -73,12 +73,10 @@ class MutexPool {
   MutexPool() { setMaximumSize(getDefaultSize()); }
 
   std::vector<std::unique_ptr<Mutex> > mutexes_;
-  std::size_t maximum_size_;
+  size_t maximum_size_;
 };
 
-std::size_t List::Limits::maxValueSize() {
-  return Varint::Limits::MAX_N4_WITH_FLAG;
-}
+size_t List::Limits::maxValueSize() { return Varint::Limits::MAX_N4_WITH_FLAG; }
 
 List::Head List::Head::readFromStream(std::FILE* stream) {
   Head head;
@@ -125,7 +123,7 @@ void List::add(const Bytes& value, Store* store, Arena* arena) {
     std::vector<ExtendedReadOnlyBlock> blocks;
     const auto block_size = block_.size();
     const char* tail_data = value.data() + nbytes;
-    std::size_t remaining = value.size() - nbytes;
+    size_t remaining = value.size() - nbytes;
     while (remaining >= block_size) {
       blocks.emplace_back(tail_data, block_size);
       tail_data += block_size;
@@ -240,19 +238,19 @@ void List::deleteMutexUnlocked() const {
   mutex_.reset();
 }
 
-std::size_t List::MutexPoolConfig::getCurrentSize() {
+size_t List::MutexPoolConfig::getCurrentSize() {
   return MutexPool::instance().getCurrentSize();
 }
 
-std::size_t List::MutexPoolConfig::getDefaultSize() {
+size_t List::MutexPoolConfig::getDefaultSize() {
   return MutexPool::instance().getDefaultSize();
 }
 
-std::size_t List::MutexPoolConfig::getMaximumSize() {
+size_t List::MutexPoolConfig::getMaximumSize() {
   return MutexPool::instance().getMaximumSize();
 }
 
-void List::MutexPoolConfig::setMaximumSize(std::size_t size) {
+void List::MutexPoolConfig::setMaximumSize(size_t size) {
   return MutexPool::instance().setMaximumSize(size);
 }
 

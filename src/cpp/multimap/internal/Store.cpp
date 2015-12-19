@@ -127,7 +127,7 @@ void Store::adviseAccessPattern(AccessPattern pattern) const {
   }
 }
 
-std::uint32_t Store::putUnlocked(const char* block) {
+uint32_t Store::putUnlocked(const char* block) {
   if (buffer_.offset == buffer_.size) {
     // Flush buffer
     if (quiet_) {
@@ -162,24 +162,24 @@ std::uint32_t Store::putUnlocked(const char* block) {
   return stats_.num_blocks++;
 }
 
-void Store::getUnlocked(std::uint32_t id, char* block) const {
+void Store::getUnlocked(uint32_t id, char* block) const {
   if (fill_page_cache_) {
     fill_page_cache_ = false;
     // Touch each block to load it into the OS page cache.
     const auto num_blocks_mapped = mapped_.num_blocks(stats_.block_size);
-    for (std::uint32_t i = 0; i != num_blocks_mapped; ++i) {
+    for (uint32_t i = 0; i != num_blocks_mapped; ++i) {
       std::memcpy(block, getAddressOf(i), stats_.block_size);
     }
   }
   std::memcpy(block, getAddressOf(id), stats_.block_size);
 }
 
-void Store::replaceUnlocked(std::uint32_t id, const char* block) {
+void Store::replaceUnlocked(uint32_t id, const char* block) {
   MT_REQUIRE_NOT_NULL(block);
   std::memcpy(getAddressOf(id), block, stats_.block_size);
 }
 
-char* Store::getAddressOf(std::uint32_t id) const {
+char* Store::getAddressOf(uint32_t id) const {
   MT_REQUIRE_LT(id, stats_.num_blocks);
 
   const auto num_blocks_mapped = mapped_.num_blocks(stats_.block_size);

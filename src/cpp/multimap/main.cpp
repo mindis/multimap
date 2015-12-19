@@ -115,45 +115,45 @@ multimap::Options initOptions(const CommandLine& cmd) {
 void runHelpCommand(const char* tool_name) {
   const multimap::Options default_options;
   std::printf(
-    "USAGE\n"
-    "\n  %s COMMAND MAP [PATH] [OPTIONS]"
-    "\n\nCOMMANDS\n"
-    "\n  %-10s     Print this help message and exit."
-    "\n  %-10s     Print statistics about an instance."
-    "\n  %-10s     Import key-value pairs from Base64-encoded text files."
-    "\n  %-10s     Export key-value pairs to a Base64-encoded text file."
-    "\n  %-10s     Rewrite an instance performing various optimizations."
-    "\n\nOPTIONS\n"
-    "\n  %-9s      Create a new instance if missing when importing data."
-    "\n  %-9s NUM  Block size to use for a new instance. Default is %lu."
-    "\n  %-9s NUM  Number of shards to use for a new instance. Default is %lu."
-    "\n  %-9s      Don't print out any status messages."
-    "\n\nEXAMPLES\n"
-    "\n  %s %-8s path/to/map"
-    "\n  %s %-8s path/to/map path/to/input"
-    "\n  %s %-8s path/to/map path/to/input/base64.csv"
-    "\n  %s %-8s path/to/map path/to/input/base64.csv %s"
-    "\n  %s %-8s path/to/map path/to/output/base64.csv"
-    "\n  %s %-8s path/to/map path/to/output"
-    "\n  %s %-8s path/to/map path/to/output %s 128"
-    "\n  %s %-8s path/to/map path/to/output %s 42"
-    "\n  %s %-8s path/to/map path/to/output %s 42 %s 128"
-    "\n\n"
-    "\nCopyright (C) 2015 Martin Trenkmann"
-    "\n<http://multimap.io>\n",
-    tool_name, HELP, STATS, IMPORT, EXPORT, OPTIMIZE,
-    CREATE, BS, default_options.block_size,
-    NSHARDS, default_options.num_shards,
-    QUIET,
-    tool_name, STATS,
-    tool_name, IMPORT,
-    tool_name, IMPORT,
-    tool_name, IMPORT, CREATE,
-    tool_name, EXPORT,
-    tool_name, OPTIMIZE,
-    tool_name, OPTIMIZE, BS,
-    tool_name, OPTIMIZE, NSHARDS,
-    tool_name, OPTIMIZE, NSHARDS, BS);
+      "USAGE\n"
+      "\n  %s COMMAND MAP [PATH] [OPTIONS]"
+      "\n\nCOMMANDS\n"
+      "\n  %-10s     Print this help message and exit."
+      "\n  %-10s     Print statistics about an instance."
+      "\n  %-10s     Import key-value pairs from Base64-encoded text files."
+      "\n  %-10s     Export key-value pairs to a Base64-encoded text file."
+      "\n  %-10s     Rewrite an instance performing various optimizations."
+      "\n\nOPTIONS\n"
+      "\n  %-9s      Create a new instance if missing when importing data."
+      "\n  %-9s NUM  Block size to use for a new instance. Default is %u."
+      "\n  %-9s NUM  Number of shards to use for a new instance. Default is %u."
+      "\n  %-9s      Don't print out any status messages."
+      "\n\nEXAMPLES\n"
+      "\n  %s %-8s path/to/map"
+      "\n  %s %-8s path/to/map path/to/input"
+      "\n  %s %-8s path/to/map path/to/input/base64.csv"
+      "\n  %s %-8s path/to/map path/to/input/base64.csv %s"
+      "\n  %s %-8s path/to/map path/to/output/base64.csv"
+      "\n  %s %-8s path/to/map path/to/output"
+      "\n  %s %-8s path/to/map path/to/output %s 128"
+      "\n  %s %-8s path/to/map path/to/output %s 42"
+      "\n  %s %-8s path/to/map path/to/output %s 42 %s 128"
+      "\n\n"
+      "\nCopyright (C) 2015 Martin Trenkmann"
+      "\n<http://multimap.io>\n",
+      tool_name, HELP, STATS, IMPORT, EXPORT, OPTIMIZE,
+      CREATE, BS, default_options.block_size,
+      NSHARDS, default_options.num_shards,
+      QUIET,
+      tool_name, STATS,
+      tool_name, IMPORT,
+      tool_name, IMPORT,
+      tool_name, IMPORT, CREATE,
+      tool_name, EXPORT,
+      tool_name, OPTIMIZE,
+      tool_name, OPTIMIZE, BS,
+      tool_name, OPTIMIZE, NSHARDS,
+      tool_name, OPTIMIZE, NSHARDS, BS);
 }
 
 void runStatsCommand(const CommandLine& cmd) {
@@ -177,9 +177,9 @@ void runStatsCommand(const CommandLine& cmd) {
   };
 
   const auto max = multimap::internal::Shard::Stats::max(stats).toVector();
-  for (std::uint32_t i = 0; i != stats.size(); ++i) {
+  for (uint32_t i = 0; i != stats.size(); ++i) {
     const auto stat = stats[i].toVector();
-    for (std::size_t j = 0; j != stat.size(); ++j) {
+    for (size_t j = 0; j != stat.size(); ++j) {
       std::printf("#%-*" PRIu32 "  %-*s  %-*" PRIu64 " %s\n",
                   first_column_width, i, second_column_width, names[j].c_str(),
                   third_column_width, stat[j], stars(stat[j], max[j]).c_str());
@@ -187,8 +187,8 @@ void runStatsCommand(const CommandLine& cmd) {
     std::printf("\n");
   }
 
-  const auto hashes = [](std::size_t num) { return std::string(num, '#'); };
-  for (std::size_t i = 0; i != totals.size(); ++i) {
+  const auto hashes = [](size_t num) { return std::string(num, '#'); };
+  for (size_t i = 0; i != totals.size(); ++i) {
     std::printf("#%s  %-*s  %-*" PRIu64 "\n",
                 hashes(first_column_width).c_str(), second_column_width,
                 names[i].c_str(), third_column_width, totals[i]);

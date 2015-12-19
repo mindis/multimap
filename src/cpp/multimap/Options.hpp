@@ -18,6 +18,7 @@
 #ifndef MULTIMAP_OPTIONS_HPP_INCLUDED
 #define MULTIMAP_OPTIONS_HPP_INCLUDED
 
+#include <cstdint>
 #include <functional>
 #include "multimap/Bytes.hpp"
 
@@ -26,15 +27,15 @@ namespace multimap {
 struct Options {
   // A type to configure an object of class Map and related functions.
 
-  std::size_t num_shards = 23;
+  uint32_t num_shards = 23;
 
-  std::size_t block_size = 512;
+  uint32_t block_size = 512;
   // Determines the block size of a newly created map.  The value is ignored if
   // the map already exists.  The value must be a power of two.  For small key
   // sets, up to 1M, the default value should be appropriate.  For larger key
   // sets the block size can be reduced to lower the overall memory usage.
 
-  std::size_t buffer_size = mt::MiB(1);
+  uint32_t buffer_size = mt::MiB(1);
 
   bool create_if_missing = false;
   // Determines whether a map has to be created if it does not exist.

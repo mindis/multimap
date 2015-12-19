@@ -35,12 +35,12 @@ void checkOptions(const Options& options) {
 template <typename Procdure>
 // Required interface:
 // void process(const boost::filesystem::path& prefix,
-//              std::size_t index, std::size_t nshards);
+//              size_t index, size_t nshards);
 void forEachShard(const boost::filesystem::path& directory, Procdure process) {
   mt::DirectoryLockGuard lock(directory, internal::getNameOfLockFile());
   const auto id = Map::Id::readFromDirectory(directory);
   internal::checkVersion(id.major_version, id.minor_version);
-  for (std::size_t i = 0; i != id.num_shards; ++i) {
+  for (size_t i = 0; i != id.num_shards; ++i) {
     const auto prefix = directory / internal::getShardPrefix(i);
     process(prefix, i, id.num_shards);
   }
@@ -64,11 +64,11 @@ void Map::Id::writeToFile(const boost::filesystem::path& file) const {
   mt::fwrite(stream.get(), this, sizeof *this);
 }
 
-std::size_t Map::Limits::maxKeySize() {
+size_t Map::Limits::maxKeySize() {
   return internal::Shard::Limits::maxKeySize();
 }
 
-std::size_t Map::Limits::maxValueSize() {
+size_t Map::Limits::maxValueSize() {
   return internal::Shard::Limits::maxValueSize();
 }
 
@@ -101,7 +101,7 @@ Map::Map(const boost::filesystem::path& directory, const Options& options)
   shard_options.readonly = options.readonly;
   shard_options.quiet = options.quiet;
 
-  for (std::size_t i = 0; i != shards_.size(); ++i) {
+  for (size_t i = 0; i != shards_.size(); ++i) {
     const auto prefix = directory / internal::getShardPrefix(i);
     shards_[i].reset(new internal::Shard(prefix, shard_options));
   }
@@ -122,7 +122,7 @@ std::vector<internal::Shard::Stats> Map::stats(
   const auto id = Id::readFromDirectory(directory);
   internal::checkVersion(id.major_version, id.minor_version);
   std::vector<internal::Shard::Stats> stats;
-  for (std::size_t i = 0; i != id.num_shards; ++i) {
+  for (size_t i = 0; i != id.num_shards; ++i) {
     const auto stats_file = directory / internal::getNameOfStatsFile(i);
     stats.push_back(internal::Shard::Stats::readFromFile(stats_file));
   }
@@ -205,7 +205,7 @@ void Map::exportToBase64(const boost::filesystem::path& directory,
   std::ofstream stream(output.string());
   mt::check(stream, "Could not create '%s'", output.c_str());
 
-  const auto print_status = [&options](std::size_t index, std::size_t nshards) {
+  const auto print_status = [&options](size_t index, size_t nshards) {
     if (!options.quiet) {
       mt::log(std::cout) << "Exporting shard " << (index + 1) << " of "
                          << nshards << std::endl;
@@ -217,7 +217,7 @@ void Map::exportToBase64(const boost::filesystem::path& directory,
   if (options.compare) {
     std::vector<std::string> sorted_values;
     forEachShard(directory, [&](const boost::filesystem::path& prefix,
-                                std::size_t index, std::size_t nshards) {
+                                size_t index, size_t nshards) {
       print_status(index, nshards);
       internal::Shard::forEachEntry(prefix, [&](const Bytes& key,
                                                 Map::Iterator&& iter) {
@@ -240,7 +240,7 @@ void Map::exportToBase64(const boost::filesystem::path& directory,
 
   } else {
     forEachShard(directory, [&](const boost::filesystem::path& prefix,
-                                std::size_t index, std::size_t nshards) {
+                                size_t index, size_t nshards) {
       print_status(index, nshards);
       internal::Shard::forEachEntry(
           prefix, [&](const Bytes& key, Map::Iterator&& iter) {
@@ -269,7 +269,7 @@ void Map::optimize(const boost::filesystem::path& directory,
                    const Options& options) {
   std::unique_ptr<Map> new_map;
   forEachShard(directory, [&](const boost::filesystem::path& prefix,
-                              std::size_t index, std::size_t nshards) {
+                              size_t index, size_t nshards) {
     if (index == 0) {
       const auto old_id = Id::readFromDirectory(directory);
       Options new_map_options = options;
@@ -322,23 +322,23 @@ const std::string getNameOfIdFile() { return getFilePrefix() + ".id"; }
 
 const std::string getNameOfLockFile() { return getFilePrefix() + ".lock"; }
 
-const std::string getShardPrefix(std::size_t index) {
+const std::string getShardPrefix(size_t index) {
   return getFilePrefix() + '.' + std::to_string(index);
 }
 
-const std::string getNameOfKeysFile(std::size_t index) {
+const std::string getNameOfKeysFile(size_t index) {
   return Shard::getNameOfKeysFile(getShardPrefix(index));
 }
 
-const std::string getNameOfStatsFile(std::size_t index) {
+const std::string getNameOfStatsFile(size_t index) {
   return Shard::getNameOfStatsFile(getShardPrefix(index));
 }
 
-const std::string getNameOfValuesFile(std::size_t index) {
+const std::string getNameOfValuesFile(size_t index) {
   return Shard::getNameOfValuesFile(getShardPrefix(index));
 }
 
-void checkVersion(std::uint64_t major_version, std::uint64_t minor_version) {
+void checkVersion(uint64_t major_version, uint64_t minor_version) {
   mt::check(major_version == MAJOR_VERSION,
             "Version check failed. The Multimap you are trying to open "
             "was created with version %u.%u of the library. Your "

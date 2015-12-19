@@ -31,16 +31,16 @@ namespace internal {
 class Store : mt::Resource {
  public:
   struct Options {
-    std::size_t block_size = 512;
-    std::size_t buffer_size = mt::MiB(1);
+    uint32_t block_size = 512;
+    uint32_t buffer_size = mt::MiB(1);
     bool create_if_missing = false;
     bool readonly = false;
     bool quiet = false;
   };
 
   struct Stats {
-    std::uint64_t block_size = 0;
-    std::uint64_t num_blocks = 0;
+    uint32_t block_size = 0;
+    uint32_t num_blocks = 0;
 
     static Stats fromProperties(const mt::Properties& properties);
 
@@ -54,7 +54,7 @@ class Store : mt::Resource {
   static_assert(std::is_standard_layout<Stats>::value,
                 "Store::Stats is no standard layout type");
 
-  static_assert(mt::hasExpectedSize<Stats>(16, 16),
+  static_assert(mt::hasExpectedSize<Stats>(8, 8),
                 "Store::Stats does not have expected size");
   // sizeof(Stats) must be equal on 32- and 64-bit systems to be portable.
 
@@ -69,7 +69,7 @@ class Store : mt::Resource {
   // ---------------------------------------------------------------------------
 
   template <bool IsMutable>
-  std::uint32_t put(const BasicBlock<IsMutable>& block) {
+  uint32_t put(const BasicBlock<IsMutable>& block) {
     MT_REQUIRE_EQ(block.size(), getBlockSize());
     std::lock_guard<std::mutex> lock(mutex_);
     return putUnlocked(block.data());
@@ -86,7 +86,7 @@ class Store : mt::Resource {
     }
   }
 
-  void get(std::uint32_t id, ReadWriteBlock& block) const {
+  void get(uint32_t id, ReadWriteBlock& block) const {
     std::lock_guard<std::mutex> lock(mutex_);
     getUnlocked(id, block.data());
   }
@@ -106,7 +106,7 @@ class Store : mt::Resource {
   }
 
   template <bool IsMutable>
-  void replace(std::uint32_t id, const BasicBlock<IsMutable>& block) {
+  void replace(uint32_t id, const BasicBlock<IsMutable>& block) {
     MT_REQUIRE_EQ(block.size(), getBlockSize());
     std::lock_guard<std::mutex> lock(mutex_);
     replaceUnlocked(id, block.data());
@@ -137,7 +137,7 @@ class Store : mt::Resource {
 
   bool isReadOnly() const { return buffer_.size == 0; }
 
-  std::size_t getBlockSize() const { return stats_.block_size; }
+  size_t getBlockSize() const { return stats_.block_size; }
 
   Stats getStats() const {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -149,19 +149,19 @@ class Store : mt::Resource {
   // Private non-thread-safe interface, needs external synchronization.
   // ---------------------------------------------------------------------------
 
-  std::uint32_t putUnlocked(const char* block);
+  uint32_t putUnlocked(const char* block);
 
-  void getUnlocked(std::uint32_t id, char* block) const;
+  void getUnlocked(uint32_t id, char* block) const;
 
-  void replaceUnlocked(std::uint32_t id, const char* block);
+  void replaceUnlocked(uint32_t id, const char* block);
 
-  char* getAddressOf(std::uint32_t id) const;
+  char* getAddressOf(uint32_t id) const;
 
   struct Mapped {
     void* data = nullptr;
-    std::size_t size = 0;
+    size_t size = 0;
 
-    std::size_t num_blocks(std::size_t block_size) const {
+    size_t num_blocks(size_t block_size) const {
       // Callers must ensure that `block_size` isn't zero.
       return size / block_size;
     }
@@ -169,12 +169,12 @@ class Store : mt::Resource {
 
   struct Buffer {
     std::unique_ptr<char[]> data;
-    std::size_t offset = 0;
-    std::size_t size = 0;
+    size_t offset = 0;
+    size_t size = 0;
 
     bool empty() const { return offset == 0; }
 
-    std::size_t num_blocks(std::size_t block_size) const {
+    size_t num_blocks(size_t block_size) const {
       // Callers must ensure that `block_size` isn't zero.
       return size / block_size;
     }

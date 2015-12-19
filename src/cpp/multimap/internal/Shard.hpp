@@ -34,32 +34,32 @@ namespace internal {
 class Shard : mt::Resource {
  public:
   struct Limits {
-    static std::size_t maxKeySize();
-    static std::size_t maxValueSize();
+    static size_t maxKeySize();
+    static size_t maxValueSize();
   };
 
   struct Options {
-    std::size_t block_size = 512;
-    std::size_t buffer_size = mt::MiB(1);
+    uint32_t block_size = 512;
+    uint32_t buffer_size = mt::MiB(1);
     bool create_if_missing = false;
     bool readonly = false;
     bool quiet = false;
   };
 
   struct Stats {
-    std::uint64_t block_size = 0;
-    std::uint64_t num_blocks = 0;
-    std::uint64_t num_keys_total = 0;
-    std::uint64_t num_keys_valid = 0;
-    std::uint64_t num_values_total = 0;
-    std::uint64_t num_values_valid = 0;
-    std::uint64_t key_size_min = 0;
-    std::uint64_t key_size_max = 0;
-    std::uint64_t key_size_avg = 0;
-    std::uint64_t list_size_min = 0;
-    std::uint64_t list_size_max = 0;
-    std::uint64_t list_size_avg = 0;
-    std::uint64_t checksum = 0;
+    uint64_t block_size = 0;
+    uint64_t num_blocks = 0;
+    uint64_t num_keys_total = 0;
+    uint64_t num_keys_valid = 0;
+    uint64_t num_values_total = 0;
+    uint64_t num_values_valid = 0;
+    uint64_t key_size_min = 0;
+    uint64_t key_size_max = 0;
+    uint64_t key_size_avg = 0;
+    uint64_t list_size_min = 0;
+    uint64_t list_size_max = 0;
+    uint64_t list_size_avg = 0;
+    uint64_t checksum = 0;
 
     static const std::vector<std::string>& names();
 
@@ -71,7 +71,7 @@ class Shard : mt::Resource {
 
     mt::Properties toProperties() const;
 
-    std::vector<std::uint64_t> toVector() const;
+    std::vector<uint64_t> toVector() const;
 
     static Stats total(const std::vector<Stats>& stats);
 
@@ -113,9 +113,9 @@ class Shard : mt::Resource {
   }
 
   template <typename Predicate>
-  std::size_t removeKeys(Predicate predicate) {
+  size_t removeKeys(Predicate predicate) {
     MT_REQUIRE_FALSE(isReadOnly());
-    std::size_t num_removed = 0;
+    size_t num_removed = 0;
     boost::shared_lock<boost::shared_mutex> lock(mutex_);
     for (const auto& entry : map_) {
       if (predicate(entry.first)) {
@@ -137,7 +137,7 @@ class Shard : mt::Resource {
   }
 
   template <typename Predicate>
-  std::size_t removeValues(const Bytes& key, Predicate predicate) {
+  size_t removeValues(const Bytes& key, Predicate predicate) {
     MT_REQUIRE_FALSE(isReadOnly());
     return remove(key, predicate, false);
   }
@@ -155,15 +155,15 @@ class Shard : mt::Resource {
     return replace(key, map, true);
   }
 
-  std::size_t replaceValues(const Bytes& key, const Bytes& old_value,
-                            const Bytes& new_value) {
+  size_t replaceValues(const Bytes& key, const Bytes& old_value,
+                       const Bytes& new_value) {
     return replaceValues(key, [&old_value, &new_value](const Bytes& value) {
       return (value == old_value) ? new_value.toString() : std::string();
     });
   }
 
   template <typename Function>
-  std::size_t replaceValues(const Bytes& key, Function map) {
+  size_t replaceValues(const Bytes& key, Function map) {
     MT_REQUIRE_FALSE(isReadOnly());
     return replace(key, map, false);
   }
@@ -206,7 +206,7 @@ class Shard : mt::Resource {
 
   bool isReadOnly() const { return store_->isReadOnly(); }
 
-  std::size_t getBlockSize() const { return store_->getBlockSize(); }
+  size_t getBlockSize() const { return store_->getBlockSize(); }
 
   // ---------------------------------------------------------------------------
   // Static methods
@@ -222,7 +222,7 @@ class Shard : mt::Resource {
     store.adviseAccessPattern(Store::AccessPattern::WILLNEED);
     const auto stats = Stats::readFromFile(getNameOfStatsFile(prefix.string()));
     const auto stream = mt::fopen(getNameOfKeysFile(prefix.string()), "r");
-    for (std::size_t i = 0; i != stats.num_keys_valid; ++i) {
+    for (size_t i = 0; i != stats.num_keys_valid; ++i) {
       const auto entry = Entry::readFromStream(stream.get(), &arena);
       List list(entry.head());
       process(entry.key(), Iterator(SharedList(list, store)));
@@ -267,9 +267,9 @@ class Shard : mt::Resource {
   UniqueList getOrCreateUniqueList(const Bytes& key);
 
   template <typename Predicate>
-  std::size_t remove(const Bytes& key, Predicate predicate,
-                     bool exit_after_first_success) {
-    std::size_t num_removed = 0;
+  size_t remove(const Bytes& key, Predicate predicate,
+                bool exit_after_first_success) {
+    size_t num_removed = 0;
     auto iter = getUniqueListIterator(key);
     while (iter.hasNext()) {
       if (predicate(iter.next())) {
@@ -284,8 +284,8 @@ class Shard : mt::Resource {
   }
 
   template <typename Function>
-  std::size_t replace(const Bytes& key, Function map,
-                      bool exit_after_first_success) {
+  size_t replace(const Bytes& key, Function map,
+                 bool exit_after_first_success) {
     std::vector<std::string> replaced_values;
     if (auto list = getUniqueList(key)) {
       auto iter = list.iterator();

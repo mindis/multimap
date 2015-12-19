@@ -25,7 +25,7 @@ namespace internal {
 
 namespace {
 
-std::uint64_t computeChecksum(const Shard::Stats& stats) {
+uint64_t computeChecksum(const Shard::Stats& stats) {
   auto copy = stats;
   copy.checksum = 0;
   return mt::crc32(&copy, sizeof copy);
@@ -33,11 +33,9 @@ std::uint64_t computeChecksum(const Shard::Stats& stats) {
 
 }  // namespace
 
-std::size_t Shard::Limits::maxKeySize() { return Varint::Limits::MAX_N4; }
+size_t Shard::Limits::maxKeySize() { return Varint::Limits::MAX_N4; }
 
-std::size_t Shard::Limits::maxValueSize() {
-  return List::Limits::maxValueSize();
-}
+size_t Shard::Limits::maxValueSize() { return List::Limits::maxValueSize(); }
 
 const std::vector<std::string>& Shard::Stats::names() {
   static std::vector<std::string> names = {
@@ -99,7 +97,7 @@ mt::Properties Shard::Stats::toProperties() const {
   return properties;
 }
 
-std::vector<std::uint64_t> Shard::Stats::toVector() const {
+std::vector<uint64_t> Shard::Stats::toVector() const {
   return {block_size,       num_blocks,       num_keys_total, num_keys_valid,
           num_values_total, num_values_valid, key_size_min,   key_size_max,
           key_size_avg,     list_size_min,    list_size_max,  list_size_avg};
@@ -181,7 +179,7 @@ Shard::Shard(const boost::filesystem::path& file_prefix, const Options& options)
     stats_ = Stats::readFromFile(stats_file);
     const auto keys_file = getNameOfKeysFile(prefix_.string());
     const auto stream = mt::fopen(keys_file, "r");
-    for (std::size_t i = 0; i != stats_.num_keys_valid; ++i) {
+    for (size_t i = 0; i != stats_.num_keys_valid; ++i) {
       const auto entry = Entry::readFromStream(stream.get(), &arena_);
       map_[entry.key()].reset(new List(entry.head()));
       stats_.num_values_total -= entry.head().num_values_total;
@@ -311,7 +309,7 @@ std::string Shard::getNameOfValuesFile(const std::string& prefix) {
 }
 
 Shard::Entry Shard::Entry::readFromStream(std::FILE* stream, Arena* arena) {
-  std::uint32_t key_size;
+  uint32_t key_size;
   mt::fread(stream, &key_size, sizeof key_size);
   const auto key_data = arena->allocate(key_size);
   mt::fread(stream, key_data, key_size);
@@ -321,7 +319,7 @@ Shard::Entry Shard::Entry::readFromStream(std::FILE* stream, Arena* arena) {
 
 void Shard::Entry::writeToStream(std::FILE* stream) const {
   MT_REQUIRE_LE(key().size(), Shard::Limits::maxKeySize());
-  const std::uint32_t key_size = key().size();
+  const uint32_t key_size = key().size();
   mt::fwrite(stream, &key_size, sizeof key_size);
   mt::fwrite(stream, key().data(), key().size());
   head().writeToStream(stream);

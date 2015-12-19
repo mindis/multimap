@@ -33,7 +33,7 @@ struct VarintTestFixture : public testing::Test {
     std::memset(b4, 0, sizeof b4);
   }
 
-  std::uint32_t value;
+  uint32_t value;
   bool flag;
 
   char b32[32];
@@ -435,11 +435,10 @@ TEST_F(VarintTestFixture, ReadValueWithFlagIntoNullFlagThrows) {
 }
 
 TEST_F(VarintTestFixture, WriteAndReadSequenceOfValues) {
-  std::uint32_t values[] = {
-      (Varint::Limits::MAX_N1 - Varint::Limits::MIN_N1) / 2,
-      (Varint::Limits::MAX_N2 - Varint::Limits::MIN_N2) / 2,
-      (Varint::Limits::MAX_N3 - Varint::Limits::MIN_N3) / 2,
-      (Varint::Limits::MAX_N4 - Varint::Limits::MIN_N4) / 2};
+  uint32_t values[] = {(Varint::Limits::MAX_N1 - Varint::Limits::MIN_N1) / 2,
+                       (Varint::Limits::MAX_N2 - Varint::Limits::MIN_N2) / 2,
+                       (Varint::Limits::MAX_N3 - Varint::Limits::MIN_N3) / 2,
+                       (Varint::Limits::MAX_N4 - Varint::Limits::MIN_N4) / 2};
   auto p = b32;
   p += Varint::writeUint(values[0], p, sizeof b32 - (p - b32));
   p += Varint::writeUint(values[1], p, sizeof b32 - (p - b32));
@@ -460,7 +459,7 @@ TEST_F(VarintTestFixture, WriteAndReadSequenceOfValues) {
 }
 
 TEST_F(VarintTestFixture, WriteAndReadSequenceOfValuesWithTrueFlags) {
-  std::uint32_t values[] = {
+  uint32_t values[] = {
       (Varint::Limits::MAX_N1_WITH_FLAG - Varint::Limits::MIN_N1_WITH_FLAG) / 2,
       (Varint::Limits::MAX_N2_WITH_FLAG - Varint::Limits::MIN_N2_WITH_FLAG) / 2,
       (Varint::Limits::MAX_N3_WITH_FLAG - Varint::Limits::MIN_N3_WITH_FLAG) / 2,
@@ -498,7 +497,7 @@ TEST_F(VarintTestFixture, WriteAndReadSequenceOfValuesWithTrueFlags) {
 }
 
 TEST_F(VarintTestFixture, WriteAndReadSequenceOfValuesWithFalseFlags) {
-  std::uint32_t values[] = {
+  uint32_t values[] = {
       (Varint::Limits::MAX_N1_WITH_FLAG - Varint::Limits::MIN_N1_WITH_FLAG) / 2,
       (Varint::Limits::MAX_N2_WITH_FLAG - Varint::Limits::MIN_N2_WITH_FLAG) / 2,
       (Varint::Limits::MAX_N3_WITH_FLAG - Varint::Limits::MIN_N3_WITH_FLAG) / 2,
@@ -536,7 +535,7 @@ TEST_F(VarintTestFixture, WriteAndReadSequenceOfValuesWithFalseFlags) {
 }
 
 TEST_F(VarintTestFixture, WriteAndReadSequenceOfValuesWithTrueAndFalseFlags) {
-  std::uint32_t values[] = {
+  uint32_t values[] = {
       (Varint::Limits::MAX_N1_WITH_FLAG - Varint::Limits::MIN_N1_WITH_FLAG) / 2,
       (Varint::Limits::MAX_N2_WITH_FLAG - Varint::Limits::MIN_N2_WITH_FLAG) / 2,
       (Varint::Limits::MAX_N3_WITH_FLAG - Varint::Limits::MIN_N3_WITH_FLAG) / 2,

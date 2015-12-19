@@ -24,12 +24,12 @@ namespace internal {
 
 namespace {
 
-std::size_t readUint32(const char* source, std::uint32_t* target) {
+size_t readUint32(const char* source, uint32_t* target) {
   std::memcpy(target, source, sizeof *target);
   return sizeof *target;
 }
 
-std::size_t writeUint32(std::uint32_t source, char* target) {
+size_t writeUint32(uint32_t source, char* target) {
   std::memcpy(target, &source, sizeof source);
   return sizeof source;
 }
@@ -68,14 +68,14 @@ void UintVector::writeToStream(std::FILE* stream) const {
   mt::fwrite(stream, data_.get(), offset_);
 }
 
-std::vector<std::uint32_t> UintVector::unpack() const {
-  std::vector<std::uint32_t> values;
+std::vector<uint32_t> UintVector::unpack() const {
+  std::vector<uint32_t> values;
   if (!empty()) {
-    std::uint32_t delta = 0;
-    std::uint32_t value = 0;
-    std::uint32_t nbytes = 0;
-    std::uint32_t offset = 0;
-    std::uint32_t remaining = offset_ - sizeof value;
+    uint32_t delta = 0;
+    uint32_t value = 0;
+    uint32_t nbytes = 0;
+    uint32_t offset = 0;
+    uint32_t remaining = offset_ - sizeof value;
     while (remaining > 0) {
       nbytes = Varint::readUint(data_.get() + offset, remaining, &delta);
       offset += nbytes;
@@ -87,7 +87,7 @@ std::vector<std::uint32_t> UintVector::unpack() const {
   return values;
 }
 
-bool UintVector::add(std::uint32_t value) {
+bool UintVector::add(uint32_t value) {
   allocateMoreIfFull();
   if (empty()) {
     if (value <= Varint::Limits::MAX_N4) {
@@ -96,11 +96,11 @@ bool UintVector::add(std::uint32_t value) {
       return true;
     }
   } else {
-    std::uint32_t prev_value;
+    uint32_t prev_value;
     offset_ -= sizeof prev_value;
     readUint32(current(), &prev_value);
     MT_ASSERT_LT(prev_value, value);
-    const std::uint32_t delta = value - prev_value;
+    const uint32_t delta = value - prev_value;
     if (delta <= Varint::Limits::MAX_N4) {
       offset_ += Varint::writeUint(delta, current(), remaining());
       offset_ += writeUint32(value, current());
@@ -111,9 +111,9 @@ bool UintVector::add(std::uint32_t value) {
 }
 
 void UintVector::allocateMoreIfFull() {
-  const auto required_size = sizeof(std::uint32_t) * 2;
+  const auto required_size = sizeof(uint32_t) * 2;
   if (size_ - offset_ < required_size) {
-    const std::size_t new_end_offset = size_ * 1.5;
+    const size_t new_end_offset = size_ * 1.5;
     const auto new_size = std::max(new_end_offset, required_size);
     std::unique_ptr<char[]> new_data(new char[new_size]);
     std::memcpy(new_data.get(), data_.get(), offset_);

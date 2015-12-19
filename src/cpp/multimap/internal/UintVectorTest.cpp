@@ -44,7 +44,7 @@ TEST(UintVectorTest, DefaultConstructedHasProperState) {
   ASSERT_TRUE(UintVector().empty());
 }
 
-class UintVectorTestWithParam : public testing::TestWithParam<std::uint32_t> {};
+class UintVectorTestWithParam : public testing::TestWithParam<uint32_t> {};
 
 TEST_P(UintVectorTestWithParam, AddValueAndUnpack) {
   UintVector vector;
@@ -64,7 +64,7 @@ TEST(UintVectorTest, TryToAddTooLargeValue) {
 
 TEST(UintVectorTest, AddIncreasingValuesAndUnpack) {
   UintVector vector;
-  std::uint32_t values[] = {0, 1, 10, 1000, 10000000, Varint::Limits::MAX_N4};
+  uint32_t values[] = {0, 1, 10, 1000, 10000000, Varint::Limits::MAX_N4};
   for (auto value : values) {
     vector.add(value);
   }
@@ -73,7 +73,7 @@ TEST(UintVectorTest, AddIncreasingValuesAndUnpack) {
 
 TEST(UintVectorTest, AddDecreasingValuesAndThrow) {
   UintVector vector;
-  std::uint32_t values[] = {Varint::Limits::MAX_N4, 10000000};
+  uint32_t values[] = {Varint::Limits::MAX_N4, 10000000};
   vector.add(values[0]);
   ASSERT_THROW(vector.add(values[1]), mt::AssertionError);
 }

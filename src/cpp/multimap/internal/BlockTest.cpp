@@ -136,7 +136,7 @@ TEST(ReadWriteBlockTest, WriteValuesAndIterateOnce) {
   char buf[512];
   ReadWriteBlock block(buf, sizeof buf);
 
-  std::size_t num_values = 0;
+  size_t num_values = 0;
   SequenceGenerator gen;
   while (true) {
     const auto value = gen.next();
@@ -157,8 +157,8 @@ TEST(ReadWriteBlockTest, WriteValuesAndIterateOnce) {
   block.rewind();
 
   bool flag;
-  std::uint32_t size;
-  for (std::size_t i = 0; i != num_values; ++i) {
+  uint32_t size;
+  for (size_t i = 0; i != num_values; ++i) {
     const auto expected = gen.next();
     block.readSizeWithFlag(&size, &flag);
     ASSERT_EQ(size, expected.size());
@@ -173,12 +173,12 @@ TEST(ReadWriteBlockTest, WriteValuesAndFlipFlags) {
   char buf[512];
   ReadWriteBlock block(buf, sizeof buf);
 
-  std::size_t num_values = 0;
+  size_t num_values = 0;
   SequenceGenerator gen;
   while (true) {
     const auto value = gen.next();
     const bool flag = num_values % 2;
-    const std::size_t offset = block.offset();
+    const size_t offset = block.offset();
     auto nbytes = block.writeSizeWithFlag(value.size(), flag);
     if (nbytes != 0) {
       nbytes = block.writeData(value.data(), value.size());
@@ -196,8 +196,8 @@ TEST(ReadWriteBlockTest, WriteValuesAndFlipFlags) {
   block.rewind();
 
   bool flag;
-  std::uint32_t size;
-  for (std::size_t i = 0; i != num_values; ++i) {
+  uint32_t size;
+  for (size_t i = 0; i != num_values; ++i) {
     const auto expected = gen.next();
     block.readSizeWithFlag(&size, &flag);
     ASSERT_EQ(size, expected.size());

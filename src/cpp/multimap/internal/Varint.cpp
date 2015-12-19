@@ -22,28 +22,27 @@
 namespace multimap {
 namespace internal {
 
-const std::uint32_t Varint::Limits::MIN_N1 = 0;
-const std::uint32_t Varint::Limits::MIN_N2 = (1 << 6);
-const std::uint32_t Varint::Limits::MIN_N3 = (1 << 14);
-const std::uint32_t Varint::Limits::MIN_N4 = (1 << 22);
+const uint32_t Varint::Limits::MIN_N1 = 0;
+const uint32_t Varint::Limits::MIN_N2 = (1 << 6);
+const uint32_t Varint::Limits::MIN_N3 = (1 << 14);
+const uint32_t Varint::Limits::MIN_N4 = (1 << 22);
 
-const std::uint32_t Varint::Limits::MAX_N1 = (1 << 6) - 1;
-const std::uint32_t Varint::Limits::MAX_N2 = (1 << 14) - 1;
-const std::uint32_t Varint::Limits::MAX_N3 = (1 << 22) - 1;
-const std::uint32_t Varint::Limits::MAX_N4 = (1 << 30) - 1;
+const uint32_t Varint::Limits::MAX_N1 = (1 << 6) - 1;
+const uint32_t Varint::Limits::MAX_N2 = (1 << 14) - 1;
+const uint32_t Varint::Limits::MAX_N3 = (1 << 22) - 1;
+const uint32_t Varint::Limits::MAX_N4 = (1 << 30) - 1;
 
-const std::uint32_t Varint::Limits::MIN_N1_WITH_FLAG = 0;
-const std::uint32_t Varint::Limits::MIN_N2_WITH_FLAG = (1 << 5);
-const std::uint32_t Varint::Limits::MIN_N3_WITH_FLAG = (1 << 13);
-const std::uint32_t Varint::Limits::MIN_N4_WITH_FLAG = (1 << 21);
+const uint32_t Varint::Limits::MIN_N1_WITH_FLAG = 0;
+const uint32_t Varint::Limits::MIN_N2_WITH_FLAG = (1 << 5);
+const uint32_t Varint::Limits::MIN_N3_WITH_FLAG = (1 << 13);
+const uint32_t Varint::Limits::MIN_N4_WITH_FLAG = (1 << 21);
 
-const std::uint32_t Varint::Limits::MAX_N1_WITH_FLAG = (1 << 5) - 1;
-const std::uint32_t Varint::Limits::MAX_N2_WITH_FLAG = (1 << 13) - 1;
-const std::uint32_t Varint::Limits::MAX_N3_WITH_FLAG = (1 << 21) - 1;
-const std::uint32_t Varint::Limits::MAX_N4_WITH_FLAG = (1 << 29) - 1;
+const uint32_t Varint::Limits::MAX_N1_WITH_FLAG = (1 << 5) - 1;
+const uint32_t Varint::Limits::MAX_N2_WITH_FLAG = (1 << 13) - 1;
+const uint32_t Varint::Limits::MAX_N3_WITH_FLAG = (1 << 21) - 1;
+const uint32_t Varint::Limits::MAX_N4_WITH_FLAG = (1 << 29) - 1;
 
-std::size_t Varint::readUint(const char* buffer, std::size_t size,
-                             std::uint32_t* value) {
+size_t Varint::readUint(const char* buffer, size_t size, uint32_t* value) {
   MT_REQUIRE_NOT_NULL(buffer);
   MT_REQUIRE_NOT_NULL(value);
 
@@ -85,8 +84,8 @@ std::size_t Varint::readUint(const char* buffer, std::size_t size,
   return 0;
 }
 
-std::size_t Varint::readUintWithFlag(const char* buffer, std::size_t size,
-                                     std::uint32_t* value, bool* flag) {
+size_t Varint::readUintWithFlag(const char* buffer, size_t size,
+                                uint32_t* value, bool* flag) {
   MT_REQUIRE_NOT_NULL(buffer);
   MT_REQUIRE_NOT_NULL(value);
   MT_REQUIRE_NOT_NULL(flag);
@@ -130,8 +129,7 @@ std::size_t Varint::readUintWithFlag(const char* buffer, std::size_t size,
   return 0;
 }
 
-std::size_t Varint::writeUint(std::uint32_t value, char* buffer,
-                              std::size_t size) {
+size_t Varint::writeUint(uint32_t value, char* buffer, size_t size) {
   MT_REQUIRE_NOT_NULL(buffer);
 
   std::uint8_t* ptr = reinterpret_cast<std::uint8_t*>(buffer);
@@ -174,8 +172,8 @@ too_few_bytes:
   return 0;
 }
 
-std::size_t Varint::writeUintWithFlag(std::uint32_t value, bool flag,
-                                      char* buffer, std::size_t size) {
+size_t Varint::writeUintWithFlag(uint32_t value, bool flag, char* buffer,
+                                 size_t size) {
   MT_REQUIRE_NOT_NULL(buffer);
 
   std::uint8_t* ptr = reinterpret_cast<std::uint8_t*>(buffer);
@@ -218,7 +216,7 @@ too_few_bytes:
   return 0;
 }
 
-void Varint::writeFlag(bool flag, char* buffer, std::size_t size) {
+void Varint::writeFlag(bool flag, char* buffer, size_t size) {
   MT_REQUIRE_NOT_NULL(buffer);
   MT_REQUIRE_NOT_ZERO(size);
 
