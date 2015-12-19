@@ -1,4 +1,4 @@
-// This file is part of the MT library.  https://bitbucket.org/mtrenkmann/mt
+// This file is part of the MT library.
 //
 // Copyright (C) 2015  Martin Trenkmann
 //
@@ -43,12 +43,9 @@ std::string serializeToString(const Properties& properties) {
   for (const auto& entry : properties) {
     const auto key = boost::trim_copy(entry.first);
     const auto val = boost::trim_copy(entry.second);
-    if (std::any_of(key.begin(), key.end(), is_space))
-      continue;
-    if (std::any_of(val.begin(), val.end(), is_space))
-      continue;
-    if (key.empty() || val.empty())
-      continue;
+    if (std::any_of(key.begin(), key.end(), is_space)) continue;
+    if (std::any_of(val.begin(), val.end(), is_space)) continue;
+    if (key.empty() || val.empty()) continue;
     joined.append(key);
     joined.push_back('=');
     joined.append(val);
@@ -146,7 +143,7 @@ std::string makeErrorMessage(const char* file, unsigned line, const char* expr,
   return oss.str();
 }
 
-} // namespace
+}  // namespace
 
 bool isPrime(std::size_t number) {
   if (number % 2 == 0) {
@@ -180,7 +177,7 @@ std::size_t crc32(const void* data, std::size_t size) {
 
 // Source: http://www.isthe.com/chongo/src/fnv/hash_32a.c
 std::uint32_t fnv1aHash32(const void* buf, std::size_t len) {
-  std::uint32_t h = 0x811c9dc5; // FNV1_32A_INIT
+  std::uint32_t h = 0x811c9dc5;  // FNV1_32A_INIT
   const auto ptr = reinterpret_cast<const std::uint8_t*>(buf);
   for (std::size_t i = 0; i != len; ++i) {
     h ^= ptr[i];
@@ -191,7 +188,7 @@ std::uint32_t fnv1aHash32(const void* buf, std::size_t len) {
 
 // Source: http://www.isthe.com/chongo/src/fnv/hash_64a.c
 std::uint64_t fnv1aHash64(const void* buf, std::size_t len) {
-  std::uint64_t h = 0xcbf29ce484222325ULL; // FNV1A_64_INIT
+  std::uint64_t h = 0xcbf29ce484222325ULL;  // FNV1A_64_INIT
   const auto ptr = reinterpret_cast<const std::uint8_t*>(buf);
   for (std::size_t i = 0; i != len; ++i) {
     h ^= ptr[i];
@@ -298,11 +295,9 @@ Properties readPropertiesFromFile(const std::string& filepath) {
   std::string line;
   Properties properties;
   while (std::getline(ifs, line)) {
-    if (line.empty())
-      continue;
+    if (line.empty()) continue;
     const auto pos_of_delim = line.find('=');
-    if (pos_of_delim == std::string::npos)
-      continue;
+    if (pos_of_delim == std::string::npos) continue;
     const auto key = line.substr(0, pos_of_delim);
     const auto value = line.substr(pos_of_delim + 1);
     // We don't make any checks here, because external modification
@@ -372,7 +367,7 @@ void printStackTrace(std::size_t skip_head) {
   printStackTraceTo(std::cerr, skip_head);
 }
 
-} // namespace internal
+}  // namespace internal
 
 AssertionError::AssertionError(const char* message)
     : std::logic_error(message) {}
@@ -386,4 +381,4 @@ AssertionError::AssertionError(const char* file, std::size_t line,
                                AssertionError::Type type)
     : std::logic_error(makeErrorMessage(file, line, expr, expected, type, 5)) {}
 
-} // namespace mt
+}  // namespace mt
