@@ -28,9 +28,9 @@ namespace {
 
 void checkOptions(const Options& options) {
   mt::Check::notZero(options.block_size,
-                     "Options::block_size must be positive");
+                     "Map's block size must be positive");
   mt::Check::isTrue(mt::isPowerOfTwo(options.block_size),
-                    "Options::block_size must be a power of two");
+                    "Map's block size must be a power of two");
 }
 
 template <typename Procdure>
@@ -132,10 +132,7 @@ std::vector<internal::Shard::Stats> Map::stats(
 
 void Map::importFromBase64(const boost::filesystem::path& directory,
                            const boost::filesystem::path& input) {
-  Options options;
-  options.error_if_exists = false;
-  options.create_if_missing = false;
-  Map::importFromBase64(directory, input, options);
+  Map::importFromBase64(directory, input, Options());
 }
 
 void Map::importFromBase64(const boost::filesystem::path& directory,
@@ -188,10 +185,13 @@ void Map::importFromBase64(const boost::filesystem::path& directory,
   } else if (boost::filesystem::is_directory(input)) {
     boost::filesystem::directory_iterator end;
     for (boost::filesystem::directory_iterator it(input); it != end; ++it) {
-      if (!is_hidden(it->path())) {
+      const auto path = it->path();
+      if (boost::filesystem::is_regular_file(path) && !is_hidden(path)) {
         import_file(it->path());
       }
     }
+  } else {
+    mt::fail("No such file or directory '%s'", input.c_str());
   }
 }
 

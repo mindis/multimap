@@ -65,33 +65,31 @@ CommandLine parseCommandLine(int argc, const char** argv) {
   mt::check<E>(isCommand(*it), "Expected COMMAND when reading '%s'", *it);
   cmd.command = *it++;
 
-  if (cmd.command != HELP) {
+  if (cmd.command != std::string(HELP)) {
     mt::check<E>(it != end, "No MAP given");
-    mt::check<E>(boost::filesystem::is_directory(*it),
-                 "The directory '%s' does not exist", *it);
     cmd.map = *it++;
-    if (cmd.command != STATS) {
+    if (cmd.command != std::string(STATS)) {
       mt::check<E>(it != end, "No PATH given");
       cmd.path = *it++;
       while (it != end) {
-        if (*it == CREATE) {
+        if (*it == std::string(CREATE)) {
           cmd.options[*it++];
           continue;
         }
-        if (*it == QUIET) {
+        if (*it == std::string(QUIET)) {
           cmd.options[*it++];
           continue;
         }
-        if (*it == BS) {
+        if (*it == std::string(BS)) {
           const auto option = *it++;
           mt::check<E>(it != end, "No value given for '%s'", option);
-          cmd.options[option] = *it;
+          cmd.options[option] = *it++;
           continue;
         }
-        if (*it == NSHARDS) {
+        if (*it == std::string(NSHARDS)) {
           const auto option = *it++;
           mt::check<E>(it != end, "No value given for '%s'", option);
-          cmd.options[option] = *it;
+          cmd.options[option] = *it++;
           continue;
         }
         mt::fail<E>("Expected option when reading '%s'", *it);
@@ -138,8 +136,8 @@ void runHelpCommand(const char* tool_name) {
     "\n  %s %-8s path/to/map path/to/output/base64.csv"
     "\n  %s %-8s path/to/map path/to/output"
     "\n  %s %-8s path/to/map path/to/output %s 128"
-    "\n  %s %-8s path/to/map path/to/output %s 46"
-    "\n  %s %-8s path/to/map path/to/output %s 46 %s 128"
+    "\n  %s %-8s path/to/map path/to/output %s 42"
+    "\n  %s %-8s path/to/map path/to/output %s 42 %s 128"
     "\n\n"
     "\nCopyright (C) 2015 Martin Trenkmann"
     "\n<http://multimap.io>\n",
@@ -252,11 +250,11 @@ int main(int argc, const char** argv) {
     }
 
   } catch (CommandLine::Error& error) {
-    std::cerr << "Invalid command line: " << error.what()
-              << "\nTry " << *argv << ' ' << HELP << std::endl;
+    std::cerr << "Invalid command line: " << error.what() << '.'
+              << "\nTry '" << *argv << ' ' << HELP << "'." << std::endl;
 
   } catch (std::exception& error) {
-    std::cerr << error.what() << std::endl;
+    std::cerr << error.what() << '.' << std::endl;
   }
 
   return EXIT_FAILURE;
