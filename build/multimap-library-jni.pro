@@ -16,17 +16,15 @@ INCLUDEPATH += \
     $$JAVA_HOME/include
 
 HEADERS += \
-    ../src/cpp/multimap/jni/common.hpp \
+    ../src/cpp/multimap/jni/generated/io_multimap_Iterator_Native.h \
     ../src/cpp/multimap/jni/generated/io_multimap_Map_Limits_Native.h \
-    ../src/cpp/multimap/jni/generated/io_multimap_Map_ListIterator_Native.h \
-    ../src/cpp/multimap/jni/generated/io_multimap_Map_MutableListIterator_Native.h \
-    ../src/cpp/multimap/jni/generated/io_multimap_Map_Native.h
+    ../src/cpp/multimap/jni/generated/io_multimap_Map_Native.h \
+    ../src/cpp/multimap/jni/common.hpp
 
 SOURCES += \
     ../src/cpp/multimap/jni/common.cpp \
+    ../src/cpp/multimap/jni/io_multimap_Iterator_Native.cpp \
     ../src/cpp/multimap/jni/io_multimap_Map_Limits_Native.cpp \
-    ../src/cpp/multimap/jni/io_multimap_Map_ListIterator_Native.cpp \
-    ../src/cpp/multimap/jni/io_multimap_Map_MutableListIterator_Native.cpp \
     ../src/cpp/multimap/jni/io_multimap_Map_Native.cpp
 
 unix {

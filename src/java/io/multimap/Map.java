@@ -64,173 +64,6 @@ public class Map implements AutoCloseable {
     }
   }
 
-  /**
-   * An {@link Iterator} that iterates a list of values in read-only mode. The optional
-   * {@link #remove()} operation will throw an {@link UnsupportedOperationException} if invoked.
-   * Objects of this class hold a reader lock on the associated list so that multiple threads can
-   * iterate the list at the same time, but no thread can modify it. If the iterator is not needed
-   * anymore {@link #close()} must be called in order to release the reader lock.
-   */
-  static class ListIterator extends Iterator {
-
-    private ByteBuffer self;
-
-    private ListIterator() {}
-
-    private ListIterator(ByteBuffer nativePtr) {
-      Check.notNull(nativePtr);
-      Check.notZero(nativePtr.capacity());
-      self = nativePtr;
-    }
-
-    @Override
-    public long available() {
-      return Native.available(self);
-    }
-
-    @Override
-    public boolean hasNext() {
-      return Native.hasNext(self);
-    }
-
-    @Override
-    public ByteBuffer next() {
-      return Native.next(self).asReadOnlyBuffer();
-    }
-
-    @Override
-    public ByteBuffer peekNext() {
-      return Native.peekNext(self).asReadOnlyBuffer();
-    }
-
-    @Override
-    public void remove() {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void close() {
-      if (self != null) {
-        Native.close(self);
-        self = null;
-      }
-    }
-
-    @Override
-    protected void finalize() throws Throwable {
-      if (self != null) {
-        System.err.printf("WARNING %s.finalize() calls close()\n", getClass().getName());
-        close();
-      }
-      super.finalize();
-    }
-
-    static class Native {
-      static native long available(ByteBuffer self);
-      static native boolean hasNext(ByteBuffer self);
-      static native ByteBuffer next(ByteBuffer self);
-      static native ByteBuffer peekNext(ByteBuffer self);
-      static native void close(ByteBuffer self);
-    }
-
-    /**
-     * A constant that represents an empty iterator.
-     */
-    public static final ListIterator EMPTY = new ListIterator() {
-
-      @Override
-      public long available() {
-        return 0;
-      }
-
-      @Override
-      public boolean hasNext() {
-        return false;
-      }
-
-      @Override
-      public ByteBuffer next() {
-        return null;
-      }
-
-      @Override
-      public ByteBuffer peekNext() {
-        return null;
-      }
-    };
-  }
-
-  /**
-   * An {@link Iterator} that iterates a list of values in read-write mode. Objects of this class
-   * hold a writer lock on the associated list to ensure exclusive access to it. Other threads
-   * trying to acquire a reader or writer lock on the same list will block until the lock is
-   * released via {@link #close()}. If the iterator is not needed anymore {@link #close()} must be
-   * called in order to release the writer lock.
-   */
-  static class MutableListIterator extends Iterator {
-
-    private ByteBuffer self;
-
-    private MutableListIterator() {}
-
-    private MutableListIterator(ByteBuffer nativePtr) {
-      Check.notNull(nativePtr);
-      Check.notZero(nativePtr.capacity());
-      self = nativePtr;
-    }
-
-    @Override
-    public long available() {
-      return Native.available(self);
-    }
-
-    @Override
-    public boolean hasNext() {
-      return Native.hasNext(self);
-    }
-
-    @Override
-    public ByteBuffer next() {
-      return Native.next(self).asReadOnlyBuffer();
-    }
-
-    @Override
-    public ByteBuffer peekNext() {
-      return Native.peekNext(self).asReadOnlyBuffer();
-    }
-
-    @Override
-    public void remove() {
-      Native.remove(self);
-    }
-
-    @Override
-    public void close() {
-      if (self != null) {
-        Native.close(self);
-        self = null;
-      }
-    }
-
-    @Override
-    protected void finalize() throws Throwable {
-      if (self != null) {
-        System.err.printf("WARNING %s.finalize() calls close()\n", getClass().getName());
-        close();
-      }
-      super.finalize();
-    }
-
-    static class Native {
-      static native long available(ByteBuffer self);
-      static native boolean hasNext(ByteBuffer self);
-      static native ByteBuffer next(ByteBuffer self);
-      static native ByteBuffer peekNext(ByteBuffer self);
-      static native void remove(ByteBuffer self);
-      static native void close(ByteBuffer self);
-    }
-  }
-
   private ByteBuffer self;
 
   private Map(ByteBuffer nativePtr) {
@@ -285,24 +118,7 @@ public class Map implements AutoCloseable {
   public Iterator get(byte[] key) {
     Check.notNull(key);
     ByteBuffer nativePtr = Native.get(self, key);
-    return (nativePtr != null) ? new ListIterator(nativePtr) : Iterator.EMPTY;
-  }
-
-  /**
-   * Returns a mutable iterator to the list associated with {@code key}. If the key does not exist
-   * an empty iterator is returned to indicate an empty list. If the returned iterator is not needed
-   * anymore {@link Iterator#close()} must be called in order to release the writer lock.
-   * 
-   * <p>Never write code like this, because it does not close the iterator:<ul>
-   * <li><code>boolean contains = map.getMutable(key).hasNext();</code></li>
-   * <li><code>long numValues = map.getMutable(key).available();</code></li>
-   * </ul></p>
-   */
-  @SuppressWarnings("resource")
-  public Iterator getMutable(byte[] key) {
-    Check.notNull(key);
-    ByteBuffer nativePtr = Native.getMutable(self, key);
-    return (nativePtr != null) ? new MutableListIterator(nativePtr) : Iterator.EMPTY;
+    return (nativePtr != null) ? new Iterator(nativePtr) : Iterator.EMPTY;
   }
   
   /**
@@ -609,11 +425,10 @@ public class Map implements AutoCloseable {
     Native.optimize(source.toString(), target.toString(), options);
   }
 
-  static class Native {
+  private static class Native {
     static native ByteBuffer newMap(String directory, Options options) throws Exception;
     static native void put(ByteBuffer self, byte[] key, byte[] value) throws Exception;
     static native ByteBuffer get(ByteBuffer self, byte[] key);
-    static native ByteBuffer getMutable(ByteBuffer self, byte[] key);
     static native boolean containsKey(ByteBuffer self, byte[] key);
     static native boolean removeKey(ByteBuffer self, byte[] key);
     static native long removeKeys(ByteBuffer self, Predicate predicate);

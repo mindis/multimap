@@ -103,23 +103,6 @@ JNIEXPORT jobject JNICALL
 
 /*
  * Class:     io_multimap_Map_Native
- * Method:    getMutable
- * Signature: (Ljava/nio/ByteBuffer;[B)Ljava/nio/ByteBuffer;
- */
-JNIEXPORT jobject JNICALL
-    Java_io_multimap_Map_00024Native_getMutable(JNIEnv* env, jclass,
-                                                jobject self, jbyteArray jkey) {
-  multimap::jni::BytesRaiiHelper key(env, jkey);
-  auto iter = toMap(env, self)->getMutable(key.get());
-  if (iter.hasNext()) {
-    return multimap::jni::toDirectByteBuffer(
-        env, multimap::jni::newOwner(std::move(iter)));
-  }
-  return nullptr;
-}
-
-/*
- * Class:     io_multimap_Map_Native
  * Method:    containsKey
  * Signature: (Ljava/nio/ByteBuffer;[B)Z
  */

@@ -23,7 +23,7 @@
 
 namespace {
 
-typedef multimap::jni::Owner<multimap::Map::ListIterator> IterOwner;
+typedef multimap::jni::Owner<multimap::Map::Iterator> IterOwner;
 
 inline IterOwner* toIterOwner(JNIEnv* env, jobject self) {
   MT_REQUIRE_NOT_NULL(self);

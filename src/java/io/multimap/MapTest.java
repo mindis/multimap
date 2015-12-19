@@ -209,39 +209,6 @@ public class MapTest {
   }
 
   @Test
-  public void testGetMutable() throws Exception {
-    int numKeys = 1000;
-    int numValuesPerKeys = 1000;
-    Map map = createAndFillMap(DIRECTORY, numKeys, numValuesPerKeys);
-    for (int i = 0; i < numKeys; ++i) {
-      Iterator iter = map.getMutable(makeKey(i));
-      for (int j = 0; j < numValuesPerKeys; ++j) {
-        Assert.assertTrue(iter.hasNext());
-        Assert.assertEquals(numValuesPerKeys - j, iter.available());
-        Assert.assertArrayEquals(makeValue(j), iter.nextAsByteArray());
-        if (j % 2 == 0) {
-          iter.remove();
-        }
-      }
-      Assert.assertFalse(iter.hasNext());
-      Assert.assertEquals(0, iter.available());
-      iter.close();
-    }
-    for (int i = 0; i < numKeys; ++i) {
-      Iterator iter = map.getMutable(makeKey(i));
-      for (int j = 1; j < numValuesPerKeys; j += 2) {
-        Assert.assertTrue(iter.hasNext());
-        Assert.assertEquals((numValuesPerKeys - j + 1) / 2, iter.available());
-        Assert.assertArrayEquals(makeValue(j), iter.nextAsByteArray());
-      }
-      Assert.assertFalse(iter.hasNext());
-      Assert.assertEquals(0, iter.available());
-      iter.close();
-    }
-    map.close();
-  }
-
-  @Test
   public void testRemoveKey() throws Exception {
     int numKeys = 1000;
     int numValuesPerKeys = 1000;

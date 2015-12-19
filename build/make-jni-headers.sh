@@ -3,7 +3,7 @@
 # Generates C/C++ header files for JNI usage.
 
 CLASSPATH=../bin
-CLASSES=io.multimap.Map
+CLASSES="io.multimap.Iterator io.multimap.Map"
 OUTPUT_DIR=../src/cpp/multimap/jni/generated
 
 javah -d $OUTPUT_DIR -jni -classpath $CLASSPATH $CLASSES
