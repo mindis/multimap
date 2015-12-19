@@ -18,9 +18,8 @@
 #ifndef MULTIMAP_CALLABLES_HPP_INCLUDED
 #define MULTIMAP_CALLABLES_HPP_INCLUDED
 
-#include <functional>
+#include <algorithm>
 #include "multimap/Bytes.hpp"
-#include "multimap/internal/List.hpp"
 
 namespace multimap {
 
@@ -35,8 +34,8 @@ namespace multimap {
 // can be used to collect information about the processed data, and thus
 // returning a result indirectly.
 
-typedef internal::SharedListIterator ListIterator;
-typedef std::function<void(const Bytes&, ListIterator&&)> BinaryProcedure;
+// typedef internal::SharedListIterator ListIterator;
+// typedef std::function<void(const Bytes&, ListIterator&&)> BinaryProcedure;
 
 // typedef std::function<std::string(const Bytes&)> Function;
 // Types implementing this interface can process a value and return a new
@@ -44,7 +43,7 @@ typedef std::function<void(const Bytes&, ListIterator&&)> BinaryProcedure;
 // result can be signaled returning an empty string. std::string is used
 // here as a convenient byte buffer that may contain arbitrary bytes.
 
-typedef std::function<bool(const Bytes&, const Bytes&)> Compare;
+// typedef std::function<bool(const Bytes&, const Bytes&)> Compare;
 // Types implementing this interface can process two values and return a
 // boolean. Such functions determine the less than order of the given values
 // according to the Compare concept.
@@ -64,12 +63,18 @@ struct Equal {
 };
 
 struct Contains {
+  // Containment check for empty string is equivalent to std::string::find.
+  // More precisely:
+  //  - Contains("")("")    -> true, because std::string("").find("")    == 0
+  //  - Contains("")("abc") -> true, because std::string("abc").find("") == 0
+
   explicit Contains(const Bytes& value) : value_(value) {}
 
   bool operator()(const Bytes& value) const {
-    const auto end_a = value.data() + value.size();
-    const auto end_b = value_.data() + value_.size();
-    return std::search(value.data(), end_a, value_.data(), end_b) != end_a;
+    return (value_.size() > 0)
+               ? std::search(value.begin(), value.end(), value_.begin(),
+                             value_.end()) != value.end()
+               : true;
   }
 
  private:
