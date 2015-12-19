@@ -65,6 +65,14 @@ class Bytes {
   std::size_t size() const { return size_; }
   // Returns the number of bytes wrapped.
 
+  const char* begin() const { return data_; }
+
+  const char* cbegin() const { return data_; }
+
+  const char* end() const { return data_ + size_; }
+
+  const char* cend() const { return data_ + size_; }
+
   bool empty() const { return size_ == 0; }
   // Returns true if the number of bytes wrapped is zero, and false otherwise.
 
