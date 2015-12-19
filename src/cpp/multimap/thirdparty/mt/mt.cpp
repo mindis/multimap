@@ -255,7 +255,7 @@ DirectoryLockGuard::DirectoryLockGuard(const boost::filesystem::path& directory,
                                        const std::string& filename)
     : directory_(directory), filename_(filename) {
   Check::isTrue(boost::filesystem::is_directory(directory),
-                "Not a directory '%s'", directory_.c_str());
+                "No such directory '%s'", directory_.c_str());
   const AutoCloseFile file(std::fopen((directory_ / filename_).c_str(), "w"));
   Check::notNull(file.get(), "Already locked '%s'", directory_.c_str());
 }
