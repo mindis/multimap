@@ -27,8 +27,7 @@ namespace multimap {
 namespace {
 
 void checkOptions(const Options& options) {
-  mt::Check::notZero(options.block_size,
-                     "Map's block size must be positive");
+  mt::Check::notZero(options.block_size, "Map's block size must be positive");
   mt::Check::isTrue(mt::isPowerOfTwo(options.block_size),
                     "Map's block size must be a power of two");
 }
@@ -340,7 +339,7 @@ const std::string getNameOfValuesFile(std::size_t index) {
 }
 
 void checkVersion(std::uint64_t major_version, std::uint64_t minor_version) {
-  mt::check(major_version == MAJOR_VERSION && minor_version == MINOR_VERSION,
+  mt::check(major_version == MAJOR_VERSION,
             "Version check failed. The Multimap you are trying to open "
             "was created with version %u.%u of the library. Your "
             "installed version is %u.%u which is not compatible.",

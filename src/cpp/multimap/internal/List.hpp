@@ -30,9 +30,6 @@
 namespace multimap {
 namespace internal {
 
-// -----------------------------------------------------------------------------
-// class List
-
 class List {
   // This class is designed for minimal memory footprint since
   // there will be an instance for each key put into Multimap.
@@ -369,9 +366,6 @@ inline void List::Iter<true>::Stream::writeBackMutatedBlocks() {
   }
 }
 
-// -----------------------------------------------------------------------------
-// class SharedList
-
 class SharedList {
  public:
   typedef List::Iterator Iterator;
@@ -433,9 +427,6 @@ class SharedList {
   friend class SharedListIterator;
 };
 
-// -----------------------------------------------------------------------------
-// class SharedListIterator
-
 class SharedListIterator {
  public:
   SharedListIterator() = default;
@@ -461,9 +452,6 @@ class SharedListIterator {
   List::Iterator iter_;
   SharedList list_;
 };
-
-// -----------------------------------------------------------------------------
-// class UniqueList
 
 class UniqueList {
  public:
@@ -530,9 +518,6 @@ class UniqueList {
 
   friend class UniqueListIterator;
 };
-
-// -----------------------------------------------------------------------------
-// class UniqueListIterator
 
 class UniqueListIterator {
  public:

@@ -24,9 +24,7 @@ namespace multimap {
 namespace internal {
 
 struct Varint {
-
   struct Limits {
-
     static const std::uint32_t MIN_N1;
     static const std::uint32_t MIN_N2;
     static const std::uint32_t MIN_N3;
@@ -93,7 +91,7 @@ struct Varint {
   Varint() = delete;
 };
 
-} // namespace internal
-} // namespace multimap
+}  // namespace internal
+}  // namespace multimap
 
-#endif // MULTIMAP_INTERNAL_VARINT_HPP_INCLUDED
+#endif  // MULTIMAP_INTERNAL_VARINT_HPP_INCLUDED

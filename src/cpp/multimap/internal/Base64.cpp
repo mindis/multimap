@@ -67,5 +67,5 @@ void Base64::decode(const std::string& base64, std::string* binary) {
   binary->resize(binary->size() - std::distance(base64_copy.rbegin(), iter));
 }
 
-} // namespace internal
-} // namespace multimap
+}  // namespace internal
+}  // namespace multimap

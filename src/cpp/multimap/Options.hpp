@@ -62,6 +62,6 @@ struct Options {
   // Indicates to some operations to leave the block size unchanged.
 };
 
-} // namespace multimap
+}  // namespace multimap
 
-#endif // MULTIMAP_OPTIONS_HPP_INCLUDED
+#endif  // MULTIMAP_OPTIONS_HPP_INCLUDED

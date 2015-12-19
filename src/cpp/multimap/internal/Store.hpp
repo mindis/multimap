@@ -29,7 +29,7 @@ namespace multimap {
 namespace internal {
 
 class Store : mt::Resource {
-public:
+ public:
   struct Options {
     std::size_t block_size = 512;
     std::size_t buffer_size = mt::MiB(1);
@@ -56,7 +56,7 @@ public:
 
   static_assert(mt::hasExpectedSize<Stats>(16, 16),
                 "Store::Stats does not have expected size");
-  // Use __attribute__((packed)) if 32- and 64-bit size differ.
+  // sizeof(Stats) must be equal on 32- and 64-bit systems to be portable.
 
   explicit Store(const boost::filesystem::path& file);
 
@@ -66,6 +66,7 @@ public:
 
   // ---------------------------------------------------------------------------
   // Public thread-safe interface, no external synchronization needed.
+  // ---------------------------------------------------------------------------
 
   template <bool IsMutable>
   std::uint32_t put(const BasicBlock<IsMutable>& block) {
@@ -143,9 +144,10 @@ public:
     return stats_;
   }
 
-private:
+ private:
   // ---------------------------------------------------------------------------
   // Private non-thread-safe interface, needs external synchronization.
+  // ---------------------------------------------------------------------------
 
   std::uint32_t putUnlocked(const char* block);
 
@@ -187,7 +189,7 @@ private:
   bool quiet_;
 };
 
-} // namespace internal
-} // namespace multimap
+}  // namespace internal
+}  // namespace multimap
 
-#endif // MULTIMAP_INTERNAL_STORE_HPP_INCLUDED
+#endif  // MULTIMAP_INTERNAL_STORE_HPP_INCLUDED

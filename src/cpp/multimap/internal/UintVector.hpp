@@ -27,7 +27,7 @@ namespace multimap {
 namespace internal {
 
 class UintVector {
-public:
+ public:
   UintVector() = default;
 
   UintVector(const UintVector& other);
@@ -59,7 +59,7 @@ public:
 
   bool operator!=(const UintVector& other) const { return !(*this == other); }
 
-private:
+ private:
   void allocateMoreIfFull();
 
   char* current() const { return data_.get() + offset_; }
@@ -74,7 +74,7 @@ private:
 static_assert(mt::hasExpectedSize<UintVector>(12, 16),
               "class UintVector does not have expected size");
 
-} // namespace internal
-} // namespace multimap
+}  // namespace internal
+}  // namespace multimap
 
-#endif // MULTIMAP_INTERNAL_UINT_VECTOR_HPP_INCLUDED
+#endif  // MULTIMAP_INTERNAL_UINT_VECTOR_HPP_INCLUDED

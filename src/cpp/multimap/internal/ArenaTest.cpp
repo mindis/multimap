@@ -56,5 +56,5 @@ TEST(ArenaTest, DefaultConstructedCanAllocateMemory) {
   ASSERT_EQ(arena.allocated(), 5131);
 }
 
-} // namespace internal
-} // namespace multimap
+}  // namespace internal
+}  // namespace multimap

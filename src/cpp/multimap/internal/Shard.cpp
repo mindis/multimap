@@ -311,7 +311,7 @@ std::string Shard::getNameOfValuesFile(const std::string& prefix) {
 }
 
 Shard::Entry Shard::Entry::readFromStream(std::FILE* stream, Arena* arena) {
-  std::int32_t key_size;
+  std::uint32_t key_size;
   mt::fread(stream, &key_size, sizeof key_size);
   const auto key_data = arena->allocate(key_size);
   mt::fread(stream, key_data, key_size);
@@ -321,7 +321,7 @@ Shard::Entry Shard::Entry::readFromStream(std::FILE* stream, Arena* arena) {
 
 void Shard::Entry::writeToStream(std::FILE* stream) const {
   MT_REQUIRE_LE(key().size(), Shard::Limits::maxKeySize());
-  const std::int32_t key_size = key().size();
+  const std::uint32_t key_size = key().size();
   mt::fwrite(stream, &key_size, sizeof key_size);
   mt::fwrite(stream, key().data(), key().size());
   head().writeToStream(stream);
