@@ -64,11 +64,11 @@ void Map::Id::writeToFile(const boost::filesystem::path& file) const {
   mt::fwrite(stream.get(), this, sizeof *this);
 }
 
-size_t Map::Limits::maxKeySize() {
+uint32_t Map::Limits::maxKeySize() {
   return internal::Shard::Limits::maxKeySize();
 }
 
-size_t Map::Limits::maxValueSize() {
+uint32_t Map::Limits::maxValueSize() {
   return internal::Shard::Limits::maxValueSize();
 }
 
@@ -322,19 +322,19 @@ const std::string getNameOfIdFile() { return getFilePrefix() + ".id"; }
 
 const std::string getNameOfLockFile() { return getFilePrefix() + ".lock"; }
 
-const std::string getShardPrefix(size_t index) {
+const std::string getShardPrefix(uint32_t index) {
   return getFilePrefix() + '.' + std::to_string(index);
 }
 
-const std::string getNameOfKeysFile(size_t index) {
+const std::string getNameOfKeysFile(uint32_t index) {
   return Shard::getNameOfKeysFile(getShardPrefix(index));
 }
 
-const std::string getNameOfStatsFile(size_t index) {
+const std::string getNameOfStatsFile(uint32_t index) {
   return Shard::getNameOfStatsFile(getShardPrefix(index));
 }
 
-const std::string getNameOfValuesFile(size_t index) {
+const std::string getNameOfValuesFile(uint32_t index) {
   return Shard::getNameOfValuesFile(getShardPrefix(index));
 }
 

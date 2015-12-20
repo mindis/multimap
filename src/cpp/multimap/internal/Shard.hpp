@@ -34,8 +34,8 @@ namespace internal {
 class Shard : mt::Resource {
  public:
   struct Limits {
-    static size_t maxKeySize();
-    static size_t maxValueSize();
+    static uint32_t maxKeySize();
+    static uint32_t maxValueSize();
   };
 
   struct Options {
@@ -113,9 +113,9 @@ class Shard : mt::Resource {
   }
 
   template <typename Predicate>
-  size_t removeKeys(Predicate predicate) {
+  uint32_t removeKeys(Predicate predicate) {
     MT_REQUIRE_FALSE(isReadOnly());
-    size_t num_removed = 0;
+    uint32_t num_removed = 0;
     boost::shared_lock<boost::shared_mutex> lock(mutex_);
     for (const auto& entry : map_) {
       if (predicate(entry.first)) {
@@ -137,7 +137,7 @@ class Shard : mt::Resource {
   }
 
   template <typename Predicate>
-  size_t removeValues(const Bytes& key, Predicate predicate) {
+  uint32_t removeValues(const Bytes& key, Predicate predicate) {
     MT_REQUIRE_FALSE(isReadOnly());
     return remove(key, predicate, false);
   }
@@ -155,15 +155,15 @@ class Shard : mt::Resource {
     return replace(key, map, true);
   }
 
-  size_t replaceValues(const Bytes& key, const Bytes& old_value,
-                       const Bytes& new_value) {
+  uint32_t replaceValues(const Bytes& key, const Bytes& old_value,
+                         const Bytes& new_value) {
     return replaceValues(key, [&old_value, &new_value](const Bytes& value) {
       return (value == old_value) ? new_value.toString() : std::string();
     });
   }
 
   template <typename Function>
-  size_t replaceValues(const Bytes& key, Function map) {
+  uint32_t replaceValues(const Bytes& key, Function map) {
     MT_REQUIRE_FALSE(isReadOnly());
     return replace(key, map, false);
   }
@@ -206,7 +206,7 @@ class Shard : mt::Resource {
 
   bool isReadOnly() const { return store_->isReadOnly(); }
 
-  size_t getBlockSize() const { return store_->getBlockSize(); }
+  uint32_t getBlockSize() const { return store_->getBlockSize(); }
 
   // ---------------------------------------------------------------------------
   // Static methods
@@ -267,9 +267,9 @@ class Shard : mt::Resource {
   UniqueList getOrCreateUniqueList(const Bytes& key);
 
   template <typename Predicate>
-  size_t remove(const Bytes& key, Predicate predicate,
-                bool exit_after_first_success) {
-    size_t num_removed = 0;
+  uint32_t remove(const Bytes& key, Predicate predicate,
+                  bool exit_after_first_success) {
+    uint32_t num_removed = 0;
     auto iter = getUniqueListIterator(key);
     while (iter.hasNext()) {
       if (predicate(iter.next())) {
@@ -284,8 +284,8 @@ class Shard : mt::Resource {
   }
 
   template <typename Function>
-  size_t replace(const Bytes& key, Function map,
-                 bool exit_after_first_success) {
+  uint32_t replace(const Bytes& key, Function map,
+                   bool exit_after_first_success) {
     std::vector<std::string> replaced_values;
     if (auto list = getUniqueList(key)) {
       auto iter = list.iterator();

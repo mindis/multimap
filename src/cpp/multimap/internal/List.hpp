@@ -40,7 +40,7 @@ class List {
 
  public:
   struct Limits {
-    static size_t maxValueSize();
+    static uint32_t maxValueSize();
   };
 
   struct Head {
@@ -48,7 +48,7 @@ class List {
     uint32_t num_values_removed = 0;
     UintVector block_ids;
 
-    size_t num_values_valid() const {
+    uint32_t num_values_valid() const {
       MT_ASSERT_GE(num_values_total, num_values_removed);
       return num_values_total - num_values_removed;
     }
@@ -65,7 +65,7 @@ class List {
   class Iter {
     class Stream : mt::Resource {
      public:
-      static const size_t BLOCK_CACHE_SIZE = 1024;
+      static const uint32_t BLOCK_CACHE_SIZE = 1024;
 
       MT_ENABLE_IF(IsMutable)
       Stream(List* list, Store* store)
@@ -112,7 +112,7 @@ class List {
       }
 
       void readData(char* target, uint32_t size) {
-        size_t nbytes = 0;
+        uint32_t nbytes = 0;
         do {
           if (blocks_index_ < blocks_.size()) {
             auto& block = blocks_[blocks_index_];
@@ -191,15 +191,15 @@ class List {
       }
 
       struct IntoBlockPointer {
-        size_t index = 0;
-        size_t offset = 0;
+        uint32_t index = 0;
+        uint32_t offset = 0;
       } size_with_flag_ptr_;
 
       std::vector<uint32_t> block_ids_;
       // Elements are in reverse order to allow fast pop_front operation.
 
       std::vector<ExtendedReadWriteBlock> blocks_;
-      size_t blocks_index_ = 0;
+      uint32_t blocks_index_ = 0;
 
       ReadWriteBlock last_block_;
       // Contains a shallow copy of `list->block_` given in the constructor.
@@ -229,7 +229,7 @@ class List {
     Iter(const Iter&) = delete;
     Iter& operator=(const Iter&) = delete;
 
-    size_t available() const { return stats_.available; }
+    uint32_t available() const { return stats_.available; }
 
     bool hasNext() { return available() != 0; }
 
@@ -294,7 +294,7 @@ class List {
 
   const Head& head() const { return head_; }
 
-  size_t size() const { return head_.num_values_valid(); }
+  uint32_t size() const { return head_.num_values_valid(); }
 
   bool empty() const { return size() == 0; }
 
@@ -324,10 +324,10 @@ class List {
   bool is_locked() const;
 
   struct MutexPoolConfig {
-    static size_t getDefaultSize();
-    static size_t getCurrentSize();
-    static size_t getMaximumSize();
-    static void setMaximumSize(size_t size);
+    static uint32_t getDefaultSize();
+    static uint32_t getCurrentSize();
+    static uint32_t getMaximumSize();
+    static void setMaximumSize(uint32_t size);
     MutexPoolConfig() = delete;
   };
 
@@ -410,7 +410,7 @@ class SharedList {
     return list_ ? list_->iterator(*store_) : Iterator();
   }
 
-  size_t size() const { return list_->size(); }
+  uint32_t size() const { return list_->size(); }
 
   bool empty() const { return list_->empty(); }
 
@@ -440,7 +440,7 @@ class SharedListIterator {
   SharedListIterator(SharedListIterator&&) = default;
   SharedListIterator& operator=(SharedListIterator&&) = default;
 
-  size_t available() const { return iter_.available(); }
+  uint32_t available() const { return iter_.available(); }
 
   bool hasNext() { return iter_.hasNext(); }
 
@@ -497,7 +497,7 @@ class UniqueList {
 
   Iterator iterator() { return list_ ? list_->iterator(store_) : Iterator(); }
 
-  size_t size() const { return list_->size(); }
+  uint32_t size() const { return list_->size(); }
 
   bool empty() const { return list_->empty(); }
 
@@ -532,7 +532,7 @@ class UniqueListIterator {
   UniqueListIterator(UniqueListIterator&&) = default;
   UniqueListIterator& operator=(UniqueListIterator&&) = default;
 
-  size_t available() const { return iter_.available(); }
+  uint32_t available() const { return iter_.available(); }
 
   bool hasNext() { return iter_.hasNext(); }
 

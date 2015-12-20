@@ -49,8 +49,8 @@ void removeStatsFromTail(int fd) {
 
 Store::Stats Store::Stats::fromProperties(const mt::Properties& properties) {
   Stats stats;
-  stats.block_size = std::stoul(properties.at("block_size"));
-  stats.num_blocks = std::stoul(properties.at("num_blocks"));
+  stats.block_size = std::stoull(properties.at("block_size"));
+  stats.num_blocks = std::stoull(properties.at("num_blocks"));
   return stats;
 }
 
@@ -146,6 +146,7 @@ uint32_t Store::putUnlocked(const char* block) {
       // ensure that the newly appended data is visible after the remapping.
       // In a unified virtual memory system, memory mappings and blocks of the
       // buffer cache share the same pages of physical memory. [kerrisk p1032]
+      MT_ASSERT_LT(mapped_.size, new_size);
       mapped_.data =
           mt::mremap(mapped_.data, mapped_.size, new_size, MREMAP_MAYMOVE);
     } else {

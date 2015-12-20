@@ -33,7 +33,7 @@ struct Base64 {
   static void encode(const std::string& binary, std::string* base64);
   // Encodes binary data to a Base64 string.
 
-  static void encode(const char* data, std::size_t size, std::string* base64);
+  static void encode(const char* data, size_t size, std::string* base64);
   // Encodes binary data to a Base64 string.
 
   static void decode(const std::string& base64, std::string* binary);

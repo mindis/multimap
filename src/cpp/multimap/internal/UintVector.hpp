@@ -64,7 +64,7 @@ class UintVector {
 
   char* current() const { return data_.get() + offset_; }
 
-  size_t remaining() const { return size_ - offset_; }
+  uint32_t remaining() const { return size_ - offset_; }
 
   std::unique_ptr<char[]> data_;
   uint32_t offset_ = 0;

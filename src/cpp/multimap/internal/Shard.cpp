@@ -33,9 +33,9 @@ uint64_t computeChecksum(const Shard::Stats& stats) {
 
 }  // namespace
 
-size_t Shard::Limits::maxKeySize() { return Varint::Limits::MAX_N4; }
+uint32_t Shard::Limits::maxKeySize() { return Varint::Limits::MAX_N4; }
 
-size_t Shard::Limits::maxValueSize() { return List::Limits::maxValueSize(); }
+uint32_t Shard::Limits::maxValueSize() { return List::Limits::maxValueSize(); }
 
 const std::vector<std::string>& Shard::Stats::names() {
   static std::vector<std::string> names = {

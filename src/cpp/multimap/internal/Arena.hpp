@@ -30,13 +30,13 @@ class Arena : mt::Resource {
   // Objects of this class are thread-safe.
 
  public:
-  static const size_t DEFAULT_CHUNK_SIZE = 4096;
+  static const uint32_t DEFAULT_CHUNK_SIZE = 4096;
 
-  explicit Arena(size_t chunk_size = DEFAULT_CHUNK_SIZE);
+  explicit Arena(uint32_t chunk_size = DEFAULT_CHUNK_SIZE);
 
-  char* allocate(size_t nbytes);
+  char* allocate(uint32_t nbytes);
 
-  size_t allocated() const;
+  uint64_t allocated() const;
 
   void deallocateAll();
 
@@ -44,9 +44,9 @@ class Arena : mt::Resource {
   mutable std::mutex mutex_;
   std::vector<std::unique_ptr<char[]> > chunks_;
   std::vector<std::unique_ptr<char[]> > blobs_;
-  size_t chunk_size_ = 0;
-  size_t allocated_ = 0;
-  size_t offset_ = 0;
+  uint32_t chunk_offset_ = 0;
+  uint32_t chunk_size_ = 0;
+  uint64_t allocated_ = 0;
 };
 
 }  // namespace internal

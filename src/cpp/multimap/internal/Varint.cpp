@@ -42,7 +42,7 @@ const uint32_t Varint::Limits::MAX_N2_WITH_FLAG = (1 << 13) - 1;
 const uint32_t Varint::Limits::MAX_N3_WITH_FLAG = (1 << 21) - 1;
 const uint32_t Varint::Limits::MAX_N4_WITH_FLAG = (1 << 29) - 1;
 
-size_t Varint::readUint(const char* buffer, size_t size, uint32_t* value) {
+uint32_t Varint::readUint(const char* buffer, size_t size, uint32_t* value) {
   MT_REQUIRE_NOT_NULL(buffer);
   MT_REQUIRE_NOT_NULL(value);
 
@@ -84,8 +84,8 @@ size_t Varint::readUint(const char* buffer, size_t size, uint32_t* value) {
   return 0;
 }
 
-size_t Varint::readUintWithFlag(const char* buffer, size_t size,
-                                uint32_t* value, bool* flag) {
+uint32_t Varint::readUintWithFlag(const char* buffer, size_t size,
+                                  uint32_t* value, bool* flag) {
   MT_REQUIRE_NOT_NULL(buffer);
   MT_REQUIRE_NOT_NULL(value);
   MT_REQUIRE_NOT_NULL(flag);
@@ -129,7 +129,7 @@ size_t Varint::readUintWithFlag(const char* buffer, size_t size,
   return 0;
 }
 
-size_t Varint::writeUint(uint32_t value, char* buffer, size_t size) {
+uint32_t Varint::writeUint(uint32_t value, char* buffer, size_t size) {
   MT_REQUIRE_NOT_NULL(buffer);
 
   std::uint8_t* ptr = reinterpret_cast<std::uint8_t*>(buffer);
@@ -172,8 +172,8 @@ too_few_bytes:
   return 0;
 }
 
-size_t Varint::writeUintWithFlag(uint32_t value, bool flag, char* buffer,
-                                 size_t size) {
+uint32_t Varint::writeUintWithFlag(uint32_t value, bool flag, char* buffer,
+                                   size_t size) {
   MT_REQUIRE_NOT_NULL(buffer);
 
   std::uint8_t* ptr = reinterpret_cast<std::uint8_t*>(buffer);

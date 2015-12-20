@@ -24,12 +24,12 @@ namespace internal {
 
 namespace {
 
-size_t readUint32(const char* source, uint32_t* target) {
+uint32_t readUint32(const char* source, uint32_t* target) {
   std::memcpy(target, source, sizeof *target);
   return sizeof *target;
 }
 
-size_t writeUint32(uint32_t source, char* target) {
+uint32_t writeUint32(uint32_t source, char* target) {
   std::memcpy(target, &source, sizeof source);
   return sizeof source;
 }
@@ -111,9 +111,9 @@ bool UintVector::add(uint32_t value) {
 }
 
 void UintVector::allocateMoreIfFull() {
-  const auto required_size = sizeof(uint32_t) * 2;
-  if (size_ - offset_ < required_size) {
-    const size_t new_end_offset = size_ * 1.5;
+  const uint32_t required_size = sizeof(uint32_t) * 2;
+  if (required_size > size_ - offset_) {
+    const uint32_t new_end_offset = size_ * 1.5;
     const auto new_size = std::max(new_end_offset, required_size);
     std::unique_ptr<char[]> new_data(new char[new_size]);
     std::memcpy(new_data.get(), data_.get(), offset_);

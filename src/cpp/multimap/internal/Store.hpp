@@ -39,8 +39,10 @@ class Store : mt::Resource {
   };
 
   struct Stats {
-    uint32_t block_size = 0;
-    uint32_t num_blocks = 0;
+    uint64_t block_size = 0;
+    uint64_t num_blocks = 0;
+    // uint64 is used to promote uint64 conversion
+    // of other operands in arithmetic expressions.
 
     static Stats fromProperties(const mt::Properties& properties);
 
@@ -54,7 +56,7 @@ class Store : mt::Resource {
   static_assert(std::is_standard_layout<Stats>::value,
                 "Store::Stats is no standard layout type");
 
-  static_assert(mt::hasExpectedSize<Stats>(8, 8),
+  static_assert(mt::hasExpectedSize<Stats>(16, 16),
                 "Store::Stats does not have expected size");
   // sizeof(Stats) must be equal on 32- and 64-bit systems to be portable.
 
@@ -137,7 +139,7 @@ class Store : mt::Resource {
 
   bool isReadOnly() const { return buffer_.size == 0; }
 
-  size_t getBlockSize() const { return stats_.block_size; }
+  uint32_t getBlockSize() const { return stats_.block_size; }
 
   Stats getStats() const {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -159,9 +161,9 @@ class Store : mt::Resource {
 
   struct Mapped {
     void* data = nullptr;
-    size_t size = 0;
+    uint64_t size = 0;
 
-    size_t num_blocks(size_t block_size) const {
+    uint64_t num_blocks(uint32_t block_size) const {
       // Callers must ensure that `block_size` isn't zero.
       return size / block_size;
     }
@@ -169,12 +171,12 @@ class Store : mt::Resource {
 
   struct Buffer {
     std::unique_ptr<char[]> data;
-    size_t offset = 0;
-    size_t size = 0;
+    uint64_t offset = 0;
+    uint64_t size = 0;
 
     bool empty() const { return offset == 0; }
 
-    size_t num_blocks(size_t block_size) const {
+    uint64_t num_blocks(uint32_t block_size) const {
       // Callers must ensure that `block_size` isn't zero.
       return size / block_size;
     }

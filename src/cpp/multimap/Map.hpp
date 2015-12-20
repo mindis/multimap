@@ -28,8 +28,8 @@
 
 namespace multimap {
 
-static const size_t MAJOR_VERSION = 0;
-static const size_t MINOR_VERSION = 3;
+static const uint32_t MAJOR_VERSION = 0;
+static const uint32_t MINOR_VERSION = 3;
 
 class Map : mt::Resource {
   // Insanely fast 1:n key-value store.
@@ -52,8 +52,8 @@ class Map : mt::Resource {
   struct Limits {
     // Provides static methods to request upper bounds.
 
-    static size_t maxKeySize();
-    static size_t maxValueSize();
+    static uint32_t maxKeySize();
+    static uint32_t maxValueSize();
   };
 
   typedef internal::Shard::Stats Stats;
@@ -107,8 +107,8 @@ class Map : mt::Resource {
   // Returns: true if the key was removed, false otherwise.
 
   template <typename Predicate>
-  size_t removeKeys(Predicate predicate) {
-    size_t num_removed = 0;
+  uint32_t removeKeys(Predicate predicate) {
+    uint32_t num_removed = 0;
     for (const auto& shard : shards_) {
       num_removed += shard->removeKeys(predicate);
     }
@@ -129,7 +129,7 @@ class Map : mt::Resource {
   // Returns: true if a value was deleted, false otherwise.
 
   template <typename Predicate>
-  size_t removeValues(const Bytes& key, Predicate predicate) {
+  uint32_t removeValues(const Bytes& key, Predicate predicate) {
     return getShard(key).removeValues(key, predicate);
   }
   // Deletes all values in the list associated with key for which predicate
@@ -154,14 +154,14 @@ class Map : mt::Resource {
   // replacements. This method will block until a writer lock can be acquired.
   // Returns: true if a value was replaced, false otherwise.
 
-  size_t replaceValues(const Bytes& key, const Bytes& old_value,
-                       const Bytes& new_value) {
+  uint32_t replaceValues(const Bytes& key, const Bytes& old_value,
+                         const Bytes& new_value) {
     return getShard(key).replaceValues(key, old_value, new_value);
   }
   // TODO Document this.
 
   template <typename Function>
-  size_t replaceValues(const Bytes& key, Function map) {
+  uint32_t replaceValues(const Bytes& key, Function map) {
     return getShard(key).replaceValues(key, map);
   }
   // Replaces all values in the list associated with key by the result of
@@ -330,10 +330,10 @@ namespace internal {
 const std::string getFilePrefix();
 const std::string getNameOfIdFile();
 const std::string getNameOfLockFile();
-const std::string getShardPrefix(size_t index);
-const std::string getNameOfKeysFile(size_t index);
-const std::string getNameOfStatsFile(size_t index);
-const std::string getNameOfValuesFile(size_t index);
+const std::string getShardPrefix(uint32_t index);
+const std::string getNameOfKeysFile(uint32_t index);
+const std::string getNameOfStatsFile(uint32_t index);
+const std::string getNameOfValuesFile(uint32_t index);
 void checkVersion(uint64_t major_version, uint64_t minor_version);
 
 }  // namespace internal
