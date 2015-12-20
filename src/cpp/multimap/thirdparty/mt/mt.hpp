@@ -18,6 +18,9 @@
 #ifndef MT_MT_HPP_INCLUDED
 #define MT_MT_HPP_INCLUDED
 
+#define _FILE_OFFSET_BITS 64
+// Enables large file support (> 2 GiB) on 32-bit systems.
+
 // TODO Add feature test macros
 
 #include <sys/mman.h>
@@ -41,24 +44,24 @@
 
 namespace mt {
 
-static const size_t VERSION = 20151212;
+static const uint32_t VERSION = 20151220;
 
 // -----------------------------------------------------------------------------
 // COMMON
 // -----------------------------------------------------------------------------
 
-bool isPrime(size_t number);
+bool isPrime(uint64_t number);
 // Returns `true` if `number` is prime, `false` otherwise.
 
-size_t nextPrime(size_t number);
+uint64_t nextPrime(uint64_t number);
 // Returns the next prime number that is greater than or equal to `number`.
 
-constexpr bool isPowerOfTwo(size_t num) { return (num & (num - 1)) == 0; }
+constexpr bool isPowerOfTwo(uint64_t num) { return (num & (num - 1)) == 0; }
 
-constexpr size_t MiB(size_t mebibytes) { return mebibytes << 20; }
+constexpr uint64_t MiB(uint64_t mebibytes) { return mebibytes << 20; }
 // Converts a number in mebibytes to the equivalent number in bytes.
 
-constexpr size_t GiB(size_t gibibytes) { return gibibytes << 30; }
+constexpr uint64_t GiB(uint64_t gibibytes) { return gibibytes << 30; }
 // Converts a number in gibibytes to the equivalent number in bytes.
 
 constexpr bool is32BitSystem() { return sizeof(void*) == 4; }
@@ -343,6 +346,13 @@ inline AutoCloseFd open(const boost::filesystem::path& file, int flags,
                         mode_t mode) {
   const auto result = ::open(file.c_str(), flags, mode);
   Check::notEqual(result, -1, "mt::open() failed for '%s' because of '%s'",
+                  file.c_str(), errnostr());
+  return AutoCloseFd(result);
+}
+
+inline AutoCloseFd create(const boost::filesystem::path& file, mode_t mode) {
+  const auto result = ::creat(file.c_str(), mode);
+  Check::notEqual(result, -1, "mt::create() failed for '%s' because of '%s'",
                   file.c_str(), errnostr());
   return AutoCloseFd(result);
 }
