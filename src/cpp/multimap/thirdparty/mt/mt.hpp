@@ -83,10 +83,10 @@ struct Resource {
 // ALGORITHM
 // -----------------------------------------------------------------------------
 
-size_t crc32(const std::string& str);
+uint32_t crc32(const std::string& str);
 // Computes and returns the 32-bit CRC checksum for `str`.
 
-size_t crc32(const void* data, size_t size);
+uint32_t crc32(const void* data, size_t size);
 // Computes and returns the 32-bit CRC checksum for `[data, data + size)`.
 
 uint32_t fnv1aHash32(const void* buf, size_t len);
@@ -357,38 +357,38 @@ inline AutoCloseFd create(const boost::filesystem::path& file, mode_t mode) {
   return AutoCloseFd(result);
 }
 
-inline void read(int fd, void* buffer, size_t count) {
-  const auto result = ::read(fd, buffer, count);
+inline void read(int fd, void* buf, size_t len) {
+  const auto result = ::read(fd, buf, len);
   Check::notEqual(result, -1, "mt::read() failed because of '%s'", errnostr());
-  Check::isEqual(static_cast<size_t>(result), count,
+  Check::isEqual(static_cast<size_t>(result), len,
                  "mt::read() read less bytes than expected");
 }
 
-inline void write(int fd, const void* buffer, size_t count) {
-  const auto result = ::write(fd, buffer, count);
+inline void write(int fd, const void* buf, size_t len) {
+  const auto result = ::write(fd, buf, len);
   Check::notEqual(result, -1, "mt::write() failed because of '%s'", errnostr());
-  Check::isEqual(static_cast<size_t>(result), count,
+  Check::isEqual(static_cast<size_t>(result), len,
                  "mt::write() wrote less bytes than expected");
 }
 
-inline void writeOrPrompt(int fd, const void* buffer, size_t count) {
+inline void writeOrPrompt(int fd, const void* buf, size_t len) {
   while (true) {
-    const auto result = ::write(fd, buffer, count);
+    const auto result = ::write(fd, buf, len);
     Check::notEqual(result, -1, "mt::write() failed because of '%s'",
                     errnostr());
-    if (static_cast<size_t>(result) < count) {
+    if (static_cast<size_t>(result) < len) {
       std::cout << "Write operation failed because only " << result << " of "
-                << count << " bytes could be written.\nIn case you ran out of "
-                            "disk space you can do some cleanup now and then "
-                            "try to continue.\nTry to continue? [Y/n] "
+                << len << " bytes could be written.\nIn case you ran out of "
+                          "disk space you can do some cleanup now and then "
+                          "try to continue.\nTry to continue? [Y/n] "
                 << std::flush;
       std::string answer;
       std::getline(std::cin, answer);
       if (answer == "n") {
         fail("mt::write() wrote less bytes than expected");
       }
-      buffer = static_cast<const char*>(buffer) + result;
-      count -= result;
+      buf = static_cast<const char*>(buf) + result;
+      len -= result;
     } else {
       break;
     }
@@ -416,7 +416,7 @@ inline void* mmap(void* addr, uint64_t length, int prot, int flags, int fd,
   return result;
 }
 
-inline void* mremap(void* old_addr, size_t old_size, size_t new_size,
+inline void* mremap(void* old_addr, uint64_t old_size, uint64_t new_size,
                     int flags) {
   const auto result = ::mremap(old_addr, old_size, new_size, flags);
   Check::notEqual(result, MAP_FAILED, "mt::mremap() failed because of '%s'",
@@ -424,7 +424,7 @@ inline void* mremap(void* old_addr, size_t old_size, size_t new_size,
   return result;
 }
 
-inline void munmap(void* addr, size_t length) {
+inline void munmap(void* addr, uint64_t length) {
   const auto result = ::munmap(addr, length);
   Check::isZero(result, "mt::munmap() failed because of '%s'", errnostr());
 }
@@ -470,33 +470,32 @@ inline AutoCloseFile fopen(const boost::filesystem::path& file,
   return AutoCloseFile(result);
 }
 
-inline void fread(std::FILE* stream, void* buffer, size_t count) {
-  const auto result = std::fread(buffer, sizeof(char), count, stream);
-  Check::isEqual(result, count, "mt::fread() failed");
+inline void fread(std::FILE* stream, void* buf, uint64_t len) {
+  const auto result = std::fread(buf, sizeof(char), len, stream);
+  Check::isEqual(result, len, "mt::fread() failed");
 }
 
-inline void fwrite(std::FILE* stream, const void* buffer, size_t count) {
-  const auto result = std::fwrite(buffer, sizeof(char), count, stream);
-  Check::isEqual(result, count, "mt::fwrite() failed");
+inline void fwrite(std::FILE* stream, const void* buf, size_t len) {
+  const auto result = std::fwrite(buf, sizeof(char), len, stream);
+  Check::isEqual(result, len, "mt::fwrite() failed");
 }
 
-inline void fwriteOrPrompt(std::FILE* stream, const void* buffer,
-                           size_t count) {
+inline void fwriteOrPrompt(std::FILE* stream, const void* buf, size_t len) {
   while (true) {
-    const auto result = std::fwrite(buffer, sizeof(char), count, stream);
-    if (result < count) {
+    const auto result = std::fwrite(buf, sizeof(char), len, stream);
+    if (result < len) {
       std::cout << "Write operation failed because only " << result << " of "
-                << count << " bytes could be written.\nIn case you ran out of "
-                            "disk space you can do some cleanup now and then "
-                            "try to continue.\nTry to continue? [Y/n] "
+                << len << " bytes could be written.\nIn case you ran out of "
+                          "disk space you can do some cleanup now and then "
+                          "try to continue.\nTry to continue? [Y/n] "
                 << std::flush;
       std::string answer;
       std::getline(std::cin, answer);
       if (answer == "n") {
         fail("mt::fwrite() wrote less bytes than expected");
       }
-      buffer = static_cast<const char*>(buffer) + result;
-      count -= result;
+      buf = static_cast<const char*>(buf) + result;
+      len -= result;
     } else {
       break;
     }

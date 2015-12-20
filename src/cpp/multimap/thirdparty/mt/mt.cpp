@@ -145,12 +145,12 @@ std::string makeErrorMessage(const char* file, unsigned line, const char* expr,
 
 }  // namespace
 
-bool isPrime(size_t number) {
+bool isPrime(uint64_t number) {
   if (number % 2 == 0) {
     return false;
   }
-  const size_t max = std::sqrt(number);
-  for (size_t i = 3; i <= max; i += 2) {
+  const uint64_t max = std::sqrt(number);
+  for (uint64_t i = 3; i <= max; i += 2) {
     if (number % i == 0) {
       return false;
     }
@@ -158,26 +158,26 @@ bool isPrime(size_t number) {
   return true;
 }
 
-size_t nextPrime(size_t number) {
+uint64_t nextPrime(uint64_t number) {
   while (!isPrime(number)) {
     ++number;
   }
   return number;
 }
 
-size_t crc32(const std::string& str) { return crc32(str.data(), str.size()); }
+uint32_t crc32(const std::string& str) { return crc32(str.data(), str.size()); }
 
-size_t crc32(const void* data, size_t size) {
+uint32_t crc32(const void* data, size_t size) {
   boost::crc_32_type crc;
   crc.process_bytes(data, size);
   return crc.checksum();
 }
 
 // Source: http://www.isthe.com/chongo/src/fnv/hash_32a.c
-uint32_t fnv1aHash32(const void* buf, size_t len) {
+uint32_t fnv1aHash32(const void* data, size_t size) {
   uint32_t h = 0x811c9dc5;  // FNV1_32A_INIT
-  const auto ptr = reinterpret_cast<const std::uint8_t*>(buf);
-  for (size_t i = 0; i != len; ++i) {
+  const auto ptr = reinterpret_cast<const std::uint8_t*>(data);
+  for (size_t i = 0; i != size; ++i) {
     h ^= ptr[i];
     h += (h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24);
   }
@@ -185,10 +185,10 @@ uint32_t fnv1aHash32(const void* buf, size_t len) {
 }
 
 // Source: http://www.isthe.com/chongo/src/fnv/hash_64a.c
-uint64_t fnv1aHash64(const void* buf, size_t len) {
+uint64_t fnv1aHash64(const void* data, size_t size) {
   uint64_t h = 0xcbf29ce484222325ULL;  // FNV1A_64_INIT
-  const auto ptr = reinterpret_cast<const std::uint8_t*>(buf);
-  for (size_t i = 0; i != len; ++i) {
+  const auto ptr = reinterpret_cast<const std::uint8_t*>(data);
+  for (size_t i = 0; i != size; ++i) {
     h ^= ptr[i];
     h += (h << 1) + (h << 4) + (h << 5) + (h << 7) + (h << 8) + (h << 40);
   }
@@ -336,10 +336,10 @@ std::string toString(const char* format, va_list args) {
 void toString(const char* format, va_list args, std::string* output) {
   va_list args2;
   va_copy(args2, args);
-  std::vector<char> buffer(std::vsnprintf(nullptr, 0, format, args) + 1);
-  std::vsnprintf(buffer.data(), buffer.size(), format, args2);
+  std::vector<char> buf(std::vsnprintf(nullptr, 0, format, args) + 1);
+  std::vsnprintf(buf.data(), buf.size(), format, args2);
   va_end(args2);
-  output->assign(buffer.data(), buffer.size());
+  output->assign(buf.data(), buf.size());
 }
 
 std::vector<std::string> getStackTrace(size_t skip_head) {
