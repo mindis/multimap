@@ -23,26 +23,16 @@
 namespace multimap {
 namespace internal {
 
-namespace {
-
-uint64_t computeChecksum(const Shard::Stats& stats) {
-  auto copy = stats;
-  copy.checksum = 0;
-  return mt::crc32(&copy, sizeof copy);
-}
-
-}  // namespace
-
 uint32_t Shard::Limits::maxKeySize() { return Varint::Limits::MAX_N4; }
 
 uint32_t Shard::Limits::maxValueSize() { return List::Limits::maxValueSize(); }
 
 const std::vector<std::string>& Shard::Stats::names() {
   static std::vector<std::string> names = {
-      "block_size",     "num_blocks",       "num_keys_total",
-      "num_keys_valid", "num_values_total", "num_values_valid",
-      "key_size_min",   "key_size_max",     "key_size_avg",
-      "list_size_min",  "list_size_max",    "list_size_avg"};
+      "block_size",     "key_size_avg",     "key_size_max",
+      "key_size_min",   "list_size_avg",    "list_size_max",
+      "list_size_min",  "num_blocks",       "num_keys_total",
+      "num_keys_valid", "num_values_total", "num_values_valid"};
   return names;
 }
 
@@ -50,57 +40,52 @@ Shard::Stats Shard::Stats::readFromFile(const boost::filesystem::path& file) {
   Stats stats;
   const auto stream = mt::fopen(file, "r");
   mt::fread(stream.get(), &stats, sizeof stats);
-  mt::check(stats.checksum == computeChecksum(stats), "Sanity check failed");
   return stats;
 }
 
 void Shard::Stats::writeToFile(const boost::filesystem::path& file) const {
-  auto copy = *this;
-  copy.checksum = computeChecksum(*this);
   const auto stream = mt::fopen(file.c_str(), "w");
-  mt::fwrite(stream.get(), &copy, sizeof copy);
+  mt::fwrite(stream.get(), this, sizeof *this);
 }
 
 Shard::Stats Shard::Stats::fromProperties(const mt::Properties& properties) {
   Stats stats;
   stats.block_size = std::stoul(properties.at("block_size"));
+  stats.key_size_avg = std::stoul(properties.at("key_size_avg"));
+  stats.key_size_max = std::stoul(properties.at("key_size_max"));
+  stats.key_size_min = std::stoul(properties.at("key_size_min"));
+  stats.list_size_avg = std::stoul(properties.at("list_size_avg"));
+  stats.list_size_max = std::stoul(properties.at("list_size_max"));
+  stats.list_size_min = std::stoul(properties.at("list_size_min"));
   stats.num_blocks = std::stoul(properties.at("num_blocks"));
   stats.num_keys_total = std::stoul(properties.at("num_keys_total"));
   stats.num_keys_valid = std::stoul(properties.at("num_keys_valid"));
   stats.num_values_total = std::stoul(properties.at("num_values_total"));
   stats.num_values_valid = std::stoul(properties.at("num_values_valid"));
-  stats.key_size_min = std::stoul(properties.at("key_size_min"));
-  stats.key_size_max = std::stoul(properties.at("key_size_max"));
-  stats.key_size_avg = std::stoul(properties.at("key_size_avg"));
-  stats.list_size_min = std::stoul(properties.at("list_size_min"));
-  stats.list_size_max = std::stoul(properties.at("list_size_max"));
-  stats.list_size_avg = std::stoul(properties.at("list_size_avg"));
-  // stats.checksum is left default initialized.
   return stats;
 }
 
 mt::Properties Shard::Stats::toProperties() const {
   mt::Properties properties;
   properties["block_size"] = std::to_string(block_size);
+  properties["key_size_avg"] = std::to_string(key_size_avg);
+  properties["key_size_max"] = std::to_string(key_size_max);
+  properties["key_size_min"] = std::to_string(key_size_min);
+  properties["list_size_avg"] = std::to_string(list_size_avg);
+  properties["list_size_max"] = std::to_string(list_size_max);
+  properties["list_size_min"] = std::to_string(list_size_min);
   properties["num_blocks"] = std::to_string(num_blocks);
   properties["num_keys_total"] = std::to_string(num_keys_total);
   properties["num_keys_valid"] = std::to_string(num_keys_valid);
   properties["num_values_total"] = std::to_string(num_values_total);
   properties["num_values_valid"] = std::to_string(num_values_valid);
-  properties["key_size_min"] = std::to_string(key_size_min);
-  properties["key_size_max"] = std::to_string(key_size_max);
-  properties["key_size_avg"] = std::to_string(key_size_avg);
-  properties["list_size_min"] = std::to_string(list_size_min);
-  properties["list_size_max"] = std::to_string(list_size_max);
-  properties["list_size_avg"] = std::to_string(list_size_avg);
-  // stats.checksum is not exposed.
   return properties;
 }
 
 std::vector<uint64_t> Shard::Stats::toVector() const {
-  return {block_size,       num_blocks,       num_keys_total, num_keys_valid,
-          num_values_total, num_values_valid, key_size_min,   key_size_max,
-          key_size_avg,     list_size_min,    list_size_max,  list_size_avg};
+  return {block_size,     key_size_avg,   key_size_max,     key_size_min,
+          list_size_avg,  list_size_max,  list_size_min,    num_blocks,
+          num_keys_total, num_keys_valid, num_values_total, num_values_valid};
 }
 
 Shard::Stats Shard::Stats::total(const std::vector<Stats>& stats) {
@@ -111,11 +96,6 @@ Shard::Stats Shard::Stats::total(const std::vector<Stats>& stats) {
     } else {
       MT_ASSERT_EQ(total.block_size, stat.block_size);
     }
-    total.num_blocks += stat.num_blocks;
-    total.num_keys_total += stat.num_keys_total;
-    total.num_keys_valid += stat.num_keys_valid;
-    total.num_values_total += stat.num_values_total;
-    total.num_values_valid += stat.num_values_valid;
     total.key_size_max = std::max(total.key_size_max, stat.key_size_max);
     if (stat.key_size_min) {
       total.key_size_min = total.key_size_min
@@ -128,6 +108,11 @@ Shard::Stats Shard::Stats::total(const std::vector<Stats>& stats) {
           total.list_size_min ? mt::min(total.list_size_min, stat.list_size_min)
                               : stat.list_size_min;
     }
+    total.num_blocks += stat.num_blocks;
+    total.num_keys_total += stat.num_keys_total;
+    total.num_keys_valid += stat.num_keys_valid;
+    total.num_values_total += stat.num_values_total;
+    total.num_values_valid += stat.num_values_valid;
   }
   if (total.num_keys_valid != 0) {
     double key_size_avg = 0;
@@ -147,13 +132,6 @@ Shard::Stats Shard::Stats::max(const std::vector<Stats>& stats) {
   Shard::Stats max;
   for (const auto& stat : stats) {
     max.block_size = std::max(max.block_size, stat.block_size);
-    max.num_blocks = std::max(max.num_blocks, stat.num_blocks);
-    max.num_keys_total = std::max(max.num_keys_total, stat.num_keys_total);
-    max.num_keys_valid = std::max(max.num_keys_valid, stat.num_keys_valid);
-    max.num_values_total =
-        std::max(max.num_values_total, stat.num_values_total);
-    max.num_values_valid =
-        std::max(max.num_values_valid, stat.num_values_valid);
     max.key_size_avg = std::max(max.key_size_avg, stat.key_size_avg);
     max.key_size_max = std::max(max.key_size_max, stat.key_size_max);
     if (stat.key_size_min) {
@@ -164,6 +142,13 @@ Shard::Stats Shard::Stats::max(const std::vector<Stats>& stats) {
     if (stat.list_size_min) {
       max.list_size_min = std::max(max.list_size_min, stat.list_size_min);
     }
+    max.num_blocks = std::max(max.num_blocks, stat.num_blocks);
+    max.num_keys_total = std::max(max.num_keys_total, stat.num_keys_total);
+    max.num_keys_valid = std::max(max.num_keys_valid, stat.num_keys_valid);
+    max.num_values_total =
+        std::max(max.num_values_total, stat.num_values_total);
+    max.num_values_valid =
+        std::max(max.num_values_valid, stat.num_values_valid);
   }
   return max;
 }

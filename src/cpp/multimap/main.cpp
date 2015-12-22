@@ -193,6 +193,9 @@ void runStatsCommand(const CommandLine& cmd) {
                 eq_signs(first_column_width).c_str(), second_column_width,
                 names[i].c_str(), third_column_width, totals[i]);
   }
+  std::printf("#%s  %-*s  %-*" PRIu64 "\n",
+              eq_signs(first_column_width).c_str(), second_column_width,
+              "num_shards", third_column_width, stats.size());
 }
 
 void runImportCommand(const CommandLine& cmd) {
