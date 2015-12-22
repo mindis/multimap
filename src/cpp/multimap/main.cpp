@@ -194,7 +194,7 @@ void runStatsCommand(const CommandLine& cmd) {
                 names[i].c_str(), third_column_width, totals[i]);
   }
   const uint64_t num_shards = stats.size();
-  std::printf("#%s  %-*s  %-*" PRIu64 "\n",
+  std::printf("=%s  %-*s  %-*" PRIu64 "\n",
               eq_signs(first_column_width).c_str(), second_column_width,
               "num_shards", third_column_width, num_shards);
 }
