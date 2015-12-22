@@ -189,7 +189,7 @@ void runStatsCommand(const CommandLine& cmd) {
 
   const auto eq_signs = [](size_t num) { return std::string(num, '='); };
   for (size_t i = 0; i != totals.size(); ++i) {
-    std::printf("#%s  %-*s  %-*" PRIu64 "\n",
+    std::printf("=%s  %-*s  %-*" PRIu64 "\n",
                 eq_signs(first_column_width).c_str(), second_column_width,
                 names[i].c_str(), third_column_width, totals[i]);
   }
