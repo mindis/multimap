@@ -112,7 +112,7 @@ multimap::Options initOptions(const CommandLine& cmd) {
   return options;
 }
 
-void runHelpCommand(const char* tool_name) {
+void runHelpCommand(const char* toolname) {
   const multimap::Options default_options;
   std::printf(
       "USAGE\n"
@@ -141,19 +141,19 @@ void runHelpCommand(const char* tool_name) {
       "\n\n"
       "\nCopyright (C) 2015 Martin Trenkmann"
       "\n<http://multimap.io>\n",
-      tool_name, HELP, STATS, IMPORT, EXPORT, OPTIMIZE,
+      toolname, HELP, STATS, IMPORT, EXPORT, OPTIMIZE,
       CREATE, BS, default_options.block_size,
       NSHARDS, default_options.num_shards,
       QUIET,
-      tool_name, STATS,
-      tool_name, IMPORT,
-      tool_name, IMPORT,
-      tool_name, IMPORT, CREATE,
-      tool_name, EXPORT,
-      tool_name, OPTIMIZE,
-      tool_name, OPTIMIZE, BS,
-      tool_name, OPTIMIZE, NSHARDS,
-      tool_name, OPTIMIZE, NSHARDS, BS);
+      toolname, STATS,
+      toolname, IMPORT,
+      toolname, IMPORT,
+      toolname, IMPORT, CREATE,
+      toolname, EXPORT,
+      toolname, OPTIMIZE,
+      toolname, OPTIMIZE, BS,
+      toolname, OPTIMIZE, NSHARDS,
+      toolname, OPTIMIZE, NSHARDS, BS);
 }
 
 void runStatsCommand(const CommandLine& cmd) {
