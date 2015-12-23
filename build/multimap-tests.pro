@@ -7,6 +7,12 @@ COMMON = multimap.pri
     error("Could not find $$COMMON file")
 }
 
+CONFIG += warn_off
+QMAKE_CXXFLAGS += -Wall -Wno-sign-compare
+# This first removes "-Wall" from the compiler options and then puts it back,
+# but with an exception for "-Wno-sign-compare".  The order of flags matters.
+# Compiling Google Test emits sign compare warnings we want to suppress.
+
 INCLUDEPATH += \
     ../src/cpp/multimap/thirdparty/googlemock \
     ../src/cpp/multimap/thirdparty/googlemock/include \
@@ -63,8 +69,8 @@ SOURCES += \
     ../src/cpp/multimap/internal/Base64Test.cpp \
     ../src/cpp/multimap/internal/BlockTest.cpp \
     ../src/cpp/multimap/internal/ListTest.cpp \
-    ../src/cpp/multimap/internal/ShardTest.cpp \
     ../src/cpp/multimap/internal/StoreTest.cpp \
+    ../src/cpp/multimap/internal/TableTest.cpp \
     ../src/cpp/multimap/internal/UintVectorTest.cpp \
     ../src/cpp/multimap/internal/VarintTest.cpp \
     ../src/cpp/multimap/thirdparty/googlemock/src/gmock_main.cc \
