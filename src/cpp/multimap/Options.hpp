@@ -27,13 +27,13 @@ namespace multimap {
 struct Options {
   // A type to configure an object of class Map and related functions.
 
-  uint32_t num_shards = 23;
-
   uint32_t block_size = 512;
   // Determines the block size of a newly created map.  The value is ignored if
   // the map already exists.  The value must be a power of two.  For small key
   // sets, up to 1M, the default value should be appropriate.  For larger key
   // sets the block size can be reduced to lower the overall memory usage.
+
+  uint32_t num_partitions = 23;
 
   uint32_t buffer_size = mt::MiB(1);
 
@@ -56,8 +56,8 @@ struct Options {
   // Optional: Compare function which returns `true` if the left operand is
   // less than the right operand. Returns `false` otherwise.
 
-  void keep_num_shards() { num_shards = 0; }
-  // Indicates to some operations to leave the number of shards unchanged.
+  void keep_num_partitions() { num_partitions = 0; }
+  // Indicates to some operations to leave the number of partitions unchanged.
 
   void keep_block_size() { block_size = 0; }
   // Indicates to some operations to leave the block size unchanged.

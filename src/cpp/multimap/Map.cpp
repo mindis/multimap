@@ -35,14 +35,14 @@ void checkOptions(const Options& options) {
 template <typename Procdure>
 // Required interface:
 // void process(const boost::filesystem::path& prefix,
-//              size_t index, size_t nshards);
+//              size_t index, size_t npartitions);
 void forEachShard(const boost::filesystem::path& directory, Procdure process) {
   mt::DirectoryLockGuard lock(directory, internal::getNameOfLockFile());
   const auto id = Map::Id::readFromDirectory(directory);
   internal::checkVersion(id.major_version, id.minor_version);
-  for (size_t i = 0; i != id.num_shards; ++i) {
+  for (size_t i = 0; i != id.num_partitions; ++i) {
     const auto prefix = directory / internal::getShardPrefix(i);
-    process(prefix, i, id.num_shards);
+    process(prefix, i, id.num_partitions);
   }
 }
 
@@ -86,7 +86,7 @@ Map::Map(const boost::filesystem::path& directory, const Options& options)
 
     const auto id = Id::readFromFile(id_file);
     internal::checkVersion(id.major_version, id.minor_version);
-    shards_.resize(id.num_shards);
+    shards_.resize(id.num_partitions);
 
   } else {
     mt::Check::isTrue(options.create_if_missing, "Map in '%s' does not exist",
@@ -94,7 +94,7 @@ Map::Map(const boost::filesystem::path& directory, const Options& options)
 
     shard_options.block_size = options.block_size;
     shard_options.create_if_missing = true;
-    shards_.resize(mt::nextPrime(options.num_shards));
+    shards_.resize(mt::nextPrime(options.num_partitions));
   }
 
   shard_options.buffer_size = options.buffer_size;
@@ -111,7 +111,7 @@ Map::~Map() {
   if (!shards_.empty()) {
     Id id;
     id.block_size = shards_.front()->getBlockSize();
-    id.num_shards = shards_.size();
+    id.num_partitions = shards_.size();
     id.writeToFile(lock_.directory() / internal::getNameOfIdFile());
   }
 }
@@ -122,7 +122,7 @@ std::vector<internal::Shard::Stats> Map::stats(
   const auto id = Id::readFromDirectory(directory);
   internal::checkVersion(id.major_version, id.minor_version);
   std::vector<internal::Shard::Stats> stats;
-  for (size_t i = 0; i != id.num_shards; ++i) {
+  for (size_t i = 0; i != id.num_partitions; ++i) {
     const auto stats_file = directory / internal::getNameOfStatsFile(i);
     stats.push_back(internal::Shard::Stats::readFromFile(stats_file));
   }
@@ -205,10 +205,10 @@ void Map::exportToBase64(const boost::filesystem::path& directory,
   std::ofstream stream(output.string());
   mt::check(stream, "Could not create '%s'", output.c_str());
 
-  const auto print_status = [&options](size_t index, size_t nshards) {
+  const auto print_status = [&options](size_t index, size_t npartitions) {
     if (!options.quiet) {
-      mt::log(std::cout) << "Exporting shard " << (index + 1) << " of "
-                         << nshards << std::endl;
+      mt::log(std::cout) << "Exporting partition " << (index + 1) << " of "
+                         << npartitions << std::endl;
     }
   };
 
@@ -217,8 +217,8 @@ void Map::exportToBase64(const boost::filesystem::path& directory,
   if (options.compare) {
     std::vector<std::string> sorted_values;
     forEachShard(directory, [&](const boost::filesystem::path& prefix,
-                                size_t index, size_t nshards) {
-      print_status(index, nshards);
+                                size_t index, size_t npartitions) {
+      print_status(index, npartitions);
       internal::Shard::forEachEntry(prefix, [&](const Bytes& key,
                                                 Map::Iterator&& iter) {
         sorted_values.clear();
@@ -240,8 +240,8 @@ void Map::exportToBase64(const boost::filesystem::path& directory,
 
   } else {
     forEachShard(directory, [&](const boost::filesystem::path& prefix,
-                                size_t index, size_t nshards) {
-      print_status(index, nshards);
+                                size_t index, size_t npartitions) {
+      print_status(index, npartitions);
       internal::Shard::forEachEntry(
           prefix, [&](const Bytes& key, Map::Iterator&& iter) {
             internal::Base64::encode(key, &base64_key);
@@ -260,7 +260,7 @@ void Map::optimize(const boost::filesystem::path& directory,
                    const boost::filesystem::path& output) {
   Options options;
   options.keep_block_size();
-  options.keep_num_shards();
+  options.keep_num_partitions();
   optimize(directory, output, options);
 }
 
@@ -278,8 +278,8 @@ void Map::optimize(const boost::filesystem::path& directory,
       if (options.block_size == 0) {
         new_map_options.block_size = old_id.block_size;
       }
-      if (options.num_shards == 0) {
-        new_map_options.num_shards = old_id.num_shards;
+      if (options.num_partitions == 0) {
+        new_map_options.num_partitions = old_id.num_partitions;
       }
       new_map.reset(new Map(output, new_map_options));
     }

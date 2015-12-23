@@ -30,11 +30,11 @@ const auto OPTIMIZE = "optimize";
 
 const auto BS       = "--bs";
 const auto CREATE   = "--create";
-const auto NSHARDS  = "--nshards";
+const auto NPARTS   = "--nparts";
 const auto QUIET    = "--quiet";
 
 const auto COMMANDS = { HELP, STATS, IMPORT, EXPORT, OPTIMIZE };
-const auto OPTIONS  = { BS, CREATE, NSHARDS, QUIET };
+const auto OPTIONS  = { BS, CREATE, NPARTS, QUIET };
 
 struct CommandLine {
   struct Error : public std::runtime_error {
@@ -86,7 +86,7 @@ CommandLine parseCommandLine(int argc, const char** argv) {
           cmd.options[option] = *it++;
           continue;
         }
-        if (*it == std::string(NSHARDS)) {
+        if (*it == std::string(NPARTS)) {
           const auto option = *it++;
           mt::check<E>(it != end, "No value given for '%s'", option);
           cmd.options[option] = *it++;
@@ -106,8 +106,8 @@ multimap::Options initOptions(const CommandLine& cmd) {
   if (cmd.options.count(BS)) {
     options.block_size = std::stoul(cmd.options.at(BS));
   }
-  if (cmd.options.count(NSHARDS)) {
-    options.num_shards = std::stoul(cmd.options.at(NSHARDS));
+  if (cmd.options.count(NPARTS)) {
+    options.num_partitions = std::stoul(cmd.options.at(NPARTS));
   }
   return options;
 }
@@ -126,7 +126,8 @@ void runHelpCommand(const char* toolname) {
       "\n\nOPTIONS\n"
       "\n  %-9s      Create a new instance if missing when importing data."
       "\n  %-9s NUM  Block size to use for a new instance. Default is %u."
-      "\n  %-9s NUM  Number of shards to use for a new instance. Default is %u."
+      "\n  %-9s NUM  Number of partitions to use for a new instance."
+      " Default is %u."
       "\n  %-9s      Don't print out any status messages."
       "\n\nEXAMPLES\n"
       "\n  %s %-8s path/to/map"
@@ -143,7 +144,7 @@ void runHelpCommand(const char* toolname) {
       "\n<http://multimap.io>\n",
       toolname, HELP, STATS, IMPORT, EXPORT, OPTIMIZE,
       CREATE, BS, default_options.block_size,
-      NSHARDS, default_options.num_shards,
+      NPARTS, default_options.num_partitions,
       QUIET,
       toolname, STATS,
       toolname, IMPORT,
@@ -152,8 +153,8 @@ void runHelpCommand(const char* toolname) {
       toolname, EXPORT,
       toolname, OPTIMIZE,
       toolname, OPTIMIZE, BS,
-      toolname, OPTIMIZE, NSHARDS,
-      toolname, OPTIMIZE, NSHARDS, BS);
+      toolname, OPTIMIZE, NPARTS,
+      toolname, OPTIMIZE, NPARTS, BS);
 }
 
 void runStatsCommand(const CommandLine& cmd) {
@@ -193,10 +194,10 @@ void runStatsCommand(const CommandLine& cmd) {
                 eq_signs(first_column_width).c_str(), second_column_width,
                 names[i].c_str(), third_column_width, totals[i]);
   }
-  const uint64_t num_shards = stats.size();
+  const uint64_t num_parts = stats.size();
   std::printf("=%s  %-*s  %-*" PRIu64 "\n",
               eq_signs(first_column_width).c_str(), second_column_width,
-              "num_shards", third_column_width, num_shards);
+              "num_partitions", third_column_width, num_parts);
 }
 
 void runImportCommand(const CommandLine& cmd) {
@@ -213,8 +214,8 @@ void runOptimizeCommand(const CommandLine& cmd) {
   if (cmd.options.count(BS) == 0) {
     options.keep_block_size();
   }
-  if (cmd.options.count(NSHARDS) == 0) {
-    options.keep_num_shards();
+  if (cmd.options.count(NPARTS) == 0) {
+    options.keep_num_partitions();
   }
   multimap::Map::optimize(cmd.map, cmd.path, options);
 }

@@ -26,26 +26,13 @@ package io.multimap;
  */
 public class Options {
   
-  private int numShards = 23;
   private int blockSize = 512;
+  private int numPartitions = 23;
   private boolean createIfMissing = false;
   private boolean errorIfExists = false;
   private boolean readonly = false;
   private boolean quiet = false;
   private Callables.LessThan lessThan;
-  
-  public int getNumShards() {
-    return numShards;
-  }
-
-  public void setNumShards(int numShards) {
-    Check.isPositive(numShards);
-    this.numShards = numShards;
-  }
-  
-  public void keepNumShards() {
-    numShards = 0;
-  }
 
   /**
    * Tells the block size.
@@ -67,6 +54,19 @@ public class Options {
   
   public void keepBlockSize() {
     blockSize = 0;
+  }
+  
+  public int getNumPartitions() {
+    return numPartitions;
+  }
+
+  public void setNumPartitions(int numShards) {
+    Check.isPositive(numShards);
+    this.numPartitions = numShards;
+  }
+  
+  public void keepNumPartitions() {
+    numPartitions = 0;
   }
   
   /**

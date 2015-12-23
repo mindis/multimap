@@ -52,9 +52,9 @@ Options makeOptions(JNIEnv* env, jobject options) {
   mt::Check::notNull(cls, "GetObjectClass(options) failed");
 
   Options opts;
-  const auto fid_numShards = env->GetFieldID(cls, "numShards", "I");
-  mt::Check::notNull(fid_numShards, "GetFieldID(numShards) failed");
-  opts.num_shards = env->GetIntField(options, fid_numShards);
+  const auto fid_numPartitions = env->GetFieldID(cls, "numPartitions", "I");
+  mt::Check::notNull(fid_numPartitions, "GetFieldID(numPartitions) failed");
+  opts.num_partitions = env->GetIntField(options, fid_numPartitions);
 
   const auto fid_blockSize = env->GetFieldID(cls, "blockSize", "I");
   mt::Check::notNull(fid_blockSize, "GetFieldID(blockSize) failed");

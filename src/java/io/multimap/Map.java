@@ -382,7 +382,7 @@ public class Map implements AutoCloseable {
   public static void optimize(Path source, Path target) throws Exception {
     Options options = new Options();
     options.keepBlockSize();
-    options.keepNumShards();
+    options.keepNumPartitions();
     optimize(source, target, options);
   }
   

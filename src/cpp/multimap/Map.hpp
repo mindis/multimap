@@ -37,7 +37,7 @@ class Map : mt::Resource {
  public:
   struct Id {
     uint64_t block_size = 0;
-    uint64_t num_shards = 0;
+    uint64_t num_partitions = 0;
     uint64_t major_version = MAJOR_VERSION;
     uint64_t minor_version = MINOR_VERSION;
 
