@@ -7,10 +7,10 @@ pages:
   - Tutorials:
     - C++:
       - 'Basics': cpptutorial.md
-      - 'Use with Protobuf': cpptutorial.md
+      - 'with Protocol Buffers': cpptutorial.md
     - Java:
       - 'Basics': javatutorial.md
-      - 'Use with Protobuf': javatutorial.md
+      - 'with Protocol Buffers': javatutorial.md
   - Reference:
     - 'For C++ Developers': cppreference.md
     - 'For Java Developers': javareference.md

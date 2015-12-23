@@ -1,6 +1,6 @@
 <br>
 
-Multimap is a fast 1:n key-value store that provides a mapping from keys to lists of values. Think of it as the <a href="https://en.wikipedia.org/wiki/Multimap" target="_blank">multimap data structure</a> available in most programming languages, but with external persistent storage. Multimap is optimized for large numbers of n and works perfectly as a building block for retrieval systems that make use of <a href="https://en.wikipedia.org/wiki/Inverted_index" target="_blank">inverted indexing</a>.
+Multimap is a fast 1:n key-value store that provides a mapping from keys to lists of values. It's about the same <a href="https://en.wikipedia.org/wiki/Multimap" target="_blank">data structure</a> you might know from your first computer science class, but beyond that it does the external persistent storage. Because Multimap is optimized for large numbers of n, it works perfectly as a building block for retrieval systems that make use of <a href="https://en.wikipedia.org/wiki/Inverted_index" target="_blank">inverted indexing</a>.
 
 <div class="row">
   <div class="col-md-6">
@@ -38,7 +38,7 @@ using namespace multimap;
 int main() {
   Options options;
   options.create_if_missing = true;
-  Map map("some/directory", options);
+  Map map("path/to/directory", options);
 
   map.put("key", "1st value");
   map.put("key", "2nd value");
@@ -48,8 +48,8 @@ int main() {
     doSomething(iter.next());
   }
   
-  // Just to line up
-  // with the Java box.
+  // d'tor of iter releases the reader lock.
+  // d'tor of map flushes all data to disk. 
 }
 ```
 </div>
@@ -67,7 +67,7 @@ import io.multimap.Iterator;
 public static void main(String[] args) {
   Options options = new Options();
   options.setCreateIfMissing(true);
-  Map map = new Map("some/directory", options);
+  Map map = new Map("path/to/directory", options);
 
   map.put("key", "1st value");
   map.put("key", "2nd value");
@@ -87,4 +87,4 @@ public static void main(String[] args) {
 </div>
 <br>
 
-Multimap is <a href="https://www.fsf.org/about/what-is-free-software" target="_bank">free software</a> implemented in standard C++11 and POSIX, distributed under the terms of the <a href="http://www.gnu.org/licenses/agpl-3.0.en.html" target="_blank">GNU Affero General Public License</a> (AGPL) version 3. The only supported platform at the moment is GNU/Linux on x86/32 and x86/64. This is also true for the included Java binding.
+Multimap is <a href="https://www.fsf.org/about/what-is-free-software" target="_bank">free software</a> implemented in standard C++11 and POSIX, distributed under the terms of the <a href="http://www.gnu.org/licenses/agpl-3.0.en.html" target="_blank">GNU Affero General Public License</a> (AGPL) version 3. At the moment Multimap only runs under GNU/Linux on x86-32 and x86-64. This is also true for the included Java binding.

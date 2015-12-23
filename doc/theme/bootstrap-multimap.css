@@ -3,6 +3,20 @@
  * Copyright 2015 Martin Trenkmann
  * Licensed under AGPL (https://gnu.org/licenses/agpl.html)
  */
+span.qa-q:before {
+  content: "Q";
+  display: inline-block;
+  font-weight: bold;
+  width: 20px;
+}
+
+span.qa-a:before {
+  content: "A";
+  display: inline-block;
+  font-weight: bold;
+  width: 20px;
+}
+
 table {
   width: 100%;
 }
