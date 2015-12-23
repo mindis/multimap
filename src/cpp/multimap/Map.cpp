@@ -35,13 +35,13 @@ void checkOptions(const Options& options) {
 template <typename Procdure>
 // Required interface:
 // void process(const boost::filesystem::path& prefix,
-//              size_t index, size_t npartitions);
-void forEachShard(const boost::filesystem::path& directory, Procdure process) {
+//              size_t index, size_t ntables);
+void forEachTable(const boost::filesystem::path& directory, Procdure process) {
   mt::DirectoryLockGuard lock(directory, internal::getNameOfLockFile());
   const auto id = Map::Id::readFromDirectory(directory);
   internal::checkVersion(id.major_version, id.minor_version);
   for (size_t i = 0; i != id.num_partitions; ++i) {
-    const auto prefix = directory / internal::getShardPrefix(i);
+    const auto prefix = directory / internal::getTablePrefix(i);
     process(prefix, i, id.num_partitions);
   }
 }
@@ -65,11 +65,11 @@ void Map::Id::writeToFile(const boost::filesystem::path& file) const {
 }
 
 uint32_t Map::Limits::maxKeySize() {
-  return internal::Shard::Limits::maxKeySize();
+  return internal::Table::Limits::maxKeySize();
 }
 
 uint32_t Map::Limits::maxValueSize() {
-  return internal::Shard::Limits::maxValueSize();
+  return internal::Table::Limits::maxValueSize();
 }
 
 Map::Map(const boost::filesystem::path& directory)
@@ -78,7 +78,7 @@ Map::Map(const boost::filesystem::path& directory)
 Map::Map(const boost::filesystem::path& directory, const Options& options)
     : lock_(directory, internal::getNameOfLockFile()) {
   checkOptions(options);
-  internal::Shard::Options shard_options;
+  internal::Table::Options table_options;
   const auto id_file = directory / internal::getNameOfIdFile();
   if (boost::filesystem::is_regular_file(id_file)) {
     mt::Check::isFalse(options.error_if_exists, "Map in '%s' already exists",
@@ -86,45 +86,45 @@ Map::Map(const boost::filesystem::path& directory, const Options& options)
 
     const auto id = Id::readFromFile(id_file);
     internal::checkVersion(id.major_version, id.minor_version);
-    shards_.resize(id.num_partitions);
+    tables_.resize(id.num_partitions);
 
   } else {
     mt::Check::isTrue(options.create_if_missing, "Map in '%s' does not exist",
                       boost::filesystem::absolute(directory).c_str());
 
-    shard_options.block_size = options.block_size;
-    shard_options.create_if_missing = true;
-    shards_.resize(mt::nextPrime(options.num_partitions));
+    table_options.block_size = options.block_size;
+    table_options.create_if_missing = true;
+    tables_.resize(mt::nextPrime(options.num_partitions));
   }
 
-  shard_options.buffer_size = options.buffer_size;
-  shard_options.readonly = options.readonly;
-  shard_options.quiet = options.quiet;
+  table_options.buffer_size = options.buffer_size;
+  table_options.readonly = options.readonly;
+  table_options.quiet = options.quiet;
 
-  for (size_t i = 0; i != shards_.size(); ++i) {
-    const auto prefix = directory / internal::getShardPrefix(i);
-    shards_[i].reset(new internal::Shard(prefix, shard_options));
+  for (size_t i = 0; i != tables_.size(); ++i) {
+    const auto prefix = directory / internal::getTablePrefix(i);
+    tables_[i].reset(new internal::Table(prefix, table_options));
   }
 }
 
 Map::~Map() {
-  if (!shards_.empty()) {
+  if (!tables_.empty()) {
     Id id;
-    id.block_size = shards_.front()->getBlockSize();
-    id.num_partitions = shards_.size();
+    id.block_size = tables_.front()->getBlockSize();
+    id.num_partitions = tables_.size();
     id.writeToFile(lock_.directory() / internal::getNameOfIdFile());
   }
 }
 
-std::vector<internal::Shard::Stats> Map::stats(
+std::vector<internal::Table::Stats> Map::stats(
     const boost::filesystem::path& directory) {
   mt::DirectoryLockGuard lock(directory, internal::getNameOfLockFile());
   const auto id = Id::readFromDirectory(directory);
   internal::checkVersion(id.major_version, id.minor_version);
-  std::vector<internal::Shard::Stats> stats;
+  std::vector<internal::Table::Stats> stats;
   for (size_t i = 0; i != id.num_partitions; ++i) {
     const auto stats_file = directory / internal::getNameOfStatsFile(i);
-    stats.push_back(internal::Shard::Stats::readFromFile(stats_file));
+    stats.push_back(internal::Table::Stats::readFromFile(stats_file));
   }
   return stats;
 }
@@ -216,10 +216,10 @@ void Map::exportToBase64(const boost::filesystem::path& directory,
   std::string base64_value;
   if (options.compare) {
     std::vector<std::string> sorted_values;
-    forEachShard(directory, [&](const boost::filesystem::path& prefix,
+    forEachTable(directory, [&](const boost::filesystem::path& prefix,
                                 size_t index, size_t npartitions) {
       print_status(index, npartitions);
-      internal::Shard::forEachEntry(prefix, [&](const Bytes& key,
+      internal::Table::forEachEntry(prefix, [&](const Bytes& key,
                                                 Map::Iterator&& iter) {
         sorted_values.clear();
         sorted_values.reserve(iter.available());
@@ -239,10 +239,10 @@ void Map::exportToBase64(const boost::filesystem::path& directory,
     });
 
   } else {
-    forEachShard(directory, [&](const boost::filesystem::path& prefix,
+    forEachTable(directory, [&](const boost::filesystem::path& prefix,
                                 size_t index, size_t npartitions) {
       print_status(index, npartitions);
-      internal::Shard::forEachEntry(
+      internal::Table::forEachEntry(
           prefix, [&](const Bytes& key, Map::Iterator&& iter) {
             internal::Base64::encode(key, &base64_key);
             stream << base64_key;
@@ -268,8 +268,8 @@ void Map::optimize(const boost::filesystem::path& directory,
                    const boost::filesystem::path& output,
                    const Options& options) {
   std::unique_ptr<Map> new_map;
-  forEachShard(directory, [&](const boost::filesystem::path& prefix,
-                              size_t index, size_t nshards) {
+  forEachTable(directory, [&](const boost::filesystem::path& prefix,
+                              size_t index, size_t ntables) {
     if (index == 0) {
       const auto old_id = Id::readFromDirectory(directory);
       Options new_map_options = options;
@@ -285,13 +285,13 @@ void Map::optimize(const boost::filesystem::path& directory,
     }
 
     if (!options.quiet) {
-      mt::log(std::cout) << "Optimizing shard " << (index + 1) << " of "
-                         << nshards << std::endl;
+      mt::log(std::cout) << "Optimizing partition " << (index + 1) << " of "
+                         << ntables << std::endl;
     }
 
     if (options.compare) {
       std::vector<std::string> sorted_values;
-      internal::Shard::forEachEntry(prefix, [&](const Bytes& key,
+      internal::Table::forEachEntry(prefix, [&](const Bytes& key,
                                                 Map::Iterator&& iter) {
         sorted_values.clear();
         sorted_values.reserve(iter.available());
@@ -304,7 +304,7 @@ void Map::optimize(const boost::filesystem::path& directory,
         }
       });
     } else {
-      internal::Shard::forEachEntry(
+      internal::Table::forEachEntry(
           prefix, [&](const Bytes& key, Map::Iterator&& iter) {
             while (iter.hasNext()) {
               new_map->put(key, iter.next());
@@ -322,20 +322,20 @@ const std::string getNameOfIdFile() { return getFilePrefix() + ".id"; }
 
 const std::string getNameOfLockFile() { return getFilePrefix() + ".lock"; }
 
-const std::string getShardPrefix(uint32_t index) {
+const std::string getTablePrefix(uint32_t index) {
   return getFilePrefix() + '.' + std::to_string(index);
 }
 
 const std::string getNameOfKeysFile(uint32_t index) {
-  return Shard::getNameOfKeysFile(getShardPrefix(index));
+  return Table::getNameOfKeysFile(getTablePrefix(index));
 }
 
 const std::string getNameOfStatsFile(uint32_t index) {
-  return Shard::getNameOfStatsFile(getShardPrefix(index));
+  return Table::getNameOfStatsFile(getTablePrefix(index));
 }
 
 const std::string getNameOfValuesFile(uint32_t index) {
-  return Shard::getNameOfValuesFile(getShardPrefix(index));
+  return Table::getNameOfValuesFile(getTablePrefix(index));
 }
 
 void checkVersion(uint64_t major_version, uint64_t minor_version) {

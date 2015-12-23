@@ -19,7 +19,7 @@
 #include <type_traits>
 #include <boost/filesystem/operations.hpp>
 #include "gmock/gmock.h"
-#include "multimap/internal/Shard.hpp"
+#include "multimap/internal/Table.hpp"
 #include "multimap/callables.hpp"
 
 namespace multimap {
@@ -29,36 +29,36 @@ using testing::Eq;
 using testing::ElementsAre;
 using testing::UnorderedElementsAre;
 
-std::unique_ptr<Shard> openOrCreateShard(
+std::unique_ptr<Table> openOrCreateTable(
     const boost::filesystem::path& prefix) {
-  Shard::Options options;
+  Table::Options options;
   options.create_if_missing = true;
-  return std::unique_ptr<Shard>(new Shard(prefix, options));
+  return std::unique_ptr<Table>(new Table(prefix, options));
 }
 
-std::unique_ptr<Shard> openOrCreateShardAsReadOnly(
+std::unique_ptr<Table> openOrCreateTableAsReadOnly(
     const boost::filesystem::path& prefix) {
-  Shard::Options options;
+  Table::Options options;
   options.readonly = true;
   options.create_if_missing = true;
-  return std::unique_ptr<Shard>(new Shard(prefix, options));
+  return std::unique_ptr<Table>(new Table(prefix, options));
 }
 
-TEST(ShardTest, IsNotDefaultConstructible) {
-  ASSERT_FALSE(std::is_default_constructible<Shard>::value);
+TEST(TableTest, IsNotDefaultConstructible) {
+  ASSERT_FALSE(std::is_default_constructible<Table>::value);
 }
 
-TEST(ShardTest, IsNotCopyConstructibleOrAssignable) {
-  ASSERT_FALSE(std::is_copy_constructible<Shard>::value);
-  ASSERT_FALSE(std::is_copy_assignable<Shard>::value);
+TEST(TableTest, IsNotCopyConstructibleOrAssignable) {
+  ASSERT_FALSE(std::is_copy_constructible<Table>::value);
+  ASSERT_FALSE(std::is_copy_assignable<Table>::value);
 }
 
-TEST(ShardTest, IsNotMoveConstructibleOrAssignable) {
-  ASSERT_FALSE(std::is_move_constructible<Shard>::value);
-  ASSERT_FALSE(std::is_move_assignable<Shard>::value);
+TEST(TableTest, IsNotMoveConstructibleOrAssignable) {
+  ASSERT_FALSE(std::is_move_constructible<Table>::value);
+  ASSERT_FALSE(std::is_move_assignable<Table>::value);
 }
 
-struct ShardTestFixture : public testing::Test {
+struct TableTestFixture : public testing::Test {
   void SetUp() override {
     boost::filesystem::remove_all(directory);
     boost::filesystem::create_directory(directory);
@@ -66,8 +66,8 @@ struct ShardTestFixture : public testing::Test {
 
   void TearDown() override { boost::filesystem::remove_all(directory); }
 
-  const boost::filesystem::path directory = "/tmp/multimap.ShardTestFixture";
-  const boost::filesystem::path prefix = directory / "shard";
+  const boost::filesystem::path directory = "/tmp/multimap.TableTestFixture";
+  const boost::filesystem::path prefix = directory / "table";
   const std::string k1 = "k1";
   const std::string k2 = "k2";
   const std::string k3 = "k3";
@@ -76,371 +76,371 @@ struct ShardTestFixture : public testing::Test {
   const std::string v3 = "v3";
 };
 
-TEST_F(ShardTestFixture, ConstructorThrowsIfNotExist) {
-  ASSERT_THROW(Shard(this->prefix), std::runtime_error);
+TEST_F(TableTestFixture, ConstructorThrowsIfNotExist) {
+  ASSERT_THROW(Table(this->prefix), std::runtime_error);
   // GCC complains when not using 'this' pointer.
 }
 
-TEST_F(ShardTestFixture, ConstructorWithDefaultOptionsThrowsIfNotExist) {
-  Shard::Options options;
-  ASSERT_THROW(Shard(prefix, options), std::runtime_error);
+TEST_F(TableTestFixture, ConstructorWithDefaultOptionsThrowsIfNotExist) {
+  Table::Options options;
+  ASSERT_THROW(Table(prefix, options), std::runtime_error);
 }
 
-TEST_F(ShardTestFixture, ConstructorWithCreateIfMissingDoesNotThrow) {
-  Shard::Options options;
+TEST_F(TableTestFixture, ConstructorWithCreateIfMissingDoesNotThrow) {
+  Table::Options options;
   options.create_if_missing = true;
-  ASSERT_NO_THROW(Shard(prefix, options));
+  ASSERT_NO_THROW(Table(prefix, options));
 }
 
-TEST_F(ShardTestFixture, PutAppendsValuesToList) {
-  auto shard = openOrCreateShard(prefix);
-  shard->put(k1, v1);
-  shard->put(k1, v2);
-  shard->put(k1, v3);
-  auto iter = shard->get(k1);
+TEST_F(TableTestFixture, PutAppendsValuesToList) {
+  auto table = openOrCreateTable(prefix);
+  table->put(k1, v1);
+  table->put(k1, v2);
+  table->put(k1, v3);
+  auto iter = table->get(k1);
   ASSERT_THAT(iter.next(), Eq(v1));
   ASSERT_THAT(iter.next(), Eq(v2));
   ASSERT_THAT(iter.next(), Eq(v3));
   ASSERT_FALSE(iter.hasNext());
 }
 
-TEST_F(ShardTestFixture, PutMaxKeyDoesNotThrow) {
-  auto shard = openOrCreateShard(prefix);
+TEST_F(TableTestFixture, PutMaxKeyDoesNotThrow) {
+  auto table = openOrCreateTable(prefix);
   try {
-    std::string key(Shard::Limits::maxKeySize(), 'k');
-    ASSERT_NO_THROW(shard->put(key, v1));
+    std::string key(Table::Limits::maxKeySize(), 'k');
+    ASSERT_NO_THROW(table->put(key, v1));
   } catch (...) {
     // Allocating key itself may fail.
   }
 }
 
-TEST_F(ShardTestFixture, PutTooBigKeyThrows) {
-  auto shard = openOrCreateShard(prefix);
+TEST_F(TableTestFixture, PutTooBigKeyThrows) {
+  auto table = openOrCreateTable(prefix);
   try {
-    std::string key(Shard::Limits::maxKeySize() + 1, 'k');
-    ASSERT_THROW(shard->put(key, v1), mt::AssertionError);
+    std::string key(Table::Limits::maxKeySize() + 1, 'k');
+    ASSERT_THROW(table->put(key, v1), mt::AssertionError);
   } catch (...) {
     // Allocating key itself may fail.
   }
 }
 
-TEST_F(ShardTestFixture, PutMaxValueDoesNotThrow) {
-  auto shard = openOrCreateShard(prefix);
+TEST_F(TableTestFixture, PutMaxValueDoesNotThrow) {
+  auto table = openOrCreateTable(prefix);
   try {
-    std::string value(Shard::Limits::maxValueSize(), 'v');
-    ASSERT_NO_THROW(shard->put(k1, value));
+    std::string value(Table::Limits::maxValueSize(), 'v');
+    ASSERT_NO_THROW(table->put(k1, value));
   } catch (...) {
     // Allocating value itself may fail.
   }
 }
 
-TEST_F(ShardTestFixture, PutTooBigValueThrows) {
-  auto shard = openOrCreateShard(prefix);
+TEST_F(TableTestFixture, PutTooBigValueThrows) {
+  auto table = openOrCreateTable(prefix);
   try {
-    std::string value(Shard::Limits::maxValueSize() + 1, 'v');
-    ASSERT_THROW(shard->put(k1, value), mt::AssertionError);
+    std::string value(Table::Limits::maxValueSize() + 1, 'v');
+    ASSERT_THROW(table->put(k1, value), mt::AssertionError);
   } catch (...) {
     // Allocating value itself may fail.
   }
 }
 
-TEST_F(ShardTestFixture, PutValuesAndReopenInBetween) {
+TEST_F(TableTestFixture, PutValuesAndReopenInBetween) {
   {
-    auto shard = openOrCreateShard(prefix);
-    shard->put(k1, v1);
-    shard->put(k2, v1);
-    shard->put(k3, v1);
+    auto table = openOrCreateTable(prefix);
+    table->put(k1, v1);
+    table->put(k2, v1);
+    table->put(k3, v1);
   }
   {
-    auto shard = openOrCreateShard(prefix);
-    shard->put(k1, v2);
-    shard->put(k2, v2);
-    shard->put(k3, v2);
+    auto table = openOrCreateTable(prefix);
+    table->put(k1, v2);
+    table->put(k2, v2);
+    table->put(k3, v2);
   }
   {
-    auto shard = openOrCreateShard(prefix);
-    shard->put(k1, v3);
-    shard->put(k2, v3);
-    shard->put(k3, v3);
+    auto table = openOrCreateTable(prefix);
+    table->put(k1, v3);
+    table->put(k2, v3);
+    table->put(k3, v3);
   }
-  auto shard = openOrCreateShard(prefix);
-  auto iter1 = shard->get(k1);
+  auto table = openOrCreateTable(prefix);
+  auto iter1 = table->get(k1);
   ASSERT_THAT(iter1.next(), Eq(v1));
   ASSERT_THAT(iter1.next(), Eq(v2));
   ASSERT_THAT(iter1.next(), Eq(v3));
   ASSERT_FALSE(iter1.hasNext());
 
-  auto iter2 = shard->get(k2);
+  auto iter2 = table->get(k2);
   ASSERT_THAT(iter2.next(), Eq(v1));
   ASSERT_THAT(iter2.next(), Eq(v2));
   ASSERT_THAT(iter2.next(), Eq(v3));
   ASSERT_FALSE(iter2.hasNext());
 
-  auto iter3 = shard->get(k3);
+  auto iter3 = table->get(k3);
   ASSERT_THAT(iter3.next(), Eq(v1));
   ASSERT_THAT(iter3.next(), Eq(v2));
   ASSERT_THAT(iter3.next(), Eq(v3));
   ASSERT_FALSE(iter3.hasNext());
 }
 
-TEST_F(ShardTestFixture, GetReturnsEmptyListForNonExistingKey) {
-  auto shard = openOrCreateShard(prefix);
-  ASSERT_FALSE(shard->get(k1).hasNext());
+TEST_F(TableTestFixture, GetReturnsEmptyListForNonExistingKey) {
+  auto table = openOrCreateTable(prefix);
+  ASSERT_FALSE(table->get(k1).hasNext());
 }
 
-TEST_F(ShardTestFixture, RemoveKeyRemovesMappedValues) {
-  auto shard = openOrCreateShard(prefix);
-  shard->put(k1, v1);
-  shard->put(k2, v1);
-  shard->put(k3, v1);
-  ASSERT_TRUE(shard->removeKey(k1));
-  ASSERT_TRUE(shard->removeKey(k2));
-  ASSERT_FALSE(shard->get(k1).hasNext());
-  ASSERT_FALSE(shard->get(k2).hasNext());
-  ASSERT_TRUE(shard->get(k3).hasNext());
+TEST_F(TableTestFixture, RemoveKeyRemovesMappedValues) {
+  auto table = openOrCreateTable(prefix);
+  table->put(k1, v1);
+  table->put(k2, v1);
+  table->put(k3, v1);
+  ASSERT_TRUE(table->removeKey(k1));
+  ASSERT_TRUE(table->removeKey(k2));
+  ASSERT_FALSE(table->get(k1).hasNext());
+  ASSERT_FALSE(table->get(k2).hasNext());
+  ASSERT_TRUE(table->get(k3).hasNext());
 }
 
-TEST_F(ShardTestFixture, RemoveKeysRemovesMappedValues) {
-  auto shard = openOrCreateShard(prefix);
-  shard->put(k1, v1);
-  shard->put(k2, v1);
-  shard->put(k3, v1);
+TEST_F(TableTestFixture, RemoveKeysRemovesMappedValues) {
+  auto table = openOrCreateTable(prefix);
+  table->put(k1, v1);
+  table->put(k2, v1);
+  table->put(k3, v1);
   auto is_k1_or_k2 = [&](const Bytes& key) { return key == k1 || key == k2; };
-  ASSERT_THAT(shard->removeKeys(is_k1_or_k2), Eq(2));
-  ASSERT_FALSE(shard->get(k1).hasNext());
-  ASSERT_FALSE(shard->get(k2).hasNext());
-  ASSERT_TRUE(shard->get(k3).hasNext());
+  ASSERT_THAT(table->removeKeys(is_k1_or_k2), Eq(2));
+  ASSERT_FALSE(table->get(k1).hasNext());
+  ASSERT_FALSE(table->get(k2).hasNext());
+  ASSERT_TRUE(table->get(k3).hasNext());
 }
 
-TEST_F(ShardTestFixture, RemoveValueRemovesOnlyFirstMatch) {
-  auto shard = openOrCreateShard(prefix);
-  shard->put(k1, v1);
-  shard->put(k1, v2);
-  shard->put(k1, v3);
+TEST_F(TableTestFixture, RemoveValueRemovesOnlyFirstMatch) {
+  auto table = openOrCreateTable(prefix);
+  table->put(k1, v1);
+  table->put(k1, v2);
+  table->put(k1, v3);
   auto is_any_value = [&](const Bytes& /* value */) { return true; };
-  ASSERT_TRUE(shard->removeValue(k1, is_any_value));
-  auto iter = shard->get(k1);
+  ASSERT_TRUE(table->removeValue(k1, is_any_value));
+  auto iter = table->get(k1);
   ASSERT_THAT(iter.next(), Eq(v2));
   ASSERT_THAT(iter.next(), Eq(v3));
   ASSERT_FALSE(iter.hasNext());
 
-  shard->put(k2, v1);
-  shard->put(k2, v2);
-  shard->put(k2, v3);
+  table->put(k2, v1);
+  table->put(k2, v2);
+  table->put(k2, v3);
   auto is_v2_or_v3 =
       [&](const Bytes& value) { return value == v2 || value == v3; };
-  ASSERT_TRUE(shard->removeValue(k2, is_v2_or_v3));
-  iter = shard->get(k2);
+  ASSERT_TRUE(table->removeValue(k2, is_v2_or_v3));
+  iter = table->get(k2);
   ASSERT_THAT(iter.next(), Eq(v1));
   ASSERT_THAT(iter.next(), Eq(v3));
   ASSERT_FALSE(iter.hasNext());
 }
 
-TEST_F(ShardTestFixture, RemoveValuesRemovesAllMatches) {
-  auto shard = openOrCreateShard(prefix);
-  shard->put(k1, v1);
-  shard->put(k1, v2);
-  shard->put(k1, v3);
+TEST_F(TableTestFixture, RemoveValuesRemovesAllMatches) {
+  auto table = openOrCreateTable(prefix);
+  table->put(k1, v1);
+  table->put(k1, v2);
+  table->put(k1, v3);
   auto is_any_value = [&](const Bytes& /* value */) { return true; };
-  ASSERT_THAT(shard->removeValues(k1, is_any_value), Eq(3));
-  auto iter = shard->get(k1);
+  ASSERT_THAT(table->removeValues(k1, is_any_value), Eq(3));
+  auto iter = table->get(k1);
   ASSERT_FALSE(iter.hasNext());
 
-  shard->put(k2, v1);
-  shard->put(k2, v2);
-  shard->put(k2, v3);
+  table->put(k2, v1);
+  table->put(k2, v2);
+  table->put(k2, v3);
   auto is_v2_or_v3 =
       [&](const Bytes& value) { return value == v2 || value == v3; };
-  ASSERT_TRUE(shard->removeValues(k2, is_v2_or_v3));
-  iter = shard->get(k2);
+  ASSERT_TRUE(table->removeValues(k2, is_v2_or_v3));
+  iter = table->get(k2);
   ASSERT_THAT(iter.next(), Eq(v1));
   ASSERT_FALSE(iter.hasNext());
 }
 
-TEST_F(ShardTestFixture, ReplaceValueReplacesOnlyFirstMatch) {
-  auto shard = openOrCreateShard(prefix);
-  shard->put(k1, v1);
-  shard->put(k1, v2);
-  shard->put(k1, v3);
+TEST_F(TableTestFixture, ReplaceValueReplacesOnlyFirstMatch) {
+  auto table = openOrCreateTable(prefix);
+  table->put(k1, v1);
+  table->put(k1, v2);
+  table->put(k1, v3);
   auto rotate_any = [&](const Bytes& value) {
     if (value == v1) return v2;
     if (value == v2) return v3;
     if (value == v3) return v1;
     return std::string();
   };
-  ASSERT_TRUE(shard->replaceValue(k1, rotate_any));
-  auto iter = shard->get(k1);
+  ASSERT_TRUE(table->replaceValue(k1, rotate_any));
+  auto iter = table->get(k1);
   ASSERT_THAT(iter.next(), Eq(v2));
   ASSERT_THAT(iter.next(), Eq(v3));
   ASSERT_THAT(iter.next(), Eq(v2));  // v1 replacement
   ASSERT_FALSE(iter.hasNext());
 
-  shard->put(k2, v1);
-  shard->put(k2, v2);
-  shard->put(k2, v3);
+  table->put(k2, v1);
+  table->put(k2, v2);
+  table->put(k2, v3);
   auto rotate_v2_or_v3 = [&](const Bytes& value) {
     if (value == v2) return v3;
     if (value == v3) return v1;
     return std::string();
   };
-  ASSERT_TRUE(shard->replaceValue(k2, rotate_v2_or_v3));
-  iter = shard->get(k2);
+  ASSERT_TRUE(table->replaceValue(k2, rotate_v2_or_v3));
+  iter = table->get(k2);
   ASSERT_THAT(iter.next(), Eq(v1));
   ASSERT_THAT(iter.next(), Eq(v3));
   ASSERT_THAT(iter.next(), Eq(v3));  // v2 replacement
   ASSERT_FALSE(iter.hasNext());
 }
 
-TEST_F(ShardTestFixture, ReplaceValuesReplacesAllMatches) {
-  auto shard = openOrCreateShard(prefix);
-  shard->put(k1, v1);
-  shard->put(k1, v2);
-  shard->put(k1, v3);
+TEST_F(TableTestFixture, ReplaceValuesReplacesAllMatches) {
+  auto table = openOrCreateTable(prefix);
+  table->put(k1, v1);
+  table->put(k1, v2);
+  table->put(k1, v3);
   auto rotate_any = [&](const Bytes& value) {
     if (value == v1) return v2;
     if (value == v2) return v3;
     if (value == v3) return v1;
     return std::string();
   };
-  ASSERT_THAT(shard->replaceValues(k1, rotate_any), Eq(3));
-  auto iter = shard->get(k1);
+  ASSERT_THAT(table->replaceValues(k1, rotate_any), Eq(3));
+  auto iter = table->get(k1);
   ASSERT_THAT(iter.next(), Eq(v2));  // v1 replacement
   ASSERT_THAT(iter.next(), Eq(v3));  // v2 replacement
   ASSERT_THAT(iter.next(), Eq(v1));  // v3 replacement
   ASSERT_FALSE(iter.hasNext());
 
-  shard->put(k2, v1);
-  shard->put(k2, v2);
-  shard->put(k2, v3);
+  table->put(k2, v1);
+  table->put(k2, v2);
+  table->put(k2, v3);
   auto rotate_v2_or_v3 = [&](const Bytes& value) {
     if (value == v2) return v3;
     if (value == v3) return v1;
     return std::string();
   };
-  ASSERT_THAT(shard->replaceValues(k2, rotate_v2_or_v3), Eq(2));
-  iter = shard->get(k2);
+  ASSERT_THAT(table->replaceValues(k2, rotate_v2_or_v3), Eq(2));
+  iter = table->get(k2);
   ASSERT_THAT(iter.next(), Eq(v1));
   ASSERT_THAT(iter.next(), Eq(v3));  // v2 replacement
   ASSERT_THAT(iter.next(), Eq(v1));  // v3 replacement
   ASSERT_FALSE(iter.hasNext());
 }
 
-TEST_F(ShardTestFixture, ForEachKeyIgnoresEmptyLists) {
-  auto shard = openOrCreateShard(prefix);
-  shard->put(k1, v1);
-  shard->put(k2, v1);
-  shard->put(k3, v1);
+TEST_F(TableTestFixture, ForEachKeyIgnoresEmptyLists) {
+  auto table = openOrCreateTable(prefix);
+  table->put(k1, v1);
+  table->put(k2, v1);
+  table->put(k3, v1);
   std::vector<std::string> keys;
   auto collect = [&](const Bytes& key) { keys.push_back(key.toString()); };
-  shard->forEachKey(collect);
+  table->forEachKey(collect);
   ASSERT_THAT(keys, UnorderedElementsAre(k1, k2, k3));
 
   keys.clear();
-  shard->removeKey(k1);
-  shard->forEachKey(collect);
+  table->removeKey(k1);
+  table->forEachKey(collect);
   ASSERT_THAT(keys, UnorderedElementsAre(k2, k3));
 
   keys.clear();
-  shard->removeKey(k2);
-  shard->forEachKey(collect);
+  table->removeKey(k2);
+  table->forEachKey(collect);
   ASSERT_THAT(keys, UnorderedElementsAre(k3));
 
   keys.clear();
-  shard->removeKey(k3);
-  shard->forEachKey(collect);
+  table->removeKey(k3);
+  table->forEachKey(collect);
   ASSERT_TRUE(keys.empty());
 
-  shard->put(k1, v1);
-  shard->put(k2, v1);
-  shard->put(k3, v1);
-  shard->forEachKey(collect);
+  table->put(k1, v1);
+  table->put(k2, v1);
+  table->put(k3, v1);
+  table->forEachKey(collect);
   ASSERT_THAT(keys, UnorderedElementsAre(k1, k2, k3));
 
   auto any_value = [](const Bytes& /* value */) { return true; };
 
   keys.clear();
-  shard->removeValues(k1, any_value);
-  shard->forEachKey(collect);
+  table->removeValues(k1, any_value);
+  table->forEachKey(collect);
   ASSERT_THAT(keys, UnorderedElementsAre(k2, k3));
 
   keys.clear();
-  shard->removeValues(k2, any_value);
-  shard->forEachKey(collect);
+  table->removeValues(k2, any_value);
+  table->forEachKey(collect);
   ASSERT_THAT(keys, UnorderedElementsAre(k3));
 
   keys.clear();
-  shard->removeValues(k3, any_value);
-  shard->forEachKey(collect);
+  table->removeValues(k3, any_value);
+  table->forEachKey(collect);
   ASSERT_TRUE(keys.empty());
 }
 
-TEST_F(ShardTestFixture, ForEachValueVisitsAllValues) {
-  auto shard = openOrCreateShard(prefix);
-  shard->put(k1, v1);
-  shard->put(k2, v1);
-  shard->put(k2, v2);
+TEST_F(TableTestFixture, ForEachValueVisitsAllValues) {
+  auto table = openOrCreateTable(prefix);
+  table->put(k1, v1);
+  table->put(k2, v1);
+  table->put(k2, v2);
   std::vector<std::string> values;
   auto collect = [&](const Bytes& val) { values.push_back(val.toString()); };
-  shard->forEachValue(k1, collect);
+  table->forEachValue(k1, collect);
   ASSERT_THAT(values, UnorderedElementsAre(v1));
 
   values.clear();
-  shard->forEachValue(k2, collect);
+  table->forEachValue(k2, collect);
   ASSERT_THAT(values, UnorderedElementsAre(v1, v2));
 
   values.clear();
-  shard->forEachValue(k3, collect);
+  table->forEachValue(k3, collect);
   ASSERT_TRUE(values.empty());
 }
 
-TEST_F(ShardTestFixture, ForEachEntryIgnoresEmptyLists) {
-  auto shard = openOrCreateShard(prefix);
-  shard->put(k1, v1);
-  shard->put(k2, v1);
-  shard->put(k2, v2);
-  shard->put(k3, v1);
-  shard->put(k3, v2);
-  shard->put(k3, v3);
+TEST_F(TableTestFixture, ForEachEntryIgnoresEmptyLists) {
+  auto table = openOrCreateTable(prefix);
+  table->put(k1, v1);
+  table->put(k2, v1);
+  table->put(k2, v2);
+  table->put(k3, v1);
+  table->put(k3, v2);
+  table->put(k3, v3);
   std::map<std::string, std::vector<std::string>> mapping;
   auto collect = [&](const Bytes& key, SharedListIterator&& iter) {
     while (iter.hasNext()) {
       mapping[key.toString()].push_back(iter.next().toString());
     }
   };
-  shard->forEachEntry(collect);
+  table->forEachEntry(collect);
   ASSERT_THAT(mapping.size(), Eq(3));
   ASSERT_THAT(mapping.at(k1), ElementsAre(v1));
   ASSERT_THAT(mapping.at(k2), ElementsAre(v1, v2));
   ASSERT_THAT(mapping.at(k3), ElementsAre(v1, v2, v3));
 
   mapping.clear();
-  shard->removeValues(k2, [](const Bytes& /* value */) { return true; });
-  shard->forEachEntry(collect);
+  table->removeValues(k2, [](const Bytes& /* value */) { return true; });
+  table->forEachEntry(collect);
   ASSERT_THAT(mapping.size(), Eq(2));
   ASSERT_THAT(mapping.at(k1), ElementsAre(v1));
   ASSERT_THAT(mapping.at(k3), ElementsAre(v1, v2, v3));
 }
 
-TEST_F(ShardTestFixture, GetStatsReturnsCorrectValues) {
-  auto shard = openOrCreateShard(prefix);
-  shard->put("k", "vvvvv");
-  shard->put("kk", "vvvv");
-  shard->put("kk", "vvvv");
-  shard->put("kkk", "vvv");
-  shard->put("kkk", "vvv");
-  shard->put("kkk", "vvv");
-  shard->put("kkkk", "vv");
-  shard->put("kkkk", "vv");
-  shard->put("kkkk", "vv");
-  shard->put("kkkk", "vv");
-  shard->put("kkkkk", "v");
-  shard->put("kkkkk", "v");
-  shard->put("kkkkk", "v");
-  shard->put("kkkkk", "v");
-  shard->put("kkkkk", "v");
+TEST_F(TableTestFixture, GetStatsReturnsCorrectValues) {
+  auto table = openOrCreateTable(prefix);
+  table->put("k", "vvvvv");
+  table->put("kk", "vvvv");
+  table->put("kk", "vvvv");
+  table->put("kkk", "vvv");
+  table->put("kkk", "vvv");
+  table->put("kkk", "vvv");
+  table->put("kkkk", "vv");
+  table->put("kkkk", "vv");
+  table->put("kkkk", "vv");
+  table->put("kkkk", "vv");
+  table->put("kkkkk", "v");
+  table->put("kkkkk", "v");
+  table->put("kkkkk", "v");
+  table->put("kkkkk", "v");
+  table->put("kkkkk", "v");
 
-  auto stats = shard->getStats();
-  ASSERT_THAT(stats.block_size, Eq(Shard::Options().block_size));
+  auto stats = table->getStats();
+  ASSERT_THAT(stats.block_size, Eq(Table::Options().block_size));
   ASSERT_THAT(stats.key_size_avg, Eq(3));
   ASSERT_THAT(stats.key_size_max, Eq(5));
   ASSERT_THAT(stats.key_size_min, Eq(1));
@@ -453,9 +453,9 @@ TEST_F(ShardTestFixture, GetStatsReturnsCorrectValues) {
   ASSERT_THAT(stats.num_values_total, Eq(15));
   ASSERT_THAT(stats.num_values_valid, Eq(15));
 
-  shard->removeKey("kkkkk");
-  stats = shard->getStats();
-  ASSERT_THAT(stats.block_size, Eq(Shard::Options().block_size));
+  table->removeKey("kkkkk");
+  stats = table->getStats();
+  ASSERT_THAT(stats.block_size, Eq(Table::Options().block_size));
   ASSERT_THAT(stats.key_size_avg, Eq(2));
   ASSERT_THAT(stats.key_size_max, Eq(4));
   ASSERT_THAT(stats.key_size_min, Eq(1));
@@ -469,137 +469,137 @@ TEST_F(ShardTestFixture, GetStatsReturnsCorrectValues) {
   ASSERT_THAT(stats.num_values_valid, Eq(10));
 }
 
-TEST_F(ShardTestFixture, GetStatsReturnsCorrectValuesAfterRemovingKeys) {
+TEST_F(TableTestFixture, GetStatsReturnsCorrectValuesAfterRemovingKeys) {
   {
-    auto shard = openOrCreateShard(prefix);
-    shard->put("k", "vvvvv");
-    shard->put("kk", "vvvv");
-    shard->put("kk", "vvvv");
-    shard->put("kkk", "vvv");
-    shard->put("kkk", "vvv");
-    shard->put("kkk", "vvv");
-    shard->put("kkkk", "vv");
-    shard->put("kkkk", "vv");
-    shard->put("kkkk", "vv");
-    shard->put("kkkk", "vv");
-    shard->put("kkkkk", "v");
-    shard->put("kkkkk", "v");
-    shard->put("kkkkk", "v");
-    shard->put("kkkkk", "v");
-    shard->put("kkkkk", "v");
+    auto table = openOrCreateTable(prefix);
+    table->put("k", "vvvvv");
+    table->put("kk", "vvvv");
+    table->put("kk", "vvvv");
+    table->put("kkk", "vvv");
+    table->put("kkk", "vvv");
+    table->put("kkk", "vvv");
+    table->put("kkkk", "vv");
+    table->put("kkkk", "vv");
+    table->put("kkkk", "vv");
+    table->put("kkkk", "vv");
+    table->put("kkkkk", "v");
+    table->put("kkkkk", "v");
+    table->put("kkkkk", "v");
+    table->put("kkkkk", "v");
+    table->put("kkkkk", "v");
 
-    shard->removeKey("k");
-    shard->removeKeys([](const Bytes& key) { return key == "kk"; });
+    table->removeKey("k");
+    table->removeKeys([](const Bytes& key) { return key == "kk"; });
 
-    const auto stats = shard->getStats();
+    const auto stats = table->getStats();
     ASSERT_THAT(stats.num_keys_total, Eq(5));
     ASSERT_THAT(stats.num_keys_valid, Eq(3));
     ASSERT_THAT(stats.num_values_total, Eq(15));
     ASSERT_THAT(stats.num_values_valid, Eq(12));
   }
 
-  auto shard = openOrCreateShard(prefix);
-  const auto stats = shard->getStats();
+  auto table = openOrCreateTable(prefix);
+  const auto stats = table->getStats();
   ASSERT_THAT(stats.num_keys_total, Eq(3));
   ASSERT_THAT(stats.num_keys_valid, Eq(3));
   ASSERT_THAT(stats.num_values_total, Eq(15));
   ASSERT_THAT(stats.num_values_valid, Eq(12));
 }
 
-TEST_F(ShardTestFixture, GetStatsReturnsCorrectValuesAfterRemovingValues) {
+TEST_F(TableTestFixture, GetStatsReturnsCorrectValuesAfterRemovingValues) {
   {
-    auto shard = openOrCreateShard(prefix);
-    shard->put("k", "vvvvv");
-    shard->put("kk", "vvvv");
-    shard->put("kk", "vvvv");
-    shard->put("kkk", "vvv");
-    shard->put("kkk", "vvv");
-    shard->put("kkk", "vvv");
-    shard->put("kkkk", "vv");
-    shard->put("kkkk", "vv");
-    shard->put("kkkk", "vv");
-    shard->put("kkkk", "vv");
-    shard->put("kkkkk", "v");
-    shard->put("kkkkk", "v");
-    shard->put("kkkkk", "v");
-    shard->put("kkkkk", "v");
-    shard->put("kkkkk", "v");
+    auto table = openOrCreateTable(prefix);
+    table->put("k", "vvvvv");
+    table->put("kk", "vvvv");
+    table->put("kk", "vvvv");
+    table->put("kkk", "vvv");
+    table->put("kkk", "vvv");
+    table->put("kkk", "vvv");
+    table->put("kkkk", "vv");
+    table->put("kkkk", "vv");
+    table->put("kkkk", "vv");
+    table->put("kkkk", "vv");
+    table->put("kkkkk", "v");
+    table->put("kkkkk", "v");
+    table->put("kkkkk", "v");
+    table->put("kkkkk", "v");
+    table->put("kkkkk", "v");
 
-    shard->removeValue("k", Equal("vvvvv"));
-    shard->removeValues("kk", [](const Bytes& val) { return val == "vvvv"; });
+    table->removeValue("k", Equal("vvvvv"));
+    table->removeValues("kk", [](const Bytes& val) { return val == "vvvv"; });
 
-    const auto stats = shard->getStats();
+    const auto stats = table->getStats();
     ASSERT_THAT(stats.num_keys_total, Eq(5));
     ASSERT_THAT(stats.num_keys_valid, Eq(3));
     ASSERT_THAT(stats.num_values_total, Eq(15));
     ASSERT_THAT(stats.num_values_valid, Eq(12));
   }
 
-  auto shard = openOrCreateShard(prefix);
-  const auto stats = shard->getStats();
+  auto table = openOrCreateTable(prefix);
+  const auto stats = table->getStats();
   ASSERT_THAT(stats.num_keys_total, Eq(3));
   ASSERT_THAT(stats.num_keys_valid, Eq(3));
   ASSERT_THAT(stats.num_values_total, Eq(15));
   ASSERT_THAT(stats.num_values_valid, Eq(12));
 }
 
-TEST_F(ShardTestFixture, IsReadOnlyReturnsCorrectValue) {
+TEST_F(TableTestFixture, IsReadOnlyReturnsCorrectValue) {
   {
-    auto shard = openOrCreateShard(prefix);
-    ASSERT_FALSE(shard->isReadOnly());
+    auto table = openOrCreateTable(prefix);
+    ASSERT_FALSE(table->isReadOnly());
   }
   {
-    auto shard = openOrCreateShardAsReadOnly(prefix);
-    ASSERT_TRUE(shard->isReadOnly());
+    auto table = openOrCreateTableAsReadOnly(prefix);
+    ASSERT_TRUE(table->isReadOnly());
   }
 }
 
-TEST_F(ShardTestFixture, PutThrowsIfOpenedAsReadOnly) {
-  auto shard = openOrCreateShardAsReadOnly(prefix);
-  ASSERT_THROW(shard->put(k1, v1), mt::AssertionError);
+TEST_F(TableTestFixture, PutThrowsIfOpenedAsReadOnly) {
+  auto table = openOrCreateTableAsReadOnly(prefix);
+  ASSERT_THROW(table->put(k1, v1), mt::AssertionError);
 }
 
-TEST_F(ShardTestFixture, RemoveKeyThrowsIfOpenedAsReadOnly) {
-  auto shard = openOrCreateShardAsReadOnly(prefix);
-  ASSERT_THROW(shard->removeKey(k1), mt::AssertionError);
+TEST_F(TableTestFixture, RemoveKeyThrowsIfOpenedAsReadOnly) {
+  auto table = openOrCreateTableAsReadOnly(prefix);
+  ASSERT_THROW(table->removeKey(k1), mt::AssertionError);
 }
 
-TEST_F(ShardTestFixture, RemoveKeysThrowsIfOpenedAsReadOnly) {
-  auto shard = openOrCreateShardAsReadOnly(prefix);
-  ASSERT_THROW(shard->removeKeys([](const Bytes& /* key */) { return true; }),
+TEST_F(TableTestFixture, RemoveKeysThrowsIfOpenedAsReadOnly) {
+  auto table = openOrCreateTableAsReadOnly(prefix);
+  ASSERT_THROW(table->removeKeys([](const Bytes& /* key */) { return true; }),
                mt::AssertionError);
 }
 
-TEST_F(ShardTestFixture, RemoveValueThrowsIfOpenedAsReadOnly) {
-  auto shard = openOrCreateShardAsReadOnly(prefix);
-  ASSERT_THROW(shard->removeValue(k1, Equal(v1)), mt::AssertionError);
+TEST_F(TableTestFixture, RemoveValueThrowsIfOpenedAsReadOnly) {
+  auto table = openOrCreateTableAsReadOnly(prefix);
+  ASSERT_THROW(table->removeValue(k1, Equal(v1)), mt::AssertionError);
 }
 
-TEST_F(ShardTestFixture, RemoveValuesThrowsIfOpenedAsReadOnly) {
-  auto shard = openOrCreateShardAsReadOnly(prefix);
-  ASSERT_THROW(shard->removeValues(k1, Equal(v1)), mt::AssertionError);
+TEST_F(TableTestFixture, RemoveValuesThrowsIfOpenedAsReadOnly) {
+  auto table = openOrCreateTableAsReadOnly(prefix);
+  ASSERT_THROW(table->removeValues(k1, Equal(v1)), mt::AssertionError);
 }
 
-TEST_F(ShardTestFixture, ReplaceValueThrowsIfOpenedAsReadOnly) {
-  auto shard = openOrCreateShardAsReadOnly(prefix);
-  ASSERT_THROW(shard->replaceValue(k1, v1, v2), mt::AssertionError);
+TEST_F(TableTestFixture, ReplaceValueThrowsIfOpenedAsReadOnly) {
+  auto table = openOrCreateTableAsReadOnly(prefix);
+  ASSERT_THROW(table->replaceValue(k1, v1, v2), mt::AssertionError);
 }
 
-TEST_F(ShardTestFixture, ReplaceValuesThrowsIfOpenedAsReadOnly) {
-  auto shard = openOrCreateShardAsReadOnly(prefix);
-  ASSERT_THROW(shard->replaceValues(k1, v1, v2), mt::AssertionError);
+TEST_F(TableTestFixture, ReplaceValuesThrowsIfOpenedAsReadOnly) {
+  auto table = openOrCreateTableAsReadOnly(prefix);
+  ASSERT_THROW(table->replaceValues(k1, v1, v2), mt::AssertionError);
 }
 
-TEST_F(ShardTestFixture, GetBlockSizeReturnsCorrectValue) {
-  auto shard = openOrCreateShard(prefix);
-  ASSERT_THAT(shard->getBlockSize(), Eq(Shard::Options().block_size));
+TEST_F(TableTestFixture, GetBlockSizeReturnsCorrectValue) {
+  auto table = openOrCreateTable(prefix);
+  ASSERT_THAT(table->getBlockSize(), Eq(Table::Options().block_size));
 }
 
 // -----------------------------------------------------------------------------
-// class Shard / Mutability
+// class Table / Mutability
 // -----------------------------------------------------------------------------
 
-struct ShardTestWithParam : public testing::TestWithParam<int> {
+struct TableTestWithParam : public testing::TestWithParam<int> {
   void SetUp() override {
     boost::filesystem::remove_all(directory);
     boost::filesystem::create_directory(directory);
@@ -607,21 +607,21 @@ struct ShardTestWithParam : public testing::TestWithParam<int> {
 
   void TearDown() override { boost::filesystem::remove_all(directory); }
 
-  const boost::filesystem::path directory = "/tmp/multimap.ShardTestWithParam";
-  const boost::filesystem::path prefix = directory / "shard";
+  const boost::filesystem::path directory = "/tmp/multimap.TableTestWithParam";
+  const boost::filesystem::path prefix = directory / "table";
 };
 
-TEST_P(ShardTestWithParam, PutDataThenReadAll) {
+TEST_P(TableTestWithParam, PutDataThenReadAll) {
   {
-    auto shard = openOrCreateShard(prefix);
+    auto table = openOrCreateTable(prefix);
     for (auto k = 0; k != GetParam(); ++k) {
       for (auto v = 0; v != GetParam(); ++v) {
-        shard->put(std::to_string(k), std::to_string(v));
+        table->put(std::to_string(k), std::to_string(v));
       }
     }
 
     for (auto k = 0; k != GetParam(); ++k) {
-      auto iter = shard->get(std::to_string(k));
+      auto iter = table->get(std::to_string(k));
       for (auto v = 0; v != GetParam(); ++v) {
         ASSERT_TRUE(iter.hasNext());
         ASSERT_THAT(iter.next(), std::to_string(v));
@@ -630,9 +630,9 @@ TEST_P(ShardTestWithParam, PutDataThenReadAll) {
     }
   }
 
-  auto shard = openOrCreateShard(prefix);
+  auto table = openOrCreateTable(prefix);
   for (auto k = 0; k != GetParam(); ++k) {
-    auto iter = shard->get(std::to_string(k));
+    auto iter = table->get(std::to_string(k));
     for (auto v = 0; v != GetParam(); ++v) {
       ASSERT_TRUE(iter.hasNext());
       ASSERT_THAT(iter.next(), std::to_string(v));
@@ -641,26 +641,26 @@ TEST_P(ShardTestWithParam, PutDataThenReadAll) {
   }
 }
 
-TEST_P(ShardTestWithParam, PutDataThenRemoveSomeThenReadAll) {
+TEST_P(TableTestWithParam, PutDataThenRemoveSomeThenReadAll) {
   auto is_odd = [](const Bytes& b) { return std::stoul(b.toString()) % 2; };
   {
-    auto shard = openOrCreateShard(prefix);
+    auto table = openOrCreateTable(prefix);
     for (auto k = 0; k != GetParam(); ++k) {
       for (auto v = 0; v != GetParam(); ++v) {
-        shard->put(std::to_string(k), std::to_string(v));
+        table->put(std::to_string(k), std::to_string(v));
       }
     }
 
     for (auto k = 0; k != GetParam(); ++k) {
       const auto key = std::to_string(k);
       if (is_odd(key)) {
-        shard->removeValues(key, is_odd);
+        table->removeValues(key, is_odd);
       }
     }
 
     for (auto k = 0; k != GetParam(); ++k) {
       const auto key = std::to_string(k);
-      auto iter = shard->get(key);
+      auto iter = table->get(key);
       if (is_odd(key)) {
         for (auto v = 0; v != GetParam(); ++v) {
           const auto value = std::to_string(v);
@@ -682,10 +682,10 @@ TEST_P(ShardTestWithParam, PutDataThenRemoveSomeThenReadAll) {
     }
   }
 
-  auto shard = openOrCreateShard(prefix);
+  auto table = openOrCreateTable(prefix);
   for (auto k = 0; k != GetParam(); ++k) {
     const auto key = std::to_string(k);
-    auto iter = shard->get(key);
+    auto iter = table->get(key);
     if (is_odd(key)) {
       for (auto v = 0; v != GetParam(); ++v) {
         const auto value = std::to_string(v);
@@ -707,48 +707,48 @@ TEST_P(ShardTestWithParam, PutDataThenRemoveSomeThenReadAll) {
   }
 }
 
-INSTANTIATE_TEST_CASE_P(Parameterized, ShardTestWithParam,
+INSTANTIATE_TEST_CASE_P(Parameterized, TableTestWithParam,
                         testing::Values(0, 1, 2, 10, 100, 1000));
 
-// INSTANTIATE_TEST_CASE_P(ParameterizedLongRunning, ShardTestWithParam,
+// INSTANTIATE_TEST_CASE_P(ParameterizedLongRunning, TableTestWithParam,
 //                         testing::Values(10000, 100000));
 
 // -----------------------------------------------------------------------------
-// class Shard / Concurrency
+// class Table / Concurrency
 // -----------------------------------------------------------------------------
 
 const auto NULL_PROCEDURE = [](const Bytes&) {};
 const auto TRUE_PREDICATE = [](const Bytes&) { return true; };
 const auto EMPTY_FUNCTION = [](const Bytes&) { return std::string(); };
 
-TEST_F(ShardTestFixture, GetDifferentListsDoesNotBlock) {
-  auto shard = openOrCreateShard(prefix);
-  shard->put(k1, v1);
-  shard->put(k2, v1);
-  auto iter1 = shard->get(k1);
+TEST_F(TableTestFixture, GetDifferentListsDoesNotBlock) {
+  auto table = openOrCreateTable(prefix);
+  table->put(k1, v1);
+  table->put(k2, v1);
+  auto iter1 = table->get(k1);
   ASSERT_TRUE(iter1.hasNext());
-  auto iter2 = shard->get(k2);
+  auto iter2 = table->get(k2);
   ASSERT_TRUE(iter2.hasNext());
 }
 
-TEST_F(ShardTestFixture, GetSameListTwiceDoesNotBlock) {
-  auto shard = openOrCreateShard(prefix);
-  shard->put(k1, v1);
-  auto iter1 = shard->get(k1);
+TEST_F(TableTestFixture, GetSameListTwiceDoesNotBlock) {
+  auto table = openOrCreateTable(prefix);
+  table->put(k1, v1);
+  auto iter1 = table->get(k1);
   ASSERT_TRUE(iter1.hasNext());
-  auto iter2 = shard->get(k1);
+  auto iter2 = table->get(k1);
   ASSERT_TRUE(iter2.hasNext());
 }
 
-TEST_F(ShardTestFixture, RemoveKeyBlocksIfListIsLocked) {
-  auto shard = openOrCreateShard(prefix);
-  shard->put(k1, v1);
+TEST_F(TableTestFixture, RemoveKeyBlocksIfListIsLocked) {
+  auto table = openOrCreateTable(prefix);
+  table->put(k1, v1);
   auto thread_is_running = true;
   {
-    auto iter = shard->get(k1);
+    auto iter = table->get(k1);
     ASSERT_TRUE(iter.hasNext());
     std::thread thread([&] {
-      shard->removeKey(k1);
+      table->removeKey(k1);
       thread_is_running = false;
     });
     thread.detach();
@@ -759,15 +759,15 @@ TEST_F(ShardTestFixture, RemoveKeyBlocksIfListIsLocked) {
   ASSERT_FALSE(thread_is_running);
 }
 
-TEST_F(ShardTestFixture, RemoveKeysBlocksIfListIsLocked) {
-  auto shard = openOrCreateShard(prefix);
-  shard->put(k1, v1);
+TEST_F(TableTestFixture, RemoveKeysBlocksIfListIsLocked) {
+  auto table = openOrCreateTable(prefix);
+  table->put(k1, v1);
   auto thread_is_running = true;
   {
-    auto iter = shard->get(k1);
+    auto iter = table->get(k1);
     ASSERT_TRUE(iter.hasNext());
     std::thread thread([&] {
-      shard->removeKeys(TRUE_PREDICATE);
+      table->removeKeys(TRUE_PREDICATE);
       thread_is_running = false;
     });
     thread.detach();
@@ -778,15 +778,15 @@ TEST_F(ShardTestFixture, RemoveKeysBlocksIfListIsLocked) {
   ASSERT_FALSE(thread_is_running);
 }
 
-TEST_F(ShardTestFixture, RemoveValueBlocksIfListIsLocked) {
-  auto shard = openOrCreateShard(prefix);
-  shard->put(k1, v1);
+TEST_F(TableTestFixture, RemoveValueBlocksIfListIsLocked) {
+  auto table = openOrCreateTable(prefix);
+  table->put(k1, v1);
   auto thread_is_running = true;
   {
-    auto iter = shard->get(k1);
+    auto iter = table->get(k1);
     ASSERT_TRUE(iter.hasNext());
     std::thread thread([&] {
-      shard->removeValue(k1, TRUE_PREDICATE);
+      table->removeValue(k1, TRUE_PREDICATE);
       thread_is_running = false;
     });
     thread.detach();
@@ -797,15 +797,15 @@ TEST_F(ShardTestFixture, RemoveValueBlocksIfListIsLocked) {
   ASSERT_FALSE(thread_is_running);
 }
 
-TEST_F(ShardTestFixture, RemoveValuesBlocksIfListIsLocked) {
-  auto shard = openOrCreateShard(prefix);
-  shard->put(k1, v1);
+TEST_F(TableTestFixture, RemoveValuesBlocksIfListIsLocked) {
+  auto table = openOrCreateTable(prefix);
+  table->put(k1, v1);
   auto thread_is_running = true;
   {
-    auto iter = shard->get(k1);
+    auto iter = table->get(k1);
     ASSERT_TRUE(iter.hasNext());
     std::thread thread([&] {
-      shard->removeValues(k1, TRUE_PREDICATE);
+      table->removeValues(k1, TRUE_PREDICATE);
       thread_is_running = false;
     });
     thread.detach();
@@ -816,15 +816,15 @@ TEST_F(ShardTestFixture, RemoveValuesBlocksIfListIsLocked) {
   ASSERT_FALSE(thread_is_running);
 }
 
-TEST_F(ShardTestFixture, ReplaceValueBlocksIfListIsLocked) {
-  auto shard = openOrCreateShard(prefix);
-  shard->put(k1, v1);
+TEST_F(TableTestFixture, ReplaceValueBlocksIfListIsLocked) {
+  auto table = openOrCreateTable(prefix);
+  table->put(k1, v1);
   auto thread_is_running = true;
   {
-    auto iter = shard->get(k1);
+    auto iter = table->get(k1);
     ASSERT_TRUE(iter.hasNext());
     std::thread thread([&] {
-      shard->replaceValue(k1, EMPTY_FUNCTION);
+      table->replaceValue(k1, EMPTY_FUNCTION);
       thread_is_running = false;
     });
     thread.detach();
@@ -835,15 +835,15 @@ TEST_F(ShardTestFixture, ReplaceValueBlocksIfListIsLocked) {
   ASSERT_FALSE(thread_is_running);
 }
 
-TEST_F(ShardTestFixture, ReplaceValuesBlocksIfListIsLocked) {
-  auto shard = openOrCreateShard(prefix);
-  shard->put(k1, v1);
+TEST_F(TableTestFixture, ReplaceValuesBlocksIfListIsLocked) {
+  auto table = openOrCreateTable(prefix);
+  table->put(k1, v1);
   auto thread_is_running = true;
   {
-    auto iter = shard->get(k1);
+    auto iter = table->get(k1);
     ASSERT_TRUE(iter.hasNext());
     std::thread thread([&] {
-      shard->replaceValues(k1, EMPTY_FUNCTION);
+      table->replaceValues(k1, EMPTY_FUNCTION);
       thread_is_running = false;
     });
     thread.detach();
@@ -854,12 +854,12 @@ TEST_F(ShardTestFixture, ReplaceValuesBlocksIfListIsLocked) {
   ASSERT_FALSE(thread_is_running);
 }
 
-TEST_F(ShardTestFixture, ForEachKeyDoesNotBlockIfListIsLocked) {
-  auto shard = openOrCreateShard(prefix);
-  shard->put(k1, v1);
+TEST_F(TableTestFixture, ForEachKeyDoesNotBlockIfListIsLocked) {
+  auto table = openOrCreateTable(prefix);
+  table->put(k1, v1);
   auto thread_is_running = true;
   std::thread thread([&] {
-    shard->forEachKey(NULL_PROCEDURE);
+    table->forEachKey(NULL_PROCEDURE);
     thread_is_running = false;
   });
   thread.detach();
@@ -867,12 +867,12 @@ TEST_F(ShardTestFixture, ForEachKeyDoesNotBlockIfListIsLocked) {
   ASSERT_FALSE(thread_is_running);
 }
 
-TEST_F(ShardTestFixture, ForEachValueDoesNotBlockIfListIsLocked) {
-  auto shard = openOrCreateShard(prefix);
-  shard->put(k1, v1);
+TEST_F(TableTestFixture, ForEachValueDoesNotBlockIfListIsLocked) {
+  auto table = openOrCreateTable(prefix);
+  table->put(k1, v1);
   auto thread_is_running = true;
   std::thread thread([&] {
-    shard->forEachValue(k1, NULL_PROCEDURE);
+    table->forEachValue(k1, NULL_PROCEDURE);
     thread_is_running = false;
   });
   thread.detach();
@@ -880,12 +880,12 @@ TEST_F(ShardTestFixture, ForEachValueDoesNotBlockIfListIsLocked) {
   ASSERT_FALSE(thread_is_running);
 }
 
-TEST_F(ShardTestFixture, ForEachEntryDoesNotBlockIfListIsLocked) {
-  auto shard = openOrCreateShard(prefix);
-  shard->put(k1, v1);
+TEST_F(TableTestFixture, ForEachEntryDoesNotBlockIfListIsLocked) {
+  auto table = openOrCreateTable(prefix);
+  table->put(k1, v1);
   auto thread_is_running = true;
   std::thread thread([&] {
-    shard->forEachEntry([](const Bytes&, Shard::Iterator&&) {});
+    table->forEachEntry([](const Bytes&, Table::Iterator&&) {});
     thread_is_running = false;
   });
   thread.detach();
@@ -894,12 +894,12 @@ TEST_F(ShardTestFixture, ForEachEntryDoesNotBlockIfListIsLocked) {
 }
 
 // -----------------------------------------------------------------------------
-// class Shard::Stats
+// class Table::Stats
 // -----------------------------------------------------------------------------
 
-TEST(ShardStatsTest, NamesAndToVectorHaveSameDimension) {
-  const auto names = Shard::Stats::names();
-  const auto vector = Shard::Stats().toVector();
+TEST(TableStatsTest, NamesAndToVectorHaveSameDimension) {
+  const auto names = Table::Stats::names();
+  const auto vector = Table::Stats().toVector();
   ASSERT_THAT(names.size(), Eq(vector.size()));
 }
 

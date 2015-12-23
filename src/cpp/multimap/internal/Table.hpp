@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTIMAP_INTERNAL_SHARD_HPP_INCLUDED
-#define MULTIMAP_INTERNAL_SHARD_HPP_INCLUDED
+#ifndef MULTIMAP_INTERNAL_TABLE_HPP_INCLUDED
+#define MULTIMAP_INTERNAL_TABLE_HPP_INCLUDED
 
 #include <memory>
 #include <type_traits>
@@ -31,7 +31,7 @@
 namespace multimap {
 namespace internal {
 
-class Shard : mt::Resource {
+class Table : mt::Resource {
  public:
   struct Limits {
     static uint32_t maxKeySize();
@@ -78,19 +78,19 @@ class Shard : mt::Resource {
   };
 
   static_assert(std::is_standard_layout<Stats>::value,
-                "Shard::Stats is no standard layout type");
+                "Table::Stats is no standard layout type");
 
   static_assert(mt::hasExpectedSize<Stats>(96, 96),
-                "Shard::Stats does not have expected size");
+                "Table::Stats does not have expected size");
   // sizeof(Stats) must be equal on 32- and 64-bit systems to be portable.
 
   typedef SharedListIterator Iterator;
 
-  explicit Shard(const boost::filesystem::path& file_prefix);
+  explicit Table(const boost::filesystem::path& file_prefix);
 
-  Shard(const boost::filesystem::path& file_prefix, const Options& options);
+  Table(const boost::filesystem::path& file_prefix, const Options& options);
 
-  ~Shard();
+  ~Table();
 
   void put(const Bytes& key, const Bytes& value) {
     MT_REQUIRE_FALSE(isReadOnly());
@@ -200,7 +200,7 @@ class Shard : mt::Resource {
   }
 
   Stats getStats() const;
-  // Returns various statistics about the shard.
+  // Returns various statistics about the table.
   // The data is collected upon request and triggers a full table scan.
 
   bool isReadOnly() const { return store_->isReadOnly(); }
@@ -316,4 +316,4 @@ class Shard : mt::Resource {
 }  // namespace internal
 }  // namespace multimap
 
-#endif  // MULTIMAP_INTERNAL_SHARD_HPP_INCLUDED
+#endif  // MULTIMAP_INTERNAL_TABLE_HPP_INCLUDED

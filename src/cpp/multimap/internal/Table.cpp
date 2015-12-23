@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "multimap/internal/Shard.hpp"
+#include "multimap/internal/Table.hpp"
 
 #include <boost/filesystem/operations.hpp>
 #include "multimap/internal/Base64.hpp"
@@ -23,11 +23,11 @@
 namespace multimap {
 namespace internal {
 
-uint32_t Shard::Limits::maxKeySize() { return Varint::Limits::MAX_N4; }
+uint32_t Table::Limits::maxKeySize() { return Varint::Limits::MAX_N4; }
 
-uint32_t Shard::Limits::maxValueSize() { return List::Limits::maxValueSize(); }
+uint32_t Table::Limits::maxValueSize() { return List::Limits::maxValueSize(); }
 
-const std::vector<std::string>& Shard::Stats::names() {
+const std::vector<std::string>& Table::Stats::names() {
   static std::vector<std::string> names = {
       "block_size",     "key_size_avg",     "key_size_max",
       "key_size_min",   "list_size_avg",    "list_size_max",
@@ -36,19 +36,19 @@ const std::vector<std::string>& Shard::Stats::names() {
   return names;
 }
 
-Shard::Stats Shard::Stats::readFromFile(const boost::filesystem::path& file) {
+Table::Stats Table::Stats::readFromFile(const boost::filesystem::path& file) {
   Stats stats;
   const auto stream = mt::fopen(file, "r");
   mt::fread(stream.get(), &stats, sizeof stats);
   return stats;
 }
 
-void Shard::Stats::writeToFile(const boost::filesystem::path& file) const {
+void Table::Stats::writeToFile(const boost::filesystem::path& file) const {
   const auto stream = mt::fopen(file.c_str(), "w");
   mt::fwrite(stream.get(), this, sizeof *this);
 }
 
-Shard::Stats Shard::Stats::fromProperties(const mt::Properties& properties) {
+Table::Stats Table::Stats::fromProperties(const mt::Properties& properties) {
   Stats stats;
   stats.block_size = std::stoul(properties.at("block_size"));
   stats.key_size_avg = std::stoul(properties.at("key_size_avg"));
@@ -65,7 +65,7 @@ Shard::Stats Shard::Stats::fromProperties(const mt::Properties& properties) {
   return stats;
 }
 
-mt::Properties Shard::Stats::toProperties() const {
+mt::Properties Table::Stats::toProperties() const {
   mt::Properties properties;
   properties["block_size"] = std::to_string(block_size);
   properties["key_size_avg"] = std::to_string(key_size_avg);
@@ -82,14 +82,14 @@ mt::Properties Shard::Stats::toProperties() const {
   return properties;
 }
 
-std::vector<uint64_t> Shard::Stats::toVector() const {
+std::vector<uint64_t> Table::Stats::toVector() const {
   return {block_size,     key_size_avg,   key_size_max,     key_size_min,
           list_size_avg,  list_size_max,  list_size_min,    num_blocks,
           num_keys_total, num_keys_valid, num_values_total, num_values_valid};
 }
 
-Shard::Stats Shard::Stats::total(const std::vector<Stats>& stats) {
-  Shard::Stats total;
+Table::Stats Table::Stats::total(const std::vector<Stats>& stats) {
+  Table::Stats total;
   for (const auto& stat : stats) {
     if (total.block_size == 0) {
       total.block_size = stat.block_size;
@@ -128,8 +128,8 @@ Shard::Stats Shard::Stats::total(const std::vector<Stats>& stats) {
   return total;
 }
 
-Shard::Stats Shard::Stats::max(const std::vector<Stats>& stats) {
-  Shard::Stats max;
+Table::Stats Table::Stats::max(const std::vector<Stats>& stats) {
+  Table::Stats max;
   for (const auto& stat : stats) {
     max.block_size = std::max(max.block_size, stat.block_size);
     max.key_size_avg = std::max(max.key_size_avg, stat.key_size_avg);
@@ -153,10 +153,10 @@ Shard::Stats Shard::Stats::max(const std::vector<Stats>& stats) {
   return max;
 }
 
-Shard::Shard(const boost::filesystem::path& file_prefix)
-    : Shard(file_prefix, Options()) {}
+Table::Table(const boost::filesystem::path& file_prefix)
+    : Table(file_prefix, Options()) {}
 
-Shard::Shard(const boost::filesystem::path& file_prefix, const Options& options)
+Table::Table(const boost::filesystem::path& file_prefix, const Options& options)
     : prefix_(file_prefix) {
   Store::Options store_options;
   const auto stats_file = getNameOfStatsFile(prefix_.string());
@@ -179,7 +179,7 @@ Shard::Shard(const boost::filesystem::path& file_prefix, const Options& options)
 
   } else {
     mt::Check::isTrue(options.create_if_missing,
-                      "Shard with prefix '%s' does not exist",
+                      "Table with prefix '%s' does not exist",
                       boost::filesystem::absolute(file_prefix).c_str());
 
     store_options.block_size = options.block_size;
@@ -192,7 +192,7 @@ Shard::Shard(const boost::filesystem::path& file_prefix, const Options& options)
   store_.reset(new Store(getNameOfValuesFile(prefix_.string()), store_options));
 }
 
-Shard::~Shard() {
+Table::~Table() {
   if (!prefix_.empty() && !isReadOnly()) {
     const auto keys_file = getNameOfKeysFile(prefix_.string());
     const auto old_keys_file = keys_file + ".old";
@@ -247,7 +247,7 @@ Shard::~Shard() {
   }
 }
 
-Shard::Stats Shard::getStats() const {
+Table::Stats Table::getStats() const {
   Stats stats = stats_;
   const auto store_stats = store_->getStats();
   stats.block_size = store_stats.block_size;
@@ -281,19 +281,19 @@ Shard::Stats Shard::getStats() const {
   return stats;
 }
 
-std::string Shard::getNameOfKeysFile(const std::string& prefix) {
+std::string Table::getNameOfKeysFile(const std::string& prefix) {
   return prefix + ".keys";
 }
 
-std::string Shard::getNameOfStatsFile(const std::string& prefix) {
+std::string Table::getNameOfStatsFile(const std::string& prefix) {
   return prefix + ".stats";
 }
 
-std::string Shard::getNameOfValuesFile(const std::string& prefix) {
+std::string Table::getNameOfValuesFile(const std::string& prefix) {
   return prefix + ".values";
 }
 
-Shard::Entry Shard::Entry::readFromStream(std::FILE* stream, Arena* arena) {
+Table::Entry Table::Entry::readFromStream(std::FILE* stream, Arena* arena) {
   uint32_t key_size;
   mt::fread(stream, &key_size, sizeof key_size);
   const auto key_data = arena->allocate(key_size);
@@ -302,15 +302,15 @@ Shard::Entry Shard::Entry::readFromStream(std::FILE* stream, Arena* arena) {
   return Entry(Bytes(key_data, key_size), std::move(head));
 }
 
-void Shard::Entry::writeToStream(std::FILE* stream) const {
-  MT_REQUIRE_LE(key().size(), Shard::Limits::maxKeySize());
+void Table::Entry::writeToStream(std::FILE* stream) const {
+  MT_REQUIRE_LE(key().size(), Table::Limits::maxKeySize());
   const uint32_t key_size = key().size();
   mt::fwrite(stream, &key_size, sizeof key_size);
   mt::fwrite(stream, key().data(), key().size());
   head().writeToStream(stream);
 }
 
-SharedList Shard::getSharedList(const Bytes& key) const {
+SharedList Table::getSharedList(const Bytes& key) const {
   List* list = nullptr;
   {
     boost::shared_lock<boost::shared_mutex> lock(mutex_);
@@ -323,7 +323,7 @@ SharedList Shard::getSharedList(const Bytes& key) const {
   return list ? SharedList(*list, *store_) : SharedList();
 }
 
-UniqueList Shard::getUniqueList(const Bytes& key) {
+UniqueList Table::getUniqueList(const Bytes& key) {
   List* list = nullptr;
   {
     boost::shared_lock<boost::shared_mutex> lock(mutex_);
@@ -336,7 +336,7 @@ UniqueList Shard::getUniqueList(const Bytes& key) {
   return list ? UniqueList(list, store_.get(), &arena_) : UniqueList();
 }
 
-UniqueList Shard::getOrCreateUniqueList(const Bytes& key) {
+UniqueList Table::getOrCreateUniqueList(const Bytes& key) {
   MT_REQUIRE_LE(key.size(), Limits::maxKeySize());
   List* list = nullptr;
   {

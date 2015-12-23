@@ -21,7 +21,7 @@
 #include <memory>
 #include <vector>
 #include <boost/filesystem/path.hpp>
-#include "multimap/internal/Shard.hpp"
+#include "multimap/internal/Table.hpp"
 #include "multimap/thirdparty/mt/mt.hpp"
 #include "multimap/callables.hpp"
 #include "multimap/Options.hpp"
@@ -56,9 +56,9 @@ class Map : mt::Resource {
     static uint32_t maxValueSize();
   };
 
-  typedef internal::Shard::Stats Stats;
+  typedef internal::Table::Stats Stats;
 
-  typedef internal::Shard::Iterator Iterator;
+  typedef internal::Table::Iterator Iterator;
   // An iterator type to iterate an immutable list.
 
   explicit Map(const boost::filesystem::path& directory);
@@ -84,14 +84,14 @@ class Map : mt::Resource {
   //     to an existing list.
 
   void put(const Bytes& key, const Bytes& value) {
-    getShard(key).put(key, value);
+    getTable(key).put(key, value);
   }
   // Appends value to the end of the list associated with key.
   // Throws std::exception if:
   //   * key.size() > max_key_size()
   //   * value.size() > max_value_size()
 
-  Iterator get(const Bytes& key) const { return getShard(key).get(key); }
+  Iterator get(const Bytes& key) const { return getTable(key).get(key); }
   // Returns a read-only iterator to the list associated with key. If no such
   // mapping exists the list is considered to be empty. If the list is not
   // empty a reader lock will be acquired to synchronize concurrent access to
@@ -101,7 +101,7 @@ class Map : mt::Resource {
   // locked exclusively by a writer lock, see getMutable(), the method will
   // block until the lock is released.
 
-  bool removeKey(const Bytes& key) { return getShard(key).removeKey(key); }
+  bool removeKey(const Bytes& key) { return getTable(key).removeKey(key); }
   // Removes all values associated with `key`. This method will block until a
   // writer lock can be acquired for the associated list.
   // Returns: true if the key was removed, false otherwise.
@@ -109,8 +109,8 @@ class Map : mt::Resource {
   template <typename Predicate>
   uint32_t removeKeys(Predicate predicate) {
     uint32_t num_removed = 0;
-    for (const auto& shard : shards_) {
-      num_removed += shard->removeKeys(predicate);
+    for (const auto& table : tables_) {
+      num_removed += table->removeKeys(predicate);
     }
     return num_removed;
   }
@@ -121,7 +121,7 @@ class Map : mt::Resource {
 
   template <typename Predicate>
   bool removeValue(const Bytes& key, Predicate predicate) {
-    return getShard(key).removeValue(key, predicate);
+    return getTable(key).removeValue(key, predicate);
   }
   // Deletes the first value in the list associated with key for which
   // predicate yields true. This method will block until a writer lock can be
@@ -130,7 +130,7 @@ class Map : mt::Resource {
 
   template <typename Predicate>
   uint32_t removeValues(const Bytes& key, Predicate predicate) {
-    return getShard(key).removeValues(key, predicate);
+    return getTable(key).removeValues(key, predicate);
   }
   // Deletes all values in the list associated with key for which predicate
   // yields true. This method will block until a writer lock can be acquired.
@@ -138,13 +138,13 @@ class Map : mt::Resource {
 
   bool replaceValue(const Bytes& key, const Bytes& old_value,
                     const Bytes& new_value) {
-    return getShard(key).replaceValue(key, old_value, new_value);
+    return getTable(key).replaceValue(key, old_value, new_value);
   }
   // TODO Document this.
 
   template <typename Function>
   bool replaceValue(const Bytes& key, Function map) {
-    return getShard(key).replaceValue(key, map);
+    return getTable(key).replaceValue(key, map);
   }
   // Replaces the first value in the list associated with key by the result of
   // invoking function. If the result of function is an empty string no
@@ -156,13 +156,13 @@ class Map : mt::Resource {
 
   uint32_t replaceValues(const Bytes& key, const Bytes& old_value,
                          const Bytes& new_value) {
-    return getShard(key).replaceValues(key, old_value, new_value);
+    return getTable(key).replaceValues(key, old_value, new_value);
   }
   // TODO Document this.
 
   template <typename Function>
   uint32_t replaceValues(const Bytes& key, Function map) {
-    return getShard(key).replaceValues(key, map);
+    return getTable(key).replaceValues(key, map);
   }
   // Replaces all values in the list associated with key by the result of
   // invoking function. If the result of function is an empty string no
@@ -174,8 +174,8 @@ class Map : mt::Resource {
 
   template <typename Procedure>
   void forEachKey(Procedure process) const {
-    for (const auto& shard : shards_) {
-      shard->forEachKey(process);
+    for (const auto& table : tables_) {
+      table->forEachKey(process);
     }
   }
   // Applies `process` to each key of the map whose associated list is not
@@ -190,7 +190,7 @@ class Map : mt::Resource {
 
   template <typename Procedure>
   void forEachValue(const Bytes& key, Procedure process) const {
-    getShard(key).forEachValue(key, process);
+    getTable(key).forEachValue(key, process);
   }
   // Applies `process` to each value in the list associated with key. This is a
   // shorthand for requesting a read-only iterator via Get(key) followed by an
@@ -200,31 +200,31 @@ class Map : mt::Resource {
 
   template <typename BinaryProcedure>
   void forEachEntry(BinaryProcedure process) const {
-    for (const auto& shard : shards_) {
-      shard->forEachEntry(process);
+    for (const auto& table : tables_) {
+      table->forEachEntry(process);
     }
   }
   // TODO Document this.
 
   std::vector<Stats> getStats() const {
     std::vector<Stats> stats;
-    for (const auto& shard : shards_) {
-      stats.push_back(shard->getStats());
+    for (const auto& table : tables_) {
+      stats.push_back(table->getStats());
     }
     return stats;
   }
 
   Stats getTotalStats() const {
-    return internal::Shard::Stats::total(getStats());
+    return internal::Table::Stats::total(getStats());
   }
 
-  bool isReadOnly() const { return shards_.front()->isReadOnly(); }
+  bool isReadOnly() const { return tables_.front()->isReadOnly(); }
 
   // ---------------------------------------------------------------------------
   // Static methods
   // ---------------------------------------------------------------------------
 
-  static std::vector<internal::Shard::Stats> stats(
+  static std::vector<internal::Table::Stats> stats(
       const boost::filesystem::path& directory);
 
   static void importFromBase64(const boost::filesystem::path& directory,
@@ -313,15 +313,15 @@ class Map : mt::Resource {
   //   * `new_block_size` is not a power of two.
 
  private:
-  internal::Shard& getShard(const Bytes& key) {
-    return *shards_[mt::fnv1aHash(key.data(), key.size()) % shards_.size()];
+  internal::Table& getTable(const Bytes& key) {
+    return *tables_[mt::fnv1aHash(key.data(), key.size()) % tables_.size()];
   }
 
-  const internal::Shard& getShard(const Bytes& key) const {
-    return *shards_[mt::fnv1aHash(key.data(), key.size()) % shards_.size()];
+  const internal::Table& getTable(const Bytes& key) const {
+    return *tables_[mt::fnv1aHash(key.data(), key.size()) % tables_.size()];
   }
 
-  std::vector<std::unique_ptr<internal::Shard> > shards_;
+  std::vector<std::unique_ptr<internal::Table> > tables_;
   mt::DirectoryLockGuard lock_;
 };
 
@@ -330,7 +330,7 @@ namespace internal {
 const std::string getFilePrefix();
 const std::string getNameOfIdFile();
 const std::string getNameOfLockFile();
-const std::string getShardPrefix(uint32_t index);
+const std::string getTablePrefix(uint32_t index);
 const std::string getNameOfKeysFile(uint32_t index);
 const std::string getNameOfStatsFile(uint32_t index);
 const std::string getNameOfValuesFile(uint32_t index);
