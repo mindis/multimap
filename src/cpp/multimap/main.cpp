@@ -116,7 +116,7 @@ void runHelpCommand(const char* toolname) {
   const multimap::Options default_options;
   std::printf(
       "USAGE\n"
-      "\n  %s COMMAND MAP [PATH] [OPTIONS]"
+      "\n  %s COMMAND PATH_TO_MAP [PATH] [OPTIONS]"
       "\n\nCOMMANDS\n"
       "\n  %-10s     Print this help message and exit."
       "\n  %-10s     Print statistics about an instance."
