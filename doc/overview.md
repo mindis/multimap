@@ -164,7 +164,7 @@ Copyright (C) 2015 Martin Trenkmann
 This command reports statistical information about a map located in a given directory. A typical output reads as follows:
 
 ```plain
-$ multimap stats path/to/my/map
+$ multimap stats path/to/map
 #0   block_size        128       ******************************
 #0   key_size_avg      8         ******************************
 #0   key_size_max      40        ******************************
@@ -211,7 +211,7 @@ $ multimap stats path/to/my/map
 Since a map is divided into several partitions there is one info block per partition, followed by a final block that states the total numbers. The asterisks visualize the numbers as relative values with respect to the partition with the maximum value in this category. The output can be filtered with a little help from `grep`. For example, a histogram that shows the distribution of values among the partitions can be generated like this:
 
 ```plain
-$ multimap stats path/to/my/map | grep values_total
+$ multimap stats path/to/map | grep values_total
 #0   num_values_total  25836927  *******************
 #1   num_values_total  26124736  *******************
 #2   num_values_total  25616082  *******************
@@ -241,7 +241,7 @@ $ multimap stats path/to/my/map | grep values_total
 Similarly, to print only the total values you can run:
 
 ```plain
-$ time multimap stats path/to/my/map | grep =
+$ multimap stats path/to/map | grep =
 ===  block_size        128      
 ===  key_size_avg      8        
 ===  key_size_max      40       

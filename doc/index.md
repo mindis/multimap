@@ -1,6 +1,6 @@
 <br>
 
-Multimap is a fast 1:n key-value store that provides a mapping from keys to lists of values. It's about the same <a href="https://en.wikipedia.org/wiki/Multimap" target="_blank">data structure</a> you might know from your first computer science class, but beyond that it does the external persistent storage. Because Multimap is optimized for large numbers of n, it works perfectly as a building block for retrieval systems that make use of <a href="https://en.wikipedia.org/wiki/Inverted_index" target="_blank">inverted indexing</a>.
+Multimap is a fast 1:n key-value store that provides a mapping from keys to lists of values. It's about the same <a href="https://en.wikipedia.org/wiki/Multimap" target="_blank">data structure</a> you might already know from your very first computer science course, but beyond that it handles the external persistent storage. Because Multimap is optimized for large numbers of n, it works perfectly as a building block for retrieval systems that employ <a href="https://en.wikipedia.org/wiki/Inverted_index" target="_blank">inverted indexing</a>.
 
 <div class="row">
   <div class="col-md-6">
