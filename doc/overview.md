@@ -43,7 +43,7 @@ Hence, the total memory consumption of a map depends on
 
 To estimate the memory footprint the following formula can be used:
 
-```
+```sh
 num_blocks = (num_values * avg_value_size) / block_size
 
 mem_keys        = num_keys * avg_key_size
@@ -118,6 +118,150 @@ key3 value8
 
 
 ## Command Line Tool
+
+Multimap also comes with a command line tool that can and should be [installed](#installation) in addition to the actual shared library. The tool allows you to perform some administration operations right in your terminal. Here is the help page:
+
+```plain
+$ multimap help
+USAGE
+
+  multimap COMMAND PATH_TO_MAP [PATH] [OPTIONS]
+
+COMMANDS
+
+  help           Print this help message and exit.
+  stats          Print statistics about an instance.
+  import         Import key-value pairs from Base64-encoded text files.
+  export         Export key-value pairs to a Base64-encoded text file.
+  optimize       Rewrite an instance performing various optimizations.
+
+OPTIONS
+
+  --create       Create a new instance if missing when importing data.
+  --bs      NUM  Block size to use for a new instance. Default is 512.
+  --nparts  NUM  Number of partitions to use for a new instance. Default is 23.
+  --quiet        Don't print out any status messages.
+
+EXAMPLES
+
+  multimap stats    path/to/map
+  multimap import   path/to/map path/to/input
+  multimap import   path/to/map path/to/input/base64.csv
+  multimap import   path/to/map path/to/input/base64.csv --create
+  multimap export   path/to/map path/to/output/base64.csv
+  multimap optimize path/to/map path/to/output
+  multimap optimize path/to/map path/to/output --bs 128
+  multimap optimize path/to/map path/to/output --nparts 42
+  multimap optimize path/to/map path/to/output --nparts 42 --bs 128
+
+
+Copyright (C) 2015 Martin Trenkmann
+<http://multimap.io>
+```
+
+### multimap stats
+
+This command reports statistical information about a map located in a given directory. A typical output reads as follows:
+
+```plain
+$ multimap stats path/to/my/map
+#0   block_size        128       ******************************
+#0   key_size_avg      8         ******************************
+#0   key_size_max      40        ******************************
+#0   key_size_min      1         ******************************
+#0   list_size_avg     45        *******************
+#0   list_size_max     974136    ****
+#0   list_size_min     1         ******************************
+#0   num_blocks        3170842   ******************
+#0   num_keys_total    573308    ******************************
+#0   num_keys_valid    573308    ******************************
+#0   num_values_total  25836927  *******************
+#0   num_values_valid  25836927  *******************
+
+#1   block_size        128       ******************************
+#1   key_size_avg      8         ******************************
+#1   key_size_max      40        ******************************
+#1   key_size_min      1         ******************************
+#1   list_size_avg     45        *******************
+#1   list_size_max     1010385   ****
+#1   list_size_min     1         ******************************
+#1   num_blocks        3209400   *******************
+#1   num_keys_total    572406    ******************************
+#1   num_keys_valid    572406    ******************************
+#1   num_values_total  26124736  *******************
+#1   num_values_valid  26124736  *******************
+
+[ #2 .. #22 ]
+
+===  block_size        128      
+===  key_size_avg      8        
+===  key_size_max      40       
+===  key_size_min      1        
+===  list_size_avg     47       
+===  list_size_max     8259736  
+===  list_size_min     1        
+===  num_blocks        77641183 
+===  num_keys_total    13167247 
+===  num_keys_valid    13167247 
+===  num_values_total  629686802
+===  num_values_valid  629686802
+===  num_partitions    23
+```
+
+Since a map is divided into several partitions there is one info block per partition, followed by a final block that states the total numbers. The asterisks visualize the numbers as relative values with respect to the partition with the maximum value in this category. The output can be filtered with a little help from `grep`. For example, a histogram that shows the distribution of values among the partitions can be generated like this:
+
+```plain
+$ multimap stats path/to/my/map | grep values_total
+#0   num_values_total  25836927  *******************
+#1   num_values_total  26124736  *******************
+#2   num_values_total  25616082  *******************
+#3   num_values_total  24602683  ******************
+#4   num_values_total  23633504  *****************
+#5   num_values_total  25757280  *******************
+#6   num_values_total  24665881  ******************
+#7   num_values_total  24207863  ******************
+#8   num_values_total  36033742  **************************
+#9   num_values_total  27674578  ********************
+#10  num_values_total  41774200  ******************************
+#11  num_values_total  27141930  ********************
+#12  num_values_total  27015011  ********************
+#13  num_values_total  25249784  *******************
+#14  num_values_total  26979204  ********************
+#15  num_values_total  25433887  *******************
+#16  num_values_total  25533309  *******************
+#17  num_values_total  23607578  *****************
+#18  num_values_total  23853340  ******************
+#19  num_values_total  26713848  ********************
+#20  num_values_total  25827632  *******************
+#21  num_values_total  24587953  ******************
+#22  num_values_total  41815850  ******************************
+===  num_values_total  629686802
+```
+
+Similarly, to print only the total values you can run:
+
+```plain
+$ time multimap stats path/to/my/map | grep =
+===  block_size        128      
+===  key_size_avg      8        
+===  key_size_max      40       
+===  key_size_min      1        
+===  list_size_avg     47       
+===  list_size_max     8259736  
+===  list_size_min     1        
+===  num_blocks        77641183 
+===  num_keys_total    13167247 
+===  num_keys_valid    13167247 
+===  num_values_total  629686802
+===  num_values_valid  629686802
+===  num_partitions    23
+```
+
+### multimap import
+
+### multimap export
+
+### multimap optimize
 
 An existing Multimap can be optimized using one of the `multimap::Optimize` functions. The optimize operation performs a rewrite of the entire map and therefore, depending on the size of the map, might be a long running task. Optimization has the following effects:
 

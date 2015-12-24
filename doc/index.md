@@ -20,7 +20,7 @@ Multimap is a fast 1:n key-value store that provides a mapping from keys to list
     <li>Read the <a href="overview/">overview</a> and learn the basics.</li>
     <li>Try the <a href="cpptutorial">C++</a> or <a href="javatutorial">Java tutorial</a> to get familiar with the API.</li>
     <br>
-    <a class="btn btn-default btn-lg" href="downloadv03/" role="button"><span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>&nbsp;&nbsp;Download Release 0.3</a>
+    <a class="btn btn-default btn-lg" href="downloadv03/" role="button"><span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>&nbsp;&nbsp;Download Multimap 0.3</a>
     </ul>
   </div>
 </div>

@@ -47,6 +47,15 @@ li.dropdown:hover > ul  {
   display: block;
 }
 
+/* Copied from .hljs */
+pre code.plain {
+  display: block;
+  overflow-x: auto;
+  padding: 0.5em;
+  background: #FFF none repeat scroll 0% 0%;
+  color: #000;
+}
+
 #multimap-sidebar {
   font-size: 14px;
   margin-top: 30px;
@@ -84,6 +93,12 @@ li.dropdown:hover > ul  {
 #multimap-sidebar li.active > a:focus {
   font-weight: bold;
   outline: 0;
+}
+
+#multimap-sidebar li > ul {
+  font-size: small;
+  list-style: none;
+  padding-left: 8px;
 }
 
 #back-to-top {
