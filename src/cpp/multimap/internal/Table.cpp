@@ -201,10 +201,6 @@ Table::~Table() {
     }
 
     const auto stream = mt::fopen(keys_file, "w");
-    const auto store_stats = store_->getStats();
-    stats_.block_size = store_stats.block_size;
-    stats_.num_blocks = store_stats.num_blocks;
-    stats_.num_keys_total = map_.size();
     for (const auto& entry : map_) {
       const auto& key = entry.first;
       const auto& list = entry.second.get();
@@ -238,6 +234,11 @@ Table::~Table() {
       stats_.key_size_avg /= stats_.num_keys_valid;
       stats_.list_size_avg /= stats_.num_keys_valid;
     }
+    const auto store_stats = store_->getStats();
+    stats_.block_size = store_stats.block_size;
+    stats_.num_blocks = store_stats.num_blocks;
+    stats_.num_keys_total = map_.size();
+
     stats_.writeToFile(getNameOfStatsFile(prefix_.string()));
 
     if (boost::filesystem::is_regular_file(old_keys_file)) {
@@ -248,12 +249,8 @@ Table::~Table() {
 }
 
 Table::Stats Table::getStats() const {
-  Stats stats = stats_;
-  const auto store_stats = store_->getStats();
-  stats.block_size = store_stats.block_size;
-  stats.num_blocks = store_stats.num_blocks;
   boost::shared_lock<boost::shared_mutex> lock(mutex_);
-  stats.num_keys_total = map_.size();
+  Stats stats = stats_;
   for (const auto& entry : map_) {
     if (auto list = SharedList(*entry.second, *store_, std::try_to_lock)) {
       stats.num_values_total += list.head().num_values_total;
@@ -278,6 +275,10 @@ Table::Stats Table::getStats() const {
     stats.key_size_avg /= stats.num_keys_valid;
     stats.list_size_avg /= stats.num_keys_valid;
   }
+  const auto store_stats = store_->getStats();
+  stats.block_size = store_stats.block_size;
+  stats.num_blocks = store_stats.num_blocks;
+  stats.num_keys_total = map_.size();
   return stats;
 }
 
