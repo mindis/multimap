@@ -44,7 +44,7 @@
 
 namespace mt {
 
-static const uint32_t VERSION = 20151220;
+static const uint32_t VERSION = 20151228;
 
 // -----------------------------------------------------------------------------
 // COMMON
@@ -58,6 +58,9 @@ uint64_t nextPrime(uint64_t number);
 
 constexpr bool isPowerOfTwo(uint64_t num) { return (num & (num - 1)) == 0; }
 
+constexpr uint64_t KiB(uint64_t kibibytes) { return kibibytes << 10; }
+// Converts a number in kibibytes to the equivalent number in bytes.
+
 constexpr uint64_t MiB(uint64_t mebibytes) { return mebibytes << 20; }
 // Converts a number in mebibytes to the equivalent number in bytes.
 
@@ -67,6 +70,8 @@ constexpr uint64_t GiB(uint64_t gibibytes) { return gibibytes << 30; }
 constexpr bool is32BitSystem() { return sizeof(void*) == 4; }
 
 constexpr bool is64BitSystem() { return sizeof(void*) == 8; }
+
+uint64_t currentResidentMemory();
 
 struct Resource {
   // Types representing resources are not copyable or moveable.

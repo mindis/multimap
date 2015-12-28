@@ -165,6 +165,23 @@ uint64_t nextPrime(uint64_t number) {
   return number;
 }
 
+uint64_t currentResidentMemory() {
+  const auto property = "VmRSS:";
+  const auto filename = "/proc/self/status";
+  std::ifstream stream(filename);
+  check(stream, "Could not open '%s'", filename);
+  std::string token;
+  uint64_t mem_in_kb;
+  while (stream >> token) {
+    if (token == property) {
+      stream >> mem_in_kb;
+      return KiB(mem_in_kb);
+    }
+  }
+  fail("No '%s' property found in '%s'", property, filename);
+  return 0;
+}
+
 uint32_t crc32(const std::string& str) { return crc32(str.data(), str.size()); }
 
 uint32_t crc32(const void* data, size_t size) {
