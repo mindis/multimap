@@ -17,6 +17,7 @@
 
 #include "multimap/internal/Table.hpp"
 
+#include <cmath>
 #include <boost/filesystem/operations.hpp>
 #include "multimap/internal/Base64.hpp"
 
@@ -122,8 +123,8 @@ Table::Stats Table::Stats::total(const std::vector<Stats>& stats) {
       key_size_avg += w * stat.key_size_avg;
       list_size_avg += w * stat.list_size_avg;
     }
-    total.key_size_avg = key_size_avg;
-    total.list_size_avg = list_size_avg;
+    total.key_size_avg = std::round(key_size_avg);
+    total.list_size_avg = std::round(list_size_avg);
   }
   return total;
 }
