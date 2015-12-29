@@ -35,6 +35,10 @@ table > tbody > tr > td code {
   background-color: #fff;
 }
 
+tr {
+  border-top: 1px solid #757575;
+}
+
 a.navbar-brand {
   font-family: 'Faster One', cursive;
 }
@@ -329,7 +333,7 @@ table {
 }
 td,
 th {
-  padding: 0;
+  padding: 5px 15px;
 }
 /*! Source: https://github.com/h5bp/html5-boilerplate/blob/master/src/css/main.css */
 @media print {
@@ -2392,9 +2396,11 @@ caption {
   color: #777;
   text-align: left;
 }
+/*
 th {
   text-align: left;
 }
+*/
 .table {
   width: 100%;
   max-width: 100%;

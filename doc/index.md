@@ -49,7 +49,7 @@ int main() {
   }
   
   // d'tor of iter releases the reader lock.
-  // d'tor of map flushes all data to disk. 
+  // d'tor of map flushes in-memory data to disk. 
 }
 ```
 </div>

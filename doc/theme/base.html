@@ -102,22 +102,20 @@
           </div>
           <div class="col-md-3" role="complementary">
             <nav id="multimap-sidebar" class="hidden-print hidden-xs hidden-sm affix-top" data-spy="affix" data-offset-top="130" data-offset-bottom="200">
-              {# if toc.children #}
-                <ul class="nav">
-                  {% for toc_item in toc %}
-                    <li><a href="{{ toc_item.url }}">{{ toc_item.title }}</a>
-                      <ul>
-                        {% for sub_item in toc_item.children %}
-                        <li><a href="{{ sub_item.url }}">{{ sub_item.title }}</a></li>
-                        {% endfor %}
-                      </ul>
-                    </li>
-                  {% endfor %}
-                </ul>
-                <div id="back-to-top">
-                  <a href="#top">Back to top</a>
-                </div>
-              {# endif #}
+              <ul class="nav">
+                {% for toc_item in toc %}
+                  <li><a href="{{ toc_item.url }}">{{ toc_item.title }}</a>
+                    <ul>
+                      {% for sub_item in toc_item.children %}
+                      <li><a href="{{ sub_item.url }}">{{ sub_item.title }}</a></li>
+                      {% endfor %}
+                    </ul>
+                  </li>
+                {% endfor %}
+              </ul>
+              <div id="back-to-top">
+                <a href="#top">Back to top</a>
+              </div>
             </nav>
           </div>
         {% endif %}

@@ -43,15 +43,18 @@ Hence, the total memory consumption of a map depends on
 
 To estimate the memory footprint the following formula can be used:
 
-```sh
-num_blocks = (num_values * avg_value_size) / block_size
+```plain
+mem_total = 1.5 * (mem_keys + mem_block_ids + mem_last_blocks)
+          = 1.5 * (num_keys * (avg_key_size + block_size) + (num_blocks * 3.1))
+```
 
+where
+
+```
 mem_keys        = num_keys * avg_key_size
-mem_block_ids   = num_blocks * 1.x
+mem_block_ids   = num_blocks * 3.1
 mem_last_blocks = num_keys * block_size
-
-mem_total = mem_keys + mem_block_ids + mem_last_blocks
-          = num_keys * (avg_key_size + block_size) + (num_blocks * 1.x)
+num_blocks      = (num_values * avg_value_size) / block_size
 ```
 
 Assuming a key set consisting of words from an English dictionary with an average key size of 5 bytes, the factor that has the biggest impact on the total memory footprint is the block size. Therefore, it is important to choose a value that is most suitable for the given use case to prevent running out of memory.
@@ -60,9 +63,15 @@ Large block sizes can improve I/O performance since more data is transferred at 
 
 Here are a some examples:
 
-num_keys | avg_key_size | num_blocks | block_size | memory
----------|--------------|------------|------------|-------
-x        |x             |x           |x           | x
+ num_keys   | avg_key_size | num_blocks    | block_size | memory
+-----------:|-------------:|--------------:|-----------:|---------:
+  1 000 000 |      5 bytes |   100 000 000 |  512 bytes | 1.12 GiB
+  2 000 000 |      5 bytes |   100 000 000 |  512 bytes | 1.77 GiB
+  2 000 000 |     10 bytes |   100 000 000 |  512 bytes | 1.77 GiB
+  2 000 000 |     10 bytes |   200 000 000 |  512 bytes | 2.22 GiB
+  2 000 000 |     10 bytes |   200 000 000 | 1024 bytes | 3.68 GiB
+ 10 000 000 |     10 bytes | 1 000 000 000 |   64 bytes | 6.19 GiB
+ 10 000 000 |     10 bytes | 1 000 000 000 |  128 bytes | 6.87 GiB
 
 
 ## Serialization
@@ -73,53 +82,9 @@ On the other hand, this approach has the disadvantage that values are seen as [b
 
 The tutorial pages demonstrate how Multimap can be used together with some popular serialization libraries. For more information please refer to Wikipedia's [comparison of data serialization formats](https://en.wikipedia.org/wiki/Comparison_of_data_serialization_formats).
 
-
-## Import/Export
-
-Key-value pairs can be imported from or exported to Base64-encoded text files. This feature is useful for data exchange to/from other libraries and frameworks, or for backup purposes. The file format is defined as follows:
-
-* The file is in [CSV format](https://en.wikipedia.org/wiki/Comma-separated_values).
-* The delimiter is whitespace or tab.
-* Each line starts with a key followed by one or more values.
-* Multiple lines may start with the same key.
-* Keys and values are Base64-encoded.
-
-Example:
-
-```sh
-key1 value1
-key2 value2 value3
-key1 value4
-key3 value5 value6 value7 value8
-key2 value9
-```
-
-is equivalent to:
-
-```sh
-key1 value1 value4
-key2 value2 value3 value9
-key3 value5 value6 value7 value8
-```
-
-is equivalent to:
-
-```sh
-key1 value1
-key1 value4
-key2 value2
-key2 value3
-key2 value9
-key3 value5
-key3 value6
-key3 value7
-key3 value8
-```
-
-
 ## Command Line Tool
 
-Multimap also comes with a command line tool that can and should be [installed](#installation) in addition to the actual shared library. The tool allows you to perform some administration operations right in your terminal. Here is the help page:
+Multimap also comes with a command line tool that can and should be [installed](#installation) in addition to the shared library. The tool allows you to perform some administration operations right in your terminal. Here is the help page:
 
 ```plain
 $ multimap help
@@ -159,7 +124,7 @@ Copyright (C) 2015 Martin Trenkmann
 <http://multimap.io>
 ```
 
-### multimap stats
+### $ multimap stats
 
 This command reports statistical information about a map located in a given directory. A typical output reads as follows:
 
@@ -257,36 +222,80 @@ $ multimap stats path/to/map | grep =
 ===  num_partitions    23
 ```
 
-### multimap import
+### $ multimap import
 
-### multimap export
+This command allows you to import key-value pairs from Base64-encoded text files. The file format is defined as follows:
 
-### multimap optimize
+* The file is in [CSV format](https://en.wikipedia.org/wiki/Comma-separated_values).
+* The delimiter is whitespace or tab.
+* Each line starts with a key followed by one or more values.
+* Multiple lines may start with the same key.
+* Keys and values are encoded in Base64.
 
-An existing Multimap can be optimized using one of the `multimap::Optimize` functions. The optimize operation performs a rewrite of the entire map and therefore, depending on the size of the map, might be a long running task. Optimization has the following effects:
+Example:
 
-* **Defragmentation**. All blocks which belong to the same list are written sequentially to disk which improves locality and leads to better read performance.
-* **Garbage collection**. Values that are marked as deleted won't be copied which reduces the size of the new map and also improves locality.
+```plain
+key1 value1
+key2 value2 value3
+key1 value4
+key3 value5 value6 value7 value8
+key2 value9
+```
 
-Optional:
+is equivalent to:
 
-* **Sorting**. All lists can be sorted applying a user-defined `multimap::Callables::Compare` function.
-* **Block size**. The new optimized map can be given a different and maybe more suitable block size.
+```plain
+key1 value1 value4
+key2 value2 value3 value9
+key3 value5 value6 value7 value8
+```
+
+is equivalent to:
+
+```plain
+key1 value1
+key1 value4
+key2 value2
+key2 value3
+key2 value9
+key3 value5
+key3 value6
+key3 value7
+key3 value8
+```
+
+The second listing is in canonical form, which means that all values sharing the same key are in one line. In other words, in a file that is in canonical form, there are no two lines that begin with the same key.
+
+### $ multimap export
+
+This command allows you to export all key-value pairs from a map into a single Base64-encoded text file. The format of this file follows the description given in the [previous section](#multimap-import). The generated file is in canonical form. This feature is useful for data exchange to other libraries and frameworks, or for backup purposes.
+
+### $ multimap optimize
+
+The optimize operation rewrites the entire map performing the following tasks:
+
+* Defragmentation. All blocks which belong to the same list are written sequentially to disk which improves locality and leads to better read performance.
+* Garbage collection. Values that are marked as deleted won't be copied which reduces the size of the new map and also improves locality.
+
+In addition, some optional changes can be applied:
+
+* New block size. Changing the block size could be necessary to tweak the memory footprint.
+* List sorting. All lists can be sorted applying a user-defined compare function. This option is only available when using the [C++](cppreference) and [Java API](javareference) directly.
 
 
 ## Q&A
 
 <span class="qa-q" /> Why are all keys held in memory?<br>
-<span class="qa-a" />
+<span class="qa-a" /> Multimap was designed for relatively small keys like dictionary words. Therefore, the footprint of the entire key set is rather small compared to all in-memory blocks that are used as write buffers. Furthermore, the library aims to run on server machines which tend to have more and more memory available. And of course, an internal hash table is a lot faster and easier to maintain than a partly externalized B+ tree or something similar.
 
-<span class="qa-q" /> Why are values need to be byte arrays?<br>
-<span class="qa-a" />
+<span class="qa-q" /> Why both keys and values have to be byte arrays?<br>
+<span class="qa-a" /> Keep it simple and do not reinvent the wheel. There are plenty of very good [serialization libraries](https://en.wikipedia.org/wiki/Comparison_of_data_serialization_formats) available so that users can freely choose their preferred method. Reading and writing raw binary data also makes Multimap independent from such libraries which in turn facilitates data exchange with different programming languages and/or systems. On the other hand, due to lack of type information Multimap cannot operate on individual fields of composite types without injecting packing and unpacking functions.
 
-<span class="qa-q" /> Can I replace values in-place?<br>
-<span class="qa-a" /> ...
+<span class="qa-q" /> Why values cannot be replaced in-place?<br>
+<span class="qa-a" /> Values are written to disk in the same order as they were put without leaving any gaps. Therefore, if a new value is larger than the old one there is simply not enough room for it. An in-place replacement would be possible, though, if the value size is fixed. Maybe this option will be provided in further releases. Anyway, replacing values is considered a little-frequented operation. If you really want to have the new value at the old position you need to run [optimize](cppreference-optimize) passing in a compare function in order to sort all lists accordingly.
 
-<span class="qa-q" /> Can I sort a list after a replace operation to restore a certain order of my values?<br>
-<span class="qa-a" /> ...
+<span class="qa-q" /> Why is there no sort method for the list associated with a key?<br>
+<span class="qa-a" /> A sort method would be possible from an implementation point of view, but as a list grows the cost of calling this method increases as well. Users that are not aware about the complexity might trigger it carelessly too often, e.g. after every single replace operation, finally slowing down the entire system.
 
 <span class="qa-q" /> Can I use Multimap as a 1:1 key value store?<br>
-<span class="qa-a" /> Multimap can be used as a 1:1 key-value store as well, although other libraries may be better suited for this purpose. As always, you should pick the library that best fits your needs, both with respect to features and performance. Finally, when using Multimap as a 1:1 key-value store, you should set the block size as small as possible to waste as little space as possible, because each block will only contain just one value. Also keep in mind that the block size defines the maximum size of a value.
+<span class="qa-a" /> Multimap can be used as a 1:1 key-value store, although other libraries may be better suited for that purpose. As always, you should pick the library that best fits your needs, both with respect to features and performance. When using Multimap as a 1:1 key-value store, you should set the block size as small as possible to waste as little space as possible, because each block will only contain just one value.
