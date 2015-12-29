@@ -1,6 +1,6 @@
 <br>
 
-Multimap is a fast 1:n key-value store that provides a mapping from keys to lists of values. It's about the same <a href="https://en.wikipedia.org/wiki/Multimap" target="_blank">data structure</a> you might already know from your very first computer science course, but beyond that it handles the external persistent storage. Because Multimap is optimized for large numbers of n, it works perfectly as a building block for retrieval systems that employ <a href="https://en.wikipedia.org/wiki/Inverted_index" target="_blank">inverted indexing</a>.
+Multimap is a fast 1:n key-value store that provides a mapping from keys to lists of values. It's about the same <a href="https://en.wikipedia.org/wiki/Multimap" target="_blank">data structure</a> you might already know from your very first computer science course, but beyond that it handles the external persistent storage of the entire data. Because Multimap is optimized for large numbers of n, it works perfectly as a building block for retrieval systems that employ <a href="https://en.wikipedia.org/wiki/Inverted_index" target="_blank">inverted indexing</a>.
 
 <div class="row">
   <div class="col-md-6">
@@ -33,12 +33,10 @@ Multimap is a fast 1:n key-value store that provides a mapping from keys to list
 ```cpp
 #include <multimap/Map.hpp>
 
-using namespace multimap;
-
 int main() {
-  Options options;
+  multimap::Options options;
   options.create_if_missing = true;
-  Map map("path/to/directory", options);
+  multimap::Map map("path/to/directory", options);
 
   map.put("key", "1st value");
   map.put("key", "2nd value");
@@ -60,9 +58,7 @@ int main() {
 <div class="panel-heading">Java Example</div>
 <div class="panel-body">
 ```java
-import io.multimap.Map;
-import io.multimap.Options;
-import io.multimap.Iterator;
+import io.multimap.*;
 
 public static void main(String[] args) {
   Options options = new Options();
