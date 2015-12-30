@@ -18,7 +18,7 @@ options.create_if_missing = true;
 multimap::Map map("path/to/directory", options);
 ```
 
-However, since a `Map` object is neither copyable nor moveable, you might allocate it on the heap. You should also catch errors that may occur during construction.
+However, since a `Map` object is neither copyable nor moveable you might allocate it on the heap. You should also catch errors that may occur during construction.
 
 ```cpp
 std::unique_ptr<multimap::Map> map;
@@ -31,11 +31,11 @@ try {
 }
 ```
 
-Set `options.error_if_exists = true` if you want to throw an exception if the map already exists.
+Add `options.error_if_exists = true` if you want to throw an exception if the map already exists.
 
 ## Opening a Map
 
-To open an already existing map with default options you can simply omit the options parameter.
+To open an already existing map with default options you can simply omit the `options` parameter.
 
 ```cpp
 std::unique_ptr<multimap::Map> map;
@@ -50,7 +50,11 @@ If the map does not exist, an exception will be thrown.
 
 ## Closing a Map
 
-A map is closed automatically when its lifetime ends and its destructor is called. There is no explicit `close` method.
+A map is closed automatically when its destructor is called. There is no explicit `close` method. If you really want to force destruction you can reset the smart pointer.
+
+```cpp
+map.reset();
+```
 
 ## Putting Values
 
@@ -107,7 +111,7 @@ Things about iterators that are also worth noting:
 * there is another type of iterator which holds a writer lock on a list for exclusive access. This type of iterator is only used internally for implementing remove and replace operations.
 * Iterators support lazy initialization which means that no I/O operation is performed until its `next` method has been called. This feature is useful in cases where multiple iterators must be requested first in order to determine in which order they have to be processed.
 * Calling `next` followed by `toString` is a simple way to get a deep copy of the current value.
-* Iterators can tell the number of values left to be iterated via its `available` method.
+* Iterators can tell the number of values left to iterate via its `available` method.
 
 ## Removing Values
 
@@ -116,35 +120,35 @@ Values can be removed from a list by injecting a [predicate function](#) which y
 ```cpp
 #include <multimap/callables.hpp>
 
-map->put("key", "1");
-map->put("key", "2");
-map->put("key", "3");
-map->put("key", "4");
-map->put("key", "5");
-map->put("key", "6");
+map->put(key, "1");
+map->put(key, "2");
+map->put(key, "3");
+map->put(key, "4");
+map->put(key, "5");
+map->put(key, "6");
 
-map->removeValue("key", multimap::Equal("3"));
+map->removeValue(key, multimap::Equal("3"));
 // Removes the first value equal to "3".
-// "key" -> {"1", "2", "4", "5", "6"}
+// key -> {"1", "2", "4", "5", "6"}
 
 const auto is_even = [](const multimap::Bytes& value) {
   return std::stoi(value.toString()) % 2 == 0;
 }
 
-map->removeValue("key", is_even);
+map->removeValue(key, is_even);
 // Removes the first value that is even.
-// "key" -> {"1", "4", "5", "6"}
+// key -> {"1", "4", "5", "6"}
 
-map->removeValues("key", is_even);
+map->removeValues(key, is_even);
 // Removes all values that are even.
-// "key" -> {"1", "5"}
+// key -> {"1", "5"}
 
-map->removeKey("key");
+map->removeKey(key);
 // Removes all values.
-// "key" -> {}
+// key -> {}
 ```
 
-When a value is removed it will only be marked as removed for the moment so that subsequent iterations will ignore it. Only an optimize operation either via [API call](#) or the [command line tool](overview#multimap-optimize) will remove the data physically.
+When a value is removed it will only be marked as removed for the moment so that subsequent iterations will ignore it. Only an optimize operation triggered either via [API call](#) or the [command line tool](overview#multimap-optimize) will remove the data physically.
 
 Note that if the list is already locked either by a reader or writer lock the methods will block until the lock is released. A thread should never try to remove values while holding iterators to avoid deadlocks.
 
@@ -157,33 +161,33 @@ When a value is replaced the old value is marked as removed and the new value is
 ```cpp
 #include <multimap/callables.hpp>
 
-map->put("key", "1");
-map->put("key", "2");
-map->put("key", "3");
-map->put("key", "4");
-map->put("key", "5");
-map->put("key", "6");
+map->put(key, "1");
+map->put(key, "2");
+map->put(key, "3");
+map->put(key, "4");
+map->put(key, "5");
+map->put(key, "6");
 
-map->replaceValue("key", "3", "4");
+map->replaceValue(key, "3", "4");
 // Replaces the first value equal to "3" by "4".
-// "key" -> {"1", "2", "4", "5", "6", "4"}
+// key -> {"1", "2", "4", "5", "6", "4"}
 
 const auto increment_if_even = [](const multimap::Bytes& value) {
   const auto number = std::stoi(value.toString());
   return (number % 2 == 0) ? std::to_string(number + 1) : "";
 };
 
-map->replaceValue("key", increment_if_even);
+map->replaceValue(key, increment_if_even);
 // Replaces the first value that is even by its successor.
-// "key" -> {"1", "4", "5", "6", "4", "3"}
+// key -> {"1", "4", "5", "6", "4", "3"}
 
-map->replaceValues("key", "4", "8");
+map->replaceValues(key, "4", "8");
 // Replaces all values equal to "4" by "8".
-// "key" -> {"1", "5", "6", "3", "8", "8"}
+// key -> {"1", "5", "6", "3", "8", "8"}
 
-map->replaceValues("key", increment_if_even);
+map->replaceValues(key, increment_if_even);
 // Replaces all values that are even by its successor.
-// "key" -> {"1", "5", "3", "7", "9", "9"}
+// key -> {"1", "5", "3", "7", "9", "9"}
 ```
 
 Note that if the list is already locked either by a reader or writer lock the methods will block until the lock is released. A thread should never try to replace values while holding iterators to avoid deadlocks.
