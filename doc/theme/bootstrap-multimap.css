@@ -1678,8 +1678,7 @@ samp {
   font-family: "Fira Mono", Menlo, Monaco, Consolas, "Courier New", monospace;
 }
 code {
-  color: #606;
-  background-color: #f4f4f4;
+  background-color: #eee;
   font-size: 14px;
   padding: 4px 4px 3px 4px;
 }

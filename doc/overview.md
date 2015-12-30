@@ -3,9 +3,9 @@
 Multimap is implemented as an in-memory hash table which maps each key to a list of values. Keys and values are arbitrary byte arrays. The following schema illustrates the general design:
 
 ```
-"a" -> (1, 2, 3, 4, 5, 6)
-"b" -> (7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17)
-"c" -> (18, 19, 20, 21, 22, 23, 24)
+"a" -> 1, 2, 3, 4, 5, 6
+"b" -> 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17
+"c" -> 18, 19, 20, 21, 22, 23, 24
 ```
 
 Putting a key-value pair into the map adds the value to the end of the list associated with the key. If no such list already exists it will be created. Looking up a key then returns a read-only iterator to this list. If the key does not exist or the associated list is empty, the iterator won't yield any value. 
@@ -43,7 +43,7 @@ Hence, the total memory consumption of a map depends on
 
 To estimate the memory footprint the following formula can be used:
 
-```plain
+```
 mem_total = 1.5 * (mem_keys + mem_block_ids + mem_last_blocks)
           = 1.5 * (num_keys * (avg_key_size + block_size) + (num_blocks * 3.1))
 ```
@@ -286,7 +286,7 @@ In addition, some optional changes can be applied:
 ## Q&A
 
 <span class="qa-q" /> Why are all keys held in memory?<br>
-<span class="qa-a" /> Multimap was designed for relatively small keys like dictionary words. Therefore, the footprint of the entire key set is rather small compared to all in-memory blocks that are used as write buffers. Furthermore, the library aims to run on server machines which tend to have more and more memory available. And of course, an internal hash table is a lot faster and easier to maintain than a partly externalized B+ tree or something similar.
+<span class="qa-a" /> Multimap is designed for relatively small keys like dictionary words. Therefore, the footprint of the entire key set is rather small compared to all in-memory blocks that are used as write buffers. Furthermore, the library aims to run on server machines which tend to have more and more memory available. And of course, an internal hash table is a lot faster and easier to maintain than a partly externalized B+ tree or something similar.
 
 <span class="qa-q" /> Why both keys and values have to be byte arrays?<br>
 <span class="qa-a" /> Keep it simple and do not reinvent the wheel. There are plenty of very good [serialization libraries](https://en.wikipedia.org/wiki/Comparison_of_data_serialization_formats) available so that users can freely choose their preferred method. Reading and writing raw binary data also makes Multimap independent from such libraries which in turn facilitates data exchange with different programming languages and/or systems. On the other hand, due to lack of type information Multimap cannot operate on individual fields of composite types without injecting packing and unpacking functions.
@@ -298,4 +298,4 @@ In addition, some optional changes can be applied:
 <span class="qa-a" /> A sort method would be possible from an implementation point of view, but as a list grows the cost of calling this method increases as well. Users that are not aware about the complexity might trigger it carelessly too often, e.g. after every single replace operation, finally slowing down the entire system.
 
 <span class="qa-q" /> Can I use Multimap as a 1:1 key value store?<br>
-<span class="qa-a" /> Multimap can be used as a 1:1 key-value store, although other libraries may be better suited for that purpose. As always, you should pick the library that best fits your needs, both with respect to features and performance. When using Multimap as a 1:1 key-value store, you should set the block size as small as possible to waste as little space as possible, because each block will only contain just one value.
+<span class="qa-a" /> Multimap can be used as a 1:1 key-value store, although other libraries may be better suited for this purpose. As always, you should pick the library that best fits your needs, both with respect to features and performance. When using Multimap as a 1:1 key-value store, you should set the block size as small as possible to waste as little space as possible, because each block will only contain just one value.

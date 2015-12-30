@@ -1,22 +1,18 @@
-site_name: Multimap
 docs_dir: doc
+site_name: Multimap
 theme_dir: doc/theme
 pages:
   - Home: index.md
   - Overview: overview.md
   - Tutorials:
     - C++:
-      - 'Basics': cpptutorial.md
-      - 'with Protocol Buffers': cpptutorial.md
+      - 'Basics': cppbasics.md
     - Java:
-      - 'Basics': javatutorial.md
-      - 'with Protocol Buffers': javatutorial.md
+      - 'Basics': javabasics.md
   - Reference:
-    - 'For C++ Developers': cppreference.md
-    - 'For Java Developers': javareference.md
+    - 'C++ Reference': cppreference.md
+    - 'Java Reference': javareference.md
   - Downloads:
     - 'Release 0.3': downloadv03.md
-    - 'Release 0.2': downloadv02.md
-    - 'Release 0.1': downloadv01.md
     - 'Changelog': changelog.md
 #  - Donate: donate.md
