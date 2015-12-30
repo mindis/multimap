@@ -25,6 +25,7 @@ import io.multimap.Callables.Procedure;
 
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 
 /**
  * This class implements a 1:n key-value store where each key is associated with a list of values.
@@ -77,8 +78,28 @@ public class Map implements AutoCloseable {
    * 
    * @throws Exception if the directory or the map inside does not exist.
    */
+  public Map(String directory) throws Exception {
+    this(Paths.get(directory), new Options());
+  }
+  
+  /**
+   * Opens a map in {@code directory}.
+   * 
+   * @throws Exception if the directory or the map inside does not exist.
+   */
   public Map(Path directory) throws Exception {
     this(directory, new Options());
+  }
+  
+  /**
+   * Opens or creates a map in {@code directory}. The directory must already exist. See
+   * {@link Options} for more information.
+   * 
+   * @throws Exception if the directory does not exist or other conditions depending on
+   *         {@code options} are not met.
+   */
+  public Map(String directory, Options options) throws Exception {
+    this(Paths.get(directory), options);
   }
   
   /**
