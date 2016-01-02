@@ -1,121 +1,199 @@
-## class Bytes
+## Bytes.hpp
 
 ```cpp
 #include <multimap/Bytes.hpp>
 namespace multimap
 ```
 
-This class represents a wrapper for raw byte data without ownership management.
+This file contains class [Bytes](#class-bytes) which is a wrapper for raw binary data.
 
-Members       |
--------------:|-----------------------------------------------------------------
-              | [`Bytes()`](#bytes-bytes)
-              | [`Bytes(const char* cstr)`](#bytes-bytes-cstr)
-              | [`Bytes(const std::string& str)`](#bytes-bytes-str)
-              | [`Bytes(const void* data, std::size_t size)`](#bytes-bytes-data-size)
-`const char*` | [`data() const`](#bytes-data)
-`std::size_t` | [`size() const`](#bytes-size)
-`bool`        | [`empty() const`](#bytes-empty)
-`void`        | [`clear()`](#bytes-clear)
-`std::string` | [`ToString() const`](#bytes-tostring)
+### class Bytes
 
-Functions     |
--------------:|-----------------------------------------------------------------
-`inline bool` | [`operator==(const Bytes& lhs, const Bytes& rhs)`](#operator-eq)
-`inline bool` | [`operator!=(const Bytes& lhs, const Bytes& rhs)`](#operator-ne)
-`inline bool` | [`operator<(const Bytes& lhs, const Bytes& rhs)`](#operator-lt)
+<table class="reference-table">
+<tbody>
+ <tr>
+  <th colspan="2">Member functions</th>
+ </tr>
+ <tr>
+  <td></td>
+  <td>
+   <code>Bytes()</code>
+   <div>Create an empty byte array. <a href="#bytes-bytes">more...</a><div>
+  </td>
+ </tr>
+ <tr>
+  <td></td>
+  <td>
+   <code>Bytes(const char * cstr)</code>
+   <div>Creates a byte array from a null-terminated C-string. <a href="#bytes-bytes-cstr">more...</a><div>
+  </td>
+ </tr>
+ <tr>
+  <td></td>
+  <td>
+   <code>Bytes(const std::string & str)</code>
+   <div>Creates a byte array from a standard string. <a href="#bytes-bytes-str">more...</a><div>
+  </td>
+ </tr>
+ <tr>
+  <td></td>
+  <td>
+   <code>Bytes(const void * data, size_t size)</code>
+   <div>Creates a byte array from arbitrary data. <a href="#bytes-bytes-data-size">more...</a><div>
+  </td>
+ </tr>
+ <tr>
+  <td><code>const char *</code></td>
+  <td>
+   <code>data() const</code>
+   <div>Returns a read-only pointer to the wrapped data.<div>
+  </td>
+ </tr>
+ <tr>
+  <td><code>size_t</code></td>
+  <td>
+   <code>size() const</code>
+   <div>Returns the number of bytes wrapped.<div>
+  </td>
+ </tr>
+ <tr>
+  <td><code>const char *</code></td>
+  <td>
+   <code>begin() const</code>
+   <div>Returns a read-only pointer to the beginning of the wrapped data.<div>
+  </td>
+ </tr>
+ <tr>
+  <td><code>const char *</code></td>
+  <td>
+   <code>end() const</code>
+   <div>Returns a past-the-end pointer to the wrapped data.<div>
+  </td>
+ </tr>
+ <tr>
+  <td><code>bool</code></td>
+  <td>
+   <code>empty() const</code>
+   <div>Tells whether the byte array is empty. <a href="#bytes-empty">more...</a><div>
+  </td>
+ </tr>
+ <tr>
+  <td><code>void</code></td>
+  <td>
+   <code>clear()</code>
+   <div>Let this byte array point to an empty array. <a href="#bytes-clear">more...</a><div>
+  </td>
+ </tr>
+ <tr>
+  <td><code>std::string</code></td>
+  <td>
+   <code>toString() const</code>
+   <div>Returns a string which contains a copy of the wrapped data. <a href="#bytes-tostring">more...</a><div>
+  </td>
+ </tr>
+ <tr>
+  <th colspan="2">Non-member functions</th>
+ </tr>
+ <tr>
+  <td><code>bool</code></td>
+  <td>
+   <code>operator==(const Bytes & lhs, const Bytes & rhs)</code>
+   <div>Compares two byte arrays for equality. <a href="#operator-eq">more...</a><div>
+  </td>
+ </tr>
+ <tr>
+  <td><code>bool</code></td>
+  <td>
+   <code>operator!=(const Bytes & lhs, const Bytes & rhs)</code>
+   <div>Returns the inverse of the previous function.<div>
+  </td>
+ </tr>
+ <tr>
+  <th colspan="2">Helper classes</th>
+ </tr>
+ <tr>
+  <td></td>
+  <td>
+   <code>std::hash&lt;Bytes&gt;</code>
+   <div>Hash support for class Bytes.<div>
+  </td>
+ </tr>
+</tbody>
+</table>
 
-<span class='declaration' id='bytes-bytes'>`Bytes()`</span>
+<div class="reference-more">
+ <h4 id="bytes-bytes"><code>Bytes::Bytes()</code></h4>
+ <p>Creates an empty byte array.</p>
+ <p>Postconditions</p>
+ <ul>
+  <li><code>data() != nullptr</code></li>
+  <li><code>size() == 0</code></li>
+ </ul>
+</div>
 
-Creates an instance that refers to an empty array.
+<div class="reference-more">
+ <h4 id="bytes-bytes-cstr"><code>Bytes::Bytes(const char * cstr)</code></h4>
+ <p>Creates a byte array from a null-terminated C-string.</p>
+ <p>Postconditions</p>
+ <ul>
+  <li><code>data() == cstr</code></li>
+  <li><code>size() == std::strlen(cstr)</code></li>
+ </ul>
+</div>
 
-Postconditions:
+<div class="reference-more">
+ <h4 id="bytes-bytes-str"><code>Bytes::Bytes(const std::string & str)</code></h4>
+ <p>Creates a byte array from a standard string.</p>
+ <p>Postconditions</p>
+ <ul>
+  <li><code>data() == str.data()</code></li>
+  <li><code>size() == str.size()</code></li>
+ </ul>
+</div>
 
-* `data() != nullptr`
-* `size() == 0`
+<div class="reference-more">
+ <h4 id="bytes-bytes-data-size"><code>Bytes::Bytes(const void * data, size_t size)</code></h4>
+ <p>Creates a byte array from arbitrary data.</p>
+ <p>Postconditions</p>
+ <ul>
+  <li><code>data() == data</code></li>
+  <li><code>size() == size</code></li>
+ </ul>
+</div>
 
-<span class='declaration' id='bytes-bytes-cstr'>`Bytes(const char* cstr)`</span>
+<div class="reference-more">
+ <h4 id="bytes-empty"><code>bool Bytes::empty() const</code></h4>
+ <p>Tells whether the byte array is empty. Returns <code>true</code> if the number of bytes is zero, <code>false</code> otherwise.</p>
+</div>
 
-Creates an instance that wraps a null-terminated C-string.
+<div class="reference-more">
+ <h4 id="bytes-clear"><code>void Bytes::clear()</code></h4>
+ <p>Let this byte array point to an empty array.</p>
+ <p>Postconditions</p>
+ <ul>
+  <li><code>data() != nullptr</code></li>
+  <li><code>size() == 0</code></li>
+ </ul>
+</div>
 
-Preconditions:
+<div class="reference-more">
+ <h4 id="bytes-tostring"><code>std::string toString() const</code></h4>
+ <p>Returns a string which contains a copy of the wrapped data. <code>std::string</code> is used as a convenient byte buffer and may contain bytes that are not printable or even null-bytes.</p>
+ <p>Postconditions</p>
+ <ul>
+  <li><code>data() != return_value.data()</code></li>
+  <li><code>size() == return_value.size()</code></li>
+ </ul>
+</div>
 
-* `cstr != nullptr`
+<div class="reference-more">
+ <h4 id="operator-eq"><code>bool operator==(const Bytes & lhs, const Bytes & rhs)</code></h4>
+ <p>Compares two byte arrays for equality. Two byte arrays are equal, if they wrap the same number of bytes, and which are equal after byte-wise comparison.</p>
+</div>
 
-Postconditions:
 
-* `data() == cstr`
-* `size() == std::strlen(cstr)`
 
-<span class='declaration' id='bytes-bytes-str'>`Bytes(const std::string& str)`</span>
 
-Creates an instance that wraps a standard string.
-
-Postconditions:
-
-* `data() == str.data()`
-* `size() == str.size()`
-
-<span class='declaration' id='bytes-bytes-data-size'>`Bytes(const void* data, std::size_t size)`</span>
-
-Creates an instance that wraps a pointer to data of `size` bytes.
-
-Preconditions:
-
-* `data != nullptr`
-
-Postconditions:
-
-* `data() == data`
-* `size() == size`
-
-<span class='declaration' id='bytes-data'>`const char* data() const`</span>
-
-Returns a read-only pointer to the wrapped data.
-
-<span class='declaration' id='bytes-size'>`std::size_t size() const`</span>
-
-Returns the number of bytes wrapped.
-
-<span class='declaration' id='bytes-empty'>`bool empty() const`</span>
-
-Returns `true` if the number of bytes wrapped is zero, and `false` otherwise.
-
-<span class='declaration' id='bytes-clear'>`void clear()`</span>
-
-Let this instance refer to an empty array.
-
-Postconditions:
-
-* `data() != nullptr`
-* `size() == 0`
-
-<span class='declaration' id='bytes-tostring'>`std::string ToString() const`</span>
-
-Returns a deep copy of the wrapped data. `std::string` is used here as a convenient byte buffer which may contain characters that are not printable.
-
-Postconditions:
-
-* `data() != result.data()`
-* `size() == result.size()`
-
-<span class='declaration' id='operator-eq'>
- `inline bool operator==(const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& lhs, const` [`Bytes`](#class-bytes)`& rhs)`
-</span>
-
-Returns `true` if `lhs` and `rhs` contain the same number of bytes and which are equal after byte-wise comparison. Returns `false` otherwise.
-
-<span class='declaration' id='operator-ne'>
- `inline bool operator!=(const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& lhs, const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& rhs)`
-</span>
-
-Returns `true` if the bytes wrapped by `lhs` and `rhs` are not equal after byte-wise comparison. Returns `false` otherwise.
-
-<span class='declaration' id='operator-lt'>
- `inline bool operator<(const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& lhs, const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& rhs)`
-</span>
-
-Returns `true` if `lhs` is less than `rhs` according to `std::memcmp`, and `false` otherwise. If `lhs` and `rhs` do not wrap the same number of bytes, only the first `std::min(lhs.size(), rhs.size())` bytes will be compared.
 
 ## class Callables
 

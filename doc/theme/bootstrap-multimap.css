@@ -3,6 +3,34 @@
  * Copyright 2015 Martin Trenkmann
  * Licensed under AGPL (https://gnu.org/licenses/agpl.html)
  */
+a.navbar-brand {
+  font-family: 'Faster One', cursive;
+}
+
+a.navbar-brand:focus {
+  outline: 0;
+}
+
+div.reference-more {
+  border-top: 1px solid silver;
+  margin-top: 50px;
+}
+
+div.reference-more > h4 > code {
+  background-color: #fff;
+  font-size: 18px;
+  line-height: 50px;
+  padding: 0px;
+}
+
+div.reference-more > p {
+  padding: 0px 12px;
+}
+
+li.dropdown:hover > ul  {
+  display: block;
+}
+
 span.qa-q:before {
   content: "Q";
   display: inline-block;
@@ -17,38 +45,37 @@ span.qa-a:before {
   width: 20px;
 }
 
-table {
+table.reference-table {
   width: 100%;
 }
 
-table > thead > tr {
-  background-color: #616161;
+table.reference-table > tbody > tr {
+  border-top: 1px solid #616161;
 }
 
-table > thead > tr > th {
+table.reference-table > tbody > tr > td {
+  font-size: 15px;
+  padding: 6px;
+  vertical-align: top;
+}
+
+table.reference-table > tbody > tr > td:first-child {
+  text-align: right;
+}
+
+table.reference-table > tbody > tr > td > code {
+  background: #fff;
+}
+
+table.reference-table > tbody > tr > td > div {
+  text-indent: 20px;
+}
+
+table.reference-table > tbody > tr > th {
+  background-color: #616161;
   color: #fff;
   font-weight: normal;
-  padding: 5px 15px;
-}
-
-table > tbody > tr > td code {
-  background-color: #fff;
-}
-
-tr {
-  border-top: 1px solid #757575;
-}
-
-a.navbar-brand {
-  font-family: 'Faster One', cursive;
-}
-
-a.navbar-brand:focus {
-  outline: 0;
-}
-
-li.dropdown:hover > ul  {
-  display: block;
+  text-align: left;
 }
 
 /* Copied from .hljs */
