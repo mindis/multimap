@@ -18,7 +18,7 @@ This file contains class [Bytes](#class-bytes) which is a wrapper for raw binary
   <td></td>
   <td>
    <code>Bytes()</code>
-   <div>Create an empty byte array. <a href="#bytes-bytes">more...</a><div>
+   <div>Creates an empty byte array. <a href="#bytes-bytes">more...</a><div>
   </td>
  </tr>
  <tr>
@@ -133,7 +133,7 @@ This file contains class [Bytes](#class-bytes) which is a wrapper for raw binary
 
 <div class="reference-more">
  <h4 id="bytes-bytes-cstr"><code>Bytes::Bytes(const char * cstr)</code></h4>
- <p>Creates a byte array from a null-terminated C-string.</p>
+ <p>Creates a byte array from a null-terminated C-string. This constructor allows implicit conversion.</p>
  <p>Postconditions</p>
  <ul>
   <li><code>data() == cstr</code></li>
@@ -143,7 +143,7 @@ This file contains class [Bytes](#class-bytes) which is a wrapper for raw binary
 
 <div class="reference-more">
  <h4 id="bytes-bytes-str"><code>Bytes::Bytes(const std::string & str)</code></h4>
- <p>Creates a byte array from a standard string.</p>
+ <p>Creates a byte array from a standard string. This constructor allows implicit conversion.</p>
  <p>Postconditions</p>
  <ul>
   <li><code>data() == str.data()</code></li>
@@ -192,48 +192,494 @@ This file contains class [Bytes](#class-bytes) which is a wrapper for raw binary
 </div>
 
 
-
-
-
-## class Callables
+## callables.hpp
 
 ```cpp
-#include <multimap/Callables.hpp>
+#include <multimap/callables.hpp>
 namespace multimap
 ```
 
-This class contains typedefs which define signatures of various callable types. See [std::function](http://en.cppreference.com/w/cpp/utility/functional/function) for more details on how to create such objects from lambda expressions, class methods, or free functions.
+This file contains some convenient function objects implementing the [Predicate](#interfaces-predicate) interface.
 
-Members   |
----------:|---------------------------------------------------------------------
-`typedef` | [`std::function<void(const Bytes&)> Procedure`](#callables-procedure)
-`typedef` | [`std::function<bool(const Bytes&)> Predicate`](#callables-predicate)
-`typedef` | [`std::function<std::string(const Bytes&)> Function`](#callables-function)
-`typedef` | [`std::function<bool(const Bytes&, const Bytes&)> Compare`](#callables-compare)
+### struct Contains
 
-<span class='declaration' id='callables-procedure'>
- `typedef std::function<void(const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`&)> Procedure`
-</span>
+A function object that checks if a byte array contains another one in terms of a substring. Note that the empty byte array is a substring of any other byte array.
 
-Types implementing this interface can process a value, but do not return a result. However, since objects of this type may have state, a procedure can be used to collect information about the processed data, and thus returning a result indirectly.
+<table class="reference-table">
+<tbody>
+ <tr>
+  <th colspan="2">Member functions</th>
+ </tr>
+ <tr>
+  <td><code>explicit</code></td>
+  <td>
+   <code>Contains(const Bytes & bytes)</code>
+   <div>Creates a functor that checks for containment of bytes when called.<div>
+  </td>
+ </tr>
+ <tr>
+  <td><code>const Bytes &</code></td>
+  <td>
+   <code>bytes() const</code>
+   <div>Returns a read-only reference to the wrapped byte array.<div>
+  </td>
+ </tr>
+ <tr>
+  <td><code>bool</code></td>
+  <td>
+   <code>operator()(const Bytes & bytes) const</code>
+   <div>Returns true if bytes contains the wrapped byte array, false otherwise.<div>
+  </td>
+ </tr>
+</tbody>
+</table>
 
-<span class='declaration' id='callables-predicate'>
- `typedef std::function<bool(const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`&)> Predicate`
-</span>
+### struct StartsWith
 
-Types implementing this interface can process a value and return a boolean. Predicates check a value for certain property and thus, depending on the outcome, can be used to control the path of execution.
+A function object that checks if a byte array has a certain prefix.
 
-<span class='declaration' id='callables-function'>
- `typedef std::function<std::string(const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`&)> Function`
-</span>
+<table class="reference-table">
+<tbody>
+ <tr>
+  <th colspan="2">Member functions</th>
+ </tr>
+ <tr>
+  <td><code>explicit</code></td>
+  <td>
+   <code>StartsWith(const Bytes & bytes)</code>
+   <div>Creates a functor that checks if a byte array starts with bytes when called.<div>
+  </td>
+ </tr>
+ <tr>
+  <td><code>const Bytes &</code></td>
+  <td>
+   <code>bytes() const</code>
+   <div>Returns a read-only reference to the wrapped byte array.<div>
+  </td>
+ </tr>
+ <tr>
+  <td><code>bool</code></td>
+  <td>
+   <code>operator()(const Bytes & bytes) const</code>
+   <div>Returns true if bytes starts with the wrapped byte array, false otherwise.<div>
+  </td>
+ </tr>
+</tbody>
+</table>
 
-Types implementing this interface can process a value and return a new one. Functions map an input value to an output value. An empty or no result can be signaled returning an empty string. `std::string` is used here as a convenient byte buffer that may contain arbitrary bytes.
+### struct EndsWith
 
-<span class='declaration' id='callables-compare'>
- `typedef std::function<bool(const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`&, const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`&)> Compare`
-</span>
+A function object that checks if a byte array has a certain suffix.
 
-Types implementing this interface can process two values and return a boolean. Such functions determine the less than order of the given values according to the [Compare](http://en.cppreference.com/w/cpp/concept/Compare) concept.
+<table class="reference-table">
+<tbody>
+ <tr>
+  <th colspan="2">Member functions</th>
+ </tr>
+ <tr>
+  <td><code>explicit</code></td>
+  <td>
+   <code>EndsWith(const Bytes & bytes)</code>
+   <div>Creates a functor that checks if a byte array ends with bytes when called.<div>
+  </td>
+ </tr>
+ <tr>
+  <td><code>const Bytes &</code></td>
+  <td>
+   <code>bytes() const</code>
+   <div>Returns a read-only reference to the wrapped byte array.<div>
+  </td>
+ </tr>
+ <tr>
+  <td><code>bool</code></td>
+  <td>
+   <code>operator()(const Bytes & bytes) const</code>
+   <div>Returns true if bytes ends with the wrapped byte array, false otherwise.<div>
+  </td>
+ </tr>
+</tbody>
+</table>
+
+## Interfaces
+
+The interfaces described here are requirements expected by some user-provided function objects. They are typically employed as template parameters and are not to be confused with abstract classes used in object-oriented programming. Sometimes this type of interfaces is also referred to as [concepts](http://en.cppreference.com/w/cpp/concept). Note that [lambda functions](http://en.cppreference.com/w/cpp/language/lambda) are unnamed function objects.
+
+### Predicate
+
+A predicate is a function object that is applied to an instance of class [Bytes](#class-bytes) returning a boolean value. Predicates are used to select keys or values for some further operation.
+
+<table class="reference-table">
+<tbody>
+ <tr>
+  <th colspan="2">Required member function</th>
+ </tr>
+ <tr>
+  <td><code>bool</code></td>
+  <td>
+   <code>operator()(const Bytes & bytes) const</code>
+   <div>Returns a boolean value after evaluating the given byte array.<div>
+  </td>
+ </tr>
+</tbody>
+</table>
+
+### Procedure
+
+A procedure is a function object that is applied to an instance of class [Bytes](#class-bytes) without returning a value. Most procedures will have a state that changes during application. Procedures are used to operate on keys or values, e.g. to collect information about them.
+
+<table class="reference-table">
+<tbody>
+ <tr>
+  <th colspan="2">Required member function</th>
+ </tr>
+ <tr>
+  <td><code>void</code></td>
+  <td>
+   <code>operator()(const Bytes & bytes)</code>
+   <div>Processes the given byte array, possibly changing the functor's state.<div>
+  </td>
+ </tr>
+</tbody>
+</table>
+
+### Function
+
+A function is a function object that is applied to an instance of class [Bytes](#class-bytes) returning a [std::string](http://en.cppreference.com/w/cpp/string/basic_string). The returned string serves as a managed byte buffer and may contain arbitrary data. Functions are used to map input values to output values.
+
+<table class="reference-table">
+<tbody>
+ <tr>
+  <th colspan="2">Required member function</th>
+ </tr>
+ <tr>
+  <td><code>std::string</code></td>
+  <td>
+   <code>operator()(const Bytes & bytes) const</code>
+   <div>Maps the given byte array to another byte array returned as string.<div>
+  </td>
+ </tr>
+</tbody>
+</table>
+
+### Compare
+
+A function object that is applied to two instances of class [Bytes](#class-bytes) returning a boolean that tells if the left operand is less than the right operand. This interface is equivalent to the Compare concept described [here](http://en.cppreference.com/w/cpp/concept/Compare). Objects implementing this interface are used in sorting operations.
+
+<table class="reference-table">
+<tbody>
+ <tr>
+  <th colspan="2">Required member function</th>
+ </tr>
+ <tr>
+  <td><code>bool</code></td>
+  <td>
+   <code>operator()(const Bytes & lhs, const Bytes & rhs) const</code>
+   <div>Returns true if lhs is considered less than rhs, false otherwise.<div>
+  </td>
+ </tr>
+</tbody>
+</table>
+
+
+## Map.hpp
+
+```cpp
+#include <multimap/Map.hpp>
+namespace multimap
+```
+
+This file contains class [Map](#class-map) which is a mutable 1:n key-value store.
+
+### class Map
+
+<table class="reference-table">
+<tbody>
+ <tr>
+  <th colspan="2">Member types</th>
+ </tr>
+ <tr>
+  <td></td>
+  <td>
+   <code>Limits</code>
+   <div>Provides static methods to ask for maximum key and value sizes. <a href="#map-limits">more...</a><div>
+  </td>
+ </tr>
+ <tr>
+  <td></td>
+  <td>
+   <code>Stats</code>
+   <div>Type that reports statistical information about an instance of Map. <a href="#map-stats">more...</a><div>
+  </td>
+ </tr>
+ <tr>
+  <td></td>
+  <td>
+   <code>Iterator</code>
+   <div>Input iterator type that reads a list of values. <a href="#map-stats">more...</a><div>
+  </td>
+ </tr>
+ <tr>
+  <th colspan="2">Member functions</th>
+ </tr>
+ <tr>
+  <td><code>explicit</code></td>
+  <td>
+   <code>Map(const boost::filesystem::path & directory)</code>
+   <div>Opens an already existing map in the given directory. <a href="#map-map-directory">more...</a><div>
+  </td>
+ </tr>
+ <tr>
+  <td></td>
+  <td>
+   <code>Map(const boost::filesystem::path & directory,</code><br>
+   <code><script>nbsp(4)</script>const Options & options)</code>
+   <div>Creates or opens a map in the given directory. <a href="#map-map-directory-options">more...</a><div>
+  </td>
+ </tr>
+ <tr>
+  <td></td>
+  <td>
+   <code>~Map()</code>
+   <div>Flushes all buffered data to disk and closes the map. <a href="#map-dtor">more...</a><div>
+  </td>
+ </tr>
+ <tr>
+  <td><code>void</code></td>
+  <td>
+   <code>put(const Bytes & key, const Bytes & value)</code>
+   <div>Appends value to the end of the list associated with key. <a href="#map-put">more...</a><div>
+  </td>
+ </tr>
+ <tr>
+  <td><code>Iterator</code></td>
+  <td>
+   <code>get(const Bytes & key) const</code>
+   <div>Returns a read-only iterator for the list associated with key. <a href="#map-get">more...</a><div>
+  </td>
+ </tr>
+ <tr>
+  <td><code>bool</code></td>
+  <td>
+   <code>removeKey(const Bytes & key)</code>
+   <div>Removes all values associated with key. <a href="#map-remove-key">more...</a><div>
+  </td>
+ </tr>
+ <tr>
+  <td>
+    <code>template</code><br>
+    <code>uint32_t</code>
+  </td>
+  <td>
+   <code>&lt;typename Predicate&gt;</code><br>
+   <code>removeKeys(Predicate predicate)</code>
+   <div>Removes all values associated with keys for which predicate yields true. <a href="#map-remove-keys">more...</a><div>
+  </td>
+ </tr>
+ <tr>
+  <td>
+    <code>template</code><br>
+    <code>bool</code>
+  </td>
+  <td>
+   <code>&lt;typename Predicate&gt;</code><br>
+   <code>removeValue(const Bytes & key, Predicate predicate)</code>
+   <div>Removes the first value from the list associated with key for which predicate yields true. <a href="#map-remove-value">more...</a><div>
+  </td>
+ </tr>
+ <tr>
+  <td>
+    <code>template</code><br>
+    <code>uint32_t</code>
+  </td>
+  <td>
+   <code>&lt;typename Predicate&gt;</code><br>
+   <code>removeValues(const Bytes & key, Predicate predicate)</code>
+   <div>Removes all values from the list associated with key for which predicate yields true. <a href="#map-remove-values">more...</a><div>
+  </td>
+ </tr>
+ <tr>
+  <td>
+    <code>template</code><br>
+    <code>bool</code>
+  </td>
+  <td>
+   <code>&lt;typename Function&gt;</code><br>
+   <code>replaceValue(const Bytes & key, Function map)</code>
+   <div>Replaces the first value in the list associated with key by the result of invoking map. Values for which map returns the empty string are not replaced. <a href="#map-replace-value">more...</a><div>
+  </td>
+ </tr>
+ <tr>
+  <td>
+    <code>template</code><br>
+    <code>uint32_t</code>
+  </td>
+  <td>
+   <code>&lt;typename Function&gt;</code><br>
+   <code>replaceValues(const Bytes & key, Function map)</code>
+   <div>Replaces each value in the list associated with key by the result of invoking map. Values for which map returns the empty string are not replaced. <a href="#map-replace-values-map">more...</a><div>
+  </td>
+ </tr>
+ <tr>
+  <td><code>uint32_t</code></td>
+  <td>
+   <code>replaceValues(const Bytes & key,</code><br>
+   <code><script>nbsp(14)</script>const Bytes & old_value,</code><br>
+   <code><script>nbsp(14)</script>const Bytes & new_value)</code>
+   <div>Replaces each value in the list associated with key which is equal to old_value by new_value. <a href="#map-replace-values-old-new">more...</a><div>
+  </td>
+ </tr>
+ <tr>
+  <td>
+    <code>template</code><br>
+    <code>void</code>
+  </td>
+  <td>
+   <code>&lt;typename Procedure&gt;</code><br>
+   <code>forEachKey(Procedure process) const</code>
+   <div>Applies process to each key whose list is not empty. <a href="#map-for-each-key">more...</a><div>
+  </td>
+ </tr>
+ <tr>
+  <td>
+    <code>template</code><br>
+    <code>void</code>
+  </td>
+  <td>
+   <code>&lt;typename Procedure&gt;</code><br>
+   <code>forEachValue(const Bytes & key, Procedure process) const</code>
+   <div>Applies process to each value associated with key. <a href="#map-for-each-value">more...</a><div>
+  </td>
+ </tr>
+ <tr>
+  <td>
+    <code>template</code><br>
+    <code>void</code>
+  </td>
+  <td>
+   <code>&lt;typename BinaryProcedure&gt;</code><br>
+   <code>forEachEntry(BinaryProcedure process) const</code>
+   <div>Applies process to each entry. An entry is ... <a href="#map-for-each-value">more...</a><div>
+  </td>
+ </tr>
+ <tr>
+  <td>
+    <code>std::vector&lt;Stats&gt;</code>
+  </td>
+  <td>
+   <code>getStats() const</code>
+   <div>Returns statistical information about each partition. <a href="#map-get-stats">more...</a><div>
+  </td>
+ </tr>
+ <tr>
+  <td>
+    <code>Stats</code>
+  </td>
+  <td>
+   <code>getTotalStats() const</code>
+   <div>Returns total statistics about the map. <a href="#map-get-stats">more...</a><div>
+  </td>
+ </tr>
+ <tr>
+  <td>
+    <code>bool</code>
+  </td>
+  <td>
+   <code>isReadOnly() const</code>
+   <div>Returns true if the map is read-only, false otherwise.<div>
+  </td>
+ </tr>
+ <tr>
+  <th colspan="2">Static member functions</th>
+ </tr>
+ <tr>
+  <td>
+    <code>std::vector&lt;Stats&gt;</code>
+  </td>
+  <td>
+   <code>stats(const boost::filesystem::path & directory)</code>
+   <div>Returns statistical information about each partition. <a href="#map-stats">more...</a><div>
+  </td>
+ </tr>
+ <tr>
+  <td>
+    <code>void</code>
+  </td>
+  <td>
+   <code>importFromBase64(const boost::filesystem::path & directory,</code><br>
+   <code><script>nbsp(17)</script>const boost::filesystem::path & input)</code>
+   <div>Imports key-value pairs read from an input file or directory into the map located in directory. <a href="#map-import-from-base64">more...</a><div>
+  </td>
+ </tr>
+ <tr>
+  <td>
+    <code>void</code>
+  </td>
+  <td>
+   <code>importFromBase64(const boost::filesystem::path & directory,</code><br>
+   <code><script>nbsp(17)</script>const boost::filesystem::path & input)</code><br>
+   <code><script>nbsp(17)</script>const Options & options)</code>
+   <div>Imports key-value pairs read from an input file or directory into the map located in directory. <a href="#map-import-from-base64-options">more...</a><div>
+  </td>
+ </tr>
+ <tr>
+  <td>
+    <code>void</code>
+  </td>
+  <td>
+   <code>exportToBase64(const boost::filesystem::path & directory,</code><br>
+   <code><script>nbsp(15)</script>const boost::filesystem::path & output)</code>
+   <div>Exports all key-value pairs from the map located in directory to the file denoted by output. <a href="#map-export-to-base64">more...</a><div>
+  </td>
+ </tr>
+ <tr>
+  <td>
+    <code>void</code>
+  </td>
+  <td>
+   <code>exportToBase64(const boost::filesystem::path & directory,</code><br>
+   <code><script>nbsp(15)</script>const boost::filesystem::path & output,</code><br>
+   <code><script>nbsp(15)</script>const Options & options)</code>
+   <div>Exports all key-value pairs from the map located in directory to the file denoted by output. <a href="#map-export-to-base64-options">more...</a><div>
+  </td>
+ </tr>
+ <tr>
+  <td>
+    <code>void</code>
+  </td>
+  <td>
+   <code>optimize(const boost::filesystem::path & directory,</code><br>
+   <code><script>nbsp(9)</script>const boost::filesystem::path & output)</code>
+   <div>Rewrites the map located in directory to the directory denoted by output performing some optimizations. <a href="#map-optimize">more...</a><div>
+  </td>
+ </tr>
+ <tr>
+  <td>
+    <code>void</code>
+  </td>
+  <td>
+   <code>optimize(const boost::filesystem::path & directory,</code><br>
+   <code><script>nbsp(9)</script>const boost::filesystem::path & output,</code><br>
+   <code><script>nbsp(9)</script>const Options & options)</code>
+   <div>Rewrites the map located in directory to the directory denoted by output performing some optimizations. <a href="#map-optimize-options">more...</a><div>
+  </td>
+ </tr>
+</tbody>
+</table>
+
+<div class="reference-more">
+ <h4 id="bytes-bytes"><code>Bytes::Bytes()</code></h4>
+ <p>Creates an empty byte array.</p>
+ <p>Postconditions</p>
+ <ul>
+  <li><code>data() != nullptr</code></li>
+  <li><code>size() == 0</code></li>
+ </ul>
+</div>
+
+
+
+
+
 
 ## class Iterator<bool>
 

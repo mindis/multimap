@@ -13,13 +13,13 @@ a.navbar-brand:focus {
 
 div.reference-more {
   border-top: 1px solid silver;
-  margin-top: 50px;
+  margin: 50px 0px;
 }
 
 div.reference-more > h4 > code {
   background-color: #fff;
   font-size: 18px;
-  line-height: 50px;
+  line-height: 30px;
   padding: 0px;
 }
 
@@ -61,6 +61,7 @@ table.reference-table > tbody > tr > td {
 
 table.reference-table > tbody > tr > td:first-child {
   text-align: right;
+  width: 20%;
 }
 
 table.reference-table > tbody > tr > td > code {
@@ -68,7 +69,7 @@ table.reference-table > tbody > tr > td > code {
 }
 
 table.reference-table > tbody > tr > td > div {
-  text-indent: 20px;
+  margin-left: 20px;
 }
 
 table.reference-table > tbody > tr > th {
