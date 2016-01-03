@@ -1,7 +1,7 @@
 /*
- * This file is part of the Multimap library.  http://multimap.io
+ * This file is part of Multimap.  http://multimap.io
  *
- * Copyright (C) 2015  Martin Trenkmann
+ * Copyright (C) 2015-2016  Martin Trenkmann
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as

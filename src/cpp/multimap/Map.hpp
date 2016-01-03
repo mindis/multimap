@@ -1,6 +1,6 @@
-// This file is part of the Multimap library.  http://multimap.io
+// This file is part of Multimap.  http://multimap.io
 //
-// Copyright (C) 2015  Martin Trenkmann
+// Copyright (C) 2015-2016  Martin Trenkmann
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -32,8 +32,6 @@ static const uint32_t MAJOR_VERSION = 0;
 static const uint32_t MINOR_VERSION = 3;
 
 class Map : mt::Resource {
-  // Insanely fast 1:n key-value store.
-
  public:
   struct Id {
     uint64_t block_size = 0;
@@ -154,12 +152,6 @@ class Map : mt::Resource {
   // replacements. This method will block until a writer lock can be acquired.
   // Returns: true if a value was replaced, false otherwise.
 
-  uint32_t replaceValues(const Bytes& key, const Bytes& old_value,
-                         const Bytes& new_value) {
-    return getTable(key).replaceValues(key, old_value, new_value);
-  }
-  // TODO Document this.
-
   template <typename Function>
   uint32_t replaceValues(const Bytes& key, Function map) {
     return getTable(key).replaceValues(key, map);
@@ -171,6 +163,11 @@ class Map : mt::Resource {
   // end of the list. Future releases will support in-place replacements. This
   // method will block until a writer lock can be acquired.
   // Returns: the number of replaced values.
+
+  uint32_t replaceValues(const Bytes& key, const Bytes& old_value,
+                         const Bytes& new_value) {
+    return getTable(key).replaceValues(key, old_value, new_value);
+  }
 
   template <typename Procedure>
   void forEachKey(Procedure process) const {
@@ -204,7 +201,6 @@ class Map : mt::Resource {
       table->forEachEntry(process);
     }
   }
-  // TODO Document this.
 
   std::vector<Stats> getStats() const {
     std::vector<Stats> stats;
@@ -214,9 +210,7 @@ class Map : mt::Resource {
     return stats;
   }
 
-  Stats getTotalStats() const {
-    return internal::Table::Stats::total(getStats());
-  }
+  Stats getTotalStats() const { return Stats::total(getStats()); }
 
   bool isReadOnly() const { return tables_.front()->isReadOnly(); }
 
@@ -224,8 +218,7 @@ class Map : mt::Resource {
   // Static methods
   // ---------------------------------------------------------------------------
 
-  static std::vector<internal::Table::Stats> stats(
-      const boost::filesystem::path& directory);
+  static std::vector<Stats> stats(const boost::filesystem::path& directory);
 
   static void importFromBase64(const boost::filesystem::path& directory,
                                const boost::filesystem::path& input);
@@ -272,7 +265,6 @@ class Map : mt::Resource {
   static void exportToBase64(const boost::filesystem::path& directory,
                              const boost::filesystem::path& output,
                              const Options& options);
-  // TODO Document this.
 
   static void optimize(const boost::filesystem::path& directory,
                        const boost::filesystem::path& output);

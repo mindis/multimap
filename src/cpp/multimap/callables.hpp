@@ -1,6 +1,6 @@
-// This file is part of the Multimap library.  http://multimap.io
+// This file is part of Multimap.  http://multimap.io
 //
-// Copyright (C) 2015  Martin Trenkmann
+// Copyright (C) 2015-2016  Martin Trenkmann
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -23,90 +23,65 @@
 
 namespace multimap {
 
-// typedef std::function<bool(const Bytes&)> Predicate;
-// Types implementing this interface can process a value and return a
-// boolean. Predicates check a value for certain property and thus,
-// depending on the outcome, can be used to control the path of execution.
-
-// typedef std::function<void(const Bytes&)> Procedure;
-// Types implementing this interface can process a value, but do not return
-// a result. However, since objects of this type may have state, a procedure
-// can be used to collect information about the processed data, and thus
-// returning a result indirectly.
-
-// typedef internal::SharedListIterator ListIterator;
-// typedef std::function<void(const Bytes&, ListIterator&&)> BinaryProcedure;
-
-// typedef std::function<std::string(const Bytes&)> Function;
-// Types implementing this interface can process a value and return a new
-// one. Functions map an input value to an output value. An empty or no
-// result can be signaled returning an empty string. std::string is used
-// here as a convenient byte buffer that may contain arbitrary bytes.
-
-// typedef std::function<bool(const Bytes&, const Bytes&)> Compare;
-// Types implementing this interface can process two values and return a
-// boolean. Such functions determine the less than order of the given values
-// according to the Compare concept.
-// See http://en.cppreference.com/w/cpp/concept/Compare
-
 // -----------------------------------------------------------------------------
 // Predicates
 // -----------------------------------------------------------------------------
 
 struct Equal {
-  explicit Equal(const Bytes& value) : value_(value) {}
+  explicit Equal(const Bytes& bytes) : bytes_(bytes) {}
 
-  bool operator()(const Bytes& value) const { return value == value_; }
+  bool operator()(const Bytes& bytes) const { return bytes == bytes_; }
 
  private:
-  const Bytes value_;
+  const Bytes bytes_;
 };
 
 struct Contains {
-  // Containment check for empty string is equivalent to std::string::find.
-  // More precisely:
-  //  - Contains("")("")    -> true, because std::string("").find("")    == 0
-  //  - Contains("")("abc") -> true, because std::string("abc").find("") == 0
+  explicit Contains(const Bytes& bytes) : bytes_(bytes) {}
 
-  explicit Contains(const Bytes& value) : value_(value) {}
+  const Bytes& bytes() const { return bytes_; }
 
-  bool operator()(const Bytes& value) const {
-    return (value_.size() > 0)
-               ? std::search(value.begin(), value.end(), value_.begin(),
-                             value_.end()) != value.end()
+  bool operator()(const Bytes& bytes) const {
+    return (bytes_.size() > 0)
+               ? std::search(bytes.begin(), bytes.end(), bytes_.begin(),
+                             bytes_.end()) != bytes.end()
                : true;
   }
 
  private:
-  const Bytes value_;
+  const Bytes bytes_;
 };
 
 struct StartsWith {
-  explicit StartsWith(const Bytes& value) : value_(value) {}
+  explicit StartsWith(const Bytes& bytes) : bytes_(bytes) {}
+
+  const Bytes& bytes() const { return bytes_; }
 
   bool operator()(const Bytes& value) const {
-    return (value.size() >= value_.size())
-               ? std::memcmp(value.data(), value_.data(), value_.size()) == 0
+    return (value.size() >= bytes_.size())
+               ? std::memcmp(value.data(), bytes_.data(), bytes_.size()) == 0
                : false;
   }
 
  private:
-  const Bytes value_;
+  const Bytes bytes_;
 };
 
 struct EndsWith {
-  explicit EndsWith(const Bytes& value) : value_(value) {}
+  explicit EndsWith(const Bytes& bytes) : bytes_(bytes) {}
+
+  const Bytes& bytes() const { return bytes_; }
 
   bool operator()(const Bytes& value) const {
-    const int diff = value.size() - value_.size();
+    const int diff = value.size() - bytes_.size();
     return (diff >= 0)
-               ? std::memcmp(value.data() + diff, value_.data(),
-                             value_.size()) == 0
+               ? std::memcmp(value.data() + diff, bytes_.data(),
+                             bytes_.size()) == 0
                : false;
   }
 
  private:
-  const Bytes value_;
+  const Bytes bytes_;
 };
 
 }  // namespace multimap

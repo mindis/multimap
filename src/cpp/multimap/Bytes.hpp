@@ -1,4 +1,4 @@
-// This file is part of the Multimap library.  http://multimap.io
+// This file is part of Multimap.  http://multimap.io
 //
 // Copyright (C) 2015-2016  Martin Trenkmann
 //
@@ -70,11 +70,11 @@ inline bool operator!=(const Bytes& lhs, const Bytes& rhs) {
   return !(lhs == rhs);
 }
 
-// inline bool operator<(const Bytes& lhs, const Bytes& rhs) {
-//  const auto min_size = std::min(lhs.size(), rhs.size());
-//  const auto result = std::memcmp(lhs.data(), rhs.data(), min_size);
-//  return (result == 0) ? (lhs.size() < rhs.size()) : (result < 0);
-//}
+inline bool operator<(const Bytes& lhs, const Bytes& rhs) {
+  const auto min_size = std::min(lhs.size(), rhs.size());
+  const auto result = std::memcmp(lhs.data(), rhs.data(), min_size);
+  return (result == 0) ? (lhs.size() < rhs.size()) : (result < 0);
+}
 
 }  // namespace multimap
 
