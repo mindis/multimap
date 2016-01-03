@@ -6,7 +6,8 @@ CONFIG -= qt
 
 QMAKE_CXXFLAGS += -std=c++11
 
-SOURCES += ../src/cpp/multimap/main.cpp
+SOURCES += \
+    ../src/cpp/multimap/command_line_tool.cpp
 
 unix: LIBS += -lboost_filesystem -lboost_system -lmultimap
 
