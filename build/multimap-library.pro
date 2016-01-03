@@ -1,5 +1,5 @@
-TEMPLATE = lib
 TARGET = multimap
+TEMPLATE = lib
 VERSION = 0.3
 
 COMMON = multimap.pri
