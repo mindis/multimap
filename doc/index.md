@@ -83,4 +83,4 @@ public static void main(String[] args) {
 </div>
 <br>
 
-Multimap is <a href="https://www.fsf.org/about/what-is-free-software" target="_bank">free software</a> implemented in standard C++11 and POSIX, distributed under the terms of the <a href="http://www.gnu.org/licenses/agpl-3.0.en.html" target="_blank">GNU Affero General Public License</a> (AGPL) version 3. At the moment Multimap only runs under GNU/Linux on x86-32 and x86-64. This is also true for the included Java binding.
+Multimap is <a href="https://www.fsf.org/about/what-is-free-software" target="_bank">free software</a> implemented in standard C++11 and POSIX, distributed under the terms of the <a href="http://www.gnu.org/licenses/agpl-3.0.en.html" target="_blank">GNU Affero General Public License</a> (AGPL) version 3. At this time Multimap only runs under GNU/Linux on x86-32 and x86-64. This is also true for the included Java binding.

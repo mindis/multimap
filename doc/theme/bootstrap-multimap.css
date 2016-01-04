@@ -13,13 +13,13 @@ a.navbar-brand:focus {
 
 div.reference-more {
   border-top: 1px solid silver;
-  margin: 50px 0px;
+  margin: 30px 0px;
 }
 
 div.reference-more > h4 > code {
   background-color: #fff;
+  line-height: 40px;
   font-size: 18px;
-  line-height: 30px;
   padding: 0px;
 }
 
@@ -46,6 +46,7 @@ span.qa-a:before {
 }
 
 table.reference-table {
+  margin-top: 15px;
   width: 100%;
 }
 

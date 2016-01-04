@@ -388,9 +388,13 @@ A function object that is applied to two instances of class [Bytes](#class-bytes
 namespace multimap
 ```
 
-This file contains class [Map](#class-map) which is a mutable 1:n key-value store.
-
 ### class Map
+
+This class implements a 1:n key-value store where each key is associated with a list of values. When putting a key-value pair into the map, the value is appended to the end of the list that is associated with the key. If no such key-list pair already exist, it will be created. Looking up a key returns a read-only iterator for the associated list. If the key does not exist, the list is considered to be empty and the returned iterator has no values to deliver. From a user's point of view there is no distinction between an empty list and a non-existing list.
+
+Map also supports removing or replacing values. When a value is removed, it will be marked as such for the moment making it invisible for subsequent iterations. Running an [optimze](#map-optimize) operation removes the data physically. The replace operation is implemented as a remove of the old value followed by an insert/put of the new value. In other words, the replacement is not in-place, but the new value is always the last value in the corresponding list. To restore a certain order an [optimze](#map-optimize) operation can be run as well. However, optimization is considered a less frequent, more administrative task.
+
+The class is designed to be a fast and mutable 1:n key-value store. For that reason, Map holds the entire key set in memory. This is also true for keys that were removed from the map at runtime. In addition, each key is associated with a write buffer which altogether contribute a lot to the total memory footprint of the map. Therefore, the number of keys to be put is limited by the amount of available memory. However, this simple design was intended in favour of performance, especially due to the fact that memory is relatively cheap and (server) machines are equipped with more and more of it. As a rule of thumb, assuming keys with 10 bytes in size on average, Map scales up to 10 M keys on desktop machines with 8 GiB of RAM and up to 100 M keys on server machines with 64 GiB of RAM. The number of values, though, is practically limited only by the amount of disk space. For more information, please visit the [overview](overview/#block-organization) page.
 
 <table class="reference-table">
 <tbody>
@@ -425,7 +429,7 @@ This file contains class [Map](#class-map) which is a mutable 1:n key-value stor
   <td><code>explicit</code></td>
   <td>
    <code>Map(const boost::filesystem::path & directory)</code>
-   <div>Opens an already existing map in the given directory. <a href="#map-map-directory">more...</a><div>
+   <div>Opens an already existing map located in directory. <a href="#map-map-directory">more...</a><div>
   </td>
  </tr>
  <tr>
@@ -433,7 +437,7 @@ This file contains class [Map](#class-map) which is a mutable 1:n key-value stor
   <td>
    <code>Map(const boost::filesystem::path & directory,</code><br>
    <code><script>nbsp(4)</script>const Options & options)</code>
-   <div>Creates or opens a map in the given directory. <a href="#map-map-directory-options">more...</a><div>
+   <div>Creates or opens a map in directory. <a href="#map-map-directory-options">more...</a><div>
   </td>
  </tr>
  <tr>
@@ -676,7 +680,16 @@ This file contains class [Map](#class-map) which is a mutable 1:n key-value stor
  </ul>
 </div>
 
-
+<div class="reference-more">
+ <h4 id="map-map-directory"><code>explicit Map::Map(const boost::filesystem::path & directory)</code></h4>
+ <p>Opens an already existing map located in directory.</p>
+ <p>Throws <a href="http://en.cppreference.com/w/cpp/error/runtime_error" target="_blank">std::runtime_error</a> if one of the following is true</p>
+ <ul>
+  <li>the directory does not exist</li>
+  <li>the directory cannot be locked</li>
+  <li>the directory does not contain a map</li>
+ </ul>
+</div>
 
 
 

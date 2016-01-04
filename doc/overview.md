@@ -41,7 +41,7 @@ Hence, the total memory consumption of a map depends on
 * the number of block ids which is proportional to the number of values
 * the block size, because unless the list is empty its last block is always allocated
 
-To estimate the memory footprint the following formula can be used:
+To estimate the memory footprint the following equation can be used:
 
 ```
 mem_total = 1.5 * (mem_keys + mem_block_ids + mem_last_blocks)
