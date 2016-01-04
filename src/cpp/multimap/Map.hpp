@@ -45,11 +45,9 @@ class Map : mt::Resource {
   };
 
   static_assert(mt::hasExpectedSize<Id>(32, 32),
-                "struct Id does not have expected size");
+                "struct Map::Id does not have expected size");
 
   struct Limits {
-    // Provides static methods to request upper bounds.
-
     static uint32_t maxKeySize();
     static uint32_t maxValueSize();
   };
@@ -57,13 +55,8 @@ class Map : mt::Resource {
   typedef internal::Table::Stats Stats;
 
   typedef internal::Table::Iterator Iterator;
-  // An iterator type to iterate an immutable list.
 
   explicit Map(const boost::filesystem::path& directory);
-  // Opens a map located in directory. The map must already exist.
-  // Throws std::exception if:
-  //   * directory does not exist.
-  //   * directory does not contain a map.
 
   Map(const boost::filesystem::path& directory, const Options& options);
   // Opens a map located in directory. If the map does not exist and
