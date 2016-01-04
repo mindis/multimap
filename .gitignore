@@ -2,7 +2,7 @@ bin/
 build/*
 site/
 
-!build/make-jni-headers.sh
+!build/*.sh
 !build/multimap-library.pro
 !build/multimap-library-dbg.pro
 !build/multimap-library-jni.pro
