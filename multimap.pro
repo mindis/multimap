@@ -1,11 +1,11 @@
 TEMPLATE = subdirs
 
 SUBDIRS = \
-  build/multimap-library.pro \
-  build/multimap-library-dbg.pro \
-  build/multimap-library-jni.pro \
-  build/multimap-tests.pro \
-  build/multimap-tool.pro
+  multimap-library.pro \
+  multimap-library-dbg.pro \
+  multimap-library-jni.pro \
+  multimap-tests.pro \
+  multimap-tool.pro
 
-# To generate Makefiles, object files, and build targets in the build directory
-# you need to disable Shadow build in QtCreator.
+# In order to generate Makefiles, object files, and build targets in the
+# project's root directory you need to disable Shadow build in QtCreator.
