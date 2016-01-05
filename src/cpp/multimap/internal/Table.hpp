@@ -93,14 +93,14 @@ class Table : mt::Resource {
   ~Table();
 
   void put(const Bytes& key, const Bytes& value) {
-    MT_REQUIRE_FALSE(isReadOnly());
+    mt::check(!isReadOnly(), "Attempt to put value into read-only table");
     getOrCreateUniqueList(key).add(value);
   }
 
   Iterator get(const Bytes& key) const { return Iterator(getSharedList(key)); }
 
   bool removeKey(const Bytes& key) {
-    MT_REQUIRE_FALSE(isReadOnly());
+    mt::check(!isReadOnly(), "Attempt to remove key from read-only table");
     bool removed = false;
     auto list = getUniqueList(key);
     if (list && !list.empty()) {
@@ -113,7 +113,7 @@ class Table : mt::Resource {
 
   template <typename Predicate>
   uint32_t removeKeys(Predicate predicate) {
-    MT_REQUIRE_FALSE(isReadOnly());
+    mt::check(!isReadOnly(), "Attempt to remove keys from read-only table");
     uint32_t num_removed = 0;
     boost::shared_lock<boost::shared_mutex> lock(mutex_);
     for (const auto& entry : map_) {
@@ -131,13 +131,11 @@ class Table : mt::Resource {
 
   template <typename Predicate>
   bool removeValue(const Bytes& key, Predicate predicate) {
-    MT_REQUIRE_FALSE(isReadOnly());
     return remove(key, predicate, true);
   }
 
   template <typename Predicate>
   uint32_t removeValues(const Bytes& key, Predicate predicate) {
-    MT_REQUIRE_FALSE(isReadOnly());
     return remove(key, predicate, false);
   }
 
@@ -150,7 +148,6 @@ class Table : mt::Resource {
 
   template <typename Function>
   bool replaceValue(const Bytes& key, Function map) {
-    MT_REQUIRE_FALSE(isReadOnly());
     return replace(key, map, true);
   }
 
@@ -163,7 +160,6 @@ class Table : mt::Resource {
 
   template <typename Function>
   uint32_t replaceValues(const Bytes& key, Function map) {
-    MT_REQUIRE_FALSE(isReadOnly());
     return replace(key, map, false);
   }
 
@@ -268,6 +264,7 @@ class Table : mt::Resource {
   template <typename Predicate>
   uint32_t remove(const Bytes& key, Predicate predicate,
                   bool exit_after_first_success) {
+    mt::check(!isReadOnly(), "Attempt to remove values from read-only table");
     uint32_t num_removed = 0;
     auto iter = getUniqueListIterator(key);
     while (iter.hasNext()) {
@@ -285,6 +282,7 @@ class Table : mt::Resource {
   template <typename Function>
   uint32_t replace(const Bytes& key, Function map,
                    bool exit_after_first_success) {
+    mt::check(!isReadOnly(), "Attempt to replace values in read-only table");
     std::vector<std::string> replaced_values;
     if (auto list = getUniqueList(key)) {
       auto iter = list.iterator();

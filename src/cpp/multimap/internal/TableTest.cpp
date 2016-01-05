@@ -556,38 +556,38 @@ TEST_F(TableTestFixture, IsReadOnlyReturnsCorrectValue) {
 
 TEST_F(TableTestFixture, PutThrowsIfOpenedAsReadOnly) {
   auto table = openOrCreateTableAsReadOnly(prefix);
-  ASSERT_THROW(table->put(k1, v1), mt::AssertionError);
+  ASSERT_THROW(table->put(k1, v1), std::runtime_error);
 }
 
 TEST_F(TableTestFixture, RemoveKeyThrowsIfOpenedAsReadOnly) {
   auto table = openOrCreateTableAsReadOnly(prefix);
-  ASSERT_THROW(table->removeKey(k1), mt::AssertionError);
+  ASSERT_THROW(table->removeKey(k1), std::runtime_error);
 }
 
 TEST_F(TableTestFixture, RemoveKeysThrowsIfOpenedAsReadOnly) {
   auto table = openOrCreateTableAsReadOnly(prefix);
   ASSERT_THROW(table->removeKeys([](const Bytes& /* key */) { return true; }),
-               mt::AssertionError);
+               std::runtime_error);
 }
 
 TEST_F(TableTestFixture, RemoveValueThrowsIfOpenedAsReadOnly) {
   auto table = openOrCreateTableAsReadOnly(prefix);
-  ASSERT_THROW(table->removeValue(k1, Equal(v1)), mt::AssertionError);
+  ASSERT_THROW(table->removeValue(k1, Equal(v1)), std::runtime_error);
 }
 
 TEST_F(TableTestFixture, RemoveValuesThrowsIfOpenedAsReadOnly) {
   auto table = openOrCreateTableAsReadOnly(prefix);
-  ASSERT_THROW(table->removeValues(k1, Equal(v1)), mt::AssertionError);
+  ASSERT_THROW(table->removeValues(k1, Equal(v1)), std::runtime_error);
 }
 
 TEST_F(TableTestFixture, ReplaceValueThrowsIfOpenedAsReadOnly) {
   auto table = openOrCreateTableAsReadOnly(prefix);
-  ASSERT_THROW(table->replaceValue(k1, v1, v2), mt::AssertionError);
+  ASSERT_THROW(table->replaceValue(k1, v1, v2), std::runtime_error);
 }
 
 TEST_F(TableTestFixture, ReplaceValuesThrowsIfOpenedAsReadOnly) {
   auto table = openOrCreateTableAsReadOnly(prefix);
-  ASSERT_THROW(table->replaceValues(k1, v1, v2), mt::AssertionError);
+  ASSERT_THROW(table->replaceValues(k1, v1, v2), std::runtime_error);
 }
 
 TEST_F(TableTestFixture, GetBlockSizeReturnsCorrectValue) {

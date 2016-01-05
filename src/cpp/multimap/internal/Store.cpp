@@ -82,8 +82,9 @@ Store::Store(const boost::filesystem::path& file, const Options& options) {
 
   } else {
     // Create new data file.
-    MT_REQUIRE_GT(options.buffer_size, options.block_size);
-    MT_REQUIRE_ZERO(options.buffer_size % options.block_size);
+    mt::Check::isZero(
+        options.buffer_size % options.block_size,
+        "options.buffer_size must be a multiple of options.block_size");
 
     fd_ = mt::open(file, O_RDWR | O_CREAT, 0644);
     stats_.block_size = options.block_size;

@@ -15,6 +15,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+// -----------------------------------------------------------------------------
+// Documentation:  http://multimap.io/cppreference/#maphpp
+// -----------------------------------------------------------------------------
+
 #ifndef MULTIMAP_MAP_HPP_INCLUDED
 #define MULTIMAP_MAP_HPP_INCLUDED
 
@@ -59,28 +63,12 @@ class Map : mt::Resource {
   explicit Map(const boost::filesystem::path& directory);
 
   Map(const boost::filesystem::path& directory, const Options& options);
-  // Opens a map located in directory. If the map does not exist and
-  // options.create_if_missing is set to true a new map will be created.
-  // Throws std::exception if:
-  //   * directory does not exist.
-  //   * directory does not contain a map and options.create_if_missing is
-  //     false.
-  //   * directory contains a map and options.error_if_exists is true.
-  //   * options.block_size is not a power of two.
 
   ~Map();
-  // Flushes all data to disk and stores the map in persistent state.
-  // Preconditions:
-  //   * No list is in locked state, i.e. there is no iterator object pointing
-  //     to an existing list.
 
   void put(const Bytes& key, const Bytes& value) {
     getTable(key).put(key, value);
   }
-  // Appends value to the end of the list associated with key.
-  // Throws std::exception if:
-  //   * key.size() > max_key_size()
-  //   * value.size() > max_value_size()
 
   Iterator get(const Bytes& key) const { return getTable(key).get(key); }
   // Returns a read-only iterator to the list associated with key. If no such

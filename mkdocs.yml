@@ -1,6 +1,5 @@
-docs_dir: doc
 site_name: Multimap
-theme_dir: doc/theme
+theme_dir: docs/theme
 pages:
   - Home: index.md
   - Overview: overview.md
