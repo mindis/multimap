@@ -2,17 +2,8 @@ benchmarks/
 bin/
 site/
 Makefile*
-multimap*
-!multimap-library-dbg.pro
-!multimap-library-jni.pro
-!multimap-library.pro
-!multimap-tests.pro
-!multimap-tool.pro
-!multimap.pri
-!multimap.pro
 .classpath
 .project
 *.so*
 *.o
 *~
-
