@@ -71,19 +71,8 @@ class Map : mt::Resource {
   }
 
   Iterator get(const Bytes& key) const { return getTable(key).get(key); }
-  // Returns a read-only iterator to the list associated with key. If no such
-  // mapping exists the list is considered to be empty. If the list is not
-  // empty a reader lock will be acquired to synchronize concurrent access to
-  // it. Thus, multiple threads can read the list at the same time. Once
-  // acquired, the lock is automatically released when the lifetime of the
-  // iterator ends and its destructor is called. If the list is currently
-  // locked exclusively by a writer lock, see getMutable(), the method will
-  // block until the lock is released.
 
   bool removeKey(const Bytes& key) { return getTable(key).removeKey(key); }
-  // Removes all values associated with `key`. This method will block until a
-  // writer lock can be acquired for the associated list.
-  // Returns: true if the key was removed, false otherwise.
 
   template <typename Predicate>
   uint32_t removeKeys(Predicate predicate) {
@@ -93,57 +82,31 @@ class Map : mt::Resource {
     }
     return num_removed;
   }
-  // Removes all values that are associated with keys for which `predicate`
-  // yields `true`. This method will block until writer locks can be acquired
-  // for the associated lists.
-  // Returns: the number of removed keys.
 
   template <typename Predicate>
   bool removeValue(const Bytes& key, Predicate predicate) {
     return getTable(key).removeValue(key, predicate);
   }
-  // Deletes the first value in the list associated with key for which
-  // predicate yields true. This method will block until a writer lock can be
-  // acquired.
-  // Returns: true if a value was deleted, false otherwise.
 
   template <typename Predicate>
   uint32_t removeValues(const Bytes& key, Predicate predicate) {
     return getTable(key).removeValues(key, predicate);
   }
-  // Deletes all values in the list associated with key for which predicate
-  // yields true. This method will block until a writer lock can be acquired.
-  // Returns: the number of deleted values.
 
   bool replaceValue(const Bytes& key, const Bytes& old_value,
                     const Bytes& new_value) {
     return getTable(key).replaceValue(key, old_value, new_value);
   }
-  // TODO Document this.
 
   template <typename Function>
   bool replaceValue(const Bytes& key, Function map) {
     return getTable(key).replaceValue(key, map);
   }
-  // Replaces the first value in the list associated with key by the result of
-  // invoking function. If the result of function is an empty string no
-  // replacement is performed. The replacement does not happen in-place.
-  // Instead, the old value is marked as deleted and the new value is appended
-  // to the end of the list. Future releases will support in-place
-  // replacements. This method will block until a writer lock can be acquired.
-  // Returns: true if a value was replaced, false otherwise.
 
   template <typename Function>
   uint32_t replaceValues(const Bytes& key, Function map) {
     return getTable(key).replaceValues(key, map);
   }
-  // Replaces all values in the list associated with key by the result of
-  // invoking function. If the result of function is an empty string no
-  // replacement is performed. A replacement does not happen in-place. Instead,
-  // the old value is marked as deleted and the new value is appended to the
-  // end of the list. Future releases will support in-place replacements. This
-  // method will block until a writer lock can be acquired.
-  // Returns: the number of replaced values.
 
   uint32_t replaceValues(const Bytes& key, const Bytes& old_value,
                          const Bytes& new_value) {
@@ -156,25 +119,11 @@ class Map : mt::Resource {
       table->forEachKey(process);
     }
   }
-  // Applies `process` to each key of the map whose associated list is not
-  // empty. The keys are visited in random order. Although it is possible to
-  // emulate a for-each-entry iteration by keeping a `this` pointer of the map
-  // within `procedure` plus calling `Get(key)`, this operation should be
-  // avoided, because it produces a sub-optimal access pattern to the external
-  // data files. Moreover, calling `GetMutable(key)` in such a scenario will
-  // cause a deadlock. Use `forEachEntry` instead, which brings the entries in
-  // an optimal order before iterating them. During the time of execution the
-  // entire map is locked for read-only operations.
 
   template <typename Procedure>
   void forEachValue(const Bytes& key, Procedure process) const {
     getTable(key).forEachValue(key, process);
   }
-  // Applies `process` to each value in the list associated with key. This is a
-  // shorthand for requesting a read-only iterator via Get(key) followed by an
-  // application of procedure to each value obtained via
-  // ConstListIter::GetValue(). This method will block until a reader lock for
-  // the list in question can be acquired.
 
   template <typename BinaryProcedure>
   void forEachEntry(BinaryProcedure process) const {
@@ -182,6 +131,8 @@ class Map : mt::Resource {
       table->forEachEntry(process);
     }
   }
+
+  size_t getNumPartitions() const { return tables_.size(); }
 
   std::vector<Stats> getStats() const {
     std::vector<Stats> stats;
