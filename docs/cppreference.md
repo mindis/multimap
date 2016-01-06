@@ -5,9 +5,9 @@
 namespace multimap
 ```
 
-This file contains class [Bytes](#class-bytes) which is a wrapper for raw binary data.
-
 ### class Bytes
+
+This class is a thin wrapper for raw binary data. It just holds a pointer to data together with its size (number of bytes). It is used to represent keys and values that are put into or gotten from a map. An object of this class never deep copies the data it is constructed from, nor does it take any ownership of the data. It is really just a helper for providing a generic interface.
 
 <table class="reference-table">
 <tbody>
@@ -300,86 +300,6 @@ A function object that checks if a byte array has a certain suffix.
 </tbody>
 </table>
 
-## Interfaces
-
-The interfaces described here are requirements expected by some user-provided function objects. They are typically employed as template parameters and are not to be confused with abstract classes used in object-oriented programming. Sometimes this type of interfaces is also referred to as [concepts](http://en.cppreference.com/w/cpp/concept). Note that [lambda functions](http://en.cppreference.com/w/cpp/language/lambda) are unnamed function objects.
-
-### Predicate
-
-A predicate is a function object that is applied to an instance of class [Bytes](#class-bytes) returning a boolean value. Predicates are used to select keys or values for some further operation.
-
-<table class="reference-table">
-<tbody>
- <tr>
-  <th colspan="2">Required member function</th>
- </tr>
- <tr>
-  <td><code>bool</code></td>
-  <td>
-   <code>operator()(const Bytes & bytes) const</code>
-   <div>Returns a boolean value after evaluating the given byte array.<div>
-  </td>
- </tr>
-</tbody>
-</table>
-
-### Procedure
-
-A procedure is a function object that is applied to an instance of class [Bytes](#class-bytes) without returning a value. Most procedures will have a state that changes during application. Procedures are used to operate on keys or values, e.g. to collect information about them.
-
-<table class="reference-table">
-<tbody>
- <tr>
-  <th colspan="2">Required member function</th>
- </tr>
- <tr>
-  <td><code>void</code></td>
-  <td>
-   <code>operator()(const Bytes & bytes)</code>
-   <div>Processes the given byte array, possibly changing the functor's state.<div>
-  </td>
- </tr>
-</tbody>
-</table>
-
-### Function
-
-A function is a function object that is applied to an instance of class [Bytes](#class-bytes) returning a [std::string](http://en.cppreference.com/w/cpp/string/basic_string). The returned string serves as a managed byte buffer and may contain arbitrary data. Functions are used to map input values to output values.
-
-<table class="reference-table">
-<tbody>
- <tr>
-  <th colspan="2">Required member function</th>
- </tr>
- <tr>
-  <td><code>std::string</code></td>
-  <td>
-   <code>operator()(const Bytes & bytes) const</code>
-   <div>Maps the given byte array to another byte array returned as string.<div>
-  </td>
- </tr>
-</tbody>
-</table>
-
-### Compare
-
-A function object that is applied to two instances of class [Bytes](#class-bytes) returning a boolean that tells if the left operand is less than the right operand. This interface is equivalent to the Compare concept described [here](http://en.cppreference.com/w/cpp/concept/Compare). Objects implementing this interface are used in sorting operations.
-
-<table class="reference-table">
-<tbody>
- <tr>
-  <th colspan="2">Required member function</th>
- </tr>
- <tr>
-  <td><code>bool</code></td>
-  <td>
-   <code>operator()(const Bytes & lhs, const Bytes & rhs) const</code>
-   <div>Returns true if lhs is considered less than rhs, false otherwise.<div>
-  </td>
- </tr>
-</tbody>
-</table>
-
 
 ## Map.hpp
 
@@ -520,7 +440,7 @@ The class is designed to be a fast and mutable 1:n key-value store. For that rea
   <td>
    <code>&lt;typename Function&gt;</code><br>
    <code>replaceValues(const Bytes & key, Function map)</code>
-   <div>Replaces each value in the list associated with key by the result of invoking map. Values for which map returns the empty string are not replaced. <a href="#map-replace-values-map">more...</a><div>
+   <div>Replaces each value in the list associated with key by the result of invoking map. Values for which map returns the empty string are not replaced. <a href="#map-replace-values">more...</a><div>
   </td>
  </tr>
  <tr>
@@ -562,16 +482,26 @@ The class is designed to be a fast and mutable 1:n key-value store. For that rea
   <td>
    <code>&lt;typename BinaryProcedure&gt;</code><br>
    <code>forEachEntry(BinaryProcedure process) const</code>
-   <div>Applies process to each entry. An entry is ... <a href="#map-for-each-value">more...</a><div>
+   <div>Applies process to each key-iterator pair. <a href="#map-for-each-entry">more...</a><div>
   </td>
  </tr>
+ <tr>
+  <td>
+    <code>size_t</code>
+  </td>
+  <td>
+   <code>getNumPartitions() const</code>
+   <div>Returns the number of partitions. This value could be different from that specified in options when creating the map due to the fact that the next prime number has been taken.<div>
+  </td>
+ </tr>
+ <tr>
  <tr>
   <td>
     <code>std::vector&lt;Stats&gt;</code>
   </td>
   <td>
    <code>getStats() const</code>
-   <div>Returns statistical information about each partition. <a href="#map-get-stats">more...</a><div>
+   <div>Returns statistical information about each partition of the map. <a href="#map-get-stats">more...</a><div>
   </td>
  </tr>
  <tr>
@@ -580,7 +510,7 @@ The class is designed to be a fast and mutable 1:n key-value store. For that rea
   </td>
   <td>
    <code>getTotalStats() const</code>
-   <div>Returns total statistics about the map. <a href="#map-get-stats">more...</a><div>
+   <div>Returns statistical information about the map. <a href="#map-get-total-stats">more...</a><div>
   </td>
  </tr>
  <tr>
@@ -711,8 +641,12 @@ The class is designed to be a fast and mutable 1:n key-value store. For that rea
 <div class="reference-more">
  <h4 id="map-put"><code>void Map::put(const Bytes & key, const Bytes & value)</code></h4>
  <p>Appends value to the end of the list associated with key.</p>
- <p><span class="acquires" /><a href="#writer-lock">writer lock</a> on the list associated with key.</p>
- <p><span class="throws"/><a href="http://en.cppreference.com/w/cpp/error/runtime_error" target="_blank">std::runtime_error</a> if one of the following is true</p>
+ <p><span class="acquires" /></p>
+ <ul>
+  <li>a <a href="#writer-lock">writer lock</a> on the map object.</li>
+  <li>a <a href="#writer-lock">writer lock</a> on the list associated with key.</li>
+ </ul>
+ <p><span class="throws"/><a href="http://en.cppreference.com/w/cpp/error/runtime_error" target="_blank">std::runtime_error</a> if one of the following is true:</p>
  <ul>
   <li><code>key.size() > Map::Limits::maxKeySize()</code></li>
   <li><code>value.size() > Map::Limits::maxValueSize()</code></li>
@@ -723,24 +657,280 @@ The class is designed to be a fast and mutable 1:n key-value store. For that rea
 <div class="reference-more">
  <h4 id="map-get"><code>Map::Iterator Map::get(const Bytes & key) const</code></h4>
  <p>Returns a read-only iterator for the list associated with key. If the key does not exist, an empty iterator that has no values is returned. A non-empty iterator owns a lock on the associated list that is released automatically when the lifetime of the iterator ends. Note that objects of class <a href="#map-iterator">Map::Iterator</a> are moveable.</p>
- <p><span class="acquires" /><a href="#reader-lock">reader lock</a> on the list associated with key.</p>
+ <p><span class="acquires" /></p>
+ <ul>
+  <li>a <a href="#reader-lock">reader lock</a> on the map object.</li>
+  <li>a <a href="#reader-lock">reader lock</a> on the list associated with key.</li>
+ </ul>
 </div>
 
 <div class="reference-more">
  <h4 id="map-remove-key"><code>bool Map::removeKey(const Bytes & key)</code></h4>
  <p>Removes all values associated with key.</p>
- <p><span class="acquires" /><a href="#writer-lock">writer lock</a> on the list associated with key.</p>
- <p><span class="returns" />true if any values could be removed, false otherwise.</p>
+ <p><span class="acquires" /></p>
+ <ul>
+  <li>a <a href="#reader-lock">reader lock</a> on the map object.</li>
+  <li>a <a href="#writer-lock">writer lock</a> on the list associated with key.</li>
+ </ul>
+ <p><span class="returns" />true if any values have been removed, false otherwise.</p>
 </div>
+
+<div class="reference-more">
+ <h4 id="map-remove-keys">
+  <code>template &lt;typename Predicate&gt;</code><br>
+  <code>uint32_t Map::removeKeys(Predicate predicate)</code>
+ </h4>
+ <p>Removes all values associated with keys for which predicate yields true. The predicate can be any callable that implements the <a href="#predicate">Predicate</a> interface.</p>
+ <p><span class="acquires" /></p>
+ <ul>
+  <li>a <a href="#reader-lock">reader lock</a> on the map object.</li>
+  <li>a <a href="#writer-lock">writer lock</a> on lists associated with matching keys.</li>
+ </ul>
+ <p><span class="returns" />the number of keys for which any values have been removed.</p>
+</div>
+
+<div class="reference-more">
+ <h4 id="map-remove-value">
+  <code>template &lt;typename Predicate&gt;</code><br>
+  <code>bool Map::removeValue(const Bytes & key, Predicate predicate)</code>
+ </h4>
+ <p>Removes the first value from the list associated with key for which predicate yields true. The predicate can be any callable that implements the <a href="#predicate">Predicate</a> interface.</p>
+ <p><span class="acquires" /></p>
+ <ul>
+  <li>a <a href="#reader-lock">reader lock</a> on the map object.</li>
+  <li>a <a href="#writer-lock">writer lock</a> on the list associated with key.</li>
+ </ul>
+ <p><span class="returns" />true if any value has been removed, false otherwise.</p>
+</div>
+
+<div class="reference-more">
+ <h4 id="map-remove-values">
+  <code>template &lt;typename Predicate&gt;</code><br>
+  <code>uint32_t Map::removeValues(const Bytes & key, Predicate predicate)</code>
+ </h4>
+ <p>Removes all values from the list associated with key for which predicate yields true. The predicate can be any callable that implements the <a href="#predicate">Predicate</a> interface.</p>
+ <p><span class="acquires" /></p>
+ <ul>
+  <li>a <a href="#reader-lock">reader lock</a> on the map object.</li>
+  <li>a <a href="#writer-lock">writer lock</a> on the list associated with key.</li>
+ </ul>
+ <p><span class="returns" />the number of values removed.</p>
+</div>
+
+<div class="reference-more">
+ <h4 id="map-replace-value">
+  <code>template &lt;typename Function&gt;</code><br>
+  <code>bool Map::replaceValue(const Bytes & key, Function map)</code>
+ </h4>
+ <p>Replaces the first value in the list associated with key by the result of invoking map. Values for which map returns the empty string are not replaced. The map function can be any callable that implements the <a href="#function">Function</a> interface.</p>
+ <p>Note that a replace operation is actually implemented in terms of a remove of the old value followed by an insert/put of the new value. Thus the new value is always the last value in the list. In other words, the replacement is not in-place.</p>
+ <p><span class="acquires" /></p>
+ <ul>
+  <li>a <a href="#reader-lock">reader lock</a> on the map object.</li>
+  <li>a <a href="#writer-lock">writer lock</a> on the list associated with key.</li>
+ </ul>
+ <p><span class="returns" />true if any value has been replaced, false otherwise.</p>
+</div>
+
+<div class="reference-more">
+ <h4 id="map-replace-values">
+  <code>template &lt;typename Function&gt;</code><br>
+  <code>uint32_t Map::replaceValues(const Bytes & key, Function map)</code>
+ </h4>
+ <p>Replaces each value in the list associated with key by the result of invoking map. Values for which map returns the empty string are not replaced. The map function can be any callable that implements the <a href="#function">Function</a> interface.</p>
+ <p>Note that a replace operation is actually implemented in terms of a remove of the old value followed by an insert/put of the new value. Thus the new value is always the last value in the list. In other words, the replacement is not in-place.</p>
+ <p><span class="acquires" /></p>
+ <ul>
+  <li>a <a href="#reader-lock">reader lock</a> on the map object.</li>
+  <li>a <a href="#writer-lock">writer lock</a> on the list associated with key.</li>
+ </ul>
+ <p><span class="returns" />the number of values replaced.</p>
+</div>
+
+<div class="reference-more">
+ <h4 id="map-replace-values-old-new">
+  <code>uint32_t Map::replaceValues(const Bytes & key, </code><br>
+  <code><script>nbsp(28)</script>const Bytes & old_value,</code><br>
+  <code><script>nbsp(28)</script>const Bytes & new_value)</code>
+ </h4>
+ <p>Replaces each value in the list associated with key which is equal to old_value by new_value.</p>
+ <p>Note that a replace operation is actually implemented in terms of a remove of the old value followed by an insert/put of the new value. Thus the new value is always the last value in the list. In other words, the replacement is not in-place.</p>
+ <p><span class="acquires" /></p>
+ <ul>
+  <li>a <a href="#reader-lock">reader lock</a> on the map object.</li>
+  <li>a <a href="#writer-lock">writer lock</a> on the list associated with key.</li>
+ </ul>
+ <p><span class="returns" />the number of values replaced.</p>
+</div>
+
+<div class="reference-more">
+ <h4 id="map-for-each-key">
+  <code>template &lt;typename Procedure&gt;</code><br>
+  <code>void Map::forEachKey(Procedure process) const</code>
+ </h4>
+ <p>Applies process to each key whose list is not empty. The process argument can be any callable that implements the <a href="#procedure">Procedure</a> interface. </p>
+ <p><span class="acquires" />a <a href="#reader-lock">reader lock</a> on the map object.</p>
+ <p><span class="returns" />the number of values replaced.</p>
+</div>
+
+<div class="reference-more">
+ <h4 id="map-for-each-value">
+  <code>template &lt;typename Procedure&gt;</code><br>
+  <code>void Map::forEachValue(const Bytes & key, Procedure process) const</code>
+ </h4>
+ <p>Applies process to each value associated with key. The process argument can be any callable that implements the <a href="#procedure">Procedure</a> interface. </p>
+ <p><span class="acquires" /></p>
+ <ul>
+  <li>a <a href="#reader-lock">reader lock</a> on the map object.</li>
+  <li>a <a href="#reader-lock">reader lock</a> on the list associated with key.</li>
+ </ul>
+</div>
+
+<div class="reference-more">
+ <h4 id="map-for-each-entry">
+  <code>template &lt;typename BinaryProcedure&gt;</code><br>
+  <code>void Map::forEachEntry(BinaryProcedure process) const</code>
+ </h4>
+ <p>Applies process to each key-iterator pair. The process argument can be any callable that implements the <a href="#binaryprocedure">BinaryProcedure</a> interface. </p>
+ <p><span class="acquires" /></p>
+ <ul>
+  <li>a <a href="#reader-lock">reader lock</a> on the map object.</li>
+  <li>a <a href="#reader-lock">reader lock</a> on the list that is currently processed.</li>
+ </ul>
+</div>
+
+<div class="reference-more">
+ <h4 id="map-get-stats">
+  <code>static std::vector&lt;<a href="#class-map-stats">Map::Stats</a>&gt; Map::getStats() const</code>
+ </h4>
+ <p>Returns statistical information about each partition of the map. This operation requires a traversal of the entire map visiting each entry.</p>
+ <p><span class="acquires" /></p>
+ <ul>
+  <li>a <a href="#reader-lock">reader lock</a> on the map object.</li>
+  <li>a <a href="#reader-lock">reader lock</a> on the list that is currently visited.</li>
+ </ul>
+</div>
+
+<div class="reference-more">
+ <h4 id="map-get-total-stats">
+  <code>static <a href="#class-map-stats">Map::Stats</a> Map::getTotalStats() const</code>
+ </h4>
+ <p>Returns statistical information about the map. In fact, this method computes the total values from the result returned by calling the previous method.</p>
+ <p><span class="acquires" /></p>
+ <ul>
+  <li>a <a href="#reader-lock">reader lock</a> on the map object.</li>
+  <li>a <a href="#reader-lock">reader lock</a> on the list that is currently visited.</li>
+ </ul>
+</div>
+
+
+## Interfaces
+
+The interfaces described here are requirements expected by some user-provided function objects. They are typically employed as template parameters and are not to be confused with abstract classes used in object-oriented programming. Sometimes this type of interfaces is also referred to as [concepts](http://en.cppreference.com/w/cpp/concept). Note that [lambda functions](http://en.cppreference.com/w/cpp/language/lambda) are unnamed function objects.
+
+### Compare
+
+A function object that is applied to two instances of class [Bytes](#class-bytes) returning a boolean that tells if the left operand is less than the right operand. This interface is equivalent to the Compare concept described [here](http://en.cppreference.com/w/cpp/concept/Compare). Objects implementing this interface are used in sorting operations.
+
+<table class="reference-table">
+<tbody>
+ <tr>
+  <th colspan="2">Required member function</th>
+ </tr>
+ <tr>
+  <td><code>bool</code></td>
+  <td>
+   <code>operator()(const Bytes & lhs, const Bytes & rhs) const</code>
+   <div>Returns true if lhs is considered less than rhs, false otherwise.<div>
+  </td>
+ </tr>
+</tbody>
+</table>
+
+### Function
+
+A function is a function object that is applied to an instance of class [Bytes](#class-bytes) returning a [std::string](http://en.cppreference.com/w/cpp/string/basic_string). The returned string serves as a managed byte buffer and may contain arbitrary data. Functions are used to map input values to output values.
+
+<table class="reference-table">
+<tbody>
+ <tr>
+  <th colspan="2">Required member function</th>
+ </tr>
+ <tr>
+  <td><code>std::string</code></td>
+  <td>
+   <code>operator()(const Bytes & bytes) const</code>
+   <div>Maps the given byte array to another byte array returned as string.<div>
+  </td>
+ </tr>
+</tbody>
+</table>
+
+### Predicate
+
+A predicate is a function object that is applied to an instance of class [Bytes](#class-bytes) returning a boolean value. Predicates are used to select keys or values for some further operation.
+
+<table class="reference-table">
+<tbody>
+ <tr>
+  <th colspan="2">Required member function</th>
+ </tr>
+ <tr>
+  <td><code>bool</code></td>
+  <td>
+   <code>operator()(const Bytes & bytes) const</code>
+   <div>Returns a boolean value after evaluating the given byte array.<div>
+  </td>
+ </tr>
+</tbody>
+</table>
+
+### Procedure
+
+A procedure is a function object that is applied to an instance of class [Bytes](#class-bytes) without returning a value. Procedures may have a state that changes during application. They are used to operate on keys or values, e.g. to collect information about them.
+
+<table class="reference-table">
+<tbody>
+ <tr>
+  <th colspan="2">Required member function</th>
+ </tr>
+ <tr>
+  <td><code>void</code></td>
+  <td>
+   <code>operator()(const Bytes & bytes)</code>
+   <div>Processes the given byte array, possibly changing the functor's state.<div>
+  </td>
+ </tr>
+</tbody>
+</table>
+
+### BinaryProcedure
+
+A binary procedure is a function object that is applied to a pair of objects without returning a value. The first object being an instance of class [Bytes](#class-bytes) and the second object being an instance of class [Map::Iterator](#class-map-iterator). Binary procedures may have a state that changes during application. They are used to operate on key-iterator pairs when traversing a map.
+
+<table class="reference-table">
+<tbody>
+ <tr>
+  <th colspan="2">Required member function</th>
+ </tr>
+ <tr>
+  <td><code>void</code></td>
+  <td>
+   <code>operator()(const Bytes & key, Map::Iterator && iterator)</code>
+   <div>Processes a list iterator that is associated with key, possibly changing the functor's state. Note that the iterator is moved by using an rvalue reference, so that the callable becomes the owner of the iterator. Also note that as long as an iterator is alive, the corresponding list is locked by a <a href="#reader-lock">reader lock</a>.<div>
+  </td>
+ </tr>
+</tbody>
+</table>
 
 
 ## Locking
 
+### Reader Lock
+
 ### Writer Lock
 
 This operation requires exclusive access to the associated list and therefore tries to acquire a writer lock for it. The call will block if the list is already locked, either by another writer lock or by one or more reader locks, until all of these locks are released.
-
-### Reader Lock
 
 ## class Iterator<bool>
 
