@@ -67,5 +67,7 @@ void Base64::decode(const std::string& base64, std::string* binary) {
   binary->resize(binary->size() - std::distance(base64_copy.rbegin(), iter));
 }
 
+// TODO Consider to use Base64 encoder/decoder from Boost.Iostreams.
+
 }  // namespace internal
 }  // namespace multimap
