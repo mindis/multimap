@@ -801,7 +801,7 @@ The class is designed to be a fast and mutable 1:n key-value store. For that rea
 
 <div class="reference-more">
  <h4 id="map-get-stats">
-  <code>static std::vector&lt;<a href="#class-map-stats">Map::Stats</a>&gt; Map::getStats() const</code>
+  <code>std::vector&lt;<a href="#class-map-stats">Map::Stats</a>&gt; Map::getStats() const</code>
  </h4>
  <p>Returns statistical information about each partition of the map. This operation requires a traversal of the entire map visiting each entry.</p>
  <p><span class="acquires" /></p>
@@ -813,7 +813,7 @@ The class is designed to be a fast and mutable 1:n key-value store. For that rea
 
 <div class="reference-more">
  <h4 id="map-get-total-stats">
-  <code>static <a href="#class-map-stats">Map::Stats</a> Map::getTotalStats() const</code>
+  <code><a href="#class-map-stats">Map::Stats</a> Map::getTotalStats() const</code>
  </h4>
  <p>Returns statistical information about the map. In fact, this method computes the total values from the result returned by calling the previous method.</p>
  <p><span class="acquires" /></p>
