@@ -916,8 +916,8 @@ A binary procedure is a function object that is applied to a pair of objects wit
  <tr>
   <td><code>void</code></td>
   <td>
-   <code>operator()(const Bytes & key, Map::Iterator && iterator)</code>
-   <div>Processes a list iterator that is associated with key, possibly changing the functor's state. Note that the iterator is moved by using an rvalue reference, so that the callable becomes the owner of the iterator. Also note that as long as an iterator is alive, the corresponding list is locked by a <a href="#reader-lock">reader lock</a>.<div>
+   <code>operator()(const Bytes & key, Map::Iterator iterator)</code>
+   <div>Processes a list iterator that is associated with key, possibly changing the functor's state. Note that the iterator will be moved, so that the callable becomes the owner of the iterator. Also note that as long as an iterator is alive, the corresponding list is locked by a <a href="#reader-lock">reader lock</a>.<div>
   </td>
  </tr>
 </tbody>
