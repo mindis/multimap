@@ -1,6 +1,6 @@
 // This file is part of the MT library.
 //
-// Copyright (C) 2015  Martin Trenkmann
+// Copyright (C) 2015-2016  Martin Trenkmann
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -44,7 +44,7 @@
 
 namespace mt {
 
-static const uint32_t VERSION = 20151228;
+static const uint32_t VERSION = 20160116;
 
 // -----------------------------------------------------------------------------
 // COMMON
@@ -310,26 +310,28 @@ inline const char* errnostr() { return std::strerror(errno); }
 
 class AutoCloseFd {
  public:
+  static const int NO_FD = -1;
+
   AutoCloseFd() = default;
 
   explicit AutoCloseFd(int fd) : fd_(fd) {}
 
-  AutoCloseFd(AutoCloseFd&& other) : fd_(other.fd_) { other.fd_ = -1; }
+  AutoCloseFd(AutoCloseFd&& other) : fd_(other.fd_) { other.fd_ = NO_FD; }
 
   ~AutoCloseFd() { reset(); }
 
   AutoCloseFd& operator=(AutoCloseFd&& other) {
     if (&other != this) {
       reset(other.fd_);
-      other.fd_ = -1;
+      other.fd_ = NO_FD;
     }
     return *this;
   }
 
   int get() const { return fd_; }
 
-  void reset(int fd = -1) {
-    if (fd_ != -1) {
+  void reset(int fd = NO_FD) {
+    if (fd_ != NO_FD) {
       const auto result = ::close(fd_);
       Check::isZero(result, "::close() failed because of '%s'", errnostr());
     }
@@ -337,7 +339,7 @@ class AutoCloseFd {
   }
 
  private:
-  int fd_ = -1;
+  int fd_ = NO_FD;
 };
 
 inline AutoCloseFd open(const boost::filesystem::path& file, int flags) {
@@ -689,6 +691,8 @@ class AssertionError : public std::logic_error {
 
   explicit AssertionError(const std::string& message);
 
+  AssertionError(const char* file, size_t line, const char* message);
+
   AssertionError(const char* file, size_t line, const char* expr,
                  Expected expected, Type type = Type::ASSERTION);
 
@@ -730,6 +734,10 @@ std::string makeErrorMessage(const char* file, size_t line, const char* expr,
   oss << "Value of rhs was: " << rhs_value << "\n\n";
   printStackTraceTo(oss, skip_head_from_stacktrace);
   return oss.str();
+}
+
+inline void throwError(const char* file, size_t line, const char* message) {
+  throw AssertionError(file, line, message);
 }
 
 inline void throwError(const char* file, size_t line, const char* expr,
@@ -861,6 +869,9 @@ AssertionError::AssertionError(const char* file, size_t line, const char* expr,
          : mt::internal::throwError(__FILE__, __LINE__, #expr, lhs, rhs, \
                                     mt::AssertionError::Type::POSTCONDITION);
 
+#define __MT_FAIL(message) \
+  mt::internal::throwError(__FILE__, __LINE__, message);
+
 // These assertions/macros are always enabled.
 
 #define MT_ASSERT_TRUE(expr) __MT_ASSERT_TRUE(expr)
@@ -901,5 +912,7 @@ AssertionError::AssertionError(const char* file, size_t line, const char* expr,
 #define MT_ENSURE_LE(a, b) __MT_ENSURE_COMPARE(a <= b, a, b)
 #define MT_ENSURE_GT(a, b) __MT_ENSURE_COMPARE(a > b, a, b)
 #define MT_ENSURE_GE(a, b) __MT_ENSURE_COMPARE(a >= b, a, b)
+
+#define MT_FAIL(message) __MT_FAIL(message)
 
 #endif  // MT_MT_HPP_INCLUDED

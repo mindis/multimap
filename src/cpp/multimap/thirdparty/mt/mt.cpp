@@ -97,6 +97,16 @@ void demangle(std::string& symbol) {
   }
 }
 
+std::string makeErrorMessage(const char* file, unsigned line,
+                             const char* message,
+                             size_t skip_head_from_stacktrace) {
+  std::ostringstream oss;
+  oss << "Fatal error in " << file << ':' << line
+      << "\nwith message: " << message << "\n\n";
+  internal::printStackTraceTo(oss, skip_head_from_stacktrace);
+  return oss.str();
+}
+
 std::string makeErrorMessage(const char* file, unsigned line, const char* expr,
                              AssertionError::Expected expected,
                              AssertionError::Type type,
@@ -389,6 +399,10 @@ AssertionError::AssertionError(const char* message)
 
 AssertionError::AssertionError(const std::string& message)
     : std::logic_error(message) {}
+
+AssertionError::AssertionError(const char* file, size_t line,
+                               const char* message)
+    : std::logic_error(makeErrorMessage(file, line, message, 5)) {}
 
 AssertionError::AssertionError(const char* file, size_t line, const char* expr,
                                AssertionError::Expected expected,
