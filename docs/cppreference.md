@@ -325,21 +325,21 @@ The class is designed to be a fast and mutable 1:n key-value store. For that rea
   <td></td>
   <td>
    <code>Limits</code>
-   <div>Provides static methods to ask for maximum key and value sizes. <a href="#map-limits">more...</a><div>
+   <div>Provides static methods to ask for maximum key and value sizes. <a href="#type-maplimits">more...</a><div>
   </td>
  </tr>
  <tr>
   <td></td>
   <td>
    <code>Stats</code>
-   <div>Type that reports statistical information about an instance of Map. <a href="#map-stats">more...</a><div>
+   <div>Type that reports statistical information about an instance of Map. <a href="#type-mapstats">more...</a><div>
   </td>
  </tr>
  <tr>
   <td></td>
   <td>
    <code>Iterator</code>
-   <div>Input iterator type that reads a list of values. <a href="#map-stats">more...</a><div>
+   <div>Input iterator type that reads a list of values. <a href="#type-mapiterator">more...</a><div>
   </td>
  </tr>
  <tr>
@@ -531,7 +531,7 @@ The class is designed to be a fast and mutable 1:n key-value store. For that rea
   </td>
   <td>
    <code>stats(const boost::filesystem::path & directory)</code>
-   <div>Returns statistical information about each partition. <a href="#map-stats">more...</a><div>
+   <div>Returns statistical information about each partition of the map located in directory. <a href="#map-stats">more...</a><div>
   </td>
  </tr>
  <tr>
@@ -541,7 +541,7 @@ The class is designed to be a fast and mutable 1:n key-value store. For that rea
   <td>
    <code>importFromBase64(const boost::filesystem::path & directory,</code><br>
    <code><script>nbsp(17)</script>const boost::filesystem::path & input)</code>
-   <div>Imports key-value pairs read from an input file or directory into the map located in directory. <a href="#map-import-from-base64">more...</a><div>
+   <div>Imports key-value pairs from an input file or directory into the map located in directory. <a href="#map-import-from-base64">more...</a><div>
   </td>
  </tr>
  <tr>
@@ -552,7 +552,7 @@ The class is designed to be a fast and mutable 1:n key-value store. For that rea
    <code>importFromBase64(const boost::filesystem::path & directory,</code><br>
    <code><script>nbsp(17)</script>const boost::filesystem::path & input)</code><br>
    <code><script>nbsp(17)</script>const Options & options)</code>
-   <div>Imports key-value pairs read from an input file or directory into the map located in directory. <a href="#map-import-from-base64-options">more...</a><div>
+   <div>Same as before, but gives the user more control by providing an <a href="#class-options">Options</a> parameter which is passed to the constructor of Map when opening. This way a map can be created if it does not already exist. <a href="#map-map-directory-options">more...</a><div>
   </td>
  </tr>
  <tr>
@@ -562,7 +562,7 @@ The class is designed to be a fast and mutable 1:n key-value store. For that rea
   <td>
    <code>exportToBase64(const boost::filesystem::path & directory,</code><br>
    <code><script>nbsp(15)</script>const boost::filesystem::path & output)</code>
-   <div>Exports all key-value pairs from the map located in directory to the file denoted by output. <a href="#map-export-to-base64">more...</a><div>
+   <div>Exports all key-value pairs from the map located in directory to a file denoted by output. <a href="#map-export-to-base64">more...</a><div>
   </td>
  </tr>
  <tr>
@@ -573,7 +573,7 @@ The class is designed to be a fast and mutable 1:n key-value store. For that rea
    <code>exportToBase64(const boost::filesystem::path & directory,</code><br>
    <code><script>nbsp(15)</script>const boost::filesystem::path & output,</code><br>
    <code><script>nbsp(15)</script>const Options & options)</code>
-   <div>Exports all key-value pairs from the map located in directory to the file denoted by output. <a href="#map-export-to-base64-options">more...</a><div>
+   <div>Same as before, but gives the user more control by providing an <a href="#class-options">Options</a> parameter. Most users will use this to pass a compare function that triggers a sorting of all lists before exporting them.<div>
   </td>
  </tr>
  <tr>
@@ -583,7 +583,7 @@ The class is designed to be a fast and mutable 1:n key-value store. For that rea
   <td>
    <code>optimize(const boost::filesystem::path & directory,</code><br>
    <code><script>nbsp(9)</script>const boost::filesystem::path & output)</code>
-   <div>Rewrites the map located in directory to the directory denoted by output performing some optimizations. <a href="#map-optimize">more...</a><div>
+   <div>Rewrites the map located in directory to the directory denoted by output performing various optimizations. <a href="#map-optimize">more...</a><div>
   </td>
  </tr>
  <tr>
@@ -594,7 +594,7 @@ The class is designed to be a fast and mutable 1:n key-value store. For that rea
    <code>optimize(const boost::filesystem::path & directory,</code><br>
    <code><script>nbsp(9)</script>const boost::filesystem::path & output,</code><br>
    <code><script>nbsp(9)</script>const Options & options)</code>
-   <div>Rewrites the map located in directory to the directory denoted by output performing some optimizations. <a href="#map-optimize-options">more...</a><div>
+   <div>Same as before, but gives the user more control by providing an <a href="#class-options">Options</a> parameter. Most users will use this to pass a compare function that triggers a sorting of all lists.<div>
   </td>
  </tr>
 </tbody>
@@ -603,6 +603,7 @@ The class is designed to be a fast and mutable 1:n key-value store. For that rea
 <div class="reference-more">
  <h4 id="map-map-directory"><code>explicit Map::Map(const boost::filesystem::path & directory)</code></h4>
  <p>Opens an already existing map located in directory.</p>
+ <p><span class="acquires" />a <a href="#directory-lock">directory lock</a> on directory.</p>
  <p><span class="throws" /><a href="http://en.cppreference.com/w/cpp/error/runtime_error" target="_blank">std::runtime_error</a> if one of the following is true:</p>
  <ul>
   <li>the directory does not exist</li>
@@ -617,6 +618,7 @@ The class is designed to be a fast and mutable 1:n key-value store. For that rea
   <code><script>nbsp(9)</script>const Options & options)</code>
  </h4>
  <p>Opens or creates a map in directory. For the latter, you need to set <code>options.create_if_missing = true</code>. If an error should be raised in case the map already exists, set <code>options.error_if_exists = true</code>. When a new map is created other fields in options are used to configure the map's block size and number of partitions. See <a href="#optionshpp">Options</a> for more information.</p>
+ <p><span class="acquires" />a <a href="#directory-lock">directory lock</a> on directory.</p>
  <p><span class="throws" /><a href="http://en.cppreference.com/w/cpp/error/runtime_error" target="_blank">std::runtime_error</a> if one of the following is true:</p>
  <ul>
   <li>the directory does not exist</li>
@@ -823,6 +825,112 @@ The class is designed to be a fast and mutable 1:n key-value store. For that rea
  </ul>
 </div>
 
+<div class="reference-more">
+ <h4 id="map-stats">
+  <code>static std::vector&lt;<a href="#class-map-stats">Map::Stats</a>&gt; Map::stats(</code><br>
+  <code><script>nbsp(8)</script>const boost::filesystem::path & directory)</code>
+ </h4>
+ <p>Returns statistical information about each partition of the map located in directory. This method is similar to <a href="#map-get-stats">Map::getStats()</a> except that the map does not need to be instanciated.</p>
+ <p><span class="acquires" />a <a href="#directory-lock">directory lock</a> on directory.</p>
+ <p><span class="throws"/> everything thrown by the constructor of class <a href="#class-map">Map</a>.</p>
+</div>
+
+<div class="reference-more">
+ <h4 id="map-import-from-base64">
+  <code>static void Map::importFromBase64(</code><br>
+  <code><script>nbsp(8)</script>const boost::filesystem::path & directory,</code><br>
+  <code><script>nbsp(8)</script>const boost::filesystem::path & input)</code>
+ </h4>
+ <p>Imports key-value pairs from an input file or directory into the map located in directory. If input refers to a directory all files in that directory will be imported, except hidden files starting with a dot and other sub-directories. A description of the file format can be found in the <a href="/overview/#multimap-import">overview</a> section.</p>
+ <p><span class="acquires" />a <a href="#directory-lock">directory lock</a> on directory.</p>
+ <p><span class="throws"/> everything thrown by the constructor of class <a href="#class-map">Map</a> or <a href="http://en.cppreference.com/w/cpp/error/runtime_error" target="_blank">std::runtime_error</a> if the input file or directory cannot be read.</p>
+</div>
+
+<div class="reference-more">
+ <h4 id="map-export-to-base64">
+  <code>static void Map::exportToBase64(</code><br>
+  <code><script>nbsp(8)</script>const boost::filesystem::path & directory,</code><br>
+  <code><script>nbsp(8)</script>const boost::filesystem::path & output)</code>
+ </h4>
+ <p>Exports all key-value pairs from the map located in directory to a file denoted by output. If the file already exists, its content will be overwritten. The generated file is in canonical form as described in the <a href="/overview/#multimap-export">overview</a> section.</p>
+ <p><span class="acquires" />a <a href="#directory-lock">directory lock</a> on directory.</p>
+ <p><span class="throws" /><a href="http://en.cppreference.com/w/cpp/error/runtime_error" target="_blank">std::runtime_error</a> if one of the following is true:</p>
+ <ul>
+  <li>the directory does not exist</li>
+  <li>the directory cannot be locked</li>
+  <li>the directory does not contain a map</li>
+  <li>the creation of the output file failed</li>
+ </ul>
+</div>
+
+<div class="reference-more">
+ <h4 id="map-optimize">
+  <code>static void Map::optimize(</code><br>
+  <code><script>nbsp(8)</script>const boost::filesystem::path & directory,</code><br>
+  <code><script>nbsp(8)</script>const boost::filesystem::path & output)</code>
+ </h4>
+ <p>Rewrites the map located in directory to the directory denoted by output performing various optimizations. For more details please refer to the <a href="/overview/#multimap-optimize">overview</a> section.</p>
+ <p><span class="acquires" />a <a href="#directory-lock">directory lock</a> on directory.</p>
+ <p><span class="throws" /><a href="http://en.cppreference.com/w/cpp/error/runtime_error" target="_blank">std::runtime_error</a> if one of the following is true:</p>
+ <ul>
+  <li>the directory does not exist</li>
+  <li>the directory cannot be locked</li>
+  <li>the directory does not contain a map</li>
+  <li>the creation of a new map in output failed</li>
+ </ul>
+</div>
+
+### type Map::Limits
+
+This type represents a namespace that provides static methods for obtaining system limitations. Those limits which define constraints on user supplied data also serve as preconditions.
+
+<table class="reference-table">
+<tbody>
+ <tr>
+  <th colspan="2">Static member functions</th>
+ </tr>
+ <tr>
+  <td><code>uint32_t</code></td>
+  <td>
+   <code>maxKeySize()</code>
+   <div>Returns the maximum size in number of bytes for a key to put.<div>
+  </td>
+ </tr>
+ <tr>
+  <td><code>uint32_t</code></td>
+  <td>
+   <code>maxValueSize()</code>
+   <div>Returns the maximum size in number of bytes for a value to put.<div>
+  </td>
+ </tr>
+</tbody>
+</table>
+
+### type Map::Stats
+
+This type is a pure data holder for reporting statistical information about an instance of <a href="#class-map">Map</a>.
+
+<table class="reference-table">
+<tbody>
+ <tr>
+  <th colspan="2">Data members</th>
+ </tr>
+ <tr>
+  <td><code>uint64_t</code></td>
+  <td>
+   <code>block_size</code>
+   <div>Tells the block size defined in <a href="#struct-options">Options</a> when creating the map.<div>
+  </td>
+ </tr>
+ <tr>
+  <td><code>uint64_t</code></td>
+  <td>
+   <code>key_size_avg</code>
+   <div>Tells the average size in number of bytes of all keys. Note that keys that are currently not associated with any value are not taken into account.<div>
+  </td>
+ </tr>
+</tbody>
+</table>
 
 ## Interfaces
 
@@ -1097,7 +1205,7 @@ Preconditions:
 
 <span class='declaration' id='map-map2'>
  `Map(const boost::filesystem::path& directory,`
- <script>space(10)</script>`const`&nbsp;&nbsp;[`Options`](#class-options)`& options)`
+ <script>nbsp(10)</script>`const`&nbsp;&nbsp;[`Options`](#class-options)`& options)`
 </span>
 
 Creates a new instance and opens the map located in `directory`. If the map does not exist and `options.create_if_missing` is set to `true` a new map will be created.
@@ -1111,8 +1219,8 @@ Throws `std::exception` if:
 
 <span class='declaration' id='map-open'>
  `void Open(`
- <script>space(20)</script>`const boost::filesystem::path& directory,`
- <script>space(20)</script>`const`&nbsp;&nbsp;[`Options`](#class-options)`& options)`
+ <script>nbsp(20)</script>`const boost::filesystem::path& directory,`
+ <script>nbsp(20)</script>`const`&nbsp;&nbsp;[`Options`](#class-options)`& options)`
 </span>
 
 Opens the map located in `directory`. If the map does not exist and `options.create_if_missing` is set to `true` a new map will be created.
@@ -1163,8 +1271,8 @@ Returns: the number of deleted values.
 
 <span class='declaration' id='map-deleteall'>
  `std::size_t DeleteAll(`
- <script>space(20)</script>`const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& key,`
- <script>space(20)</script>[`Callables::Predicate`](#callables-predicate)&nbsp;&nbsp;`predicate)`
+ <script>nbsp(20)</script>`const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& key,`
+ <script>nbsp(20)</script>[`Callables::Predicate`](#callables-predicate)&nbsp;&nbsp;`predicate)`
 </span>
 
 Deletes all values in the list associated with `key` for which `predicate` yields `true`. This method will block until a writer lock can be acquired.
@@ -1173,8 +1281,8 @@ Returns: the number of deleted values.
 
 <span class='declaration' id='map-deleteallequal'>
  `std::size_t DeleteAllEqual(`
- <script>space(20)</script>`const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& key,`
- <script>space(20)</script>`const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& value)`
+ <script>nbsp(20)</script>`const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& key,`
+ <script>nbsp(20)</script>`const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& value)`
 </span>
 
 Deletes all values in the list associated with `key` which are equal to `value` according to `operator==(const Bytes&, const Bytes&)`. This method will block until a writer lock can be acquired.
@@ -1183,8 +1291,8 @@ Returns: the number of deleted values.
 
 <span class='declaration' id='map-deletefirst'>
  `bool DeleteFirst(`
- <script>space(20)</script>`const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& key,`
- <script>space(20)</script>[`Callables::Predicate`](#callables-predicate)&nbsp;&nbsp;`predicate)`
+ <script>nbsp(20)</script>`const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& key,`
+ <script>nbsp(20)</script>[`Callables::Predicate`](#callables-predicate)&nbsp;&nbsp;`predicate)`
 </span>
 
 Deletes the first value in the list associated with `key` for which `predicate` yields `true`. This method will block until a writer lock can be acquired.
@@ -1193,8 +1301,8 @@ Returns: `true` if a value was deleted, `false` otherwise.
 
 <span class='declaration' id='map-deletefirstequal'>
  `bool DeleteFirstEqual(`
- <script>space(20)</script>`const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& key,`
- <script>space(20)</script>`const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& value)`
+ <script>nbsp(20)</script>`const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& key,`
+ <script>nbsp(20)</script>`const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& value)`
 </span>
 
 Deletes the first value in the list associated with `key` which is equal to `value` according to `operator==(const Bytes&, const Bytes&)`. This method will block until a writer lock can be acquired.
@@ -1203,8 +1311,8 @@ Returns: `true` if a value was deleted, `false` otherwise.
 
 <span class='declaration' id='map-replaceall'>
  `std::size_t ReplaceAll(`
- <script>space(20)</script>`const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& key,`
- <script>space(20)</script>[`Callables::Function`](#callables-function)&nbsp;&nbsp;`function)`
+ <script>nbsp(20)</script>`const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& key,`
+ <script>nbsp(20)</script>[`Callables::Function`](#callables-function)&nbsp;&nbsp;`function)`
 </span>
 
 Replaces all values in the list associated with `key` by the result of invoking `function`. If the result of `function` is an empty string no replacement is performed. A replacement does not happen in-place. Instead, the old value is marked as deleted and the new value is appended to the end of the list. Future releases will support in-place replacements. This method will block until a writer lock can be acquired.
@@ -1213,9 +1321,9 @@ Returns: the number of replaced values.
 
 <span class='declaration' id='map-replaceallequal'>
  `std::size_t ReplaceAllEqual(`
- <script>space(20)</script>`const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& key,`
- <script>space(20)</script>`const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& old_value,`
- <script>space(20)</script>`const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& new_value)`
+ <script>nbsp(20)</script>`const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& key,`
+ <script>nbsp(20)</script>`const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& old_value,`
+ <script>nbsp(20)</script>`const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& new_value)`
 </span>
 
 Replaces all values in the list associated with `key` which are equal to `old_value` according to `operator==(const Bytes&, const Bytes&)` by `new_value`. A replacement does not happen in-place. Instead, the old value is marked as deleted and the new value is appended to the end of the list. Future releases will support in-place replacements. This method will block until a writer lock can be acquired.
@@ -1224,8 +1332,8 @@ Returns: the number of replaced values.
 
 <span class='declaration' id='map-replacefirst'>
  `bool ReplaceFirst(`
- <script>space(20)</script>`const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& key,`
- <script>space(20)</script>[`Callables::Function`](#callables-function)&nbsp;&nbsp;`function)`
+ <script>nbsp(20)</script>`const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& key,`
+ <script>nbsp(20)</script>[`Callables::Function`](#callables-function)&nbsp;&nbsp;`function)`
 </span>
 
 Replaces the first value in the list associated with `key` by the result of invoking `function`. If the result of `function` is an empty string no replacement is performed. The replacement does not happen in-place. Instead, the old value is marked as deleted and the new value is appended to the end of the list. Future releases will support in-place replacements. This method will block until a writer lock can be acquired.
@@ -1234,9 +1342,9 @@ Returns: `true` if a value was replaced, `false` otherwise.
 
 <span class='declaration' id='map-replacefirstequal'>
  `bool ReplaceFirstEqual(`
- <script>space(20)</script>`const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& key,`
- <script>space(20)</script>`const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& old_value,`
- <script>space(20)</script>`const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& new_value)`
+ <script>nbsp(20)</script>`const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& key,`
+ <script>nbsp(20)</script>`const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& old_value,`
+ <script>nbsp(20)</script>`const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& new_value)`
 </span>
 
 Replaces the first value in the list associated with `key` which is equal to `old_value` according to `operator==(const Bytes&, const Bytes&)` by `new_value`. The replacement does not happen in-place. Instead, the old value is marked as deleted and the new value is appended to the end of the list. Future releases will support in-place replacements. This method will block until a writer lock can be acquired.
@@ -1245,23 +1353,23 @@ Returns: `true` if a value was replaced, `false` otherwise.
 
 <span class='declaration' id='map-foreachkey'>
  `void ForEachKey(`
- <script>space(20)</script>[`Callables::Procedure`](#callables-procedure)&nbsp;&nbsp;`procedure) const`
+ <script>nbsp(20)</script>[`Callables::Procedure`](#callables-procedure)&nbsp;&nbsp;`procedure) const`
 </span>
 
 Applies `procedure` to each key of the map whose associated list is not empty. For the time of execution the entire map is locked for read-only operations. It is possible to keep a reference to the map within `procedure` and to call other read-only operations such as `Get()`. However, trying to call mutable operations such as `GetMutable()` will cause a deadlock.
 
 <span class='declaration' id='map-foreachvalue-procedure'>
  `void ForEachValue(`
- <script>space(20)</script>`const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& key,`
- <script>space(20)</script>[`Callables::Procedure`](#callables-procedure)&nbsp;&nbsp;`procedure) const`
+ <script>nbsp(20)</script>`const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& key,`
+ <script>nbsp(20)</script>[`Callables::Procedure`](#callables-procedure)&nbsp;&nbsp;`procedure) const`
 </span>
 
 Applies `procedure` to each value in the list associated with `key`. This is a shorthand for requesting a read-only iterator via `Get(key)` followed by an application of `procedure` to each value obtained via `ConstListIter::GetValue()`. This method will block until a reader lock for the list in question can be acquired.
 
 <span class='declaration' id='map-foreachvalue-predicate'>
  `void ForEachValue(`
- <script>space(20)</script>`const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& key,`
- <script>space(20)</script>[`Callables::Predicate`](#callables-predicate)&nbsp;&nbsp;`predicate) const`
+ <script>nbsp(20)</script>`const`&nbsp;&nbsp;[`Bytes`](#class-bytes)`& key,`
+ <script>nbsp(20)</script>[`Callables::Predicate`](#callables-predicate)&nbsp;&nbsp;`predicate) const`
 </span>
 
 Applies `predicate` to each value in the list associated with `key` until `predicate` yields `false`. This is a shorthand for requesting a read-only iterator via `Get(key)` followed by an application of `predicate` to each value obtained via `ConstListIter::GetValue()` until `predicate` yields `false`. This method will block until a reader lock for the list in question can be acquired.
@@ -1282,8 +1390,8 @@ Returns the maximum size of a value in bytes which may be put. Currently this is
 
 <span class='declaration' id='map-optimize'>
  `void Optimize(`
- <script>space(20)</script>`const boost::filesystem::path& from,`
- <script>space(20)</script>`const boost::filesystem::path& to)`
+ <script>nbsp(20)</script>`const boost::filesystem::path& from,`
+ <script>nbsp(20)</script>`const boost::filesystem::path& to)`
 </span>
 
 Copies the map located in the directory denoted by `from` to the directory denoted by `to` performing the following optimizations:
@@ -1301,9 +1409,9 @@ Throws `std::exception` if:
 
 <span class='declaration' id='map-optimize2'>
  `void Optimize(`
- <script>space(20)</script>`const boost::filesystem::path& from,`
- <script>space(20)</script>`const boost::filesystem::path& to`
- <script>space(20)</script>`std::size_t new_block_size)`
+ <script>nbsp(20)</script>`const boost::filesystem::path& from,`
+ <script>nbsp(20)</script>`const boost::filesystem::path& to`
+ <script>nbsp(20)</script>`std::size_t new_block_size)`
 </span>
 
 Same as [`Optimize(from, to)`](#map-optimize) but sets the block size of the new map to `new_block_size`.
@@ -1315,9 +1423,9 @@ Throws `std::exception` if:
 
 <span class='declaration' id='map-optimize3'>
  `void Optimize(`
- <script>space(20)</script>`const boost::filesystem::path& from,`
- <script>space(20)</script>`const boost::filesystem::path& to,`
- <script>space(20)</script>[`Callables::Compare`](#callables-compare)&nbsp;&nbsp;`compare)`
+ <script>nbsp(20)</script>`const boost::filesystem::path& from,`
+ <script>nbsp(20)</script>`const boost::filesystem::path& to,`
+ <script>nbsp(20)</script>[`Callables::Compare`](#callables-compare)&nbsp;&nbsp;`compare)`
 </span>
 
 Same as [`Optimize(from, to)`](#map-optimize) but sorts each list before writing using `compare` as the sorting criterion.
@@ -1328,10 +1436,10 @@ Throws `std::exception` if:
 
 <span class='declaration' id='map-optimize4'>
  `void Optimize(`
- <script>space(20)</script>`const boost::filesystem::path& from,`
- <script>space(20)</script>`const boost::filesystem::path& to,`
- <script>space(20)</script>[`Callables::Compare`](#callables-compare)&nbsp;&nbsp;`compare,`
- <script>space(20)</script>`std::size_t new_block_size)`
+ <script>nbsp(20)</script>`const boost::filesystem::path& from,`
+ <script>nbsp(20)</script>`const boost::filesystem::path& to,`
+ <script>nbsp(20)</script>[`Callables::Compare`](#callables-compare)&nbsp;&nbsp;`compare,`
+ <script>nbsp(20)</script>`std::size_t new_block_size)`
 </span>
 
 Same as [`Optimize(from, to, compare)`](#map-optimize3) but sets the block size of the new map to `new_block_size`.
@@ -1343,8 +1451,8 @@ Throws `std::exception` if:
 
 <span class='declaration' id='map-import'>
  `void Import(`
- <script>space(20)</script>`const boost::filesystem::path& directory,`
- <script>space(20)</script>`const boost::filesystem::path& file)`
+ <script>nbsp(20)</script>`const boost::filesystem::path& directory,`
+ <script>nbsp(20)</script>`const boost::filesystem::path& file)`
 </span>
 
 Imports key-value pairs from a Base64-encoded text file denoted by `file` into the map located in the directory denoted by `directory`.
@@ -1362,9 +1470,9 @@ Throws `std::exception` if:
 
 <span class='declaration' id='map-import2'>
  `void Import(`
- <script>space(20)</script>`const boost::filesystem::path& directory,`
- <script>space(20)</script>`const boost::filesystem::path& file`
- <script>space(20)</script>`bool create_if_missing)`
+ <script>nbsp(20)</script>`const boost::filesystem::path& directory,`
+ <script>nbsp(20)</script>`const boost::filesystem::path& file`
+ <script>nbsp(20)</script>`bool create_if_missing)`
 </span>
 
 Same as [`Import(directory, file)`](#map-import) but creates a new map with default block size if the directory denoted by `directory` does not contain a map and `create_if_missing` is `true`.
@@ -1379,10 +1487,10 @@ Throws `std::exception` if:
 
 <span class='declaration' id='map-import3'>
  `void Import(`
- <script>space(20)</script>`const boost::filesystem::path& directory,`
- <script>space(20)</script>`const boost::filesystem::path& file,`
- <script>space(20)</script>`bool create_if_missing,`
- <script>space(20)</script>`std::size_t block_size)`
+ <script>nbsp(20)</script>`const boost::filesystem::path& directory,`
+ <script>nbsp(20)</script>`const boost::filesystem::path& file,`
+ <script>nbsp(20)</script>`bool create_if_missing,`
+ <script>nbsp(20)</script>`std::size_t block_size)`
 </span>
 
 Same as [`Import(directory, file, create_if_missing)`](#map-import2) but sets the block size of a newly created map to `block_size`.
@@ -1398,8 +1506,8 @@ Throws `std::exception` if:
 
 <span class='declaration' id='map-export'>
  `void Export(`
- <script>space(20)</script>`const boost::filesystem::path& directory,`
- <script>space(20)</script>`const boost::filesystem::path& file)`
+ <script>nbsp(20)</script>`const boost::filesystem::path& directory,`
+ <script>nbsp(20)</script>`const boost::filesystem::path& file)`
 </span>
 
 Exports all key-value pairs from the map located in the directory denoted by `directory` to a Base64-encoded text file denoted by `file`. If the file already exists, its content will be overridden.
