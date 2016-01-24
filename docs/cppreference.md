@@ -832,7 +832,6 @@ The class is designed to be a fast and mutable 1:n key-value store. For that rea
  </h4>
  <p>Returns statistical information about each partition of the map located in directory. This method is similar to <a href="#map-get-stats">Map::getStats()</a> except that the map does not need to be instanciated.</p>
  <p><span class="acquires" />a <a href="#directory-lock">directory lock</a> on directory.</p>
- <p><span class="throws"/> everything thrown by the constructor of class <a href="#class-map">Map</a>.</p>
 </div>
 
 <div class="reference-more">
@@ -931,6 +930,7 @@ This type is a pure data holder for reporting statistical information about an i
  </tr>
 </tbody>
 </table>
+
 
 ## Interfaces
 
