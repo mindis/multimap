@@ -44,7 +44,7 @@
 
 namespace mt {
 
-static const uint32_t VERSION = 20160116;
+static const uint32_t VERSION = 20160117;
 
 // -----------------------------------------------------------------------------
 // COMMON
@@ -333,7 +333,7 @@ class AutoCloseFd {
   void reset(int fd = NO_FD) {
     if (fd_ != NO_FD) {
       const auto result = ::close(fd_);
-      Check::isZero(result, "::close() failed because of '%s'", errnostr());
+      Check::isZero(result, "close() failed because of '%s'", errnostr());
     }
     fd_ = fd;
   }
@@ -344,7 +344,7 @@ class AutoCloseFd {
 
 inline AutoCloseFd open(const boost::filesystem::path& file, int flags) {
   const auto result = ::open(file.c_str(), flags);
-  Check::notEqual(result, -1, "mt::open() failed for '%s' because of '%s'",
+  Check::notEqual(result, -1, "open() failed for '%s' because of '%s'",
                   file.c_str(), errnostr());
   return AutoCloseFd(result);
 }
@@ -352,37 +352,43 @@ inline AutoCloseFd open(const boost::filesystem::path& file, int flags) {
 inline AutoCloseFd open(const boost::filesystem::path& file, int flags,
                         mode_t mode) {
   const auto result = ::open(file.c_str(), flags, mode);
-  Check::notEqual(result, -1, "mt::open() failed for '%s' because of '%s'",
+  Check::notEqual(result, -1, "open() failed for '%s' because of '%s'",
                   file.c_str(), errnostr());
   return AutoCloseFd(result);
 }
 
 inline AutoCloseFd create(const boost::filesystem::path& file, mode_t mode) {
   const auto result = ::creat(file.c_str(), mode);
-  Check::notEqual(result, -1, "mt::create() failed for '%s' because of '%s'",
+  Check::notEqual(result, -1, "create() failed for '%s' because of '%s'",
                   file.c_str(), errnostr());
   return AutoCloseFd(result);
 }
 
 inline void read(int fd, void* buf, size_t len) {
   const auto result = ::read(fd, buf, len);
-  Check::notEqual(result, -1, "mt::read() failed because of '%s'", errnostr());
+  Check::notEqual(result, -1, "read() failed because of '%s'", errnostr());
   Check::isEqual(static_cast<size_t>(result), len,
-                 "mt::read() read less bytes than expected");
+                 "read() read less bytes than expected");
+}
+
+inline void pread(int fd, void* buf, size_t len, uint64_t offset) {
+  const auto result = ::pread(fd, buf, len, offset);
+  Check::notEqual(result, -1, "pread() failed because of '%s'", errnostr());
+  Check::isEqual(static_cast<size_t>(result), len,
+                 "pread() read less bytes than expected");
 }
 
 inline void write(int fd, const void* buf, size_t len) {
   const auto result = ::write(fd, buf, len);
-  Check::notEqual(result, -1, "mt::write() failed because of '%s'", errnostr());
+  Check::notEqual(result, -1, "write() failed because of '%s'", errnostr());
   Check::isEqual(static_cast<size_t>(result), len,
-                 "mt::write() wrote less bytes than expected");
+                 "write() wrote less bytes than expected");
 }
 
 inline void writeOrPrompt(int fd, const void* buf, size_t len) {
   while (true) {
     const auto result = ::write(fd, buf, len);
-    Check::notEqual(result, -1, "mt::write() failed because of '%s'",
-                    errnostr());
+    Check::notEqual(result, -1, "write() failed because of '%s'", errnostr());
     if (static_cast<size_t>(result) < len) {
       std::cout << "Write operation failed because only " << result << " of "
                 << len << " bytes could be written.\nIn case you ran out of "
@@ -392,7 +398,7 @@ inline void writeOrPrompt(int fd, const void* buf, size_t len) {
       std::string answer;
       std::getline(std::cin, answer);
       if (answer == "n") {
-        fail("mt::write() wrote less bytes than expected");
+        fail("write() wrote less bytes than expected");
       }
       buf = static_cast<const char*>(buf) + result;
       len -= result;
@@ -402,9 +408,16 @@ inline void writeOrPrompt(int fd, const void* buf, size_t len) {
   }
 }
 
+inline void pwrite(int fd, const void* buf, size_t len, uint64_t offset) {
+  const auto result = ::pwrite(fd, buf, len, offset);
+  Check::notEqual(result, -1, "pwrite() failed because of '%s'", errnostr());
+  Check::isEqual(static_cast<size_t>(result), len,
+                 "pwrite() wrote less bytes than expected");
+}
+
 inline uint64_t seek(int fd, std::int64_t offset, int whence) {
   const auto result = ::lseek(fd, offset, whence);
-  Check::notEqual(result, -1, "mt::seek() failed because of '%s'", errnostr());
+  Check::notEqual(result, -1, "seek() failed because of '%s'", errnostr());
   return result;
 }
 
@@ -412,13 +425,13 @@ inline uint64_t tell(int fd) { return seek(fd, 0, SEEK_CUR); }
 
 inline void truncate(int fd, uint64_t length) {
   const auto result = ::ftruncate(fd, length);
-  Check::isZero(result, "mt::truncate() failed because of '%s'", errnostr());
+  Check::isZero(result, "truncate() failed because of '%s'", errnostr());
 }
 
 inline void* mmap(void* addr, uint64_t length, int prot, int flags, int fd,
                   off_t offset) {
   const auto result = ::mmap(addr, length, prot, flags, fd, offset);
-  Check::notEqual(result, MAP_FAILED, "mt::mmap() failed because of '%s'",
+  Check::notEqual(result, MAP_FAILED, "mmap() failed because of '%s'",
                   errnostr());
   return result;
 }
@@ -426,14 +439,14 @@ inline void* mmap(void* addr, uint64_t length, int prot, int flags, int fd,
 inline void* mremap(void* old_addr, uint64_t old_size, uint64_t new_size,
                     int flags) {
   const auto result = ::mremap(old_addr, old_size, new_size, flags);
-  Check::notEqual(result, MAP_FAILED, "mt::mremap() failed because of '%s'",
+  Check::notEqual(result, MAP_FAILED, "mremap() failed because of '%s'",
                   errnostr());
   return result;
 }
 
 inline void munmap(void* addr, uint64_t length) {
   const auto result = ::munmap(addr, length);
-  Check::isZero(result, "mt::munmap() failed because of '%s'", errnostr());
+  Check::isZero(result, "munmap() failed because of '%s'", errnostr());
 }
 
 class AutoCloseFile {
@@ -473,18 +486,18 @@ class AutoCloseFile {
 inline AutoCloseFile fopen(const boost::filesystem::path& file,
                            const char* mode) {
   const auto result = std::fopen(file.c_str(), mode);
-  Check::notNull(result, "mt::fopen() failed because of '%s'", errnostr());
+  Check::notNull(result, "fopen() failed because of '%s'", errnostr());
   return AutoCloseFile(result);
 }
 
 inline void fread(std::FILE* stream, void* buf, uint64_t len) {
   const auto result = std::fread(buf, sizeof(char), len, stream);
-  Check::isEqual(result, len, "mt::fread() failed");
+  Check::isEqual(result, len, "fread() failed");
 }
 
 inline void fwrite(std::FILE* stream, const void* buf, size_t len) {
   const auto result = std::fwrite(buf, sizeof(char), len, stream);
-  Check::isEqual(result, len, "mt::fwrite() failed");
+  Check::isEqual(result, len, "fwrite() failed");
 }
 
 inline void fwriteOrPrompt(std::FILE* stream, const void* buf, size_t len) {
@@ -499,7 +512,7 @@ inline void fwriteOrPrompt(std::FILE* stream, const void* buf, size_t len) {
       std::string answer;
       std::getline(std::cin, answer);
       if (answer == "n") {
-        fail("mt::fwrite() wrote less bytes than expected");
+        fail("fwrite() wrote less bytes than expected");
       }
       buf = static_cast<const char*>(buf) + result;
       len -= result;
@@ -511,12 +524,12 @@ inline void fwriteOrPrompt(std::FILE* stream, const void* buf, size_t len) {
 
 inline void fseek(std::FILE* stream, long offset, int origin) {
   const auto result = std::fseek(stream, offset, origin);
-  Check::isZero(result, "mt::fseek() failed");
+  Check::isZero(result, "fseek() failed");
 }
 
 inline uint64_t ftell(std::FILE* stream) {
   const auto result = std::ftell(stream);
-  Check::notEqual(result, -1, "mt::ftell() failed because of '%s'", errnostr());
+  Check::notEqual(result, -1, "ftell() failed because of '%s'", errnostr());
   return result;
 }
 
