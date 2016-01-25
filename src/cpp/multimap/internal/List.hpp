@@ -231,7 +231,7 @@ class List {
 
     uint32_t available() const { return stats_.available; }
 
-    bool hasNext() { return available() != 0; }
+    bool hasNext() const { return available() != 0; }
 
     Bytes next() {
       MT_REQUIRE_TRUE(hasNext());
@@ -442,7 +442,7 @@ class SharedListIterator {
 
   uint32_t available() const { return iter_.available(); }
 
-  bool hasNext() { return iter_.hasNext(); }
+  bool hasNext() const { return iter_.hasNext(); }
 
   Bytes next() { return iter_.next(); }
 
@@ -534,7 +534,7 @@ class UniqueListIterator {
 
   uint32_t available() const { return iter_.available(); }
 
-  bool hasNext() { return iter_.hasNext(); }
+  bool hasNext() const { return iter_.hasNext(); }
 
   Bytes next() { return iter_.next(); }
 
