@@ -879,6 +879,58 @@ The class is designed to be a fast and mutable 1:n key-value store. For that rea
  </ul>
 </div>
 
+### type Map::Iterator
+
+This type represents an iterator to read a list of values, possibly by streaming them from an external device.
+
+The iterator supports lazy initialization, which means that no I/O operation is performed until a value is actually requested. This might be useful in cases where multiple iterators have to be collected first to determine in which order they have to be processed.
+
+The iterator also owns a reader lock for the underlying list for synchronization purposes. This lock is automatically released when the iterator's destructor is called.
+
+<table class="reference-table">
+<tbody>
+ <tr>
+  <th colspan="2">Member functions</th>
+ </tr>
+ <tr>
+  <td><code>uint32_t</code></td>
+  <td>
+   <code>available() const</code>
+   <div>Returns the remaining number of values to be iterated. Calling this method does not trigger any I/O operation.<div>
+  </td>
+ </tr>
+ <tr>
+  <td><code>bool</code></td>
+  <td>
+   <code>hasNext() const</code>
+   <div>Returns true if the iterator has more values, false otherwise.<div>
+  </td>
+ </tr>
+ <tr>
+  <td><code>Bytes</code></td>
+  <td>
+   <code>next()</code>
+   <div>Returns the next value from the underlying list and moves the iterator once forward. <a href="#map-iterator-next">more...</a><div>
+  </td>
+ </tr>
+ <tr>
+  <td><code>Bytes</code></td>
+  <td>
+   <code>peekNext()</code>
+   <div>Same as before, but does not move the iterator once forward.<div>
+  </td>
+ </tr>
+</tbody>
+</table>
+
+<div class="reference-more">
+ <h4 id="map-iterator-next">
+  <code>Bytes Map::Iterator::next()</code>
+ </h4>
+ <p>Returns the next value from the underlying list and moves the iterator once forward. The returned <a href="class-bytes">Bytes</a> object points to data managed by the iterator and is only valid for read access until the next call of this method. Reading from invalid data is undefined behavior. A deep copy of the value can be created by either calling its <a href="bytes-tostring">toString()</a> method or <a href="http://en.cppreference.com/w/cpp/string/byte/memcpy" target="_blank">std::memcpy()</a> its <a href="bytes-data">data()</a> into another buffer.</p>
+ <p><span class="requires" /><code>hasNext()</code> yields true.</p>
+</div>
+
 ### type Map::Limits
 
 This type represents a namespace that provides static methods for obtaining system limitations. Those limits which define constraints on user supplied data also serve as preconditions.
@@ -1001,57 +1053,104 @@ This type is a pure data holder for reporting statistical information.
 </tbody>
 </table>
 
-### type Map::Iterator
 
-This type represents an iterator to read a list of values, possibly by streaming them from an external device.
+## Options.hpp
 
-The iterator supports lazy initialization, which means that no I/O operation is performed until a value is actually requested. This might be useful in cases where multiple iterators have to be collected first to determine in which order they have to be processed.
+```cpp
+#include <multimap/Options.hpp>
+namespace multimap
+```
 
-The iterator also owns a reader lock for the underlying list for synchronization purposes. This lock is automatically released when the iterator's destructor is called.
+### class Options
+
+This class is a pure data holder used for configuration purposes.
 
 <table class="reference-table">
 <tbody>
  <tr>
-  <th colspan="2">Member functions</th>
+  <th colspan="2">Data members</th>
  </tr>
  <tr>
   <td><code>uint32_t</code></td>
   <td>
-   <code>available() const</code>
-   <div>Returns the remaining number of values to be iterated. Calling this method does not trigger any I/O operation.<div>
+   <code>block_size</code>
+   <div>Defines the block size in number of bytes for a newly created map or partition. The value must be a power of two. Typical block sizes are 128, 256, 512 (default), 1024, or even larger. Please refer to the <a href="/overview/#block-organization">overview</a> section for more details.<div>
+  </td>
+ </tr>
+ <tr>
+  <td><code>uint32_t</code></td>
+  <td>
+   <code>num_partitions</code>
+   <div>Defines the number of partitions for a newly created map. The purpose of partitioning is to increase the performance of the <a href="/overview/#multimap-export">export</a> and <a href="/overview/#multimap-optimize">optimize</a> operations by applying a devide and conquer method. A suitable number can be estimated like this: "total number of value-bytes to be put" devided by "the memory allowed to be used running the operation". An underestimate can lead to long runtimes for the mentioned operations. The default value is 23; other values will be rounded to the next prime number that is greater or equal to the given value.<div>
+  </td>
+ </tr>
+ <tr>
+  <td><code>uint32_t</code></td>
+  <td>
+   <code>buffer_size</code>
+   <div>Defines the size of an internal buffer that contains blocks to be written. The default value is 1 MiB; other values are required to be a multiple of the given block size. Most users should leave this parameter alone.<div>
   </td>
  </tr>
  <tr>
   <td><code>bool</code></td>
   <td>
-   <code>hasNext() const</code>
-   <div>Returns true if the iterator has more values, false otherwise.<div>
+   <code>create_if_missing</code>
+   <div>If set to true, creates a new map if it does not exist. The default value is false.<div>
   </td>
  </tr>
  <tr>
-  <td><code>Bytes</code></td>
+  <td><code>bool</code></td>
   <td>
-   <code>next()</code>
-   <div>Returns the next value from the underlying list and moves the iterator once forward. <a href="#map-iterator-next">more...</a><div>
+   <code>error_if_exists</code>
+   <div>If set to true, throws an exception if a map already exists. The default value is false.<div>
   </td>
  </tr>
  <tr>
-  <td><code>Bytes</code></td>
+  <td><code>bool</code></td>
   <td>
-   <code>peekNext()</code>
-   <div>Same as before, but does not move the iterator once forward.<div>
+   <code>readonly</code>
+   <div>Opens a map in read-only mode. In this mode all operations that could possibly modify the stored data are not allowed and will throw an exception on an attempt to do so. This flag is useful to prevent unintentional updates of read-only datasets. The default value is false.<div>
+  </td>
+ </tr>
+ <tr>
+  <td><code>bool</code></td>
+  <td>
+   <code>quiet</code>
+   <div>If set to true, no status information for long running operations are sent to stdout. This flag is useful for writing shell scripts. The default value is false.<div>
   </td>
  </tr>
 </tbody>
 </table>
 
-<div class="reference-more">
- <h4 id="map-iterator-next">
-  <code>Bytes Map::Iterator::next()</code>
- </h4>
- <p>Returns the next value from the underlying list and moves the iterator once forward. The returned <a href="class-bytes">Bytes</a> object points to data managed by the iterator and is only valid for read access until the next call of this method. Reading from invalid data is undefined behavior. A deep copy of the value can be created by either calling its <a href="bytes-tostring">toString()</a> method or <a href="http://en.cppreference.com/w/cpp/string/byte/memcpy" target="_blank">std::memcpy()</a> its <a href="bytes-data">data()</a> into another buffer.</p>
- <p><span class="requires" /><code>hasNext()</code> yields true.</p>
-</div>
+
+
+<span class='declaration' id='options-block-size'>`std::size_t block_size`</span>
+
+Determines the block size of a newly created map. The value is ignored if the map already exists when opened. The value must be a power of two. Have a look at [Choosing the block size](overview.md#choosing-the-block-size) for more information.
+
+Default: `512`
+
+<span class='declaration' id='options-create_if_missing'>`bool create_if_missing`</span>
+
+Determines whether a map has to be created if it does not exist.
+
+Default: `false`
+
+<span class='declaration' id='options-error_if_exists'>`bool error_if_exists`</span>
+
+Determines whether an already existing map should be treated as an error.
+
+Default: `false`
+
+<span class='declaration' id='options-write_only_mode'>`bool write_only_mode`</span>
+
+Determines if the map should be opened in write-only mode. This will enable some optimizations for putting a large number of values, but will disable the ability to retrieve values. Users normally should leave this parameter alone.
+
+Default: `false`
+
+
+
+
 
 ## Interfaces
 
@@ -1155,54 +1254,10 @@ A binary procedure is a function object that is applied to a pair of objects wit
 
 ## Locking
 
+### Directory Lock
+
 ### Reader Lock
 
 ### Writer Lock
 
 This operation requires exclusive access to the associated list and therefore tries to acquire a writer lock for it. The call will block if the list is already locked, either by another writer lock or by one or more reader locks, until all of these locks are released.
-
-
-
-
-
-
-
-## class Options
-
-```cpp
-#include <multimap/Options.hpp>
-namespace multimap
-```
-
-This class is a pure data holder used to configure an instantiation of class [`Map`](#class-map).
-
-Members       |
--------------:|-----------------------------------------------------------------
-`std::size_t` | [`block_size`](#options-block-size)
-`bool`        | [`create_if_missing`](#options-create-if-missing)
-`bool`        | [`error_if_exists`](#options-error-if-exists)
-`bool`        | [`write_only_mode`](#options-write-only-mode)
-
-<span class='declaration' id='options-block-size'>`std::size_t block_size`</span>
-
-Determines the block size of a newly created map. The value is ignored if the map already exists when opened. The value must be a power of two. Have a look at [Choosing the block size](overview.md#choosing-the-block-size) for more information.
-
-Default: `512`
-
-<span class='declaration' id='options-create_if_missing'>`bool create_if_missing`</span>
-
-Determines whether a map has to be created if it does not exist.
-
-Default: `false`
-
-<span class='declaration' id='options-error_if_exists'>`bool error_if_exists`</span>
-
-Determines whether an already existing map should be treated as an error.
-
-Default: `false`
-
-<span class='declaration' id='options-write_only_mode'>`bool write_only_mode`</span>
-
-Determines if the map should be opened in write-only mode. This will enable some optimizations for putting a large number of values, but will disable the ability to retrieve values. Users normally should leave this parameter alone.
-
-Default: `false`
