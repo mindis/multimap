@@ -212,10 +212,10 @@ void runExportCommand(const CommandLine& cmd) {
 void runOptimizeCommand(const CommandLine& cmd) {
   auto options = initOptions(cmd);
   if (cmd.options.count(BS) == 0) {
-    options.keep_block_size();
+    options.keepBlockSize();
   }
   if (cmd.options.count(NPARTS) == 0) {
-    options.keep_num_partitions();
+    options.keepNumPartitions();
   }
   multimap::Map::optimize(cmd.map, cmd.path, options);
 }

@@ -259,8 +259,8 @@ void Map::exportToBase64(const boost::filesystem::path& directory,
 void Map::optimize(const boost::filesystem::path& directory,
                    const boost::filesystem::path& output) {
   Options options;
-  options.keep_block_size();
-  options.keep_num_partitions();
+  options.keepBlockSize();
+  options.keepNumPartitions();
   optimize(directory, output, options);
 }
 
