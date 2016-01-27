@@ -22,19 +22,19 @@
 #include <multimap/thirdparty/mt/mt.hpp>
 #include <multimap/Map.hpp>
 
-const auto HELP     = "help";
-const auto STATS    = "stats";
-const auto IMPORT   = "import";
-const auto EXPORT   = "export";
+const auto HELP = "help";
+const auto STATS = "stats";
+const auto IMPORT = "import";
+const auto EXPORT = "export";
 const auto OPTIMIZE = "optimize";
 
-const auto BS       = "--bs";
-const auto CREATE   = "--create";
-const auto NPARTS   = "--nparts";
-const auto QUIET    = "--quiet";
+const auto BS = "--bs";
+const auto CREATE = "--create";
+const auto NPARTS = "--nparts";
+const auto QUIET = "--quiet";
 
-const auto COMMANDS = { HELP, STATS, IMPORT, EXPORT, OPTIMIZE };
-const auto OPTIONS  = { BS, CREATE, NPARTS, QUIET };
+const auto COMMANDS = {HELP, STATS, IMPORT, EXPORT, OPTIMIZE};
+const auto OPTIONS = {BS, CREATE, NPARTS, QUIET};
 
 struct CommandLine {
   struct Error : public std::runtime_error {
@@ -140,21 +140,13 @@ void runHelpCommand(const char* toolname) {
       "\n  %s %-8s path/to/map path/to/output %s 42"
       "\n  %s %-8s path/to/map path/to/output %s 42 %s 128"
       "\n\n"
-      "\nCopyright (C) 2015 Martin Trenkmann"
+      "\nCopyright (C) 2015-2016 Martin Trenkmann"
       "\n<http://multimap.io>\n",
-      toolname, HELP, STATS, IMPORT, EXPORT, OPTIMIZE,
-      CREATE, BS, default_options.block_size,
-      NPARTS, default_options.num_partitions,
-      QUIET,
-      toolname, STATS,
-      toolname, IMPORT,
-      toolname, IMPORT,
-      toolname, IMPORT, CREATE,
-      toolname, EXPORT,
-      toolname, OPTIMIZE,
-      toolname, OPTIMIZE, BS,
-      toolname, OPTIMIZE, NPARTS,
-      toolname, OPTIMIZE, NPARTS, BS);
+      toolname, HELP, STATS, IMPORT, EXPORT, OPTIMIZE, CREATE, BS,
+      default_options.block_size, NPARTS, default_options.num_partitions, QUIET,
+      toolname, STATS, toolname, IMPORT, toolname, IMPORT, toolname, IMPORT,
+      CREATE, toolname, EXPORT, toolname, OPTIMIZE, toolname, OPTIMIZE, BS,
+      toolname, OPTIMIZE, NPARTS, toolname, OPTIMIZE, NPARTS, BS);
 }
 
 void runStatsCommand(const CommandLine& cmd) {
@@ -255,8 +247,8 @@ int main(int argc, const char** argv) {
     }
 
   } catch (CommandLine::Error& error) {
-    std::cerr << "Invalid command line: " << error.what() << '.'
-              << "\nTry '" << *argv << ' ' << HELP << "'." << std::endl;
+    std::cerr << "Invalid command line: " << error.what() << '.' << "\nTry '"
+              << *argv << ' ' << HELP << "'." << std::endl;
 
   } catch (std::exception& error) {
     std::cerr << error.what() << '.' << std::endl;
