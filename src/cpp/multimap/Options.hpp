@@ -15,17 +15,21 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+// -----------------------------------------------------------------------------
+// Documentation: http://multimap.io/cppreference/#class-options
+// -----------------------------------------------------------------------------
+
 #ifndef MULTIMAP_OPTIONS_HPP_INCLUDED
 #define MULTIMAP_OPTIONS_HPP_INCLUDED
 
 #include <cstdint>
 #include <functional>
 #include "multimap/Bytes.hpp"
+#include "multimap/thirdparty/mt/mt.hpp"
 
 namespace multimap {
 
 struct Options {
-
   uint32_t block_size = 512;
 
   uint32_t num_partitions = 23;
@@ -39,17 +43,12 @@ struct Options {
   bool readonly = false;
 
   bool quiet = false;
-  // Prints out status messages for long running jobs from `operations.hpp`.
 
   std::function<bool(const Bytes&, const Bytes&)> compare;
-  // Optional: Compare function which returns `true` if the left operand is
-  // less than the right operand. Returns `false` otherwise.
 
   void keepNumPartitions() { num_partitions = 0; }
-  // Indicates to some operations to leave the number of partitions unchanged.
 
   void keepBlockSize() { block_size = 0; }
-  // Indicates to some operations to leave the block size unchanged.
 };
 
 }  // namespace multimap
