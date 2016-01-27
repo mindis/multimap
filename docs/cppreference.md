@@ -1119,46 +1119,41 @@ This class is a pure data holder used for configuration purposes.
    <div>If set to true, no status information for long running operations are sent to stdout. This flag is useful for writing shell scripts. The default value is false.<div>
   </td>
  </tr>
+ <tr>
+  <td><code>Compare</code></td>
+  <td>
+   <code>compare</code>
+   <div>A callable that implements the <a href="#compare">Compare</a> interface. It is used to sort lists of values when running certain operations such as <a href="/overview/#multimap-export">export</a> or <a href="/overview/#multimap-optimize">optimize</a>. Actually this member is a <a href="http://en.cppreference.com/w/cpp/utility/functional/function" target="_blank">function wrapper</a>, not a generic type, which can be left empty (default) if no sorting is desired.<div>
+  </td>
+ </tr>
+ <tr>
+  <th colspan="2">Member functions</th>
+ </tr>
+ <tr>
+  <td><code>void</code></td>
+  <td>
+   <code>keepNumPartitions()</code>
+   <div>Sets <code>num_partitions</code> to a special value that indicates to the <a href="/overview/#multimap-optimize">optimize</a> operation that the number of partitions should not be changed. <div>
+  </td>
+ </tr>
+ <tr>
+  <td><code>void</code></td>
+  <td>
+   <code>keepBlockSize()</code>
+   <div>Sets <code>block_size</code> to a special value that indicates to the <a href="/overview/#multimap-optimize">optimize</a> operation that the block size should not be changed.<div>
+  </td>
+ </tr>
 </tbody>
 </table>
 
 
-
-<span class='declaration' id='options-block-size'>`std::size_t block_size`</span>
-
-Determines the block size of a newly created map. The value is ignored if the map already exists when opened. The value must be a power of two. Have a look at [Choosing the block size](overview.md#choosing-the-block-size) for more information.
-
-Default: `512`
-
-<span class='declaration' id='options-create_if_missing'>`bool create_if_missing`</span>
-
-Determines whether a map has to be created if it does not exist.
-
-Default: `false`
-
-<span class='declaration' id='options-error_if_exists'>`bool error_if_exists`</span>
-
-Determines whether an already existing map should be treated as an error.
-
-Default: `false`
-
-<span class='declaration' id='options-write_only_mode'>`bool write_only_mode`</span>
-
-Determines if the map should be opened in write-only mode. This will enable some optimizations for putting a large number of values, but will disable the ability to retrieve values. Users normally should leave this parameter alone.
-
-Default: `false`
-
-
-
-
-
 ## Interfaces
 
-The interfaces described here are requirements expected by some user-provided function objects. They are typically employed as template parameters and are not to be confused with abstract classes used in object-oriented programming. Sometimes this type of interfaces is also referred to as [concepts](http://en.cppreference.com/w/cpp/concept). Note that [lambda functions](http://en.cppreference.com/w/cpp/language/lambda) are unnamed function objects.
+The interfaces described here are requirements expected by some user-provided function objects. They are typically employed as template parameters and are not to be confused with abstract classes used in object-oriented programming. Sometimes this type of interfaces is also referred to as [concepts](http://en.cppreference.com/w/cpp/concept).
 
 ### Compare
 
-A function object that is applied to two instances of class [Bytes](#class-bytes) returning a boolean that tells if the left operand is less than the right operand. This interface is equivalent to the Compare concept described [here](http://en.cppreference.com/w/cpp/concept/Compare). Objects implementing this interface are used in sorting operations.
+A callable that is applied to two instances of class [Bytes](#class-bytes) returning a boolean that tells if the left operand is less than the right operand. This interface is equivalent to the Compare concept described [here](http://en.cppreference.com/w/cpp/concept/Compare). Objects implementing this interface are typically used by sorting algorithms.
 
 <table class="reference-table">
 <tbody>
@@ -1177,7 +1172,7 @@ A function object that is applied to two instances of class [Bytes](#class-bytes
 
 ### Function
 
-A function is a function object that is applied to an instance of class [Bytes](#class-bytes) returning a [std::string](http://en.cppreference.com/w/cpp/string/basic_string). The returned string serves as a managed byte buffer and may contain arbitrary data. Functions are used to map input values to output values.
+A callable that is applied to an instance of class [Bytes](#class-bytes) returning a [std::string](http://en.cppreference.com/w/cpp/string/basic_string). The returned string serves as a managed byte buffer and may contain arbitrary data. Objects implementing this interface are typically used for mapping input values to output values in replace operations.
 
 <table class="reference-table">
 <tbody>
@@ -1188,7 +1183,7 @@ A function is a function object that is applied to an instance of class [Bytes](
   <td><code>std::string</code></td>
   <td>
    <code>operator()(const Bytes & bytes) const</code>
-   <div>Maps the given byte array to another byte array returned as string.<div>
+   <div>Maps the given byte array to another byte array returned as standard string.<div>
   </td>
  </tr>
 </tbody>
@@ -1196,7 +1191,7 @@ A function is a function object that is applied to an instance of class [Bytes](
 
 ### Predicate
 
-A predicate is a function object that is applied to an instance of class [Bytes](#class-bytes) returning a boolean value. Predicates are used to select keys or values for some further operation.
+A callable that is applied to an instance of class [Bytes](#class-bytes) returning a boolean value. Objects implementing this interface are typically used to qualify keys or values for some further operation.
 
 <table class="reference-table">
 <tbody>
@@ -1215,7 +1210,7 @@ A predicate is a function object that is applied to an instance of class [Bytes]
 
 ### Procedure
 
-A procedure is a function object that is applied to an instance of class [Bytes](#class-bytes) without returning a value. Procedures may have a state that changes during application. They are used to operate on keys or values, e.g. to collect information about them.
+A callable that is applied to an instance of class [Bytes](#class-bytes) without returning a value. Procedures can have state that may change during application. Objects implementing this interface are typically used to visit keys or values, e.g. to collect information about them.
 
 <table class="reference-table">
 <tbody>
@@ -1226,7 +1221,7 @@ A procedure is a function object that is applied to an instance of class [Bytes]
   <td><code>void</code></td>
   <td>
    <code>operator()(const Bytes & bytes)</code>
-   <div>Processes the given byte array, possibly changing the functor's state.<div>
+   <div>Processes the given byte array, possibly changing the callable's state.<div>
   </td>
  </tr>
 </tbody>
@@ -1234,7 +1229,7 @@ A procedure is a function object that is applied to an instance of class [Bytes]
 
 ### BinaryProcedure
 
-A binary procedure is a function object that is applied to a pair of objects without returning a value. The first object being an instance of class [Bytes](#class-bytes) and the second object being an instance of class [Map::Iterator](#class-map-iterator). Binary procedures may have a state that changes during application. They are used to operate on key-iterator pairs when traversing a map.
+A callable that is applied to a pair of objects without returning a value. The first object being an instance of class [Bytes](#class-bytes) and the second object being an instance of class [Map::Iterator](#class-map-iterator). Binary procedures can have state that may change during application. Objects implementing this interface are typically used to visit entries when traversing a map.
 
 <table class="reference-table">
 <tbody>
@@ -1245,7 +1240,7 @@ A binary procedure is a function object that is applied to a pair of objects wit
   <td><code>void</code></td>
   <td>
    <code>operator()(const Bytes & key, Map::Iterator iterator)</code>
-   <div>Processes a list iterator that is associated with key, possibly changing the functor's state. Note that the iterator will be moved, so that the callable becomes the owner of the iterator. Also note that as long as an iterator is alive, the corresponding list is locked by a <a href="#reader-lock">reader lock</a>.<div>
+   <div>Processes a list iterator that is associated with key, possibly changing the callable's state. Note that as long as the iterator is alive, the corresponding list is locked by a <a href="#reader-lock">reader lock</a>.<div>
   </td>
  </tr>
 </tbody>
@@ -1254,10 +1249,20 @@ A binary procedure is a function object that is applied to a pair of objects wit
 
 ## Locking
 
+Multimap makes use of three kinds of locks in order to synchronize concurrent access to objects of type <a href="#class-map">Map</a>.
+
 ### Directory Lock
+
+A directory lock is a simple file located in the directory where a map lives. Such a file is created when a <a href="#class-map">Map</a> object is instantiated or any of its static member functions is called. When the object gets destructed or the function terminates the file is automatically deleted. The directory lock ensures that only one process can access a map at the same time.
 
 ### Reader Lock
 
+A reader lock, also called shared lock, locks an object for read-only access. Multimap uses such locks to protect lists of values that are currently in use against modification by other threads. However, a single list can be read-locked by multiple threads at the same time.
+
+A reader lock is typically wrapped and owned by an iterator returned from calling <a href="#map-get">Map::get()</a>. According to <a href="http://en.cppreference.com/w/cpp/language/raii" target="_blank">RAII</a> the lock is automatically released when the iterator gets destructed. Any method of <a href="#class-map">Map</a> that needs to acquire a reader lock to perform its operation will block if the resource is currently locked by a <a href="#writer-lock">writer lock</a> and until this lock is released.
+
 ### Writer Lock
 
-This operation requires exclusive access to the associated list and therefore tries to acquire a writer lock for it. The call will block if the list is already locked, either by another writer lock or by one or more reader locks, until all of these locks are released.
+A writer lock, also called exclusive or unique lock, locks an object for read-write access. Multimap uses such locks to gain exclusive access to lists of values for modification purposes. When a list is locked by a writer lock it cannot be locked by any other reader or writer lock at the same time.
+
+Unlike reader locks that are wrapped by iterators, the ownership of writer locks is never transferred to the client in order to reduce the risk of running into deadlocks. Nevertheless, iterators that allow the modification of the underlying list are used inside the library. So, any method of <a href="#class-map">Map</a> that needs to acquire a writer lock to perform its operation will block if the resource is currently locked either by a <a href="#reader-lock">reader lock</a> or writer lock, and until this lock is released.

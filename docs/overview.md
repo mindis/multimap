@@ -8,14 +8,11 @@ Multimap is implemented as an in-memory hash table which maps each key to a list
 "c" -> 18, 19, 20, 21, 22, 23, 24
 ```
 
-Putting a key-value pair into the map adds the value to the end of the list associated with the key. If no such list already exists it will be created. Looking up a key then returns a read-only iterator to this list. If the key does not exist or the associated list is empty, the iterator won't yield any value. 
+Putting a key-value pair into the map adds the value to the end of the list associated with the key. If no such list already exists it will be created. Looking up the key returns a read-only iterator to this list. If the key does not exist or the associated list is empty, the iterator is empty, i.e. it won't yield any value. 
 
-Removing a value from a list means to mark it as deleted, so that iterators will ignore such values. Removed values will remain on disk until an [optimization](#optimization) operation has been run.
+Removing a value from a list means to mark it as deleted, so that iterators will ignore such values. Removed values will remain on disk until an [optimize](#multimap-optimize) operation has been run.
 
-Replacing a value is implemented as a remove operation of the value in question followed by a put operation of the new value. In other words the replacement does not happen in-place since the new value is appended to the end of the list. Similar to the physical removal of deleted values, an [optimization](#optimization) operation has to be run to bring the values in certain order back again.
-
-Jump to [Q&A](#qa) if you want to know the rationale behind these design decisions.
-
+Replacing a value is implemented in terms of removing the old value followed by putting the new value. As a consequence, the new value always appears at the end of the list. Values that have been replaced also remain on disk and can only be deleted physically by running an [optimize](#multimap-optimize) operation. The same is true to bring the values in certain order back again after performing replace operations.
 
 ## Block Organization
 
@@ -27,7 +24,7 @@ An important aspect of Multimap's design is that all lists are organized in bloc
 "c" -> [18, 19, 20], [21, 22, 23], [24, free]
 ```
 
-At runtime only the last block of each list is held in memory used as a write buffer. Preceding blocks are written to disk as soon as they are filled up (which might be recognized only by the next put operation), replaced by an id for later referencing. A single value can span multiple blocks if it does not fit into the last one. The schema now shows the structure that actually remains in memory.
+At runtime only the last block of each list is held in memory used as a write buffer. Preceding blocks are written to disk as soon as they are filled up, replaced by an id for later referencing. A single value might span multiple blocks if it does not fit into the last one. The schema now shows the structure that actually remains in memory.
 
 ```
 "a" -> b1, [4, 5, 6]
@@ -78,13 +75,16 @@ Here are a some examples:
 
 As mentioned previously, keys and values are arbitrary byte arrays. This has the advantage that Multimap does not need to deal with packing/unpacking of user-defined data types and leaves the door open for compression (currently not applied). For the user this has the advantage that he/she can stick with his/her preferred serialization method.
 
-On the other hand, this approach has the disadvantage that values are seen as [binary large objects](https://en.wikipedia.org/wiki/Binary_large_object) with no type information. In other words a value is treated as one entity and therefore can only be deleted or replaced as a whole. Updates on individual fields of composite types are not possible.
+On the other hand, this approach has the disadvantage that values are seen as <a href="https://en.wikipedia.org/wiki/Binary_large_object" target="_blank">binary large objects</a> with no type information. In other words, a value is treated as one entity and therefore can only be deleted or replaced as a whole. Updates on individual fields of composite types are not possible.
 
-The tutorial pages demonstrate how Multimap can be used together with some popular serialization libraries. For more information please refer to Wikipedia's [comparison of data serialization formats](https://en.wikipedia.org/wiki/Comparison_of_data_serialization_formats).
+<!--
+The tutorial pages demonstrate how Multimap can be used together with some popular serialization libraries.
+-->
+For more information please refer to Wikipedia's <a href="https://en.wikipedia.org/wiki/Comparison_of_data_serialization_formats" target="_blank">comparison of data serialization formats</a>.
 
 ## Command Line Tool
 
-Multimap also comes with a command line tool that can and should be [installed](#installation) in addition to the shared library. The tool allows you to perform some administration operations right in your terminal. Here is the help page:
+Multimap also comes with a command line tool that can and should be installed in addition to the shared library. The tool allows you to perform some administration operations right in your terminal. Here is the help page:
 
 ```plain
 $ multimap help
@@ -120,7 +120,7 @@ EXAMPLES
   multimap optimize path/to/map path/to/output --nparts 42 --bs 128
 
 
-Copyright (C) 2015 Martin Trenkmann
+Copyright (C) 2015-2016 Martin Trenkmann
 <http://multimap.io>
 ```
 
@@ -226,13 +226,13 @@ $ multimap stats path/to/map | grep =
 
 This command allows you to import key-value pairs from Base64-encoded text files. The file format is defined as follows:
 
-* The file is in [CSV format](https://en.wikipedia.org/wiki/Comma-separated_values).
+* The file is in <a href="https://en.wikipedia.org/wiki/Comma-separated_values" target="_blank">CSV format</a>.
 * The delimiter is whitespace or tab.
 * Each line starts with a key followed by one or more values.
 * Multiple lines may start with the same key.
 * Keys and values are encoded in Base64.
 
-Example:
+Example (not in Base64 for demonstration purposes):
 
 ```plain
 key1 value1
@@ -268,7 +268,7 @@ The second listing is in canonical form, which means that all values sharing the
 
 ### $ multimap export
 
-This command allows you to export all key-value pairs from a map into a single Base64-encoded text file. The format of this file follows the description given in the [previous section](#multimap-import). The generated file is in canonical form. This feature is useful for data exchange to other libraries and frameworks, or for backup purposes.
+This command allows you to export all key-value pairs from a map into a single text file. The format of this file follows the description given in the [previous section](#multimap-import). The generated file is in canonical form. This feature is useful for data exchange to other libraries and frameworks, or for backup purposes.
 
 ### $ multimap optimize
 
@@ -277,7 +277,7 @@ The optimize operation rewrites the entire map performing the following tasks:
 * Defragmentation. All blocks which belong to the same list are written sequentially to disk which improves locality and leads to better read performance.
 * Garbage collection. Values that are marked as deleted won't be copied which reduces the size of the new map and also improves locality.
 
-In addition, some optional changes can be applied:
+In addition, some optional settings can be applied:
 
 * New block size. Changing the block size could be necessary to tweak the memory footprint.
 * List sorting. All lists can be sorted applying a user-defined compare function. This option is only available when using the [C++](cppreference) and [Java API](javareference) directly.
@@ -289,10 +289,10 @@ In addition, some optional changes can be applied:
 <span class="qa-a" /> Multimap is designed for relatively small keys like dictionary words. Therefore, the footprint of the entire key set is rather small compared to all in-memory blocks that are used as write buffers. Furthermore, the library aims to run on server machines which tend to have more and more memory available. And of course, an internal hash table is a lot faster and easier to maintain than a partly externalized B+ tree or something similar.
 
 <span class="qa-q" /> Why both keys and values have to be byte arrays?<br>
-<span class="qa-a" /> Keep it simple and do not reinvent the wheel. There are plenty of very good [serialization libraries](https://en.wikipedia.org/wiki/Comparison_of_data_serialization_formats) available so that users can freely choose their preferred method. Reading and writing raw binary data also makes Multimap independent from such libraries which in turn facilitates data exchange with different programming languages and/or systems. On the other hand, due to lack of type information Multimap cannot operate on individual fields of composite types without injecting packing and unpacking functions.
+<span class="qa-a" /> Multimap aims to keep things simple. There are plenty of very good <a href="https://en.wikipedia.org/wiki/Comparison_of_data_serialization_formats" target="_blank">serialization libraries</a> available so that users can freely choose their preferred method. Reading and writing raw binary data also makes Multimap independent from such libraries which in turn facilitates data exchange with different programming languages and/or systems. On the other hand, due to lack of type information Multimap cannot operate on individual fields of composite types without injecting code for packing/unpacking.
 
 <span class="qa-q" /> Why values cannot be replaced in-place?<br>
-<span class="qa-a" /> Values are written to disk in the same order as they were put without leaving any gaps. Therefore, if a new value is larger than the old one there is simply not enough room for it. An in-place replacement would be possible, though, if the value size is fixed. Maybe this option will be provided in further releases. Anyway, replacing values is considered a little-frequented operation. If you really want to have the new value at the old position you need to run [optimize](cppreference#map-optimize) passing in a compare function in order to sort all lists accordingly.
+<span class="qa-a" /> Values are written to disk in the same order as they were put without leaving any gaps. Therefore, if a new value is larger than the old one there is simply not enough room for it. An in-place replacement would be possible, though, if the value size is fixed. Maybe this option will be provided in further releases. Anyway, replacing values is considered a little-frequented operation. If you really want to have the new value at the old position you need to run an [optimize](#multimap-optimize) operation passing in a compare function to sort all lists accordingly.
 
 <span class="qa-q" /> Why is there no sort method for the list associated with a key?<br>
 <span class="qa-a" /> A sort method would be possible from an implementation point of view, but as a list grows the cost of calling this method increases as well. Users that are not aware about the complexity might trigger it carelessly too often, e.g. after every single replace operation, finally slowing down the entire system.

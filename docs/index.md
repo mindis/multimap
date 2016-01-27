@@ -1,6 +1,6 @@
 <br>
 
-Multimap is a fast 1:n key-value store that provides a mapping from keys to lists of values. It's about the same <a href="https://en.wikipedia.org/wiki/Multimap" target="_blank">data structure</a> you might already know from your very first computer science course, but beyond that it handles the external persistent storage of the entire data. Because Multimap is optimized for large numbers of n, it works perfectly as a building block for retrieval systems that employ <a href="https://en.wikipedia.org/wiki/Inverted_index" target="_blank">inverted indexing</a>.
+Multimap is a fast 1:n key-value store that provides a mapping from keys to lists of values. The library is named after the <a href="https://en.wikipedia.org/wiki/Multimap" target="_blank">data structure</a> you might already know from your very first computer science course, but beyond that it handles the external persistent storage of the entire data. Because Multimap is optimized for large numbers of n, it works perfectly as a building block for retrieval systems that employ <a href="https://en.wikipedia.org/wiki/Inverted_index" target="_blank">inverted indexing</a>.
 
 <div class="row">
   <div class="col-md-6">
@@ -18,9 +18,9 @@ Multimap is a fast 1:n key-value store that provides a mapping from keys to list
     <h2>Get Started</h2>
     <ul>
     <li>Read the <a href="overview/">overview</a> and learn the basics.</li>
-    <li>Try the <a href="cpptutorial">C++</a> or <a href="javatutorial">Java tutorial</a> to get familiar with the API.</li>
+    <li>Try the <a href="cppbasics">C++</a> or <a href="javabasics">Java tutorial</a> to get familiar with the API.</li>
     <br>
-    <a class="btn btn-default btn-lg" href="downloadv03/" role="button"><span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>&nbsp;&nbsp;Download Multimap 0.3</a>
+    <a class="btn btn-default btn-lg" href="https://github.com/mtrenkmann/multimap/releases/download/v0.3/multimap-0.3.tar.gz" role="button"><span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>&nbsp;&nbsp;Download Multimap 0.3</a>
     </ul>
   </div>
 </div>
@@ -46,7 +46,7 @@ int main() {
     doSomething(iter.next());
   }
   
-  // d'tor of iter releases the reader lock.
+  // d'tor of iter releases internal reader lock.
   // d'tor of map flushes in-memory data to disk. 
 }
 ```
