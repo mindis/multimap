@@ -219,8 +219,8 @@ void Map::exportToBase64(const boost::filesystem::path& directory,
     forEachTable(directory, [&](const boost::filesystem::path& prefix,
                                 size_t index, size_t npartitions) {
       print_status(index, npartitions);
-      internal::Table::forEachEntry(prefix,
-                                    [&](const Bytes& key, Map::Iterator iter) {
+      internal::Table::forEachEntry(prefix, [&](const Bytes& key,
+                                                Map::Iterator iter) {
         sorted_values.clear();
         sorted_values.reserve(iter.available());
         while (iter.hasNext()) {
@@ -242,16 +242,16 @@ void Map::exportToBase64(const boost::filesystem::path& directory,
     forEachTable(directory, [&](const boost::filesystem::path& prefix,
                                 size_t index, size_t npartitions) {
       print_status(index, npartitions);
-      internal::Table::forEachEntry(prefix,
-                                    [&](const Bytes& key, Map::Iterator iter) {
-        internal::Base64::encode(key, &base64_key);
-        stream << base64_key;
-        while (iter.hasNext()) {
-          internal::Base64::encode(iter.next(), &base64_value);
-          stream << ' ' << base64_value;
-        }
-        stream << '\n';
-      });
+      internal::Table::forEachEntry(
+          prefix, [&](const Bytes& key, Map::Iterator iter) {
+            internal::Base64::encode(key, &base64_key);
+            stream << base64_key;
+            while (iter.hasNext()) {
+              internal::Base64::encode(iter.next(), &base64_value);
+              stream << ' ' << base64_value;
+            }
+            stream << '\n';
+          });
     });
   }
 }
@@ -291,8 +291,8 @@ void Map::optimize(const boost::filesystem::path& directory,
 
     if (options.compare) {
       std::vector<std::string> sorted_values;
-      internal::Table::forEachEntry(prefix,
-                                    [&](const Bytes& key, Map::Iterator iter) {
+      internal::Table::forEachEntry(prefix, [&](const Bytes& key,
+                                                Map::Iterator iter) {
         sorted_values.clear();
         sorted_values.reserve(iter.available());
         while (iter.hasNext()) {
@@ -306,10 +306,10 @@ void Map::optimize(const boost::filesystem::path& directory,
     } else {
       internal::Table::forEachEntry(prefix,
                                     [&](const Bytes& key, Map::Iterator iter) {
-        while (iter.hasNext()) {
-          new_map->put(key, iter.next());
-        }
-      });
+                                      while (iter.hasNext()) {
+                                        new_map->put(key, iter.next());
+                                      }
+                                    });
     }
   });
 }
