@@ -27,7 +27,6 @@
 #include <boost/filesystem/path.hpp>
 #include "multimap/internal/Table.hpp"
 #include "multimap/thirdparty/mt/mt.hpp"
-#include "multimap/callables.hpp"
 #include "multimap/Options.hpp"
 
 namespace multimap {

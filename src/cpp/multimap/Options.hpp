@@ -16,7 +16,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // -----------------------------------------------------------------------------
-// Documentation: http://multimap.io/cppreference/#class-options
+// Documentation:  http://multimap.io/cppreference/#class-options
 // -----------------------------------------------------------------------------
 
 #ifndef MULTIMAP_OPTIONS_HPP_INCLUDED

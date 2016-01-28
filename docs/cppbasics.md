@@ -1,12 +1,8 @@
 <br>
 
-The following code snippets require
-
 ```cpp
 #include <multimap/Map.hpp>
 ```
-
-Classes and functions live in namespace `multimap`.
 
 ## Creating a Map
 
@@ -18,7 +14,7 @@ options.create_if_missing = true;
 multimap::Map map("path/to/directory", options);
 ```
 
-However, since a `Map` object is neither copyable nor moveable you might allocate it on the heap. You should also catch errors that may occur during construction.
+However, since a Map object is neither copyable nor moveable you might allocate it on the heap to be able to transfer ownership. In case of an error the constructor of Map also throws an exception that should be caught. So you would better write code like this:
 
 ```cpp
 std::unique_ptr<multimap::Map> map;
@@ -31,11 +27,9 @@ try {
 }
 ```
 
-Add `options.error_if_exists = true` if you want to throw an exception if the map already exists.
-
 ## Opening a Map
 
-To open an already existing map with default options you can simply omit the `options` parameter.
+To open an already existing map with default options you can simply omit the options parameter.
 
 ```cpp
 std::unique_ptr<multimap::Map> map;
@@ -50,7 +44,7 @@ If the map does not exist, an exception will be thrown.
 
 ## Closing a Map
 
-A map is closed automatically when its destructor is called. There is no explicit `close` method. If you really want to force destruction you can reset the smart pointer.
+A map is closed automatically when its destructor is called. There is no explicit close method. If you really want to force destruction you can reset the smart pointer.
 
 ```cpp
 map.reset();
@@ -58,7 +52,7 @@ map.reset();
 
 ## Putting Values
 
-Putting a value means to append a value to the end of the list that is associated with a key. Both the key and the value must be of type `Bytes` which can be constructed implicitly from
+Putting a value means to append a value to the end of the list that is associated with a key. Both the key and the value are of type [Bytes](cppreference#class-bytes) which can be constructed implicitly from
 
 * a null-terminated `const char*`,
 * a `std::string`,
@@ -68,22 +62,22 @@ or explicitly by a `const void*` to raw data and its size.
 ```cpp
 const multimap::Bytes key = "key";
 
-// Put a value implicitly constructed from a null-terminated C-string.
 map->put(key, "value");
+// Puts a value implicitly constructed from a null-terminated C-string.
 
-// Put a value implicitly constructed from a standard string.
 map->put(key, std::to_string(23));
+// Puts a value implicitly constructed from a standard string.
 
-// Put a value explicitly constructed from a pointer to data and its size.
-// Note that PODs might cover more bytes than expected due to alignment.
 map->put(key, multimap::Bytes(&some_pod, sizeof some_pod));
+// Puts a value explicitly constructed from a pointer to data and its size.
+// Note that PODs might cover more bytes than expected due to alignment.
 ```
 
-Note that a `Bytes` object is just a pointer/size wrapper without any ownership semantics. The actual lifetime of the wrapped data must be managed by the user and must outlive the lifetime of the `Bytes` object.
+It is important to mention that a Bytes object is always just a pointer/size wrapper without any ownership semantics. The actual lifetime of the wrapped data must be managed by the user and must outlive the lifetime of the Bytes object.
 
 ## Getting Values
 
-Getting values means to request a read-only iterator to the list associated with a key. If no such list exists the returned iterator points to an empty list. An iterator that points to a non-empty list holds a reader lock on this list to synchronize concurrent access. A list can be read by multiple iterators or threads at the same time. The lock is released automatically when the iterator's lifetime ends.
+Getting values means to request a read-only [Iterator](cppreference#type-mapiterator) to the list associated with a key. If no such list exists the returned iterator points to an empty list. An iterator that points to a non-empty list holds a [reader lock](cppreference#reader-lock) on this list to synchronize concurrent access. A list can be read by multiple iterators from different threads at the same time. The lock is released automatically when the iterator's lifetime ends.
 
 ```cpp
 {
@@ -99,7 +93,7 @@ Getting values means to request a read-only iterator to the list associated with
     doSomething(value);
     
     std::cout << value.toString() << '\n';
-    // Printing makes sence only if `value`
+    // Printing makes sense only if `value`
     // actually contains printable characters.
   }
 } // iter gets destroyed and the internal reader lock is released.
@@ -109,13 +103,13 @@ Things about iterators that are also worth noting:
 
 * Iterators are movable and thus can be put into containers or the like. When doing so you have to take special care not to run into deadlocks, because
 * there is another type of iterator which holds a writer lock on a list for exclusive access. This type of iterator is only used internally for implementing remove and replace operations.
-* Iterators support lazy initialization which means that no I/O operation is performed until its `next` method has been called. This feature is useful in cases where multiple iterators must be requested first in order to determine in which order they have to be processed.
-* Calling `next` followed by `toString` is a simple way to get a deep copy of the current value.
-* Iterators can tell the number of values left to iterate via its `available` method.
+* Iterators support lazy initialization which means that no I/O operation is performed until its `next()` method has been called. This feature is useful in cases where multiple iterators must be requested first in order to determine in which order they have to be processed.
+* Calling `next()` followed by `toString()` is a simple way to get a deep copy of the current value.
+* Iterators can tell the number of values left to iterate by invoking `available()`.
 
 ## Removing Values
 
-Values can be removed from a list by injecting a [predicate function](#) which yields `true` for values to be removed. There are methods to remove only the first or all matches from a list. Since this is a mutating operation the methods require exclusive access to the list and therefore try to acquire a writer lock for that list.
+Values can be removed from a list by injecting a [Predicate](cppreference#predicate) which yields true for values to be removed. There are methods to remove only the first or all matches from a list. Since this is a mutating operation the methods require exclusive access to the list and therefore try to acquire a [writer lock](cppreference#writer-lock) for that list.
 
 ```cpp
 #include <multimap/callables.hpp>
@@ -148,15 +142,15 @@ map->removeKey(key);
 // key -> {}
 ```
 
-When a value is removed it will only be marked as removed for the moment so that subsequent iterations will ignore it. Only an optimize operation triggered either via [API call](#) or the [command line tool](overview#multimap-optimize) will remove the data physically.
+When a value is removed it will only be marked as removed for the moment so that subsequent iterations will ignore it. Only an optimize operation triggered either via [API call](cppreference#map-optimize) or the [command line tool](overview#multimap-optimize) will remove the data physically.
 
-Note that if the list is already locked either by a reader or writer lock the methods will block until the lock is released. A thread should never try to remove values while holding iterators to avoid deadlocks.
+Note that if the list is already locked either by a [reader](cppreference#reader-lock) or [writer lock](cppreference#writer-lock) any remove operation on that list will block until the lock is released. A thread should never try to remove values while holding iterators to the same list to avoid deadlocks.
 
 ## Replacing Values
 
-Values can be replaced by injecting a [map function](#) which yields a non-empty `std::string` for values to be replaced. There are methods to replace only the first or all matches in a list. Since this is a mutating operation the methods require exclusive access to the list and therefore try to acquire a writer lock for that list.
+Values can be replaced by injecting a [Procedure](cppreference#procedure) that represents a map function which yields a non-empty string for values to be replaced. There are methods to replace only the first or all matches in a list. Since this is a mutating operation the methods require exclusive access to the list and therefore try to acquire a [writer lock](cppreference#writer-lock) for that list.
 
-When a value is replaced the old value is marked as removed and the new value is appended to the end of the list. Hence, replace operations will not preserve the order of values. If a certain order needs to be restored an [optimize operation](#) has to be run parameterized with an appropriate [compare function](#).
+When a value is replaced the old value is marked as removed and the new value is appended to the end of the list. Hence, replace operations will not preserve the order of values. If a certain order needs to be restored an [optimize](cppreference#map-optimize) operation has to be run parameterized with an appropriate [Compare](cppreference#compare) function.
 
 ```cpp
 #include <multimap/callables.hpp>
@@ -190,4 +184,4 @@ map->replaceValues(key, increment_if_even);
 // key -> {"1", "5", "3", "7", "9", "9"}
 ```
 
-Note that if the list is already locked either by a reader or writer lock the methods will block until the lock is released. A thread should never try to replace values while holding iterators to avoid deadlocks.
+Note that if the list is already locked either by a [reader](cppreference#reader-lock) or [writer lock](cppreference#writer-lock) any replace method will block until the lock is released. A thread should never try to replace values while holding iterators to the same list to avoid deadlocks.
