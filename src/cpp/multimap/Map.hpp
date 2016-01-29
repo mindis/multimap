@@ -146,52 +146,20 @@ class Map : mt::Resource {
   bool isReadOnly() const { return tables_.front()->isReadOnly(); }
 
   // ---------------------------------------------------------------------------
-  // Static methods
+  // Static member functions
   // ---------------------------------------------------------------------------
 
   static std::vector<Stats> stats(const boost::filesystem::path& directory);
 
   static void importFromBase64(const boost::filesystem::path& directory,
                                const boost::filesystem::path& input);
-  // Imports key-value pairs from a Base64-encoded text file denoted by input
-  // into the map located in the directory denoted by directory.
-  // Preconditions:
-  //   * The content in file follows the format described in Import / Export.
-  // Throws std::exception if:
-  //   * directory does not exist.
-  //   * directory does not contain a map.
-  //   * the map in directory is locked.
-  //   * file is not a regular file.
 
   static void importFromBase64(const boost::filesystem::path& directory,
                                const boost::filesystem::path& input,
                                const Options& options);
-  // Same as Import(directory, file) but creates a new map with default block
-  // size if the directory denoted by directory does not contain a map and
-  // create_if_missing is true.
-  // Preconditions:
-  //   * see Import(directory, file)
-  // Throws std::exception if:
-  //   * see Import(directory, file)
-  //   * block_size is not a power of two.
 
   static void exportToBase64(const boost::filesystem::path& directory,
                              const boost::filesystem::path& output);
-  // Exports all key-value pairs from the map located in the directory denoted
-  // by `directory` to a Base64-encoded text file denoted by `file`. If the file
-  // already exists, its content will be overridden.
-  //
-  // Tip: If `directory` and `file` point to different devices things will go
-  // faster. If `directory` points to an SSD things will go even faster, at
-  // least factor 2.
-  //
-  // Postconditions:
-  //   * The content in `file` follows the format described in Import / Export.
-  // Throws `std::exception` if:
-  //   * `directory` does not exist.
-  //   * `directory` does not contain a map.
-  //   * the map in directory is locked.
-  //   * `file` cannot be created.
 
   static void exportToBase64(const boost::filesystem::path& directory,
                              const boost::filesystem::path& output,
@@ -199,41 +167,10 @@ class Map : mt::Resource {
 
   static void optimize(const boost::filesystem::path& directory,
                        const boost::filesystem::path& output);
-  // Optimizes the map located in the directory denoted by `directory`
-  // performing the following tasks:
-  //
-  //   * Defragmentation. All blocks which belong to the same list are written
-  //     sequentially to disk which improves locality and leads to better read
-  //     performance.
-  //   * Garbage collection. Values marked as deleted will be removed physically
-  //     which reduces the size of the map and also improves locality.
-  //
-  // Throws `std::exception` if:
-  //
-  //   * `directory` is not a directory.
-  //   * `directory` does not contain a map.
-  //   * the map in `directory` is locked.
-  //   * `directory` is not writable.
 
   static void optimize(const boost::filesystem::path& directory,
                        const boost::filesystem::path& output,
                        const Options& options);
-  // Optimizes the map located in the directory denoted by `directory`
-  // performing the following tasks:
-  //
-  //   * Defragmentation. All blocks which belong to the same list are written
-  //     sequentially to disk which improves locality and leads to better read
-  //     performance.
-  //   * Garbage collection. Values marked as deleted will be removed physically
-  //     which reduces the size of the map and also improves locality.
-  //
-  // Throws `std::exception` if:
-  //
-  //   * `directory` is not a directory.
-  //   * `directory` does not contain a map.
-  //   * the map in `directory` is locked.
-  //   * `directory` is not writable.
-  //   * `new_block_size` is not a power of two.
 
  private:
   internal::Table& getTable(const Bytes& key) {

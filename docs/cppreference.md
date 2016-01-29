@@ -199,7 +199,7 @@ This class is a thin wrapper for raw binary data. It just holds a pointer to dat
 namespace multimap
 ```
 
-This file contains some convenient function objects implementing the [Predicate](#interfaces-predicate) interface.
+This file contains some convenient function objects implementing the [Predicate](#predicate) interface.
 
 ### struct Contains
 
@@ -658,7 +658,7 @@ The class is designed to be a fast and mutable 1:n key-value store. For that rea
 
 <div class="reference-more">
  <h4 id="map-get"><code>Map::Iterator Map::get(const Bytes & key) const</code></h4>
- <p>Returns a read-only iterator for the list associated with key. If the key does not exist, an empty iterator that has no values is returned. A non-empty iterator owns a lock on the associated list that is released automatically when the lifetime of the iterator ends. Note that objects of class <a href="#map-iterator">Map::Iterator</a> are moveable.</p>
+ <p>Returns a read-only iterator for the list associated with key. If the key does not exist, an empty iterator that has no values is returned. A non-empty iterator owns a lock on the associated list that is released automatically when the lifetime of the iterator ends. Note that objects of class <a href="#type-mapiterator">Map::Iterator</a> are moveable.</p>
  <p><span class="acquires" /></p>
  <ul>
   <li>a <a href="#reader-lock">reader lock</a> on the map object.</li>
@@ -725,7 +725,7 @@ The class is designed to be a fast and mutable 1:n key-value store. For that rea
   <code>bool Map::replaceValue(const Bytes & key, Function map)</code>
  </h4>
  <p>Replaces the first value in the list associated with key by the result of invoking map. Values for which map returns the empty string are not replaced. The map function can be any callable that implements the <a href="#function">Function</a> interface.</p>
- <p>Note that a replace operation is actually implemented in terms of a remove of the old value followed by an insert/put of the new value. Thus the new value is always the last value in the list. In other words, the replacement is not in-place.</p>
+ <p>Note that a replace operation is actually implemented in terms of a remove of the old value followed by an insert/put of the new value. Thus, the new value is always the last value in the list. In other words, the replacement is not in-place.</p>
  <p><span class="acquires" /></p>
  <ul>
   <li>a <a href="#reader-lock">reader lock</a> on the map object.</li>
@@ -740,7 +740,7 @@ The class is designed to be a fast and mutable 1:n key-value store. For that rea
   <code>uint32_t Map::replaceValues(const Bytes & key, Function map)</code>
  </h4>
  <p>Replaces each value in the list associated with key by the result of invoking map. Values for which map returns the empty string are not replaced. The map function can be any callable that implements the <a href="#function">Function</a> interface.</p>
- <p>Note that a replace operation is actually implemented in terms of a remove of the old value followed by an insert/put of the new value. Thus the new value is always the last value in the list. In other words, the replacement is not in-place.</p>
+ <p>Note that a replace operation is actually implemented in terms of a remove of the old value followed by an insert/put of the new value. Thus, the new value is always the last value in the list. In other words, the replacement is not in-place.</p>
  <p><span class="acquires" /></p>
  <ul>
   <li>a <a href="#reader-lock">reader lock</a> on the map object.</li>
@@ -756,7 +756,7 @@ The class is designed to be a fast and mutable 1:n key-value store. For that rea
   <code><script>nbsp(28)</script>const Bytes & new_value)</code>
  </h4>
  <p>Replaces each value in the list associated with key which is equal to old_value by new_value.</p>
- <p>Note that a replace operation is actually implemented in terms of a remove of the old value followed by an insert/put of the new value. Thus the new value is always the last value in the list. In other words, the replacement is not in-place.</p>
+ <p>Note that a replace operation is actually implemented in terms of a remove of the old value followed by an insert/put of the new value. Thus, the new value is always the last value in the list. In other words, the replacement is not in-place.</p>
  <p><span class="acquires" /></p>
  <ul>
   <li>a <a href="#reader-lock">reader lock</a> on the map object.</li>
@@ -772,7 +772,6 @@ The class is designed to be a fast and mutable 1:n key-value store. For that rea
  </h4>
  <p>Applies process to each key whose list is not empty. The process argument can be any callable that implements the <a href="#procedure">Procedure</a> interface. </p>
  <p><span class="acquires" />a <a href="#reader-lock">reader lock</a> on the map object.</p>
- <p><span class="returns" />the number of values replaced.</p>
 </div>
 
 <div class="reference-more">
@@ -803,7 +802,7 @@ The class is designed to be a fast and mutable 1:n key-value store. For that rea
 
 <div class="reference-more">
  <h4 id="map-get-stats">
-  <code>std::vector&lt;<a href="#class-map-stats">Map::Stats</a>&gt; Map::getStats() const</code>
+  <code>std::vector&lt;<a href="#type-mapstats">Map::Stats</a>&gt; Map::getStats() const</code>
  </h4>
  <p>Returns statistical information about each partition of the map. This operation requires a traversal of the entire map visiting each entry.</p>
  <p><span class="acquires" /></p>
@@ -815,7 +814,7 @@ The class is designed to be a fast and mutable 1:n key-value store. For that rea
 
 <div class="reference-more">
  <h4 id="map-get-total-stats">
-  <code><a href="#class-map-stats">Map::Stats</a> Map::getTotalStats() const</code>
+  <code><a href="#type-mapstats">Map::Stats</a> Map::getTotalStats() const</code>
  </h4>
  <p>Returns statistical information about the map. In fact, this method computes the total values from the result returned by calling the previous method.</p>
  <p><span class="acquires" /></p>
@@ -827,7 +826,7 @@ The class is designed to be a fast and mutable 1:n key-value store. For that rea
 
 <div class="reference-more">
  <h4 id="map-stats">
-  <code>static std::vector&lt;<a href="#class-map-stats">Map::Stats</a>&gt; Map::stats(</code><br>
+  <code>static std::vector&lt;<a href="#type-mapstats">Map::Stats</a>&gt; Map::stats(</code><br>
   <code><script>nbsp(8)</script>const boost::filesystem::path & directory)</code>
  </h4>
  <p>Returns statistical information about each partition of the map located in directory. This method is similar to <a href="#map-get-stats">Map::getStats()</a> except that the map does not need to be instanciated.</p>
@@ -925,9 +924,9 @@ The iterator also owns a reader lock for the underlying list for synchronization
 
 <div class="reference-more">
  <h4 id="map-iterator-next">
-  <code>Bytes Map::Iterator::next()</code>
+  <code><a href="#class-bytes">Bytes</a> Map::Iterator::next()</code>
  </h4>
- <p>Returns the next value from the underlying list and moves the iterator once forward. The returned <a href="class-bytes">Bytes</a> object points to data managed by the iterator and is only valid for read access until the next call of this method. Reading from invalid data is undefined behavior. A deep copy of the value can be created by either calling its <a href="bytes-tostring">toString()</a> method or <a href="http://en.cppreference.com/w/cpp/string/byte/memcpy" target="_blank">std::memcpy()</a> its <a href="bytes-data">data()</a> into another buffer.</p>
+ <p>Returns the next value from the underlying list and moves the iterator once forward. The returned <a href="#class-bytes">Bytes</a> object points to data managed by the iterator and is only valid for read access until the next call of this method. Reading from invalid data is undefined behavior. A deep copy of the value can be created by either calling its <a href="#bytes-tostring">toString()</a> method or <a href="http://en.cppreference.com/w/cpp/string/byte/memcpy" target="_blank">std::memcpy()</a> its data into another buffer.</p>
  <p><span class="requires" /><code>hasNext()</code> yields true.</p>
 </div>
 
@@ -970,7 +969,7 @@ This type is a pure data holder for reporting statistical information.
   <td><code>uint64_t</code></td>
   <td>
    <code>block_size</code>
-   <div>Tells the block size of the map or partition which was defined in <a href="#struct-options">Options</a> when creating the map.<div>
+   <div>Tells the block size of the map or partition which was defined in <a href="#class-options">Options</a> when creating the map.<div>
   </td>
  </tr>
  <tr>
@@ -1081,7 +1080,7 @@ This class is a pure data holder used for configuration purposes.
   <td><code>uint32_t</code></td>
   <td>
    <code>num_partitions</code>
-   <div>Defines the number of partitions for a newly created map. The purpose of partitioning is to increase the performance of the <a href="/overview/#multimap-export">export</a> and <a href="/overview/#multimap-optimize">optimize</a> operations by applying a devide and conquer method. A suitable number can be estimated like this: "total number of value-bytes to be put" devided by "the memory allowed to be used running the operation". An underestimate can lead to long runtimes for the mentioned operations. The default value is 23; other values will be rounded to the next prime number that is greater or equal to the given value.<div>
+   <div>Defines the number of partitions for a newly created map. The purpose of partitioning is to increase the performance of the <a href="/overview/#multimap-export">export</a> and <a href="/overview/#multimap-optimize">optimize</a> operations by applying a divide and conquer method. A suitable number can be estimated like this: "total number of value-bytes to be put" divided by "the memory allowed to be used running the operation". An underestimate can lead to long runtimes for the mentioned operations. The default value is 23; other values will be rounded to the next prime number that is greater or equal to the given value.<div>
   </td>
  </tr>
  <tr>
@@ -1109,7 +1108,7 @@ This class is a pure data holder used for configuration purposes.
   <td><code>bool</code></td>
   <td>
    <code>readonly</code>
-   <div>Opens a map in read-only mode. In this mode all operations that could possibly modify the stored data are not allowed and will throw an exception on an attempt to do so. This flag is useful to prevent unintentional updates of read-only datasets. The default value is false.<div>
+   <div>If set to true, opens a map in read-only mode. In this mode all operations that could possibly modify the stored data are not allowed and will throw an exception on an attempt to do so. This flag is useful to prevent unintentional updates of read-only datasets. The default value is false.<div>
   </td>
  </tr>
  <tr>
@@ -1149,7 +1148,7 @@ This class is a pure data holder used for configuration purposes.
 
 ## Interfaces
 
-The interfaces described here are requirements expected by some user-provided function objects. They are typically employed as template parameters and are not to be confused with abstract classes used in object-oriented programming. Sometimes this type of interfaces is also referred to as [concepts](http://en.cppreference.com/w/cpp/concept).
+The interfaces described here are requirements expected by some user-provided function objects. They are typically employed as template parameters and are not to be confused with abstract classes used in object-oriented programming. Sometimes this type of interfaces is also referred to as <a href="http://en.cppreference.com/w/cpp/concept" target="_blank">Concepts</a>.
 
 ### Compare
 
@@ -1172,7 +1171,7 @@ A callable that is applied to two instances of class [Bytes](#class-bytes) retur
 
 ### Function
 
-A callable that is applied to an instance of class [Bytes](#class-bytes) returning a [std::string](http://en.cppreference.com/w/cpp/string/basic_string). The returned string serves as a managed byte buffer and may contain arbitrary data. Objects implementing this interface are typically used for mapping input values to output values in replace operations.
+A callable that is applied to an instance of class [Bytes](#class-bytes) returning a standard string. The returned string serves as a managed byte buffer and may contain arbitrary data. Objects implementing this interface are typically used for mapping input values to output values in replace operations.
 
 <table class="reference-table">
 <tbody>
@@ -1210,7 +1209,7 @@ A callable that is applied to an instance of class [Bytes](#class-bytes) returni
 
 ### Procedure
 
-A callable that is applied to an instance of class [Bytes](#class-bytes) without returning a value. Procedures can have state that may change during application. Objects implementing this interface are typically used to visit keys or values, e.g. to collect information about them.
+A callable that is applied to an instance of class [Bytes](#class-bytes) without returning any value. Procedures can have state that may change during application. Objects implementing this interface are typically used to visit keys or values, e.g. to collect information about them.
 
 <table class="reference-table">
 <tbody>
@@ -1229,7 +1228,7 @@ A callable that is applied to an instance of class [Bytes](#class-bytes) without
 
 ### BinaryProcedure
 
-A callable that is applied to a pair of objects without returning a value. The first object being an instance of class [Bytes](#class-bytes) and the second object being an instance of class [Map::Iterator](#class-map-iterator). Binary procedures can have state that may change during application. Objects implementing this interface are typically used to visit entries when traversing a map.
+A callable that is applied to a pair of objects without returning a value. The first object being an instance of class [Bytes](#class-bytes) and the second object being an instance of class [Map::Iterator](#type-mapiterator). Binary procedures can have state that may change during application. Objects implementing this interface are typically used to visit entries when traversing a map.
 
 <table class="reference-table">
 <tbody>
@@ -1259,10 +1258,10 @@ A directory lock is a simple file located in the directory where a map lives. Su
 
 A reader lock, also called shared lock, locks an object for read-only access. Multimap uses such locks to protect lists of values that are currently in use against modification by other threads. However, a single list can be read-locked by multiple threads at the same time.
 
-A reader lock is typically wrapped and owned by an iterator returned from calling <a href="#map-get">Map::get()</a>. According to <a href="http://en.cppreference.com/w/cpp/language/raii" target="_blank">RAII</a> the lock is automatically released when the iterator gets destructed. Any method of <a href="#class-map">Map</a> that needs to acquire a reader lock to perform its operation will block if the resource is currently locked by a <a href="#writer-lock">writer lock</a> and until this lock is released.
+A reader lock is typically wrapped and owned by an iterator returned from calling <a href="#map-get">Map::get()</a>. According to <a href="http://en.cppreference.com/w/cpp/language/raii" target="_blank">RAII</a> the lock is automatically released when the iterator gets destructed. Any method of <a href="#class-map">Map</a> that needs to acquire a reader lock to perform its operation will block if the resource is currently locked by a writer lock and until this lock is released.
 
 ### Writer Lock
 
 A writer lock, also called exclusive or unique lock, locks an object for read-write access. Multimap uses such locks to gain exclusive access to lists of values for modification purposes. When a list is locked by a writer lock it cannot be locked by any other reader or writer lock at the same time.
 
-Unlike reader locks that are wrapped by iterators, the ownership of writer locks is never transferred to the client in order to reduce the risk of running into deadlocks. Nevertheless, iterators that allow the modification of the underlying list are used inside the library. So, any method of <a href="#class-map">Map</a> that needs to acquire a writer lock to perform its operation will block if the resource is currently locked either by a <a href="#reader-lock">reader lock</a> or writer lock, and until this lock is released.
+Unlike reader locks that are wrapped by iterators, the ownership of writer locks is never transferred to the client in order to reduce the risk of running into deadlocks. Nevertheless, iterators that allow the modification of the underlying list are used inside the library. So, any method of <a href="#class-map">Map</a> that needs to acquire a writer lock to perform its operation will block if the resource is currently locked either by a reader lock or writer lock, and until this lock is released.

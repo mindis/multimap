@@ -9,7 +9,8 @@ COMMON = multimap.pri
 
 JAVA_HOME = $$(JAVA_HOME)
 isEmpty(JAVA_HOME) {
-    error("JAVA_HOME is undefined, but required if you want to build multimap-library-jni.pro")
+    error("JAVA_HOME is undefined, but required in order to build this target."\
+          "Please run e.g. 'export JAVA_HOME=/usr/lib/jvm/default-java' an try again.")
 }
 
 INCLUDEPATH += \

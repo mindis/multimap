@@ -18,6 +18,7 @@
 #include "multimap/jni/generated/io_multimap_Map_Native.h"
 
 #include "multimap/jni/common.hpp"
+#include "multimap/callables.hpp"
 #include "multimap/Map.hpp"
 
 // Bug in javah.
@@ -376,13 +377,14 @@ JNIEXPORT void JNICALL
  */
 JNIEXPORT void JNICALL
     Java_io_multimap_Map_00024Native_optimize(JNIEnv* env, jclass,
-                                              jstring jsource, jstring jtarget,
+                                              jstring jdirectory,
+                                              jstring joutput,
                                               jobject joptions) {
-  const auto source = multimap::jni::makeString(env, jsource);
-  const auto target = multimap::jni::makeString(env, jtarget);
+  const auto directory = multimap::jni::makeString(env, jdirectory);
+  const auto output = multimap::jni::makeString(env, joutput);
   const auto options = multimap::jni::makeOptions(env, joptions);
   try {
-    multimap::Map::optimize(source, target, options);
+    multimap::Map::optimize(directory, output, options);
   } catch (std::exception& error) {
     multimap::jni::throwJavaException(env, error.what());
   }

@@ -1,7 +1,5 @@
 <br>
 
-The following code snippets require
-
 ```java
 import io.multimap.Iterator;
 import io.multimap.Map;
@@ -21,7 +19,7 @@ Map map = new Map("path/to/directory", options);
 However, you should also catch errors that may occur during construction.
 
 ```java
-Map map;
+Map map = null;
 try {
   Options options = new Options();
   options.setCreateIfMissing(true);
@@ -31,14 +29,12 @@ try {
 }
 ```
 
-Add `options.setErrorIfExists(true)` if you want to throw an exception if the map already exists.
-
 ## Opening a Map
 
-To open an already existing map with default options you can simply omit the `options` parameter.
+To open an already existing map with default options you can simply omit the options parameter.
 
 ```java
-Map map;
+Map map = null;
 try {
   map = new Map("path/to/directory");
 } catch (Exception e) {
@@ -50,7 +46,7 @@ If the map does not exist, an exception will be thrown.
 
 ## Closing a Map
 
-A map must be explicitly closed by calling its `close` method in order to flush all data to disk and to ensure that the map is stored in consistent state. Not closing a map will cause data loss.
+A map must be explicitly closed by calling its `close()` method in order to flush all data to disk and to ensure that the map is stored in consistent state. Not closing a map will cause data loss.
 
 ```java
 map.close();  // Never forget.
@@ -58,29 +54,29 @@ map.close();  // Never forget.
 
 ## Putting Values
 
-Putting a value means to append a value to the end of the list that is associated with a key. Both the key and the value must be of type `byte[]`.
+Putting a value means to append a value to the end of the list that is associated with a key. Both the key and the value are of type `byte[]`.
 
 ```java
 Charset cs = Charset.forName("UTF-8");
 
 byte[] key = "key".getBytes(cs);
 
-// Put a value constructed from a string.
 map.put(key, "value".getBytes(cs));
+// Puts a value constructed from a string.
 
-// Put a value constructed from an integer.
 map.put(key, Integer.toString(23).getBytes(cs));
+// Puts a value constructed from an integer.
 
-// Put a value constructed from a java.nio.ByteBuffer.
 map.put(key, ByteBuffer.allocate(4).putInt(23).array());
+// Puts a value constructed from a java.nio.ByteBuffer.
 
-// Put a value packed by some serialization library.
 map.put(key, somelib.serializeAsByteArray(someObject));
+// Puts a value packed by some serialization library.
 ```
 
 ## Getting Values
 
-Getting values means to request a read-only iterator to the list associated with a key. If no such list exists the returned iterator points to an empty list. An iterator that points to a non-empty list holds a reader lock on this list to synchronize concurrent access. A list can be read by multiple iterators or threads at the same time. If an iterator is not needed anymore its `close` method must be called in order to unlock the underlying list.
+Getting values means to request a read-only [Iterator](javadoc/io/multimap/Iterator.html) to the list associated with a key. If no such list exists the returned iterator points to an empty list. An iterator that points to a non-empty list holds a [reader lock](cppreference#reader-lock) on this list to synchronize concurrent access. A list can be read by multiple iterators from different threads at the same time. If an iterator is not needed anymore its `close()` method must be called in order to unlock the underlying list.
 
 ```java
 Iterator iter = map.get(key);
@@ -93,18 +89,18 @@ while (iter.hasNext()) {
 iter.close();  // Releases the internal reader lock.
 ```
 
-A call to `next` returns the next value as `java.nio.ByteBuffer`. This byte buffer is a direct one, which means that it is not backed by a `byte[]` managed by the Java Garbage Collector. Instead, it contains a pointer that points to memory allocated and managed by the native library. Hence, the value is only valid as long as the iterator is not moving forward. You should never copy around this kind of byte buffer.
+A call to `next()` returns the next value as an `java.nio.ByteBuffer`. This byte buffer is a direct one, which means that it wraps a pointer to memory allocated and managed by the native library. It is not backed by a `byte[]` managed by the Java Garbage Collector. Hence, the value is only valid as long as the iterator is not moving forward. You should never copy around this kind of byte buffer.
 
 Things about iterators that are also worth noting:
 
 * Since iterators can be put into containers or the like, there has to take special care not to run into deadlocks, because there is another type of iterator which holds a writer lock on a list for exclusive access. This type of iterator is only used internally for implementing remove and replace operations.
-* Iterators support lazy initialization which means that no I/O operation is performed until its `next` method has been called. This feature is useful in cases where multiple iterators must be requested first in order to determine in which order they have to be processed.
-* Calling `nextAsByteArray` instead of `next` is a simple way to get a deep copy of the current value as a newly allocated `byte[]` that is managed by the Java Garbage Collector.
-* Iterators can tell the number of values left to iterate via its `available` method.
+* Iterators support lazy initialization which means that no I/O operation is performed until its `next()` method has been called. This feature is useful in cases where multiple iterators must be requested first in order to determine in which order they have to be processed.
+* Calling `nextAsByteArray()` instead of `next()` is a simple way to get a deep copy of the current value as a newly allocated `byte[]` that is managed by the Java Garbage Collector.
+* Iterators can tell the number of values left to iterate by invoking `available()`.
 
 ## Removing Values
 
-Values can be removed from a list by injecting a [predicate function](#) which yields `true` for values to be removed. There are methods to remove only the first or all matches from a list. Since this is a mutating operation the methods require exclusive access to the list and therefore try to acquire a writer lock for that list.
+Values can be removed from a list by injecting a [Predicate](javadoc/io/multimap/Callables.Predicate.html) which yields true for values to be removed. There are methods to remove only the first or all matches from a list. Since this is a mutating operation the methods require exclusive access to the list and therefore try to acquire a [writer lock](cppreference#writer-lock) for that list.
 
 ```java
 import io.multimap.Callables;
@@ -140,15 +136,15 @@ map.removeKey(key);
 // key -> {}
 ```
 
-When a value is removed it will only be marked as removed for the moment so that subsequent iterations will ignore it. Only an optimize operation triggered either via [API call](#) or the [command line tool](overview#multimap-optimize) will remove the data physically.
+When a value is removed it will only be marked as removed for the moment so that subsequent iterations will ignore it. Only an optimize operation triggered either via [API call](javadoc/io/multimap/Map.html) or the [command line tool](overview#multimap-optimize) will remove the data physically.
 
-Note that if the list is already locked either by a reader or writer lock the methods will block until the lock is released. A thread should never try to remove values while holding iterators to avoid deadlocks.
+Note that if the list is already locked either by a [reader](overview#reader-lock) or [writer lock](overview#writer-lock) any remove operation on that list will block until the lock is released. A thread should never try to remove values while holding iterators to the same list to avoid deadlocks.
 
 ## Replacing Values
 
-Values can be replaced by injecting a [map function](#) which yields a `byte[]` for values to be replaced or `null` if not. There are methods to replace only the first or all matches in a list. Since this is a mutating operation the methods require exclusive access to the list and therefore try to acquire a writer lock for that list.
+Values can be replaced by injecting a [Procedure](javadoc/io/multimap/Callables.Procedure.html) that represents a map function which yields a `byte[]` for values to be replaced or `null` if not. There are methods to replace only the first or all matches in a list. Since this is a mutating operation the methods require exclusive access to the list and therefore try to acquire a [writer lock](overview#writer-lock) for that list.
 
-When a value is replaced the old value is marked as removed and the new value is appended to the end of the list. Hence, replace operations will not preserve the order of values. If a certain order needs to be restored an [optimize operation](#) has to be run parameterized with an appropriate [compare function](#).
+When a value is replaced the old value is marked as removed and the new value is appended to the end of the list. Hence, replace operations will not preserve the order of values. If a certain order needs to be restored an [optimize](overview#multimap-optimize) operation has to be run parameterized with an appropriate [LessThan](javadoc/io/multimap/Callables.LessThan.html) function.
 
 ```java
 import io.multimap.Callables;
@@ -185,4 +181,4 @@ map.replaceValues(key, incrementIfEven);
 // key -> {"1", "5", "3", "7", "9", "9"}
 ```
 
-Note that if the list is already locked either by a reader or writer lock the methods will block until the lock is released. A thread should never try to replace values while holding iterators to avoid deadlocks.
+Note that if the list is already locked either by a [reader](cppreference#reader-lock) or [writer lock](cppreference#writer-lock) any replace method will block until the lock is released. A thread should never try to replace values while holding iterators to the same list to avoid deadlocks.

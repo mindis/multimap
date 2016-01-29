@@ -1,1 +1,1 @@
-<iframe id="javadoc" src="javadoc/index.html"></iframe>
+<iframe id="javadoc" src="../javadoc/index.html"></iframe>
