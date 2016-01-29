@@ -26,16 +26,17 @@ import io.multimap.Callables.Procedure;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.Base64;
-import java.util.Base64.Encoder;
 import java.util.HashSet;
 import java.util.Set;
+
+import javax.xml.bind.DatatypeConverter;
 
 import org.junit.After;
 import org.junit.AfterClass;
@@ -131,13 +132,12 @@ public class MapTest {
     return bytes;
   }
   
-  static void writeAsBase64ToFile(Path datafile, int numKeys, int numValuesPerKeys) throws IOException {
-    BufferedWriter bw = Files.newBufferedWriter(datafile);
-    Encoder enc = Base64.getEncoder();
+  static void writeAsBase64ToFile(Path filename, int numKeys, int numValuesPerKeys) throws IOException {
+    BufferedWriter bw = Files.newBufferedWriter(filename, Charset.defaultCharset());
     for (int i = 0; i < numKeys; ++i) {
-      bw.write(enc.encodeToString(makeKey(i)));
+      bw.write(DatatypeConverter.printBase64Binary(makeKey(i)));
       for (int j = 0; j < numValuesPerKeys; ++j) {
-        bw.append(' ').write(enc.encodeToString(makeValue(j)));
+        bw.append(' ').write(DatatypeConverter.printBase64Binary(makeValue(j)));
       }
       bw.newLine();
     }

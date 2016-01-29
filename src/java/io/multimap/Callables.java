@@ -31,13 +31,74 @@ public final class Callables {
   private Callables() {}
 
   /**
-   * Processes a value and returns a boolean. Predicates are used to check a property of a value
-   * and, depending on the outcome, control the path of execution. Consider iterating a list of
-   * values to take action on only those values for which the predicate yields {@code true}.
+   * A callable that is applied to a {@link ByteBuffer} returning a newly allocated {@code byte[]}.
+   * Objects implementing this interface are typically used for mapping input values to output
+   * values in replace operations.
    * 
-   * @see Map#removeValues(byte[], Predicate)
-   * @see Map#removeValue(byte[], Predicate)
-   * @see Map#forEachValue(byte[], Predicate)
+   * @see Map#replaceValues(byte[], Callables.Function)
+   * @see Map#replaceValue(byte[], Callables.Function)
+   */
+  public static abstract class Function {
+
+    /**
+     * Applies the function to {@code bytes}. This is a wrapper around
+     * {@link #callOnReadOnly(ByteBuffer)} which marks the input as read-only.
+     * 
+     * @return a new {@code byte[]} or {@code null} if explicitly allowed by an implementation.
+     * 
+     * @see #callOnReadOnly(ByteBuffer)
+     */
+    public byte[] call(ByteBuffer bytes) {
+      return callOnReadOnly(bytes.asReadOnlyBuffer());
+    }
+
+    /**
+     * Applies the function to {@code bytes}. The input is guaranteed to be read-only. Must be
+     * implemented in derived classes.
+     * 
+     * @return a new {@code byte[]} or {@code null} if explicitly allowed by an implementation.
+     */
+    protected abstract byte[] callOnReadOnly(ByteBuffer bytes);
+  }
+  
+  /**
+   * A callable that is applied to two {@link ByteBuffer}'s returning a boolean that tells if the
+   * left operand is less than the right operand. Objects implementing this interface are typically
+   * used by sorting algorithms.
+   * 
+   * @see Map#optimize(java.nio.file.Path, java.nio.file.Path, Options)
+   */
+  public static abstract class LessThan {
+
+    /**
+     * Determines whether {@code a} is less than {@code b}. This is a wrapper around
+     * {@link #callOnReadOnly(ByteBuffer, ByteBuffer)} which marks the input as read-only.
+     * 
+     * @return {@code true} if {@code a} is less than {@code b}, {@code false} otherwise.
+     * 
+     * @see #callOnReadOnly(ByteBuffer, ByteBuffer)
+     */
+    public boolean call(ByteBuffer a, ByteBuffer b) {
+      return callOnReadOnly(a.asReadOnlyBuffer(), b.asReadOnlyBuffer());
+    }
+
+    /**
+     * Determines whether {@code a} is less than {@code b}. The input is guaranteed to be read-only.
+     * Must be implemented in derived classes.
+     * 
+     * @return {@code true} if {@code a} is less than {@code b}, {@code false} otherwise.
+     */
+    protected abstract boolean callOnReadOnly(ByteBuffer a, ByteBuffer b);
+  }
+  
+  /**
+   * A callable that is applied to a {@link ByteBuffer} returning a boolean value. Objects
+   * implementing this interface are typically used to qualify keys or values for some further
+   * operation.
+   * 
+   * @see Map#removeKeys(Callables.Predicate)
+   * @see Map#removeValue(byte[], Callables.Predicate)
+   * @see Map#removeValues(byte[], Callables.Predicate)
    */
   public static abstract class Predicate {
 
@@ -63,12 +124,12 @@ public final class Callables {
   }
 
   /**
-   * Processes a value not returning a result. However, since derived classes may have state, a
-   * procedure can be used to collect information about the processed data. Thus, returning a result
-   * indirectly. Consider iterating a list of values completely to count certain occurrences.
+   * A callable that is applied to a {@link ByteBuffer} without returning any value. Procedures
+   * can have state that may change during application. Objects implementing this interface are
+   * typically used to visit keys or values, e.g. to collect information about them.
    * 
-   * @see Map#forEachKey(Procedure)
-   * @see Map#forEachValue(byte[], Procedure)
+   * @see Map#forEachKey(Callables.Procedure)
+   * @see Map#forEachValue(byte[], Callables.Procedure)
    */
   public static abstract class Procedure {
 
@@ -88,66 +149,6 @@ public final class Callables {
      * implemented in derived classes.
      */
     protected abstract void callOnReadOnly(ByteBuffer bytes);
-  }
-
-  /**
-   * Processes a value and returns a new one. Functions are used to map an input value to an output
-   * value or, if permitted {@code null}. Consider iterating a list of values where all or some of
-   * them should be replaced.
-   * 
-   * @see Map#replaceValues(byte[], Function)
-   * @see Map#replaceValue(byte[], Function)
-   */
-  public static abstract class Function {
-
-    /**
-     * Applies the function to {@code bytes}. This is a wrapper around
-     * {@link #callOnReadOnly(ByteBuffer)} which marks the input as read-only.
-     * 
-     * @return a new {@code byte[]} or {@code null} if explicitly allowed by an implementation.
-     * 
-     * @see #callOnReadOnly(ByteBuffer)
-     */
-    public byte[] call(ByteBuffer bytes) {
-      return callOnReadOnly(bytes.asReadOnlyBuffer());
-    }
-
-    /**
-     * Applies the function to {@code bytes}. The input is guaranteed to be read-only. Must be
-     * implemented in derived classes.
-     * 
-     * @return a new {@code byte[]} or {@code null} if explicitly allowed by an implementation.
-     */
-    protected abstract byte[] callOnReadOnly(ByteBuffer bytes);
-  }
-
-  /**
-   * Processes two values and determines their order. The {@code LessThan} comparator is a predicate
-   * used for sorting purposes. Consider sorting a list of values in ascending or descending order.
-   * 
-   * @see Map#optimize(java.nio.file.Path, java.nio.file.Path, Options)
-   */
-  public static abstract class LessThan {
-
-    /**
-     * Determines whether {@code a} is less than {@code b}. This is a wrapper around
-     * {@link #callOnReadOnly(ByteBuffer, ByteBuffer)} which marks the input as read-only.
-     * 
-     * @return {@code true} if {@code a} is less than {@code b}, {@code false} otherwise.
-     * 
-     * @see #callOnReadOnly(ByteBuffer, ByteBuffer)
-     */
-    public boolean call(ByteBuffer a, ByteBuffer b) {
-      return callOnReadOnly(a.asReadOnlyBuffer(), b.asReadOnlyBuffer());
-    }
-
-    /**
-     * Determines whether {@code a} is less than {@code b}. The input is guaranteed to be read-only.
-     * Must be implemented in derived classes.
-     * 
-     * @return {@code true} if {@code a} is less than {@code b}, {@code false} otherwise.
-     */
-    protected abstract boolean callOnReadOnly(ByteBuffer a, ByteBuffer b);
   }
 
 }

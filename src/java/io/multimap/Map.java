@@ -29,6 +29,8 @@ import java.nio.file.Paths;
 
 /**
  * This class implements a 1:n key-value store where each key is associated with a list of values.
+ * For more information please visit the
+ * <a href="http://multimap.io/cppreference/#maphpp">C++ Reference for class Map</a>.
  * 
  * @author Martin Trenkmann
  */
@@ -43,17 +45,23 @@ public class Map implements AutoCloseable {
     }
   }
 
+  /**
+   * This type provides static methods for obtaining system limitations. Those limits which define
+   * constraints on user supplied data also serve as preconditions.
+   * 
+   * @author Martin Trenkmann
+   */
   static class Limits {
 
     /**
-     * Returns the maximum size, in number of bytes, of a key to put.
+     * Returns the maximum size in number of bytes for a key to put.
      */
     static int maxKeySize() {
       return Native.maxKeySize();
     }
 
     /**
-     * Returns the maximum size, in number of bytes, of a value to put.
+     * Returns the maximum size in number of bytes for a value to put.
      */
     static int maxValueSize() {
       return Native.maxValueSize();
@@ -74,40 +82,62 @@ public class Map implements AutoCloseable {
   }
 
   /**
-   * Opens a map in {@code directory}.
+   * Opens an already existing map located in {@code directory}.
    * 
-   * @throws Exception if the directory or the map inside does not exist.
+   * <p><b>Acquires</b> a directory lock on directory.</p>
+   * 
+   * @throws Exception if one of the following is true:
+   * <ul>
+   * <li>the directory does not exist</li>
+   * <li>the directory cannot be locked</li>
+   * <li>the directory does not contain a map</li>
+   * </ul>
    */
   public Map(String directory) throws Exception {
     this(Paths.get(directory), new Options());
   }
   
   /**
-   * Opens a map in {@code directory}.
-   * 
-   * @throws Exception if the directory or the map inside does not exist.
+   * @see Map#Map(String)
    */
   public Map(Path directory) throws Exception {
     this(directory, new Options());
   }
   
   /**
-   * Opens or creates a map in {@code directory}. The directory must already exist. See
+   * Opens or creates a map in {@code directory}. For the latter, you need to set
+   * {@code options.createIfMissing(true)}. If an error should be raised in case the map already
+   * exists, set {@code options.setErrorIfExists(true)}. When a new map is created other fields in
+   * options are used to configure the map's block size and number of partitions. See
    * {@link Options} for more information.
    * 
-   * @throws Exception if the directory does not exist or other conditions depending on
-   *         {@code options} are not met.
+   * <p><b>Acquires</b> a directory lock on directory.</p>
+   * 
+   * @throws Exception if one of the following is true:
+   * <ul>
+   * <li>the directory does not exist</li>
+   * <li>the directory cannot be locked</li>
+   * </ul>
+   * when {@code options.isCreateIfMissing()} is {@code false} (which is the default)
+   * <ul>
+   * <li>the directory does not contain a map</li>
+   * </ul>
+   * when {@code options.isCreateIfMissing()} return {@code true} and no map exists
+   * <ul>
+   * <li>{@code options.getBlockSize()} is zero</li>
+   * <li>{@code options.getBlockSize()} is not a power of two</li>
+   * </ul>
+   * when {@code options.isErrorIfExists()} is {@code true}
+   * <ul>
+   * <li>the directory already contains a map</li>
+   * </ul>
    */
   public Map(String directory, Options options) throws Exception {
     this(Paths.get(directory), options);
   }
   
   /**
-   * Opens or creates a map in {@code directory}. The directory must already exist. See
-   * {@link Options} for more information.
-   * 
-   * @throws Exception if the directory does not exist or other conditions depending on
-   *         {@code options} are not met.
+   * @see Map#Map(String, Options)
    */
   public Map(Path directory, Options options) throws Exception {
     this(Native.newMap(directory.toString(), options));
@@ -116,8 +146,18 @@ public class Map implements AutoCloseable {
   /**
    * Appends {@code value} to the end of the list associated with {@code key}.
    * 
-   * @throws Exception if {@code key} or {@code value} are too big. See {@link Limits#maxKeySize()}
-   *         and {@link Limits#maxValueSize()} for more information.
+   * <p><b>Acquires:</b></p>
+   * <ul>
+   * <li>a writer lock on the map object.</li>
+   * <li>a writer lock on the list associated with {@code key}.</li>
+   * </ul>
+   * 
+   * @throws Exception if one of the following is true:
+   * <ul>
+   * <li>{@code key.size() > Map.Limits.maxKeySize()}</li>
+   * <li>{@code value.size() > Map.Limits.maxValueSize()}</li>
+   * <li>the map was opened in read-only mode</li>
+   * </ul>
    */
   public void put(byte[] key, byte[] value) throws Exception {
     Check.notNull(key);
@@ -126,14 +166,16 @@ public class Map implements AutoCloseable {
   }
 
   /**
-   * Returns an iterator to the list associated with {@code key}. If the key does not exist an empty
-   * iterator is returned to indicate an empty list. If the returned iterator is not needed anymore
-   * {@link Iterator#close()} must be called in order to release the reader lock.
+   * Returns a read-only iterator for the list associated with {@code key}. If the key does not
+   * exist, an empty iterator that has no values is returned. A non-empty iterator owns a reader
+   * lock on the underlying list and therefore must be closed via {@link Iterator#close()} when it
+   * is not needed anymore. Not closing iterators leads to deadlocks sooner or later.
    * 
-   * <p>Never write code like this, because it does not close the iterator:<ul>
-   * <li><code>boolean contains = map.get(key).hasNext();</code></li>
-   * <li><code>long numValues = map.get(key).available();</code></li>
-   * </ul></p>
+   * <p><b>Acquires:</b></p>
+   * <ul>
+   * <li>a reader lock on the map object.</li>
+   * <li>a reader lock on the list associated with {@code key}.</li>
+   * </ul>
    */
   @SuppressWarnings("resource")
   public Iterator get(byte[] key) {
@@ -143,7 +185,8 @@ public class Map implements AutoCloseable {
   }
   
   /**
-   * Returns {@code true} if this map contains a mapping for the specified key.
+   * Returns {@code true} if {@code key} is associated with at least one value, {@code false}
+   * otherwise.
    */
   public boolean containsKey(byte[] key) {
     Check.notNull(key);
@@ -151,24 +194,48 @@ public class Map implements AutoCloseable {
   }
 
   /**
-   * Removes all values in the list associated with {@code key}.
+   * Removes all values associated with {@code key}.
    * 
-   * @return {@code true} if a key was removed, {@code false} otherwise.
+   * <p><b>Acquires:</b></p>
+   * <ul>
+   * <li>a reader lock on the map object.</li>
+   * <li>a writer lock on the list associated with {@code key}.</li>
+   * </ul>
+   * 
+   * @return {@code true} if any values have been removed, {@code false} otherwise.
    */
   public boolean removeKey(byte[] key) {
     Check.notNull(key);
     return Native.removeKey(self, key);
   }
 
+  /**
+   * Removes all values associated with keys for which {@code predicate} yields {@code true}. The
+   * predicate can be any callable that implements the {@link Predicate} interface.
+   * 
+   * <p><b>Acquires:</b></p>
+   * <ul>
+   * <li>a reader lock on the map object.</li>
+   * <li>a writer lock on lists associated with matching keys.</li>
+   * </ul>
+   * 
+   * @return the number of keys for which any values have been removed.
+   */
   public long removeKeys(Predicate predicate) {
     return Native.removeKeys(self, predicate);
   }
 
   /**
-   * Removes the first value in the list associated with {@code key} which is equal to {@code value}
-   * .
+   * Removes the first value from the list associated with {@code key} that is equal to
+   * {@code value} after to byte-wise comparison.
    * 
-   * @return {@code true} if a value was removed, {@code false} otherwise.
+   * <p><b>Acquires:</b></p>
+   * <ul>
+   * <li>a reader lock on the map object.</li>
+   * <li>a writer lock on the list associated with {@code key}.</li>
+   * </ul>
+   * 
+   * @return {@code true} if any value has been removed, {@code false} otherwise.
    */
   public boolean removeValue(byte[] key, byte[] value) {
     Check.notNull(key);
@@ -177,10 +244,17 @@ public class Map implements AutoCloseable {
   }
 
   /**
-   * Removes the first value in the list associated with {@code key} for which {@code predicate}
-   * yields {@code true}.
+   * Removes the first value from the list associated with {@code key} for which {@code predicate}
+   * yields {@code true}. The predicate can be any callable that implements the {@link Predicate}
+   * interface.
    * 
-   * @return {@code true} if a value was removed, {@code false} otherwise.
+   * <p><b>Acquires:</b></p>
+   * <ul>
+   * <li>a reader lock on the map object.</li>
+   * <li>a writer lock on the list associated with {@code key}.</li>
+   * </ul>
+   * 
+   * @return {@code true} if any value has been removed, {@code false} otherwise.
    */
   public boolean removeValue(byte[] key, Predicate predicate) {
     Check.notNull(key);
@@ -188,10 +262,18 @@ public class Map implements AutoCloseable {
     return Native.removeValue(self, key, predicate);
   }
 
+
   /**
-   * Removes all values in the list associated with {@code key} that are equal to {@code value}.
+   * Removes all values from the list associated with {@code key} that are equal to {@code value}
+   * after to byte-wise comparison.
    * 
-   * @return The number of removed values.
+   * <p><b>Acquires:</b></p>
+   * <ul>
+   * <li>a reader lock on the map object.</li>
+   * <li>a writer lock on the list associated with {@code key}.</li>
+   * </ul>
+   * 
+   * @return the number of values removed.
    */
   public long removeValues(byte[] key, byte[] value) {
     Check.notNull(key);
@@ -200,10 +282,17 @@ public class Map implements AutoCloseable {
   }
 
   /**
-   * Removes all values in the list associated with {@code key} for which {@code predicate} yields
-   * {@code true}.
+   * Removes all values from the list associated with {@code key} for which {@code predicate}
+   * yields {@code true}. The predicate can be any callable that implements the {@link Predicate}
+   * interface.
    * 
-   * @return The number of removed values.
+   * <p><b>Acquires:</b></p>
+   * <ul>
+   * <li>a reader lock on the map object.</li>
+   * <li>a writer lock on the list associated with {@code key}.</li>
+   * </ul>
+   * 
+   * @return the number of values removed.
    */
   public long removeValues(byte[] key, Predicate predicate) {
     Check.notNull(key);
@@ -212,11 +301,20 @@ public class Map implements AutoCloseable {
   }
 
   /**
-   * Replaces the first value in the list associated with {@code key} which is equal to
-   * {@code oldValue} by {@code newValue}. The replacement does not happen in-place. Instead, the
-   * old value is marked as removed and the new value is appended to the end of the list.
+   * Replaces the first value in the list associated with {@code key} that is equal to
+   * {@code oldValue} by {@code newValue}.
+   *
+   * <p>Note that a replace operation is actually implemented in terms of a remove of the old value
+   * followed by an insert/put of the new value. Thus, the new value is always the last value in
+   * the list. In other words, the replacement is not in-place.</p>
    * 
-   * @return {@code true} if a value was replaced, {@code false} otherwise.
+   * <p><b>Acquires:</b></p>
+   * <ul>
+   * <li>a reader lock on the map object.</li>
+   * <li>a writer lock on the list associated with {@code key}.</li>
+   * </ul>
+   * 
+   * @return {@code true} if any value has been replaced, {@code false} otherwise.
    */
   public boolean replaceValue(byte[] key, byte[] oldValue, byte[] newValue) {
     Check.notNull(key);
@@ -227,11 +325,20 @@ public class Map implements AutoCloseable {
 
   /**
    * Replaces the first value in the list associated with {@code key} by the result of invoking
-   * {@code map}. If the result of {@code map} is {@code null} no replacement is performed. The
-   * replacement does not happen in-place. Instead, the old value is marked as removed and the new
-   * value is appended to the end of the list.
+   * {@code map}. Values for which {@code map} returns {@code null} are not replaced. The map
+   * function can be any callable that implements the {@link Function} interface.
    * 
-   * @return {@code true} if a value was replaced, {@code false} otherwise.
+   * <p>Note that a replace operation is actually implemented in terms of a remove of the old value
+   * followed by an insert/put of the new value. Thus, the new value is always the last value in
+   * the list. In other words, the replacement is not in-place.</p>
+   * 
+   * <p><b>Acquires:</b></p>
+   * <ul>
+   * <li>a reader lock on the map object.</li>
+   * <li>a writer lock on the list associated with {@code key}.</li>
+   * </ul>
+   * 
+   * @return {@code true} if any value has been replaced, {@code false} otherwise.
    */
   public boolean replaceValue(byte[] key, Function map) {
     Check.notNull(key);
@@ -240,11 +347,20 @@ public class Map implements AutoCloseable {
   }
 
   /**
-   * Replaces all values in the list associated with {@code key} which are equal to {@code oldValue}
-   * by {@code newValue}. A replacement does not happen in-place. Instead, the old value is marked
-   * as removed and the new value is appended to the end of the list.
+   * Replaces each value in the list associated with {@code key} that is equal to {@code oldValue}
+   * by {@code newValue}.
    * 
-   * @return The number of replaced values.
+   * <p>Note that a replace operation is actually implemented in terms of a remove of the old value
+   * followed by an insert/put of the new value. Thus, the new value is always the last value in
+   * the list. In other words, the replacement is not in-place.</p>
+   * 
+   * <p><b>Acquires:</b></p>
+   * <ul>
+   * <li>a reader lock on the map object.</li>
+   * <li>a writer lock on the list associated with {@code key}.</li>
+   * </ul>
+   * 
+   * @return the number of values replaced.
    */
   public long replaceValues(byte[] key, byte[] oldValue, byte[] newValue) {
     Check.notNull(key);
@@ -252,14 +368,23 @@ public class Map implements AutoCloseable {
     Check.notNull(newValue);
     return Native.replaceValues(self, key, oldValue, newValue);
   }
-
+  
   /**
-   * Replaces all values in the list associated with {@code key} by the result of invoking
-   * {@code map}. If the result of {@code map} is {@code null} no replacement is performed. A
-   * replacement does not happen in-place. Instead, the old value is marked as removed and the new
-   * value is appended to the end of the list.
+   * Replaces each value in the list associated with {@code key} by the result of invoking
+   * {@code map}. Values for which {@code map} returns {@code null} are not replaced. The map
+   * function can be any callable that implements the {@link Function} interface.
    * 
-   * @return The number of replaced values.
+   * <p>Note that a replace operation is actually implemented in terms of a remove of the old value
+   * followed by an insert/put of the new value. Thus, the new value is always the last value in
+   * the list. In other words, the replacement is not in-place.</p>
+   * 
+   * <p><b>Acquires:</b></p>
+   * <ul>
+   * <li>a reader lock on the map object.</li>
+   * <li>a writer lock on the list associated with {@code key}.</li>
+   * </ul>
+   * 
+   * @return the number of values replaced.
    */
   public long replaceValues(byte[] key, Function map) {
     Check.notNull(key);
@@ -268,11 +393,10 @@ public class Map implements AutoCloseable {
   }
 
   /**
-   * Applies {@code process} to each key of the map whose associated list is not empty. For the time
-   * of execution the entire map is locked for read-only operations. It is possible to keep a
-   * reference to the map itself within {@code process} and to call other read-only operations such
-   * as {@link #get(byte[])}. However, trying to call mutable operations such as
-   * {@link #getMutable(byte[])} will cause a deadlock.
+   * Applies {@code process} to each key whose list is not empty. The process argument can be any
+   * callable that implements the {@link Procedure} interface. 
+   * 
+   * <p><b>Acquires</b> a reader lock on the map object.</p>
    */
   public void forEachKey(Procedure process) {
     Check.notNull(process);
@@ -280,9 +404,14 @@ public class Map implements AutoCloseable {
   }
 
   /**
-   * Applies {@code process} to each value in the list associated with {@code key}. This is a
-   * shorthand for requesting a read-only iterator via {@link #get(byte[])} followed by an
-   * application of {@code process} to each value obtained via {@link Iterator#next()}.
+   * Applies {@code process} to each value associated with {@code key}. The process argument can be
+   * any callable that implements the {@link Procedure} interface. 
+   * 
+   * <p><b>Acquires:</b></p>
+   * <ul>
+   * <li>a reader lock on the map object.</li>
+   * <li>a writer lock on the list associated with {@code key}.</li>
+   * </ul>
    */
   public void forEachValue(byte[] key, Procedure process) {
     Check.notNull(process);
@@ -304,6 +433,9 @@ public class Map implements AutoCloseable {
    * supported. Consider submitting a feature request if you really need it.
    */
 
+  /**
+   * Returns {@code true} if the map is read-only, {@code false} otherwise.
+   */
   public boolean isReadOnly() {
     return Native.isReadOnly(self);
   }
@@ -338,18 +470,25 @@ public class Map implements AutoCloseable {
    */
 
   /**
-   * Imports key-value pairs from Base64-encoded text file(s) denoted by {@code input} into the map
-   * located in the directory denoted by {@code directory}. If {@code input} is a directory all
-   * contained files will we imported recursively.
+   * Imports key-value pairs from an input file or directory into the map located in
+   * {@code directory}. If {@code input} refers to a directory all files in that directory will be
+   * imported, except hidden files starting with a dot and other sub-directories. A description of
+   * the file format can be found in the <a href="http://multimap.io/overview#multimap-import">
+   * overview</a> section on the project's website.
    * 
-   * @throws Exception if the directory or file does not exist, or the map is already in use.
+   * <p><b>Acquires</b> a directory lock on directory.</p>
+   * 
+   * @throws Exception if the constructor of {@link Map} fails or if the input file or directory
+   * cannot be read.
    */
   public static void importFromBase64(Path directory, Path input) throws Exception {
     importFromBase64(directory, input, new Options());
   }
 
   /**
-   * Same as {@link #importFromBase64(Path, Path)} but allows further configuration.
+   * Same as {@link #importFromBase64(Path, Path)}, but gives the user more control by providing an
+   * {@link Options} parameter which is passed to the constructor of Map when opening. This way a
+   * map can be created if it does not already exist.
    */
   public static void importFromBase64(Path directory, Path input, Options options) throws Exception {
     Check.notNull(directory);
@@ -359,16 +498,31 @@ public class Map implements AutoCloseable {
   }
 
   /**
-   * Exports all key-value pairs from the map located in the directory denoted by {@code directory}
-   * to a Base64-encoded text file denoted by {@code output}. If the file already exists its content
-   * will be overwritten.
+   * Exports all key-value pairs from the map located in {@code directory} to a file denoted by
+   * {@code output}. If the file already exists, its content will be overwritten. The generated
+   * file is in canonical form as described in the
+   * <a href="http://multimap.io/overview#multimap-import">overview</a> section on the project's
+   * website.
    * 
-   * @throws Exception if the directory does not exist, or the map is already in use.
+   * <p><b>Acquires</b> a directory lock on directory.</p>
+   * 
+   * @throws Exception if one of the following is true:
+   * <ul>
+   * <li>the directory does not exist</li>
+   * <li>the directory cannot be locked</li>
+   * <li>the directory does not contain a map</li>
+   * <li>the creation of the output file failed</li>
+   * </ul>
    */
   public static void exportToBase64(Path directory, Path output) throws Exception {
     exportToBase64(directory, output, new Options());
   }
-
+  
+  /**
+   * Same as {@link #exportToBase64(Path, Path)}, but gives the user more control by providing an
+   * {@link Options} parameter. Most users will use this to pass a compare function that triggers a
+   * sorting of all lists before exporting them.
+   */
   public static void exportToBase64(Path directory, Path output, Options options) throws Exception {
     Check.notNull(directory);
     Check.notNull(output);
@@ -377,73 +531,38 @@ public class Map implements AutoCloseable {
   }
 
   /**
-   * Optimizes a map performing the following tasks:
+   * Rewrites the map located in {@code directory} to the directory denoted by {@code output}
+   * performing various optimizations. For more details please refer to the
+   * <a href="http://multimap.io/overview#multimap-optimize">overview</a> section on the project's
+   * website.
+   * 
+   * <p><b>Acquires</b> a directory lock on directory.</p>
+   * 
+   * @throws Exception if one of the following is true:
    * <ul>
-   * <li>Defragmentation. All blocks which belong to the same list are written sequentially to disk
-   * which improves locality and leads to better read performance.</li>
-   * <li>Garbage collection. Values marked as removed will not be copied which reduces the size of
-   * the map and also improves locality.</li>
+   * <li>the directory does not exist</li>
+   * <li>the directory cannot be locked</li>
+   * <li>the directory does not contain a map</li>
+   * <li>the creation of a new map in {@code output} failed</li>
    * </ul>
-   * 
-   * @param source <ul>
-   *        <li>Must refer to an existing directory containing a map.</li>
-   *        </ul>
-   * 
-   * @param target <ul>
-   *        <li>Must refer to an existing directory that does not contain a map.</li>
-   *        </ul>
-   * 
-   * @throws Exception if any of the following happens:
-   *         <ul>
-   *         <li>Opening a map in {@code source} failed.</li>
-   *         <li>Creating a map in {@code target} failed.</li>
-   *         <li>A runtime error, such as running out of disk space, occurred.</li>
-   *         </ul>
    */
-  public static void optimize(Path source, Path target) throws Exception {
+  public static void optimize(Path directory, Path output) throws Exception {
     Options options = new Options();
     options.keepBlockSize();
     options.keepNumPartitions();
-    optimize(source, target, options);
+    optimize(directory, output, options);
   }
   
   /**
-   * Optimizes a map performing the following tasks:
-   * <ul>
-   * <li>Defragmentation. All blocks which belong to the same list are written sequentially to disk
-   * which improves locality and leads to better read performance.</li>
-   * <li>Garbage collection. Values marked as removed will not be copied which reduces the size of
-   * the map and also improves locality.</li>
-   * </ul>
-   * 
-   * @param source <ul>
-   *        <li>Must refer to an existing directory containing a map.</li>
-   *        </ul>
-   * 
-   * @param target <ul>
-   *        <li>Must refer to an existing directory that does not contain a map.</li>
-   *        </ul>
-   * 
-   * @param options <ul>
-   *        <li>Call {@code options.keepNumShards()} to leave the number of shards unchanged.</li>
-   *        <li>Call {@code options.keepBlockSize()} to leave the block size unchanged.</li>
-   *        <li>{@code options.isCreateIfMissing()} is implicitly {@code true} and can be ignored.</li>
-   *        <li>{@code options.isErrorIfExists()} is implicitly {@code true} and can be ignored.</li>
-   *        <li>{@code options.isReadOnly()} is ignored.</li>
-   *        </ul>
-   * 
-   * @throws Exception if any of the following happens:
-   *         <ul>
-   *         <li>Opening a map in {@code source} failed.</li>
-   *         <li>Creating a map in {@code target} failed.</li>
-   *         <li>A runtime error, such as running out of disk space, occurred.</li>
-   *         </ul>
+   * Same as {@link #optimize(Path, Path)}, but gives the user more control by providing an
+   * {@link Options} parameter. Most users will use this to pass a compare function that triggers a
+   * sorting of all lists.
    */
-  public static void optimize(Path source, Path target, Options options) throws Exception {
-    Check.notNull(source);
-    Check.notNull(target);
+  public static void optimize(Path directory, Path output, Options options) throws Exception {
+    Check.notNull(directory);
+    Check.notNull(output);
     Check.notNull(options);
-    Native.optimize(source.toString(), target.toString(), options);
+    Native.optimize(directory.toString(), output.toString(), options);
   }
 
   private static class Native {
@@ -467,6 +586,6 @@ public class Map implements AutoCloseable {
     static native void close(ByteBuffer self);
     static native void importFromBase64(String directory, String input, Options options) throws Exception;
     static native void exportToBase64(String directory, String output, Options options) throws Exception;
-    static native void optimize(String source, String target, Options options) throws Exception;
+    static native void optimize(String directory, String output, Options options) throws Exception;
   }
 }

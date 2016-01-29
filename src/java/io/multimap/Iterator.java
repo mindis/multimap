@@ -22,14 +22,15 @@ package io.multimap;
 import java.nio.ByteBuffer;
 
 /**
- * This abstract class represents a forward iterator on a list of values. In contrast to the
- * standard {@link java.util.Iterator} interface this class has the following properties:
+ * This abstract class represents an iterator to read a list of values, possibly by streaming them
+ * from an external device. In contrast to the standard {@link java.util.Iterator} interface this
+ * class has the following properties:
  * 
  * <ul>
- * <li>Lazy initialization. An iterator does not perform any IO operation until {@link #next()}, 
- * {@link #nextAsByteArray()}, {@link #peekNext()} or {@link #peekNextAsByteArray()} has been
- * called. This is useful in cases where multiple iterators need to be requested first to determine
- * in which order they have to be processed.</li>
+ * <li>Lazy initialization. The iterator does not perform any I/O operation until a value is
+ * actually requested via {@link #next()}, {@link #nextAsByteArray()}, {@link #peekNext()}, or
+ * {@link #peekNextAsByteArray()}. This might be useful in cases where multiple iterators have to
+ * be collected first to determine in which order they have to be processed.</li>
  * <li>The iterator can tell the number of remaining values via {@link #available()}.</li>
  * <li>The iterator can emit the next value without moving forward via {@link #peekNext()}.</li>
  * <li>The iterator must be closed if no longer needed to release native resources such as locks.
@@ -38,8 +39,8 @@ import java.nio.ByteBuffer;
  * </ul>
  * 
  * Objects of this class hold a reader lock on the associated list so that multiple threads can
- * iterate the list at the same time, but no thread can modify it. If the iterator is not needed
- * anymore {@link #close()} must be called in order to release the reader lock.
+ * iterate the same list at the same time, but no thread can modify it. If the iterator is not
+ * needed anymore {@link #close()} must be called in order to release the reader lock.
  * 
  * @author Martin Trenkmann
  */
@@ -56,39 +57,45 @@ public class Iterator implements AutoCloseable {
   }
 
   /**
-   * Returns the number of values left to iterate.
+   * Returns the remaining number of values to be iterated. Calling this method does not trigger
+   * any I/O operation.
    */
   public long available() {
     return Native.available(self);
   }
 
   /**
-   * Tells whether the iterator has one more value.
+   * Returns {@code true} if the iterator has more values, {@code false} otherwise.
    */
   public boolean hasNext() {
     return Native.hasNext(self);
   }
 
   /**
-   * Returns the next value as {@link ByteBuffer}. The returned buffer is a direct one, i.e. it
-   * wraps a pointer that points directly into native allocated memory not managed by the Java
-   * Garbage Collector. This pointer is only valid as long as the iterator does not move forward.
-   * Therefore, the buffer should only be used to immediately parse the original value out of it.
-   * Most serialization libraries should be able to consume this byte buffer. If a byte array is
-   * required or an independent copy of the value use {@link #nextAsByteArray()} instead.
+   * Returns the next value from the underlying list and moves the iterator once forward. The
+   * returned {@link ByteBuffer} is a direct one, i.e. it wraps a pointer to native allocated
+   * memory not managed by the Java Garbage Collector. This pointer is only valid as long as the
+   * iterator does not move forward. Therefore, the buffer should only be used to immediately parse
+   * the original data out of it. Most serialization libraries should be able to consume this kind
+   * of buffer. If a {@code byte[]} is required or an independent copy of the value
+   * {@link #nextAsByteArray()} should be used instead.
    */
   public ByteBuffer next() {
     return Native.next(self).asReadOnlyBuffer();
   }
 
+  /**
+   * Same as {@link #next()}, but does not move the iterator once forward.
+   */
   public ByteBuffer peekNext() {
     return Native.peekNext(self).asReadOnlyBuffer();
   }
 
   /**
-   * Returns the next value as byte array. The returned array contains a copy of the value's bytes
-   * and is managed by the Java Garbage Collector, in contrast to the outcome of {@link #next()}. It
-   * can be copied around or stored in a collection as any other Java object.
+   * Returns the next value from the underlying list as {@code byte[]} and moves the iterator once
+   * forward. The returned array contains a copy of the value's bytes and is managed by the Java
+   * Garbage Collector, in contrast to the outcome of {@link #next()}. It can be copied around or
+   * stored in a collection as any other Java object.
    */
   public byte[] nextAsByteArray() {
     ByteBuffer value = next();
@@ -97,6 +104,9 @@ public class Iterator implements AutoCloseable {
     return copy;
   }
 
+  /**
+   * Same as {@link #nextAsByteArray()}, but does not move the iterator once forward.
+   */
   public byte[] peekNextAsByteArray() {
     ByteBuffer value = peekNext();
     byte[] copy = new byte[value.capacity()];
@@ -104,6 +114,10 @@ public class Iterator implements AutoCloseable {
     return copy;
   }
 
+  /**
+   * Closes the iterator and releases native resources such as locks. An iterator must be closed
+   * if no longer needed in order to avoid deadlocks.
+   */
   @Override
   public void close() {
     if (self != null) {
