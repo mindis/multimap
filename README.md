@@ -1,6 +1,6 @@
 # Multimap
 
-Official website: <http://multimap.io>
+<!-- Official website: <http://multimap.io> -->
 
 ## Installation
 
