@@ -28,11 +28,9 @@
 #include "multimap/internal/Table.hpp"
 #include "multimap/thirdparty/mt/mt.hpp"
 #include "multimap/Options.hpp"
+#include "multimap/version.hpp"
 
 namespace multimap {
-
-static const uint32_t MAJOR_VERSION = 0;
-static const uint32_t MINOR_VERSION = 3;
 
 class Map : mt::Resource {
  public:

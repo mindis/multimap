@@ -6,35 +6,36 @@ QMAKE_LFLAGS += -rdynamic
 # Needed for GNU backtrace
 
 INCLUDEPATH += \
-    $$PWD/src/cpp \
-    $$PWD/src/cpp/multimap/thirdparty
+    src/cpp \
+    src/cpp/multimap/thirdparty
 
 HEADERS += \
-    $$PWD/src/cpp/multimap/internal/Arena.hpp \
-    $$PWD/src/cpp/multimap/internal/Base64.hpp \
-    $$PWD/src/cpp/multimap/internal/Block.hpp \
-    $$PWD/src/cpp/multimap/internal/List.hpp \
-    $$PWD/src/cpp/multimap/internal/Store.hpp \
-    $$PWD/src/cpp/multimap/internal/Table.hpp \
-    $$PWD/src/cpp/multimap/internal/UintVector.hpp \
-    $$PWD/src/cpp/multimap/internal/Varint.hpp \
-    $$PWD/src/cpp/multimap/thirdparty/mt/mt.hpp \
-    $$PWD/src/cpp/multimap/thirdparty/xxhash/xxhash.h \
-    $$PWD/src/cpp/multimap/Bytes.hpp \
-    $$PWD/src/cpp/multimap/callables.hpp \
-    $$PWD/src/cpp/multimap/Map.hpp \
-    $$PWD/src/cpp/multimap/Options.hpp
+    src/cpp/multimap/internal/Arena.hpp \
+    src/cpp/multimap/internal/Base64.hpp \
+    src/cpp/multimap/internal/Block.hpp \
+    src/cpp/multimap/internal/List.hpp \
+    src/cpp/multimap/internal/Store.hpp \
+    src/cpp/multimap/internal/Table.hpp \
+    src/cpp/multimap/internal/UintVector.hpp \
+    src/cpp/multimap/internal/Varint.hpp \
+    src/cpp/multimap/thirdparty/mt/mt.hpp \
+    src/cpp/multimap/thirdparty/xxhash/xxhash.h \
+    src/cpp/multimap/Bytes.hpp \
+    src/cpp/multimap/callables.hpp \
+    src/cpp/multimap/Map.hpp \
+    src/cpp/multimap/Options.hpp \
+    src/cpp/multimap/version.hpp
 
 SOURCES += \
-    $$PWD/src/cpp/multimap/internal/Arena.cpp \
-    $$PWD/src/cpp/multimap/internal/Base64.cpp \
-    $$PWD/src/cpp/multimap/internal/List.cpp \
-    $$PWD/src/cpp/multimap/internal/Store.cpp \
-    $$PWD/src/cpp/multimap/internal/UintVector.cpp \
-    $$PWD/src/cpp/multimap/internal/Varint.cpp \
-    $$PWD/src/cpp/multimap/thirdparty/mt/mt.cpp \
-    $$PWD/src/cpp/multimap/thirdparty/xxhash/xxhash.c \
-    $$PWD/src/cpp/multimap/Map.cpp \
-    $$PWD/src/cpp/multimap/internal/Table.cpp
+    src/cpp/multimap/internal/Arena.cpp \
+    src/cpp/multimap/internal/Base64.cpp \
+    src/cpp/multimap/internal/List.cpp \
+    src/cpp/multimap/internal/Store.cpp \
+    src/cpp/multimap/internal/Table.cpp \
+    src/cpp/multimap/internal/UintVector.cpp \
+    src/cpp/multimap/internal/Varint.cpp \
+    src/cpp/multimap/thirdparty/mt/mt.cpp \
+    src/cpp/multimap/thirdparty/xxhash/xxhash.c \
+    src/cpp/multimap/Map.cpp
 
 unix|win32: LIBS += -lboost_filesystem -lboost_system -lboost_thread -pthread
