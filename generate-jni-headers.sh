@@ -1,6 +1,9 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-# Generates C/C++ header files for JNI usage.
+# This script generates C/C++ header files for JNI usage.
+
+set -e  # Exit on error
+# set -x  # Display commands
 
 CLASSPATH=bin
 CLASSES="io.multimap.Iterator io.multimap.Map"
