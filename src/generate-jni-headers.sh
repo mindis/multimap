@@ -5,11 +5,22 @@
 set -e  # Exit on error
 # set -x  # Display commands
 
-CLASSPATH=bin
-CLASSES="io.multimap.Iterator io.multimap.Map"
-OUTPUT_DIR=src/cpp/multimap/jni/generated
+BUILD_DIR=classes
+PACKAGE=io/multimap
+SOURCE_DIR=java
+SOURCE_FILES=($SOURCE_DIR/$PACKAGE/Iterator.java \
+              $SOURCE_DIR/$PACKAGE/Map.java)
 
-javah -d $OUTPUT_DIR -jni -classpath $CLASSPATH $CLASSES
+mkdir $BUILD_DIR
+javac -sourcepath $SOURCE_DIR -d $BUILD_DIR ${SOURCE_FILES[*]}
+
+PACKAGE=io.multimap
+CLASS_FILES=($PACKAGE.Iterator $PACKAGE.Map)
+OUTPUT_DIR=cpp/multimap/jni/generated
+
+javah -jni -classpath $BUILD_DIR -d $OUTPUT_DIR ${CLASS_FILES[*]}
+rm -rf $BUILD_DIR
+
 shopt -s extglob
 rm $OUTPUT_DIR/!(*Native*)
 
