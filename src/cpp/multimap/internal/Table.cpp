@@ -29,11 +29,11 @@ uint32_t Table::Limits::maxKeySize() { return Varint::Limits::MAX_N4; }
 uint32_t Table::Limits::maxValueSize() { return List::Limits::maxValueSize(); }
 
 const std::vector<std::string>& Table::Stats::names() {
-  static std::vector<std::string> names = {
-      "block_size",     "key_size_avg",     "key_size_max",
-      "key_size_min",   "list_size_avg",    "list_size_max",
-      "list_size_min",  "num_blocks",       "num_keys_total",
-      "num_keys_valid", "num_values_total", "num_values_valid"};
+  static std::vector<std::string> names =
+      { "block_size",     "key_size_avg",     "key_size_max",
+        "key_size_min",   "list_size_avg",    "list_size_max",
+        "list_size_min",  "num_blocks",       "num_keys_total",
+        "num_keys_valid", "num_values_total", "num_values_valid" };
   return names;
 }
 
@@ -84,9 +84,9 @@ mt::Properties Table::Stats::toProperties() const {
 }
 
 std::vector<uint64_t> Table::Stats::toVector() const {
-  return {block_size,     key_size_avg,   key_size_max,     key_size_min,
-          list_size_avg,  list_size_max,  list_size_min,    num_blocks,
-          num_keys_total, num_keys_valid, num_values_total, num_values_valid};
+  return { block_size,     key_size_avg,   key_size_max,     key_size_min,
+           list_size_avg,  list_size_max,  list_size_min,    num_blocks,
+           num_keys_total, num_keys_valid, num_values_total, num_values_valid };
 }
 
 Table::Stats Table::Stats::total(const std::vector<Stats>& stats) {
@@ -359,5 +359,5 @@ UniqueList Table::getOrCreateUniqueList(const Bytes& key) {
   return UniqueList(list, store_.get(), &arena_);
 }
 
-}  // namespace internal
-}  // namespace multimap
+} // namespace internal
+} // namespace multimap

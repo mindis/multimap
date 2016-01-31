@@ -150,5 +150,5 @@ TEST(Base64Test, DecodeTestStringF) {
   ASSERT_EQ(binary, TEST_STRING_F_BINARY);
 }
 
-}  // namespace internal
-}  // namespace multimap
+} // namespace internal
+} // namespace multimap

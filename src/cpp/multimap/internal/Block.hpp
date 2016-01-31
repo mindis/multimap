@@ -26,14 +26,13 @@
 namespace multimap {
 namespace internal {
 
-template <bool IsReadOnly>
-class BasicBlock {
+template <bool IsReadOnly> class BasicBlock {
   // This class wraps raw memory that is either writable or read-only.
   // The memory is neither owned nor deleted by objects of this class,
   // so ownership management must be implemented externally.
   // Objects of this class are copyable.
 
- public:
+public:
   BasicBlock() = default;
 
   BasicBlock(char* data, size_t size) : data_(data), size_(size) {
@@ -122,7 +121,7 @@ class BasicBlock {
     Varint::writeFlag(flag, data_ + offset, size_ - offset);
   }
 
- private:
+private:
   typedef typename std::conditional<IsReadOnly, const char, char>::type Char;
 
   Char* current() const { return data_ + offset_; }
@@ -175,7 +174,7 @@ static_assert(mt::hasExpectedSize<ReadOnlyBlock>(12, 16),
 static_assert(mt::hasExpectedSize<ExtendedReadOnlyBlock>(20, 24),
               "class ReadOnlyBlock does not have expected size");
 
-}  // namespace internal
-}  // namespace multimap
+} // namespace internal
+} // namespace multimap
 
-#endif  // MULTIMAP_INTERNAL_BLOCK_HPP_INCLUDED
+#endif // MULTIMAP_INTERNAL_BLOCK_HPP_INCLUDED

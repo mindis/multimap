@@ -38,7 +38,7 @@ class List {
   //   * Dependency injection, e.g. for `List::add()`.
   //   * `List::mutex_` is allocated only on demand.
 
- public:
+public:
   struct Limits {
     static uint32_t maxValueSize();
   };
@@ -61,10 +61,9 @@ class List {
   static_assert(mt::hasExpectedSize<Head>(20, 24),
                 "class Head does not have expected size");
 
-  template <bool IsMutable>
-  class Iter {
+  template <bool IsMutable> class Iter {
     class Stream : mt::Resource {
-     public:
+    public:
       static const uint32_t BLOCK_CACHE_SIZE = 1024;
 
       MT_ENABLE_IF(IsMutable)
@@ -129,7 +128,7 @@ class List {
             size -= nbytes;
 
           } else {
-            loadNextBlocks(false);  // Keeps target of `size_with_flag_ptr_`.
+            loadNextBlocks(false); // Keeps target of `size_with_flag_ptr_`.
           }
         } while (size > 0);
       }
@@ -147,7 +146,7 @@ class List {
         }
       }
 
-     private:
+    private:
       void loadNextBlocks(bool replace_current_blocks) {
         const auto block_size = store_->getBlockSize();
         if (replace_current_blocks) {
@@ -208,7 +207,7 @@ class List {
       Arena arena_;
     };
 
-   public:
+  public:
     Iter() : list_(nullptr) {}
 
     MT_ENABLE_IF(IsMutable)
@@ -266,7 +265,7 @@ class List {
     // Preconditions:
     //  * `next()` must have been called.
 
-   private:
+  private:
     struct Stats {
       uint32_t available = 0;
       bool load_next_value = true;
@@ -331,7 +330,7 @@ class List {
     MutexPoolConfig() = delete;
   };
 
- private:
+private:
   void createMutexUnlocked() const;
   void deleteMutexUnlocked() const;
 
@@ -359,15 +358,14 @@ inline bool operator!=(const List::Head& lhs, const List::Head& rhs) {
   return !(lhs == rhs);
 }
 
-template <>
-inline void List::Iter<true>::Stream::writeBackMutatedBlocks() {
+template <> inline void List::Iter<true>::Stream::writeBackMutatedBlocks() {
   if (store_) {
     store_->replace(blocks_);
   }
 }
 
 class SharedList {
- public:
+public:
   typedef List::Iterator Iterator;
 
   SharedList() = default;
@@ -414,7 +412,7 @@ class SharedList {
 
   bool empty() const { return list_->empty(); }
 
- private:
+private:
   const List* release() {
     auto list = list_;
     list_ = nullptr;
@@ -428,7 +426,7 @@ class SharedList {
 };
 
 class SharedListIterator {
- public:
+public:
   SharedListIterator() = default;
 
   SharedListIterator(SharedList&& list) : list_(std::move(list)) {
@@ -448,13 +446,13 @@ class SharedListIterator {
 
   Bytes peekNext() { return iter_.peekNext(); }
 
- private:
+private:
   List::Iterator iter_;
   SharedList list_;
 };
 
 class UniqueList {
- public:
+public:
   typedef List::MutableIterator Iterator;
 
   UniqueList() = default;
@@ -505,7 +503,7 @@ class UniqueList {
 
   void clear() { list_->clear(); }
 
- private:
+private:
   List* release() {
     auto list = list_;
     list_ = nullptr;
@@ -520,7 +518,7 @@ class UniqueList {
 };
 
 class UniqueListIterator {
- public:
+public:
   UniqueListIterator() = default;
 
   UniqueListIterator(UniqueList&& list) : list_(std::move(list)) {
@@ -542,12 +540,12 @@ class UniqueListIterator {
 
   void remove() { iter_.remove(); }
 
- private:
+private:
   List::MutableIterator iter_;
   UniqueList list_;
 };
 
-}  // namespace internal
-}  // namespace multimap
+} // namespace internal
+} // namespace multimap
 
-#endif  // MULTIMAP_INTERNAL_LIST_HPP_INCLUDED
+#endif // MULTIMAP_INTERNAL_LIST_HPP_INCLUDED

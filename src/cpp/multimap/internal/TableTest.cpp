@@ -263,31 +263,36 @@ TEST_F(TableTestFixture, ReplaceValueReplacesOnlyFirstMatch) {
   table->put(k1, v2);
   table->put(k1, v3);
   auto rotate_any = [&](const Bytes& value) {
-    if (value == v1) return v2;
-    if (value == v2) return v3;
-    if (value == v3) return v1;
+    if (value == v1)
+      return v2;
+    if (value == v2)
+      return v3;
+    if (value == v3)
+      return v1;
     return std::string();
   };
   ASSERT_TRUE(table->replaceValue(k1, rotate_any));
   auto iter = table->get(k1);
   ASSERT_THAT(iter.next(), Eq(v2));
   ASSERT_THAT(iter.next(), Eq(v3));
-  ASSERT_THAT(iter.next(), Eq(v2));  // v1 replacement
+  ASSERT_THAT(iter.next(), Eq(v2)); // v1 replacement
   ASSERT_FALSE(iter.hasNext());
 
   table->put(k2, v1);
   table->put(k2, v2);
   table->put(k2, v3);
   auto rotate_v2_or_v3 = [&](const Bytes& value) {
-    if (value == v2) return v3;
-    if (value == v3) return v1;
+    if (value == v2)
+      return v3;
+    if (value == v3)
+      return v1;
     return std::string();
   };
   ASSERT_TRUE(table->replaceValue(k2, rotate_v2_or_v3));
   iter = table->get(k2);
   ASSERT_THAT(iter.next(), Eq(v1));
   ASSERT_THAT(iter.next(), Eq(v3));
-  ASSERT_THAT(iter.next(), Eq(v3));  // v2 replacement
+  ASSERT_THAT(iter.next(), Eq(v3)); // v2 replacement
   ASSERT_FALSE(iter.hasNext());
 }
 
@@ -297,31 +302,36 @@ TEST_F(TableTestFixture, ReplaceValuesReplacesAllMatches) {
   table->put(k1, v2);
   table->put(k1, v3);
   auto rotate_any = [&](const Bytes& value) {
-    if (value == v1) return v2;
-    if (value == v2) return v3;
-    if (value == v3) return v1;
+    if (value == v1)
+      return v2;
+    if (value == v2)
+      return v3;
+    if (value == v3)
+      return v1;
     return std::string();
   };
   ASSERT_THAT(table->replaceValues(k1, rotate_any), Eq(3));
   auto iter = table->get(k1);
-  ASSERT_THAT(iter.next(), Eq(v2));  // v1 replacement
-  ASSERT_THAT(iter.next(), Eq(v3));  // v2 replacement
-  ASSERT_THAT(iter.next(), Eq(v1));  // v3 replacement
+  ASSERT_THAT(iter.next(), Eq(v2)); // v1 replacement
+  ASSERT_THAT(iter.next(), Eq(v3)); // v2 replacement
+  ASSERT_THAT(iter.next(), Eq(v1)); // v3 replacement
   ASSERT_FALSE(iter.hasNext());
 
   table->put(k2, v1);
   table->put(k2, v2);
   table->put(k2, v3);
   auto rotate_v2_or_v3 = [&](const Bytes& value) {
-    if (value == v2) return v3;
-    if (value == v3) return v1;
+    if (value == v2)
+      return v3;
+    if (value == v3)
+      return v1;
     return std::string();
   };
   ASSERT_THAT(table->replaceValues(k2, rotate_v2_or_v3), Eq(2));
   iter = table->get(k2);
   ASSERT_THAT(iter.next(), Eq(v1));
-  ASSERT_THAT(iter.next(), Eq(v3));  // v2 replacement
-  ASSERT_THAT(iter.next(), Eq(v1));  // v3 replacement
+  ASSERT_THAT(iter.next(), Eq(v3)); // v2 replacement
+  ASSERT_THAT(iter.next(), Eq(v1)); // v3 replacement
   ASSERT_FALSE(iter.hasNext());
 }
 
@@ -401,7 +411,7 @@ TEST_F(TableTestFixture, ForEachEntryIgnoresEmptyLists) {
   table->put(k3, v1);
   table->put(k3, v2);
   table->put(k3, v3);
-  std::map<std::string, std::vector<std::string>> mapping;
+  std::map<std::string, std::vector<std::string> > mapping;
   auto collect = [&](const Bytes& key, SharedListIterator&& iter) {
     while (iter.hasNext()) {
       mapping[key.toString()].push_back(iter.next().toString());
@@ -903,5 +913,5 @@ TEST(TableStatsTest, NamesAndToVectorHaveSameDimension) {
   ASSERT_THAT(names.size(), Eq(vector.size()));
 }
 
-}  // namespace internal
-}  // namespace multimap
+} // namespace internal
+} // namespace multimap

@@ -44,24 +44,22 @@ struct BytesRaiiHelper : mt::Resource {
 
   const Bytes& get() const { return bytes_; }
 
- private:
+private:
   JNIEnv* env_;
   const jbyteArray array_;
   const Bytes bytes_;
 };
 
-template <typename T>
-struct Owner : mt::Resource {
+template <typename T> struct Owner : mt::Resource {
   Owner(T&& value) : value_(std::move(value)) {}
 
   T& get() { return value_; }
 
- private:
+private:
   T value_;
 };
 
-template <typename T>
-Owner<T>* newOwner(T&& value) {
+template <typename T> Owner<T>* newOwner(T&& value) {
   return new Owner<T>(std::move(value));
 }
 
@@ -70,20 +68,18 @@ inline jobject newDirectByteBuffer(JNIEnv* env, const Bytes& bytes) {
                                   bytes.size());
 }
 
-template <typename T>
-jobject toDirectByteBuffer(JNIEnv* env, T* ptr) {
+template <typename T> jobject toDirectByteBuffer(JNIEnv* env, T* ptr) {
   MT_REQUIRE_NOT_NULL(ptr);
   return env->NewDirectByteBuffer(ptr, sizeof ptr);
 }
 
-template <typename T>
-T* fromDirectByteBuffer(JNIEnv* env, jobject jbuf) {
+template <typename T> T* fromDirectByteBuffer(JNIEnv* env, jobject jbuf) {
   MT_REQUIRE_NOT_NULL(jbuf);
   return static_cast<T*>(env->GetDirectBufferAddress(jbuf));
 }
 
 class JavaCallable {
- public:
+public:
   JavaCallable(JNIEnv* env, jobject obj, const char* signature)
       : env_(env), obj_(obj) {
     const auto cls = env->GetObjectClass(obj);
@@ -91,14 +87,14 @@ class JavaCallable {
     mt::Check::notNull(mid_, "GetMethodID() failed");
   }
 
- protected:
+protected:
   JNIEnv* env_;
   jobject obj_;
   jmethodID mid_;
 };
 
 class JavaCompare : public JavaCallable {
- public:
+public:
   typedef JavaCallable Base;
 
   JavaCompare(JNIEnv* env, jobject obj)
@@ -122,7 +118,7 @@ class JavaCompare : public JavaCallable {
 };
 
 class JavaFunction : public JavaCallable {
- public:
+public:
   typedef JavaCallable Base;
 
   JavaFunction(JNIEnv* env, jobject obj)
@@ -146,7 +142,7 @@ class JavaFunction : public JavaCallable {
 };
 
 class JavaPredicate : public JavaCallable {
- public:
+public:
   typedef JavaCallable Base;
 
   JavaPredicate(JNIEnv* env, jobject obj)
@@ -168,7 +164,7 @@ class JavaPredicate : public JavaCallable {
 };
 
 class JavaProcedure : public JavaCallable {
- public:
+public:
   typedef JavaCallable Base;
 
   JavaProcedure(JNIEnv* env, jobject obj)
@@ -195,7 +191,7 @@ std::string makeString(JNIEnv* env, jstring string);
 
 Options makeOptions(JNIEnv* env, jobject options);
 
-}  // namespace jni
-}  // namespace multimap
+} // namespace jni
+} // namespace multimap
 
-#endif  // MULTIMAP_JNI_COMMON_HPP_INCLUDED
+#endif // MULTIMAP_JNI_COMMON_HPP_INCLUDED

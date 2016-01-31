@@ -46,7 +46,7 @@ void forEachTable(const boost::filesystem::path& directory, Procdure process) {
   }
 }
 
-}  // namespace
+} // namespace
 
 Map::Id Map::Id::readFromDirectory(const boost::filesystem::path& directory) {
   return readFromFile(directory / internal::getNameOfIdFile());
@@ -346,5 +346,5 @@ void checkVersion(uint64_t major_version, uint64_t minor_version) {
             major_version, minor_version, MAJOR_VERSION, MINOR_VERSION);
 }
 
-}  // namespace internal
-}  // namespace multimap
+} // namespace internal
+} // namespace multimap

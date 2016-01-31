@@ -29,7 +29,7 @@ namespace multimap {
 namespace internal {
 
 class Store : mt::Resource {
- public:
+public:
   struct Options {
     uint32_t block_size = 512;
     uint32_t buffer_size = mt::MiB(1);
@@ -70,8 +70,7 @@ class Store : mt::Resource {
   // Public thread-safe interface, no external synchronization needed.
   // ---------------------------------------------------------------------------
 
-  template <bool IsMutable>
-  uint32_t put(const BasicBlock<IsMutable>& block) {
+  template <bool IsMutable> uint32_t put(const BasicBlock<IsMutable>& block) {
     MT_REQUIRE_EQ(block.size(), getBlockSize());
     std::lock_guard<std::mutex> lock(mutex_);
     return putUnlocked(block.data());
@@ -146,7 +145,7 @@ class Store : mt::Resource {
     return stats_;
   }
 
- private:
+private:
   // ---------------------------------------------------------------------------
   // Private non-thread-safe interface, needs external synchronization.
   // ---------------------------------------------------------------------------
@@ -191,7 +190,7 @@ class Store : mt::Resource {
   bool quiet_;
 };
 
-}  // namespace internal
-}  // namespace multimap
+} // namespace internal
+} // namespace multimap
 
-#endif  // MULTIMAP_INTERNAL_STORE_HPP_INCLUDED
+#endif // MULTIMAP_INTERNAL_STORE_HPP_INCLUDED

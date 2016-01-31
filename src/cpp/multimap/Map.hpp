@@ -33,7 +33,7 @@
 namespace multimap {
 
 class Map : mt::Resource {
- public:
+public:
   struct Id {
     uint64_t block_size = 0;
     uint64_t num_partitions = 0;
@@ -71,8 +71,7 @@ class Map : mt::Resource {
 
   bool removeKey(const Bytes& key) { return getTable(key).removeKey(key); }
 
-  template <typename Predicate>
-  uint32_t removeKeys(Predicate predicate) {
+  template <typename Predicate> uint32_t removeKeys(Predicate predicate) {
     uint32_t num_removed = 0;
     for (const auto& table : tables_) {
       num_removed += table->removeKeys(predicate);
@@ -110,8 +109,7 @@ class Map : mt::Resource {
     return getTable(key).replaceValues(key, old_value, new_value);
   }
 
-  template <typename Procedure>
-  void forEachKey(Procedure process) const {
+  template <typename Procedure> void forEachKey(Procedure process) const {
     for (const auto& table : tables_) {
       table->forEachKey(process);
     }
@@ -170,7 +168,7 @@ class Map : mt::Resource {
                        const boost::filesystem::path& output,
                        const Options& options);
 
- private:
+private:
   internal::Table& getTable(const Bytes& key) {
     return *tables_[mt::fnv1aHash(key.data(), key.size()) % tables_.size()];
   }
@@ -194,7 +192,7 @@ const std::string getNameOfStatsFile(uint32_t index);
 const std::string getNameOfValuesFile(uint32_t index);
 void checkVersion(uint64_t major_version, uint64_t minor_version);
 
-}  // namespace internal
-}  // namespace multimap
+} // namespace internal
+} // namespace multimap
 
-#endif  // MULTIMAP_MAP_HPP_INCLUDED
+#endif // MULTIMAP_MAP_HPP_INCLUDED

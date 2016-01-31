@@ -29,6 +29,6 @@ static const uint32_t MAJOR_VERSION = 0;
 static const uint32_t MINOR_VERSION = 3;
 static const uint32_t PATCH_VERSION = 0;
 
-}  // namespace multimap
+} // namespace multimap
 
-#endif  // MULTIMAP_VERSION_HPP_INCLUDED
+#endif // MULTIMAP_VERSION_HPP_INCLUDED

@@ -32,7 +32,7 @@ namespace multimap {
 namespace internal {
 
 class Table : mt::Resource {
- public:
+public:
   struct Limits {
     static uint32_t maxKeySize();
     static uint32_t maxValueSize();
@@ -111,8 +111,7 @@ class Table : mt::Resource {
     return removed;
   }
 
-  template <typename Predicate>
-  uint32_t removeKeys(Predicate predicate) {
+  template <typename Predicate> uint32_t removeKeys(Predicate predicate) {
     mt::check(!isReadOnly(), "Attempt to remove keys from read-only table");
     uint32_t num_removed = 0;
     boost::shared_lock<boost::shared_mutex> lock(mutex_);
@@ -163,8 +162,7 @@ class Table : mt::Resource {
     return replace(key, map, false);
   }
 
-  template <typename Procedure>
-  void forEachKey(Procedure process) const {
+  template <typename Procedure> void forEachKey(Procedure process) const {
     boost::shared_lock<boost::shared_mutex> lock(mutex_);
     for (const auto& entry : map_) {
       SharedList list(*entry.second, *store_);
@@ -228,7 +226,7 @@ class Table : mt::Resource {
   static std::string getNameOfStatsFile(const std::string& prefix);
   static std::string getNameOfValuesFile(const std::string& prefix);
 
- private:
+private:
   struct Entry : public std::pair<Bytes, List::Head> {
     typedef std::pair<Bytes, List::Head> Base;
 
@@ -311,7 +309,7 @@ class Table : mt::Resource {
   boost::filesystem::path prefix_;
 };
 
-}  // namespace internal
-}  // namespace multimap
+} // namespace internal
+} // namespace multimap
 
-#endif  // MULTIMAP_INTERNAL_TABLE_HPP_INCLUDED
+#endif // MULTIMAP_INTERNAL_TABLE_HPP_INCLUDED

@@ -55,4 +55,4 @@ TEST(CallablesTest, TestEndsWith) {
   ASSERT_FALSE(EndsWith("bc")("abcd"));
 }
 
-}  // namespace multimap
+} // namespace multimap

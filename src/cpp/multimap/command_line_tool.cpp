@@ -33,8 +33,8 @@ const auto CREATE = "--create";
 const auto NPARTS = "--nparts";
 const auto QUIET = "--quiet";
 
-const auto COMMANDS = {HELP, STATS, IMPORT, EXPORT, OPTIMIZE};
-const auto OPTIONS = {BS, CREATE, NPARTS, QUIET};
+const auto COMMANDS = { HELP, STATS, IMPORT, EXPORT, OPTIMIZE };
+const auto OPTIONS = { BS, CREATE, NPARTS, QUIET };
 
 struct CommandLine {
   struct Error : public std::runtime_error {

@@ -25,7 +25,7 @@
  * Signature: ()I
  */
 JNIEXPORT jint JNICALL
-    Java_io_multimap_Map_00024Limits_00024Native_maxKeySize(JNIEnv*, jclass) {
+Java_io_multimap_Map_00024Limits_00024Native_maxKeySize(JNIEnv*, jclass) {
   return multimap::Map::Limits::maxKeySize();
 }
 
@@ -35,6 +35,6 @@ JNIEXPORT jint JNICALL
  * Signature: ()I
  */
 JNIEXPORT jint JNICALL
-    Java_io_multimap_Map_00024Limits_00024Native_maxValueSize(JNIEnv*, jclass) {
+Java_io_multimap_Map_00024Limits_00024Native_maxValueSize(JNIEnv*, jclass) {
   return multimap::Map::Limits::maxValueSize();
 }

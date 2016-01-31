@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include <cstring>  // For std::memset
+#include <cstring> // For std::memset
 #include <type_traits>
 #include "gmock/gmock.h"
 #include "multimap/internal/Varint.hpp"
@@ -435,10 +435,10 @@ TEST_F(VarintTestFixture, ReadValueWithFlagIntoNullFlagThrows) {
 }
 
 TEST_F(VarintTestFixture, WriteAndReadSequenceOfValues) {
-  uint32_t values[] = {(Varint::Limits::MAX_N1 - Varint::Limits::MIN_N1) / 2,
-                       (Varint::Limits::MAX_N2 - Varint::Limits::MIN_N2) / 2,
-                       (Varint::Limits::MAX_N3 - Varint::Limits::MIN_N3) / 2,
-                       (Varint::Limits::MAX_N4 - Varint::Limits::MIN_N4) / 2};
+  uint32_t values[] = { (Varint::Limits::MAX_N1 - Varint::Limits::MIN_N1) / 2,
+                        (Varint::Limits::MAX_N2 - Varint::Limits::MIN_N2) / 2,
+                        (Varint::Limits::MAX_N3 - Varint::Limits::MIN_N3) / 2,
+                        (Varint::Limits::MAX_N4 - Varint::Limits::MIN_N4) / 2 };
   auto p = b32;
   p += Varint::writeUint(values[0], p, sizeof b32 - (p - b32));
   p += Varint::writeUint(values[1], p, sizeof b32 - (p - b32));
@@ -460,11 +460,11 @@ TEST_F(VarintTestFixture, WriteAndReadSequenceOfValues) {
 
 TEST_F(VarintTestFixture, WriteAndReadSequenceOfValuesWithTrueFlags) {
   uint32_t values[] = {
-      (Varint::Limits::MAX_N1_WITH_FLAG - Varint::Limits::MIN_N1_WITH_FLAG) / 2,
-      (Varint::Limits::MAX_N2_WITH_FLAG - Varint::Limits::MIN_N2_WITH_FLAG) / 2,
-      (Varint::Limits::MAX_N3_WITH_FLAG - Varint::Limits::MIN_N3_WITH_FLAG) / 2,
-      (Varint::Limits::MAX_N4_WITH_FLAG - Varint::Limits::MIN_N4_WITH_FLAG) /
-          2};
+    (Varint::Limits::MAX_N1_WITH_FLAG - Varint::Limits::MIN_N1_WITH_FLAG) / 2,
+    (Varint::Limits::MAX_N2_WITH_FLAG - Varint::Limits::MIN_N2_WITH_FLAG) / 2,
+    (Varint::Limits::MAX_N3_WITH_FLAG - Varint::Limits::MIN_N3_WITH_FLAG) / 2,
+    (Varint::Limits::MAX_N4_WITH_FLAG - Varint::Limits::MIN_N4_WITH_FLAG) / 2
+  };
   auto p = b32;
   p += Varint::writeUintWithFlag(values[0], true, p, sizeof b32 - (p - b32));
   p += Varint::writeUintWithFlag(values[1], true, p, sizeof b32 - (p - b32));
@@ -498,11 +498,11 @@ TEST_F(VarintTestFixture, WriteAndReadSequenceOfValuesWithTrueFlags) {
 
 TEST_F(VarintTestFixture, WriteAndReadSequenceOfValuesWithFalseFlags) {
   uint32_t values[] = {
-      (Varint::Limits::MAX_N1_WITH_FLAG - Varint::Limits::MIN_N1_WITH_FLAG) / 2,
-      (Varint::Limits::MAX_N2_WITH_FLAG - Varint::Limits::MIN_N2_WITH_FLAG) / 2,
-      (Varint::Limits::MAX_N3_WITH_FLAG - Varint::Limits::MIN_N3_WITH_FLAG) / 2,
-      (Varint::Limits::MAX_N4_WITH_FLAG - Varint::Limits::MIN_N4_WITH_FLAG) /
-          2};
+    (Varint::Limits::MAX_N1_WITH_FLAG - Varint::Limits::MIN_N1_WITH_FLAG) / 2,
+    (Varint::Limits::MAX_N2_WITH_FLAG - Varint::Limits::MIN_N2_WITH_FLAG) / 2,
+    (Varint::Limits::MAX_N3_WITH_FLAG - Varint::Limits::MIN_N3_WITH_FLAG) / 2,
+    (Varint::Limits::MAX_N4_WITH_FLAG - Varint::Limits::MIN_N4_WITH_FLAG) / 2
+  };
   auto p = b32;
   p += Varint::writeUintWithFlag(values[0], false, p, sizeof b32 - (p - b32));
   p += Varint::writeUintWithFlag(values[1], false, p, sizeof b32 - (p - b32));
@@ -536,11 +536,11 @@ TEST_F(VarintTestFixture, WriteAndReadSequenceOfValuesWithFalseFlags) {
 
 TEST_F(VarintTestFixture, WriteAndReadSequenceOfValuesWithTrueAndFalseFlags) {
   uint32_t values[] = {
-      (Varint::Limits::MAX_N1_WITH_FLAG - Varint::Limits::MIN_N1_WITH_FLAG) / 2,
-      (Varint::Limits::MAX_N2_WITH_FLAG - Varint::Limits::MIN_N2_WITH_FLAG) / 2,
-      (Varint::Limits::MAX_N3_WITH_FLAG - Varint::Limits::MIN_N3_WITH_FLAG) / 2,
-      (Varint::Limits::MAX_N4_WITH_FLAG - Varint::Limits::MIN_N4_WITH_FLAG) /
-          2};
+    (Varint::Limits::MAX_N1_WITH_FLAG - Varint::Limits::MIN_N1_WITH_FLAG) / 2,
+    (Varint::Limits::MAX_N2_WITH_FLAG - Varint::Limits::MIN_N2_WITH_FLAG) / 2,
+    (Varint::Limits::MAX_N3_WITH_FLAG - Varint::Limits::MIN_N3_WITH_FLAG) / 2,
+    (Varint::Limits::MAX_N4_WITH_FLAG - Varint::Limits::MIN_N4_WITH_FLAG) / 2
+  };
   auto p = b32;
   p += Varint::writeUintWithFlag(values[0], true, p, sizeof b32 - (p - b32));
   p += Varint::writeUintWithFlag(values[1], false, p, sizeof b32 - (p - b32));
@@ -589,5 +589,5 @@ TEST_F(VarintTestFixture, WriteFalseFlagToEmptyBufferThrows) {
   ASSERT_THROW(Varint::writeFlag(false, b4, 0), mt::AssertionError);
 }
 
-}  // namespace internal
-}  // namespace multimap
+} // namespace internal
+} // namespace multimap

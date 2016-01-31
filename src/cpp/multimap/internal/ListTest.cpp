@@ -114,14 +114,14 @@ struct ListTestIteration : testing::TestWithParam<uint32_t> {
   }
 
   void TearDown() override {
-    store.reset();  // Destructor flushes all data to disk.
+    store.reset(); // Destructor flushes all data to disk.
     MT_ASSERT_TRUE(boost::filesystem::remove_all(directory));
   }
 
   Store* getStore() { return store.get(); }
   Arena* getArena() { return &arena; }
 
- private:
+private:
   boost::filesystem::path directory;
   std::unique_ptr<Store> store;
   Arena arena;
@@ -261,9 +261,9 @@ TEST(ListTest, LockUniqueFailsIfAlreadyLockedUnique) {
 
   bool other_thread_acquired_unique_lock = false;
   std::thread([&] {
-                list.lock();
-                other_thread_acquired_unique_lock = true;
-              }).detach();
+    list.lock();
+    other_thread_acquired_unique_lock = true;
+  }).detach();
   std::this_thread::sleep_for(std::chrono::milliseconds(10));
   ASSERT_FALSE(other_thread_acquired_unique_lock);
 
@@ -281,9 +281,9 @@ TEST(ListTest, LockSharedFailsIfAlreadyLockedUnique) {
 
   bool other_thread_acquired_shared_lock = false;
   std::thread([&] {
-                list.lock_shared();
-                other_thread_acquired_shared_lock = true;
-              }).detach();
+    list.lock_shared();
+    other_thread_acquired_shared_lock = true;
+  }).detach();
   std::this_thread::sleep_for(std::chrono::milliseconds(10));
   ASSERT_FALSE(other_thread_acquired_shared_lock);
 
@@ -301,9 +301,9 @@ TEST(ListTest, LockUniqueFailsIfAlreadyLockedShared) {
 
   bool other_thread_acquired_unique_lock = false;
   std::thread([&] {
-                list.lock();
-                other_thread_acquired_unique_lock = true;
-              }).detach();
+    list.lock();
+    other_thread_acquired_unique_lock = true;
+  }).detach();
   std::this_thread::sleep_for(std::chrono::milliseconds(10));
   ASSERT_FALSE(other_thread_acquired_unique_lock);
 
@@ -321,9 +321,9 @@ TEST(ListTest, LockSharedSucceedsIfAlreadyLockedShared) {
 
   bool other_thread_acquired_shared_lock = false;
   std::thread([&] {
-                list.lock_shared();
-                other_thread_acquired_shared_lock = true;
-              }).detach();
+    list.lock_shared();
+    other_thread_acquired_shared_lock = true;
+  }).detach();
   std::this_thread::sleep_for(std::chrono::milliseconds(10));
   ASSERT_TRUE(other_thread_acquired_shared_lock);
 
@@ -560,5 +560,5 @@ TEST_P(UniqueListIteratorTestWithParam,
 INSTANTIATE_TEST_CASE_P(Parameterized, UniqueListIteratorTestWithParam,
                         testing::Values(0, 1, 2, 10, 100, 1000, 1000000));
 
-}  // namespace internal
-}  // namespace multimap
+} // namespace internal
+} // namespace multimap

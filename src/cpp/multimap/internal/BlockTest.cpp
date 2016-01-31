@@ -240,5 +240,5 @@ TEST(ExtendedReadWriteBlockTest, DefaultConstructedHasProperState) {
   ASSERT_FALSE(ExtendedReadWriteBlock().ignore);
 }
 
-}  // namespace internal
-}  // namespace multimap
+} // namespace internal
+} // namespace multimap

@@ -45,7 +45,7 @@ void removeStatsFromTail(int fd) {
   mt::truncate(fd, end_of_data);
 }
 
-}  // namespace
+} // namespace
 
 Store::Stats Store::Stats::fromProperties(const mt::Properties& properties) {
   Stats stats;
@@ -194,5 +194,5 @@ char* Store::getAddressOf(uint32_t id) const {
   }
 }
 
-}  // namespace internal
-}  // namespace multimap
+} // namespace internal
+} // namespace multimap
