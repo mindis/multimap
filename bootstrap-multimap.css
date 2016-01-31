@@ -3,12 +3,8 @@
  * Copyright 2015 Martin Trenkmann
  * Licensed under AGPL (https://gnu.org/licenses/agpl.html)
  */
-a.navbar-brand {
+span.navbar-brand {
   font-family: 'Faster One', cursive;
-}
-
-a.navbar-brand:focus {
-  outline: 0;
 }
 
 div.reference-more {
