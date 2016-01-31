@@ -19,8 +19,8 @@ javac -sourcepath $SOURCE_DIR -d $BUILD_DIR ${SOURCE_FILES[*]}
 
 MAJOR_VERSION=$(grep MAJOR_VERSION src/cpp/multimap/version.hpp | cut -d';' -f1 | cut -d' ' -f6)
 MINOR_VERSION=$(grep MINOR_VERSION src/cpp/multimap/version.hpp | cut -d';' -f1 | cut -d' ' -f6)
-BUILD_VERSION=$(grep BUILD_VERSION src/cpp/multimap/version.hpp | cut -d';' -f1 | cut -d' ' -f6)
-JAR_FILE=multimap-$MAJOR_VERSION.$MINOR_VERSION.$BUILD_VERSION.jar
+PATCH_VERSION=$(grep PATCH_VERSION src/cpp/multimap/version.hpp | cut -d';' -f1 | cut -d' ' -f6)
+JAR_FILE=multimap-$MAJOR_VERSION.$MINOR_VERSION.$PATCH_VERSION.jar
 
 jar cf $JAR_FILE $BUILD_DIR
 rm -rf $BUILD_DIR

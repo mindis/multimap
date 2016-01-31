@@ -1,6 +1,6 @@
 TEMPLATE = lib
 TARGET = multimap-jni
-VERSION = 0.3
+VERSION = 0.3.0
 
 COMMON = multimap.pri
 !include($$COMMON) {
