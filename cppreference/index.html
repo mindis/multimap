@@ -985,7 +985,7 @@ namespace multimap
   <code><script>nbsp(8)</script>const boost::filesystem::path & directory,</code><br>
   <code><script>nbsp(8)</script>const boost::filesystem::path & input)</code>
  </h4>
- <p>Imports key-value pairs from an input file or directory into the map located in directory. If input refers to a directory all files in that directory will be imported, except hidden files starting with a dot and other sub-directories. A description of the file format can be found in the <a href="/overview/#multimap-import">overview</a> section.</p>
+ <p>Imports key-value pairs from an input file or directory into the map located in directory. If input refers to a directory all files in that directory will be imported, except hidden files starting with a dot and other sub-directories. A description of the file format can be found in the <a href="overview/#multimap-import">overview</a> section.</p>
  <p><span class="acquires" />a <a href="#directory-lock">directory lock</a> on directory.</p>
  <p><span class="throws" /> everything thrown by the constructor of class <a href="#class-map">Map</a> or <a href="http://en.cppreference.com/w/cpp/error/runtime_error" target="_blank">std::runtime_error</a> if the input file or directory cannot be read.</p>
 </div>
@@ -996,7 +996,7 @@ namespace multimap
   <code><script>nbsp(8)</script>const boost::filesystem::path & directory,</code><br>
   <code><script>nbsp(8)</script>const boost::filesystem::path & output)</code>
  </h4>
- <p>Exports all key-value pairs from the map located in directory to a file denoted by output. If the file already exists, its content will be overwritten. The generated file is in canonical form as described in the <a href="/overview/#multimap-export">overview</a> section.</p>
+ <p>Exports all key-value pairs from the map located in directory to a file denoted by output. If the file already exists, its content will be overwritten. The generated file is in canonical form as described in the <a href="overview/#multimap-export">overview</a> section.</p>
  <p><span class="acquires" />a <a href="#directory-lock">directory lock</a> on directory.</p>
  <p><span class="throws" /><a href="http://en.cppreference.com/w/cpp/error/runtime_error" target="_blank">std::runtime_error</a> if one of the following is true:</p>
  <ul>
@@ -1013,7 +1013,7 @@ namespace multimap
   <code><script>nbsp(8)</script>const boost::filesystem::path & directory,</code><br>
   <code><script>nbsp(8)</script>const boost::filesystem::path & output)</code>
  </h4>
- <p>Rewrites the map located in directory to the directory denoted by output performing various optimizations. For more details please refer to the <a href="/overview/#multimap-optimize">overview</a> section.</p>
+ <p>Rewrites the map located in directory to the directory denoted by output performing various optimizations. For more details please refer to the <a href="overview/#multimap-optimize">overview</a> section.</p>
  <p><span class="acquires" />a <a href="#directory-lock">directory lock</a> on directory.</p>
  <p><span class="throws" /><a href="http://en.cppreference.com/w/cpp/error/runtime_error" target="_blank">std::runtime_error</a> if one of the following is true:</p>
  <ul>
@@ -1156,7 +1156,7 @@ namespace multimap
   <td><code>uint64_t</code></td>
   <td>
    <code>num_blocks</code>
-   <div>Tells the number of blocks currently written to disk. Note that in-memory write buffer blocks that are associated with each keys are not taken into account. For more details please refer to the <a href="/overview/#block-organization">overview</a> section.<div>
+   <div>Tells the number of blocks currently written to disk. Note that in-memory write buffer blocks that are associated with each keys are not taken into account. For more details please refer to the <a href="overview/#block-organization">overview</a> section.<div>
   </td>
  </tr>
  <tr>
@@ -1177,7 +1177,7 @@ namespace multimap
   <td><code>uint64_t</code></td>
   <td>
    <code>num_values_total</code>
-   <div>Tells the total number of values in a map or partition, including values that are marked as removed. Note that this number can only be decreased by running an <a href="/overview/#multimap-optimize">optimize</a> operation.
+   <div>Tells the total number of values in a map or partition, including values that are marked as removed. Note that this number can only be decreased by running an <a href="overview/#multimap-optimize">optimize</a> operation.
   </td>
  </tr>
  <tr>
@@ -1206,14 +1206,14 @@ namespace multimap
   <td><code>uint32_t</code></td>
   <td>
    <code>block_size</code>
-   <div>Defines the block size in number of bytes for a newly created map or partition. The value must be a power of two. Typical block sizes are 128, 256, 512 (default), 1024, or even larger. Please refer to the <a href="/overview/#block-organization">overview</a> section for more details.<div>
+   <div>Defines the block size in number of bytes for a newly created map or partition. The value must be a power of two. Typical block sizes are 128, 256, 512 (default), 1024, or even larger. Please refer to the <a href="overview/#block-organization">overview</a> section for more details.<div>
   </td>
  </tr>
  <tr>
   <td><code>uint32_t</code></td>
   <td>
    <code>num_partitions</code>
-   <div>Defines the number of partitions for a newly created map. The purpose of partitioning is to increase the performance of the <a href="/overview/#multimap-export">export</a> and <a href="/overview/#multimap-optimize">optimize</a> operations by applying a divide and conquer method. A suitable number can be estimated like this: "total number of value-bytes to be put" divided by "the memory allowed to be used running the operation". An underestimate can lead to long runtimes for the mentioned operations. The default value is 23; other values will be rounded to the next prime number that is greater or equal to the given value.<div>
+   <div>Defines the number of partitions for a newly created map. The purpose of partitioning is to increase the performance of the <a href="overview/#multimap-export">export</a> and <a href="overview/#multimap-optimize">optimize</a> operations by applying a divide and conquer method. A suitable number can be estimated like this: "total number of value-bytes to be put" divided by "the memory allowed to be used running the operation". An underestimate can lead to long runtimes for the mentioned operations. The default value is 23; other values will be rounded to the next prime number that is greater or equal to the given value.<div>
   </td>
  </tr>
  <tr>
@@ -1255,7 +1255,7 @@ namespace multimap
   <td><code>Compare</code></td>
   <td>
    <code>compare</code>
-   <div>A callable that implements the <a href="#compare">Compare</a> interface. It is used to sort lists of values when running certain operations such as <a href="/overview/#multimap-export">export</a> or <a href="/overview/#multimap-optimize">optimize</a>. Actually this member is a <a href="http://en.cppreference.com/w/cpp/utility/functional/function" target="_blank">function wrapper</a>, not a generic type, which can be left empty (default) if no sorting is desired.<div>
+   <div>A callable that implements the <a href="#compare">Compare</a> interface. It is used to sort lists of values when running certain operations such as <a href="overview/#multimap-export">export</a> or <a href="overview/#multimap-optimize">optimize</a>. Actually this member is a <a href="http://en.cppreference.com/w/cpp/utility/functional/function" target="_blank">function wrapper</a>, not a generic type, which can be left empty (default) if no sorting is desired.<div>
   </td>
  </tr>
  <tr>
@@ -1265,14 +1265,14 @@ namespace multimap
   <td><code>void</code></td>
   <td>
    <code>keepNumPartitions()</code>
-   <div>Sets <code>num_partitions</code> to a special value that indicates to the <a href="/overview/#multimap-optimize">optimize</a> operation that the number of partitions should not be changed. <div>
+   <div>Sets <code>num_partitions</code> to a special value that indicates to the <a href="overview/#multimap-optimize">optimize</a> operation that the number of partitions should not be changed. <div>
   </td>
  </tr>
  <tr>
   <td><code>void</code></td>
   <td>
    <code>keepBlockSize()</code>
-   <div>Sets <code>block_size</code> to a special value that indicates to the <a href="/overview/#multimap-optimize">optimize</a> operation that the block size should not be changed.<div>
+   <div>Sets <code>block_size</code> to a special value that indicates to the <a href="overview/#multimap-optimize">optimize</a> operation that the block size should not be changed.<div>
   </td>
  </tr>
 </tbody>
