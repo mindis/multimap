@@ -1,9 +1,9 @@
 CONFIG -= qt
+CONFIG += c++11
 DEFINES -= QT_WEBKIT
 
-QMAKE_CXXFLAGS += -std=c++11
-QMAKE_LFLAGS += -rdynamic
-# Needed for GNU backtrace
+QMAKE_CXXFLAGS += -std=c++11  # for Qt4 compatibility
+QMAKE_LFLAGS += -rdynamic     # for GNU backtrace
 
 INCLUDEPATH += \
     src/cpp \
