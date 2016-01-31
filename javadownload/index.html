@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <meta name="description" content="1:n key-value store for C++ and Java">
+    <meta name="author" content="Martin Trenkmann">
+    <link rel="icon" href="../favicon.ico">
+    <title>Multimap</title>
+    
+    <!-- jQuery -->
+    <script src="http://code.jquery.com/jquery-1.11.3.min.js"></script>
+    
+    <!-- Bootstrap -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+    
+    <!-- highlight.js -->
+    <link rel="stylesheet" href="http://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.8.0/styles/googlecode.min.css">
+    <script src="http://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.8.0/highlight.min.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+    
+    <!-- Fonts -->
+    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="http://fonts.googleapis.com/css?family=Faster+One">
+    <!--
+    <link rel="stylesheet" href="https://code.cdn.mozilla.net/fonts/fira.css">
+    Firefox Console: The stylesheet https://code.cdn.mozilla.net/fonts/fira.css
+    was not loaded because its MIME type, "application/octet-stream", is not "text/css".
+    -->
+    <link rel="stylesheet" href="../fonts/fira.css">
+    
+    <!-- Customized Bootstrap style -->
+    <link rel="stylesheet" href="../bootstrap-multimap.css">
+    
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+    <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+    <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    
+    <script>
+      function nbsp(n) {
+        for (var i = 0; i < n; ++i) {
+          document.write("&nbsp;");
+        }
+      }
+    </script>
+  </head>
+  
+  <body data-spy="scroll" data-target="#multimap-sidebar" data-offset="50">
+    <div id="main">
+      <nav class="navbar navbar-inverse navbar-static-top">
+        <div class="container">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#multimap-navbar-collapse" aria-expanded="false">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="..">Multimap</a>
+        </div>
+        <div class="container">
+          <div class="collapse navbar-collapse" id="multimap-navbar-collapse">
+            <ul class="nav navbar-nav">
+              
+                
+                  <li >
+                    <a href="..">Home</a>
+                  </li>
+                
+              
+                
+                  <li >
+                    <a href="../overview/">Overview</a>
+                  </li>
+                
+              
+                
+                  <li class="dropdown ">
+                    <a href="#">Tutorials <span class="caret"></span></a>
+                    <ul class="dropdown-menu">
+                      
+                        
+                          <li class="dropdown-header">C++</li>
+                          
+                            <li >
+                              <a href="../cppbasics/">Basics</a>
+                            </li>
+                          
+                        
+                      
+                        
+                          <li class="dropdown-header">Java</li>
+                          
+                            <li >
+                              <a href="../javabasics/">Basics</a>
+                            </li>
+                          
+                        
+                      
+                    </ul>
+                  </li>
+                
+              
+                
+                  <li class="dropdown ">
+                    <a href="#">Reference <span class="caret"></span></a>
+                    <ul class="dropdown-menu">
+                      
+                        
+                          <li >
+                            <a href="../cppreference/">C++ Reference</a>
+                          </li>
+                        
+                      
+                        
+                          <li >
+                            <a href="../javareference/">Java Reference</a>
+                          </li>
+                        
+                      
+                    </ul>
+                  </li>
+                
+              
+                
+                  <li class="dropdown  active ">
+                    <a href="#">Downloads <span class="caret"></span></a>
+                    <ul class="dropdown-menu">
+                      
+                        
+                          <li >
+                            <a href="../cppdownload/">for C++ Developers</a>
+                          </li>
+                        
+                      
+                        
+                          <li  class="active" >
+                            <a href="./">for Java Developers</a>
+                          </li>
+                        
+                      
+                    </ul>
+                  </li>
+                
+              
+              
+              <li class="dropdown">
+                <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">GitHub <span class="caret"></span></a>
+                <ul class="dropdown-menu">
+                  <li><a href="https://github.com/mtrenkmann/multimap" target="_blank">Browse the Source Code</a></li>
+                  <li><a href="https://github.com/mtrenkmann/multimap/subscription" target="_blank">Watch this Project</a></li>
+                  <li><a href="https://github.com/mtrenkmann/multimap/issues" target="_blank">Create an Issue</a></li>
+                </ul>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </nav>
+      
+      
+        <div class="container">
+          <div class="row">
+            
+              <div class="col-md-9" role="main">
+                <h2 id="for-java-developers">For Java Developers</h2>
+<p>Multimap comes with a language binding for Java based on JNI. Although it's Java, the target platform of the native library is still GNU/Linux. At this time, the library has been tested under Debian 7.8 (wheezy) and 8.1 (jessie) both for x86-64 and x86-32.</p>
+<p>The following steps will build</p>
+<ol>
+<li>a shared library with JNI support,</li>
+<li>a JAR file to be added to your project's classpath</li>
+</ol>
+<!--
+We provide a stand-alone JAR file that contains everything you need in order to use Multimap in your Java application. Just install a few dependencies and add the bundled JAR to your classpath. The JAR file is compiled for Java 7 or higher.
+-->
+
+<h3 id="download-release-tarball">Download Release Tarball</h3>
+<p>from GitHub: <a href="https://github.com/mtrenkmann/multimap/releases">https://github.com/mtrenkmann/multimap/releases</a></p>
+<pre><code class="bash">cd path/to/download
+tar xzvf multimap-{version}.tar.gz
+cd multimap-{version}
+</code></pre>
+
+<h3 id="install-build-tools">Install Build Tools</h3>
+<p>Multimap uses <a href="http://doc.qt.io/qt-5/qmake-manual.html" target="_blank">qmake</a> as its Makefile generator.</p>
+<pre><code class="bash">sudo apt-get install qt5-make
+# For Debian 8 based distros
+
+sudo apt-get install qt4-make
+# For Debian 7 based distros
+
+# Don't know your Debian release?
+# lsb_release -r
+
+sudo apt-get install make g++
+</code></pre>
+
+<h3 id="install-dependencies">Install Dependencies</h3>
+<pre><code class="bash">sudo apt-get install libboost-filesystem-dev libboost-system-dev libboost-thread-dev
+</code></pre>
+
+<h3 id="define-java_home">Define JAVA_HOME</h3>
+<p>In order to build the native library with JNI support, some header files from a Java Development Kit (JDK) are needed. If not yet available, install a JDK and define the <code>JAVA_HOME</code> environment variable pointing to it.</p>
+<pre><code class="bash">sudo apt-get install openjdk-7-jdk
+
+export JAVA_HOME=/usr/lib/jvm/java-7-openjdk-amd64
+# For Debian 8 based distros (x86-64)
+
+export JAVA_HOME=/usr/lib/jvm/java-7-openjdk-i386
+# For Debian 8 based distros (x86-32)
+</code></pre>
+
+<h3 id="build-jni-shared-library">Build JNI Shared Library</h3>
+<pre><code class="bash">qmake multimap-library-jni.pro
+make
+
+# Sometimes you need to run qmake directly from its installation directory
+# Debian 8 (x86-64): /usr/lib/x86_64-linux-gnu/qt5/bin/qmake
+# Debian 8 (x86-32): /usr/lib/i386-linux-gnu/qt5/bin/qmake
+# Debian 7 (x86-64): /usr/lib/x86_64-linux-gnu/qt4/bin/qmake
+# Debian 7 (x86-32): /usr/lib/i386-linux-gnu/qt4/bin/qmake
+</code></pre>
+
+<h3 id="install-jni-shared-library">Install JNI Shared Library</h3>
+<pre><code class="bash">sudo make install
+</code></pre>
+
+<p>This will install the shared library <code>libmultimap-jni.so</code> in <code>/usr/local/lib</code>. If you don't have permission to install the library system-wide, you can copy it somewhere else and let the Java library path pointing to that location. For example, if the native library is in <code>/home/user/downloads/multimap-{version}</code> you can add</p>
+<pre><code class="bash">-Djava.library.path=/home/user/downloads/multimap-{version}
+</code></pre>
+
+<p>to the VM arguments of your Java project.</p>
+<h3 id="build-java-library">Build Java Library</h3>
+<pre><code class="bash">./make-multimap-jar.sh
+</code></pre>
+
+<p>This builds the JAR file <code>multimap-{version}.jar</code> that you can add to your project's classpath.</p>
+              </div>
+              <div class="col-md-3" role="complementary">
+                <nav id="multimap-sidebar" class="hidden-print hidden-xs hidden-sm affix-top" data-spy="affix" data-offset-top="130" data-offset-bottom="200">
+                  <ul class="nav">
+                    
+                      <li><a href="#for-java-developers">For Java Developers</a>
+                        <ul>
+                          
+                          <li><a href="#download-release-tarball">Download Release Tarball</a></li>
+                          
+                          <li><a href="#install-build-tools">Install Build Tools</a></li>
+                          
+                          <li><a href="#install-dependencies">Install Dependencies</a></li>
+                          
+                          <li><a href="#define-java_home">Define JAVA_HOME</a></li>
+                          
+                          <li><a href="#build-jni-shared-library">Build JNI Shared Library</a></li>
+                          
+                          <li><a href="#install-jni-shared-library">Install JNI Shared Library</a></li>
+                          
+                          <li><a href="#build-java-library">Build Java Library</a></li>
+                          
+                        </ul>
+                      </li>
+                    
+                  </ul>
+                  <div id="back-to-top">
+                    <a href="#top">Back to top</a>
+                  </div>
+                </nav>
+              </div>
+            
+          </div>
+        </div>
+        <br>
+        <br>
+        <br>
+      
+    </div>
+    
+    <footer id="footer">
+      <div class="container">
+        <a href="http://www.gnu.org/licenses/agpl-3.0.en.html" target="_blank">
+          <img style="float:right" src="../img/agpl-v3-logo-white-on-gray.png" />
+        </a>
+        <p>Created by Martin Trenkmann
+          &nbsp; <a href="mailto:martin.trenkmann@posteo.de?subject=[Multimap]"><i class="fa fa-envelope"></i></a>
+          &nbsp; <a href="https://github.com/mtrenkmann" target="_blank"><i class="fa fa-github"></i></a>
+        </p>
+        <p>Documentation built with <a href="http://getbootstrap.com/" target="_blank">Bootstrap</a>
+          &middot; <a href="http://www.tipo.net.ar/" target="_blank">Faster One</a>
+          &middot; <a href="http://www.carrois.com/fira-4-1/" target="_blank">Fira</a>
+          &middot; <a href="http://fontawesome.io/" target="_blank">Font Awesome</a>
+          &middot; <a href="https://highlightjs.org/" target="_blank">highlight.js</a>
+          &middot; <a href="https://daringfireball.net/projects/markdown/" target="_blank">Markdown</a>
+          &middot; <a href="http://www.mkdocs.org/" target="_blank">MkDocs</a></p>
+      </div>
+    </footer>
+  </body>
+</html>

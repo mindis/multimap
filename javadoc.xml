@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project default="javadoc">
+    <target name="javadoc">
+        <javadoc access="protected" author="true" classpath="/usr/share/eclipse/dropins/jdt/plugins/org.hamcrest.core_1.3.0.jar:/usr/share/eclipse/dropins/jdt/plugins/org.junit_4.8.2.dist/junit.jar" destdir="javadoc" doctitle="Multimap" nodeprecated="false" nodeprecatedlist="false" noindex="false" nonavbar="false" notree="false" source="1.7" sourcefiles="../src/java/io/multimap/Iterator.java,../src/java/io/multimap/Callables.java,../src/java/io/multimap/Map.java,../src/java/io/multimap/Options.java" sourcepath="../src/java" splitindex="true" use="true" version="true">
+            <link href="http://download.oracle.com/javase/7/docs/api/"/>
+        </javadoc>
+    </target>
+</project>
