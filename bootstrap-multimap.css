@@ -5,6 +5,7 @@
  */
 span.navbar-brand {
   font-family: 'Faster One', cursive;
+  padding-top: 10px;
 }
 
 div.reference-more {
