@@ -7,7 +7,7 @@
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
     <meta name="description" content="1:n key-value store for C++ and Java">
     <meta name="author" content="Martin Trenkmann">
-    <link rel="icon" href="./favicon.ico">
+    <link rel="icon" href="../favicon.ico">
     <title>Multimap</title>
     
     <!-- jQuery -->
@@ -29,10 +29,10 @@
     Firefox Console: The stylesheet https://code.cdn.mozilla.net/fonts/fira.css
     was not loaded because its MIME type, "application/octet-stream", is not "text/css".
     -->
-    <link rel="stylesheet" href="./fonts/fira.css">
+    <link rel="stylesheet" href="../fonts/fira.css">
     
     <!-- Customized Bootstrap style -->
-    <link rel="stylesheet" href="./bootstrap-multimap.css">
+    <link rel="stylesheet" href="../bootstrap-multimap.css">
     
     <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
     <!--[if lt IE 9]>
@@ -66,14 +66,14 @@
             <ul class="nav navbar-nav">
               
                 
-                  <li class="active">
-                    <a href=".">Home</a>
+                  <li >
+                    <a href="..">Home</a>
                   </li>
                 
               
                 
                   <li >
-                    <a href="overview/">Overview</a>
+                    <a href="../overview/">Overview</a>
                   </li>
                 
               
@@ -86,7 +86,7 @@
                           <li class="dropdown-header">C++</li>
                           
                             <li >
-                              <a href="cppbasics/">Basics</a>
+                              <a href="../cppbasics/">Basics</a>
                             </li>
                           
                         
@@ -95,7 +95,7 @@
                           <li class="dropdown-header">Java</li>
                           
                             <li >
-                              <a href="javabasics/">Basics</a>
+                              <a href="../javabasics/">Basics</a>
                             </li>
                           
                         
@@ -111,13 +111,13 @@
                       
                         
                           <li >
-                            <a href="cppreference/">C++ Reference</a>
+                            <a href="../cppreference/">C++ Reference</a>
                           </li>
                         
                       
                         
                           <li >
-                            <a href="javareference/">Java Reference</a>
+                            <a href="../javareference/">Java Reference</a>
                           </li>
                         
                       
@@ -126,19 +126,19 @@
                 
               
                 
-                  <li class="dropdown ">
+                  <li class="dropdown  active ">
                     <a href="#">Installation <span class="caret"></span></a>
                     <ul class="dropdown-menu">
                       
                         
                           <li >
-                            <a href="cppinstallation/">for C++ Developers</a>
+                            <a href="../cppinstallation/">for C++ Developers</a>
                           </li>
                         
                       
                         
-                          <li >
-                            <a href="javainstallation/">for Java Developers</a>
+                          <li  class="active" >
+                            <a href="./">for Java Developers</a>
                           </li>
                         
                       
@@ -164,99 +164,121 @@
         <div class="container">
           <div class="row">
             
-              <div class="col-md-12" role="main">
-                <p><br></p>
-<p>Multimap is a fast 1:n key-value store that provides a mapping from keys to lists of values. The library is named after the <a href="https://en.wikipedia.org/wiki/Multimap" target="_blank">data structure</a> you might already know from your very first computer science course, but beyond that it handles the external persistent storage of the entire data. Because Multimap is optimized for large numbers of n, it works perfectly as a building block for retrieval systems that employ <a href="https://en.wikipedia.org/wiki/Inverted_index" target="_blank">inverted indexing</a>.</p>
-<div class="row">
-  <div class="col-md-6">
-    <h2>Features</h2>
-    <ul>
-    <li>Embeddable store with a clean <a href="cppreference">C++</a> and <a href="javareference">Java interface</a>.</li>
-    <li>Supported operations: put, get, remove, replace.</li>
-    <li>Keys and values are arbitrary byte arrays.</li>
-    <li>Keys are hold in memory, values are stored on disk.</li>
-    <li>Import/export from/to Base64-encoded text files.</li>
-    <li>Full thread-safe.</li>
-    </ul>
-  </div>
-  <div class="col-md-6">
-    <h2>Get Started</h2>
-    <ul>
-    <li>Read the <a href="overview">overview</a> and learn the basics.</li>
-    <li>Try the <a href="cppbasics">C++</a> or <a href="javabasics">Java tutorial</a> to get familiar with the API.</li>
-    </ul>
-    <br>
-    <div class="panel panel-default">
-      <div class="panel-heading-left" style="font-size:26px">
-        <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
-      </div>
-      <div class="panel-body-right">
-        Download <a href="https://github.com/mtrenkmann/multimap/releases/download/v0.3.0/multimap-0.3.0.tar.gz">multimap-0.3.0.tar.gz</a><br>
-        <small>Installation instructions for <a href="cppdownload">C++</a> and <a href="javadownload">Java</a></small>
-      </div>
-    </div>
-  </div>
-</div>
-
-<p><br>
-<div class="row">
-<div class="col-md-6">
-<div class="panel panel-default">
-<div class="panel-heading">C++ Example</div>
-<div class="panel-body"></p>
-<pre><code class="cpp">#include &lt;multimap/Map.hpp&gt;
-
-int main() {
-  multimap::Options options;
-  options.create_if_missing = true;
-  multimap::Map map(&quot;path/to/directory&quot;, options);
-
-  map.put(&quot;key&quot;, &quot;1st value&quot;);
-  map.put(&quot;key&quot;, &quot;2nd value&quot;);
-
-  auto iter = map.get(&quot;key&quot;);
-  while (iter.hasNext()) {
-    doSomething(iter.next());
-  }
-
-  // d'tor of iter releases internal reader lock.
-  // d'tor of map flushes in-memory data to disk. 
-}
+              <div class="col-md-9" role="main">
+                <h2 id="for-java-developers">For Java Developers</h2>
+<p>Multimap comes with a language binding for Java based on JNI. Although it's Java, the target platform of the native library is still GNU/Linux.</p>
+<p>The following steps will build</p>
+<ol>
+<li>a shared library with JNI support,</li>
+<li>a JAR file to be added to your project's classpath</li>
+</ol>
+<h3 id="get-the-source-code">Get the Source Code</h3>
+<p>Download the latest release tarball from GitHub: <a href="https://github.com/mtrenkmann/multimap/releases">https://github.com/mtrenkmann/multimap/releases</a></p>
+<pre><code class="bash">cd path/to/download
+tar xzvf multimap-&lt;version&gt;.tar.gz
+cd multimap-&lt;version&gt;
 </code></pre>
 
-<p></div>
-</div>
-</div>
-<div class="col-md-6">
-<div class="panel panel-default">
-<div class="panel-heading">Java Example</div>
-<div class="panel-body"></p>
-<pre><code class="java">import io.multimap.*;
+<p>or clone the repository to your local machine:</p>
+<pre><code class="bash">git clone https://github.com/mtrenkmann/multimap.git
+cd multimap
+git checkout tags/&lt;tagname&gt;
 
-public static void main(String[] args) {
-  Options options = new Options();
-  options.setCreateIfMissing(true);
-  Map map = new Map(&quot;path/to/directory&quot;, options);
-
-  map.put(&quot;key&quot;, &quot;1st value&quot;);
-  map.put(&quot;key&quot;, &quot;2nd value&quot;);
-
-  Iterator iter = map.get(&quot;key&quot;);
-  while (iter.hasNext()) {
-    doSomething(iter.next());
-  }
-
-  iter.close();
-  map.close();
-}
+# where &lt;tagname&gt; should be the latest release.
+# Use `git tag -l` to list all available tags.
 </code></pre>
 
-<p></div>
-</div>
-</div>
-</div>
-<br></p>
-<p>Multimap is <a href="https://www.fsf.org/about/what-is-free-software" target="_bank">free software</a> implemented in standard C++11 and POSIX, distributed under the terms of the <a href="http://www.gnu.org/licenses/agpl-3.0.en.html" target="_blank">GNU Affero General Public License</a> (AGPL) version 3. At this time, Multimap runs under GNU/Linux on x86-64 and x86-32. This is also true for the included Java binding.</p>
+<h3 id="install-build-tools">Install Build Tools</h3>
+<p>Multimap uses <a href="http://doc.qt.io/qt-5/qmake-manual.html" target="_blank">qmake</a> as its Makefile generator.</p>
+<pre><code class="bash">sudo apt-get install qt5-make
+# For Debian 8 based distros
+
+sudo apt-get install qt4-make
+# For Debian 7 based distros
+
+# Don't know your Debian release?
+# lsb_release -r
+
+sudo apt-get install make g++
+</code></pre>
+
+<h3 id="install-dependencies">Install Dependencies</h3>
+<pre><code class="bash">sudo apt-get install libboost-filesystem-dev libboost-system-dev libboost-thread-dev
+</code></pre>
+
+<h3 id="define-java_home">Define JAVA_HOME</h3>
+<p>In order to build the native library with JNI support, some header files from a Java Development Kit (JDK) are needed. If not yet available, install a JDK and define the <code>JAVA_HOME</code> environment variable pointing to it.</p>
+<pre><code class="bash">sudo apt-get install openjdk-7-jdk
+
+export JAVA_HOME=/usr/lib/jvm/java-7-openjdk-amd64
+# For Debian 8 based distros (x86-64)
+
+export JAVA_HOME=/usr/lib/jvm/java-7-openjdk-i386
+# For Debian 8 based distros (x86-32)
+</code></pre>
+
+<h3 id="build-jni-shared-library">Build JNI Shared Library</h3>
+<pre><code class="bash">qmake multimap-library-jni.pro
+
+# if you encounter an error, try
+qmake -qt=5 multimap-library-jni.pro
+# or
+qmake -qt=4 multimap-library-jni.pro
+
+make
+</code></pre>
+
+<p>This builds the shared library <code>libmultimap-jni.so</code>. </p>
+<h3 id="install-jni-shared-library">Install JNI Shared Library</h3>
+<pre><code class="bash">sudo make install
+sudo ldconfig
+</code></pre>
+
+<p>This installs the shared library in <code>/usr/local/lib</code>. Since the Java VM does not search this directory by default when trying to load native libraries, you additionally need to set the <code>java.library.path</code> variable pointing to that location. Simply add</p>
+<pre><code class="bash">-Djava.library.path=/usr/local/lib
+</code></pre>
+
+<p>to the VM arguments of your Java project. Of course, you can let the variable pointing to any directory, even your download folder, if you won't or are not allowed to install the library system-wide.</p>
+<pre><code class="bash">-Djava.library.path=/home/user/downloads/multimap-&lt;version&gt;
+</code></pre>
+
+<h3 id="build-java-library">Build Java Library</h3>
+<pre><code class="bash">./make-multimap-jar.sh
+</code></pre>
+
+<p>This builds the JAR file <code>multimap-&lt;version&gt;.jar</code> that you can add to your project's classpath.</p>
+              </div>
+              <div class="col-md-3" role="complementary">
+                <nav id="multimap-sidebar"
+                     class="hidden-print hidden-xs hidden-sm affix-top"
+                     data-spy="affix" data-offset-top="130" data-offset-bottom="200">
+                  <ul class="nav">
+                    
+                      <li><a href="#for-java-developers">For Java Developers</a>
+                        <ul>
+                          
+                          <li><a href="#get-the-source-code">Get the Source Code</a></li>
+                          
+                          <li><a href="#install-build-tools">Install Build Tools</a></li>
+                          
+                          <li><a href="#install-dependencies">Install Dependencies</a></li>
+                          
+                          <li><a href="#define-java_home">Define JAVA_HOME</a></li>
+                          
+                          <li><a href="#build-jni-shared-library">Build JNI Shared Library</a></li>
+                          
+                          <li><a href="#install-jni-shared-library">Install JNI Shared Library</a></li>
+                          
+                          <li><a href="#build-java-library">Build Java Library</a></li>
+                          
+                        </ul>
+                      </li>
+                    
+                  </ul>
+                  <div id="back-to-top">
+                    <a href="#top">Back to top</a>
+                  </div>
+                </nav>
               </div>
             
           </div>
@@ -270,7 +292,7 @@ public static void main(String[] args) {
     <footer id="footer">
       <div class="container">
         <a href="http://www.gnu.org/licenses/agpl-3.0.en.html" target="_blank">
-          <img style="float:right" src="./img/agpl-v3-logo-white-on-gray.png" />
+          <img style="float:right" src="../img/agpl-v3-logo-white-on-gray.png" />
         </a>
         <p>
           <i class="fa fa-copyright"></i> 2015-2016 by <a href="https://github.com/mtrenkmann" target="_blank">Martin Trenkmann</a>

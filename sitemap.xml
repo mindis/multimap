@@ -52,13 +52,13 @@
     
         
     <url>
-     <loc>None/cppdownload/</loc>
+     <loc>None/cppinstallation/</loc>
      <lastmod>2016-02-01</lastmod>
      <changefreq>daily</changefreq>
     </url>
         
     <url>
-     <loc>None/javadownload/</loc>
+     <loc>None/javainstallation/</loc>
      <lastmod>2016-02-01</lastmod>
      <changefreq>daily</changefreq>
     </url>

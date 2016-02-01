@@ -261,83 +261,83 @@
             "title": "Java Reference"
         }, 
         {
-            "location": "/cppdownload/", 
-            "text": "For C++ Developers\n\n\nMultimap is implemented in standard C++11 and POSIX. Its target platform is GNU/Linux. At this time, the library has been tested under Debian 7.8 (wheezy) and 8.1 (jessie) both for x86-64 and x86-32.\n\n\nDownload Release Tarball\n\n\nfrom GitHub: \nhttps://github.com/mtrenkmann/multimap/releases\n\n\ncd path/to/download\ntar xzvf multimap-{version}.tar.gz\ncd multimap-{version}\n\n\n\n\nInstall Build Tools\n\n\nMultimap uses \nqmake\n as its Makefile generator.\n\n\nsudo apt-get install qt5-make\n# For Debian 8 based distros\n\nsudo apt-get install qt4-make\n# For Debian 7 based distros\n\n# Don't know your Debian release?\n# lsb_release -r\n\nsudo apt-get install make g++ \n\n\n\n\nInstall Dependencies\n\n\nsudo apt-get install libboost-filesystem-dev libboost-system-dev libboost-thread-dev\n\n\n\n\nInstall Shared Library\n\n\nqmake multimap-library.pro\nmake\n\n# Sometimes you need to run qmake directly from its installation directory\n# Debian 8 (x86_64): /usr/lib/x86_64-linux-gnu/qt5/bin/qmake\n# Debian 8 (x86_32): /usr/lib/i386-linux-gnu/qt5/bin/qmake\n# Debian 7 (x86_64): /usr/lib/x86_64-linux-gnu/qt4/bin/qmake\n# Debian 7 (x86_32): /usr/lib/i386-linux-gnu/qt4/bin/qmake\n\nsudo make install\n\n\n\n\nThis will install the shared library \nlibmultimap.so\n in \n/usr/local/lib\n and the header files in \n/usr/local/include/multimap\n. Note that some distributions do not search \n/usr/local/lib\n by default when looking for library dependencies. In this case you need to add \n/usr/local/lib\n to \n/etc/ld.so.conf\n. If you are not allowed to do so, you can also set \nLD_LIBRARY_PATH=/usr/local/lib\n before running your application. For more information see \nldconfig\n and/or \nman ldconfig\n.\n\n\nInstall Command Line Tool\n\n\nqmake multimap-tool.pro\nmake\nsudo make install\n\n\n\n\nThis builds and installs the executable \nmultimap\n in \n/usr/local/bin\n. If this directory is not listed in your \nPATH\n variable, you can add it by putting \nPATH=\"/usr/local/bin:$PATH\"\n either into \n~/.profile\n or \n~/.bashrc\n.", 
+            "location": "/cppinstallation/", 
+            "text": "For C++ Developers\n\n\nMultimap is implemented in standard C++11 and POSIX. Its target platform is GNU/Linux.\n\n\nGet the Source Code\n\n\nDownload the latest release tarball from GitHub: \nhttps://github.com/mtrenkmann/multimap/releases\n\n\ncd path/to/download\ntar xzvf multimap-\nversion\n.tar.gz\ncd multimap-\nversion\n\n\n\n\n\nor clone the repository to your local machine:\n\n\ngit clone https://github.com/mtrenkmann/multimap.git\ncd multimap\ngit checkout tags/\ntagname\n\n\n# where \ntagname\n should be the latest release.\n# Use `git tag -l` to list all available tags.\n\n\n\n\nInstall Build Tools\n\n\nMultimap uses \nqmake\n as its Makefile generator.\n\n\nsudo apt-get install qt5-make\n# For Debian 8 based distros\n\nsudo apt-get install qt4-make\n# For Debian 7 based distros\n\n# Don't know your Debian release?\n# lsb_release -r\n\nsudo apt-get install make g++ \n\n\n\n\nInstall Dependencies\n\n\nsudo apt-get install libboost-filesystem-dev libboost-system-dev libboost-thread-dev\n\n\n\n\nInstall Shared Library\n\n\nqmake multimap-library.pro\n\n# if you encounter an error, try\nqmake -qt=5 multimap-library.pro\n# or\nqmake -qt=4 multimap-library.pro\n\nmake\nsudo make install\nsudo ldconfig\n\n\n\n\nThis installs the shared library \nlibmultimap.so\n in \n/usr/local/lib\n and the header files in \n/usr/local/include/multimap\n. Note that some distributions do not search \n/usr/local/lib\n by default when looking for library dependencies. In this case you need to add \n/usr/local/lib\n to \n/etc/ld.so.conf\n. If you are not allowed to do so, you can also set \nLD_LIBRARY_PATH=/usr/local/lib\n before running your application. For more information see \nldconfig\n and/or \nman ldconfig\n.\n\n\nInstall Command Line Tool\n\n\nqmake multimap-tool.pro\n\n# if you encounter an error, try\nqmake -qt=5 multimap-tool.pro\n# or\nqmake -qt=4 multimap-tool.pro\n\nmake\nsudo make install\n\n\n\n\nThis builds and installs the executable \nmultimap\n in \n/usr/local/bin\n. If this directory is not listed in your \nPATH\n variable, you can add it by putting \nPATH=\"/usr/local/bin:$PATH\"\n either into \n~/.profile\n or \n~/.bashrc\n.", 
             "title": "for C++ Developers"
         }, 
         {
-            "location": "/cppdownload/#for-c-developers", 
-            "text": "Multimap is implemented in standard C++11 and POSIX. Its target platform is GNU/Linux. At this time, the library has been tested under Debian 7.8 (wheezy) and 8.1 (jessie) both for x86-64 and x86-32.", 
+            "location": "/cppinstallation/#for-c-developers", 
+            "text": "Multimap is implemented in standard C++11 and POSIX. Its target platform is GNU/Linux.", 
             "title": "For C++ Developers"
         }, 
         {
-            "location": "/cppdownload/#download-release-tarball", 
-            "text": "from GitHub:  https://github.com/mtrenkmann/multimap/releases  cd path/to/download\ntar xzvf multimap-{version}.tar.gz\ncd multimap-{version}", 
-            "title": "Download Release Tarball"
+            "location": "/cppinstallation/#get-the-source-code", 
+            "text": "Download the latest release tarball from GitHub:  https://github.com/mtrenkmann/multimap/releases  cd path/to/download\ntar xzvf multimap- version .tar.gz\ncd multimap- version   or clone the repository to your local machine:  git clone https://github.com/mtrenkmann/multimap.git\ncd multimap\ngit checkout tags/ tagname \n\n# where  tagname  should be the latest release.\n# Use `git tag -l` to list all available tags.", 
+            "title": "Get the Source Code"
         }, 
         {
-            "location": "/cppdownload/#install-build-tools", 
+            "location": "/cppinstallation/#install-build-tools", 
             "text": "Multimap uses  qmake  as its Makefile generator.  sudo apt-get install qt5-make\n# For Debian 8 based distros\n\nsudo apt-get install qt4-make\n# For Debian 7 based distros\n\n# Don't know your Debian release?\n# lsb_release -r\n\nsudo apt-get install make g++", 
             "title": "Install Build Tools"
         }, 
         {
-            "location": "/cppdownload/#install-dependencies", 
+            "location": "/cppinstallation/#install-dependencies", 
             "text": "sudo apt-get install libboost-filesystem-dev libboost-system-dev libboost-thread-dev", 
             "title": "Install Dependencies"
         }, 
         {
-            "location": "/cppdownload/#install-shared-library", 
-            "text": "qmake multimap-library.pro\nmake\n\n# Sometimes you need to run qmake directly from its installation directory\n# Debian 8 (x86_64): /usr/lib/x86_64-linux-gnu/qt5/bin/qmake\n# Debian 8 (x86_32): /usr/lib/i386-linux-gnu/qt5/bin/qmake\n# Debian 7 (x86_64): /usr/lib/x86_64-linux-gnu/qt4/bin/qmake\n# Debian 7 (x86_32): /usr/lib/i386-linux-gnu/qt4/bin/qmake\n\nsudo make install  This will install the shared library  libmultimap.so  in  /usr/local/lib  and the header files in  /usr/local/include/multimap . Note that some distributions do not search  /usr/local/lib  by default when looking for library dependencies. In this case you need to add  /usr/local/lib  to  /etc/ld.so.conf . If you are not allowed to do so, you can also set  LD_LIBRARY_PATH=/usr/local/lib  before running your application. For more information see  ldconfig  and/or  man ldconfig .", 
+            "location": "/cppinstallation/#install-shared-library", 
+            "text": "qmake multimap-library.pro\n\n# if you encounter an error, try\nqmake -qt=5 multimap-library.pro\n# or\nqmake -qt=4 multimap-library.pro\n\nmake\nsudo make install\nsudo ldconfig  This installs the shared library  libmultimap.so  in  /usr/local/lib  and the header files in  /usr/local/include/multimap . Note that some distributions do not search  /usr/local/lib  by default when looking for library dependencies. In this case you need to add  /usr/local/lib  to  /etc/ld.so.conf . If you are not allowed to do so, you can also set  LD_LIBRARY_PATH=/usr/local/lib  before running your application. For more information see  ldconfig  and/or  man ldconfig .", 
             "title": "Install Shared Library"
         }, 
         {
-            "location": "/cppdownload/#install-command-line-tool", 
-            "text": "qmake multimap-tool.pro\nmake\nsudo make install  This builds and installs the executable  multimap  in  /usr/local/bin . If this directory is not listed in your  PATH  variable, you can add it by putting  PATH=\"/usr/local/bin:$PATH\"  either into  ~/.profile  or  ~/.bashrc .", 
+            "location": "/cppinstallation/#install-command-line-tool", 
+            "text": "qmake multimap-tool.pro\n\n# if you encounter an error, try\nqmake -qt=5 multimap-tool.pro\n# or\nqmake -qt=4 multimap-tool.pro\n\nmake\nsudo make install  This builds and installs the executable  multimap  in  /usr/local/bin . If this directory is not listed in your  PATH  variable, you can add it by putting  PATH=\"/usr/local/bin:$PATH\"  either into  ~/.profile  or  ~/.bashrc .", 
             "title": "Install Command Line Tool"
         }, 
         {
-            "location": "/javadownload/", 
-            "text": "For Java Developers\n\n\nMultimap comes with a language binding for Java based on JNI. Although it's Java, the target platform of the native library is still GNU/Linux. At this time, the library has been tested under Debian 7.8 (wheezy) and 8.1 (jessie) both for x86-64 and x86-32.\n\n\nThe following steps will build\n\n\n\n\na shared library with JNI support,\n\n\na JAR file to be added to your project's classpath\n\n\n\n\n\n\n\nDownload Release Tarball\n\n\nfrom GitHub: \nhttps://github.com/mtrenkmann/multimap/releases\n\n\ncd path/to/download\ntar xzvf multimap-{version}.tar.gz\ncd multimap-{version}\n\n\n\n\nInstall Build Tools\n\n\nMultimap uses \nqmake\n as its Makefile generator.\n\n\nsudo apt-get install qt5-make\n# For Debian 8 based distros\n\nsudo apt-get install qt4-make\n# For Debian 7 based distros\n\n# Don't know your Debian release?\n# lsb_release -r\n\nsudo apt-get install make g++\n\n\n\n\nInstall Dependencies\n\n\nsudo apt-get install libboost-filesystem-dev libboost-system-dev libboost-thread-dev\n\n\n\n\nDefine JAVA_HOME\n\n\nIn order to build the native library with JNI support, some header files from a Java Development Kit (JDK) are needed. If not yet available, install a JDK and define the \nJAVA_HOME\n environment variable pointing to it.\n\n\nsudo apt-get install openjdk-7-jdk\n\nexport JAVA_HOME=/usr/lib/jvm/java-7-openjdk-amd64\n# For Debian 8 based distros (x86-64)\n\nexport JAVA_HOME=/usr/lib/jvm/java-7-openjdk-i386\n# For Debian 8 based distros (x86-32)\n\n\n\n\nBuild JNI Shared Library\n\n\nqmake multimap-library-jni.pro\nmake\n\n# Sometimes you need to run qmake directly from its installation directory\n# Debian 8 (x86-64): /usr/lib/x86_64-linux-gnu/qt5/bin/qmake\n# Debian 8 (x86-32): /usr/lib/i386-linux-gnu/qt5/bin/qmake\n# Debian 7 (x86-64): /usr/lib/x86_64-linux-gnu/qt4/bin/qmake\n# Debian 7 (x86-32): /usr/lib/i386-linux-gnu/qt4/bin/qmake\n\n\n\n\nInstall JNI Shared Library\n\n\nsudo make install\n\n\n\n\nThis will install the shared library \nlibmultimap-jni.so\n in \n/usr/local/lib\n. If you don't have permission to install the library system-wide, you can copy it somewhere else and let the Java library path pointing to that location. For example, if the native library is in \n/home/user/downloads/multimap-{version}\n you can add\n\n\n-Djava.library.path=/home/user/downloads/multimap-{version}\n\n\n\n\nto the VM arguments of your Java project.\n\n\nBuild Java Library\n\n\n./make-multimap-jar.sh\n\n\n\n\nThis builds the JAR file \nmultimap-{version}.jar\n that you can add to your project's classpath.", 
+            "location": "/javainstallation/", 
+            "text": "For Java Developers\n\n\nMultimap comes with a language binding for Java based on JNI. Although it's Java, the target platform of the native library is still GNU/Linux.\n\n\nThe following steps will build\n\n\n\n\na shared library with JNI support,\n\n\na JAR file to be added to your project's classpath\n\n\n\n\nGet the Source Code\n\n\nDownload the latest release tarball from GitHub: \nhttps://github.com/mtrenkmann/multimap/releases\n\n\ncd path/to/download\ntar xzvf multimap-\nversion\n.tar.gz\ncd multimap-\nversion\n\n\n\n\n\nor clone the repository to your local machine:\n\n\ngit clone https://github.com/mtrenkmann/multimap.git\ncd multimap\ngit checkout tags/\ntagname\n\n\n# where \ntagname\n should be the latest release.\n# Use `git tag -l` to list all available tags.\n\n\n\n\nInstall Build Tools\n\n\nMultimap uses \nqmake\n as its Makefile generator.\n\n\nsudo apt-get install qt5-make\n# For Debian 8 based distros\n\nsudo apt-get install qt4-make\n# For Debian 7 based distros\n\n# Don't know your Debian release?\n# lsb_release -r\n\nsudo apt-get install make g++\n\n\n\n\nInstall Dependencies\n\n\nsudo apt-get install libboost-filesystem-dev libboost-system-dev libboost-thread-dev\n\n\n\n\nDefine JAVA_HOME\n\n\nIn order to build the native library with JNI support, some header files from a Java Development Kit (JDK) are needed. If not yet available, install a JDK and define the \nJAVA_HOME\n environment variable pointing to it.\n\n\nsudo apt-get install openjdk-7-jdk\n\nexport JAVA_HOME=/usr/lib/jvm/java-7-openjdk-amd64\n# For Debian 8 based distros (x86-64)\n\nexport JAVA_HOME=/usr/lib/jvm/java-7-openjdk-i386\n# For Debian 8 based distros (x86-32)\n\n\n\n\nBuild JNI Shared Library\n\n\nqmake multimap-library-jni.pro\n\n# if you encounter an error, try\nqmake -qt=5 multimap-library-jni.pro\n# or\nqmake -qt=4 multimap-library-jni.pro\n\nmake\n\n\n\n\nThis builds the shared library \nlibmultimap-jni.so\n. \n\n\nInstall JNI Shared Library\n\n\nsudo make install\nsudo ldconfig\n\n\n\n\nThis installs the shared library in \n/usr/local/lib\n. Since the Java VM does not search this directory by default when trying to load native libraries, you additionally need to set the \njava.library.path\n variable pointing to that location. Simply add\n\n\n-Djava.library.path=/usr/local/lib\n\n\n\n\nto the VM arguments of your Java project. Of course, you can let the variable pointing to any directory, even your download folder, if you won't or are not allowed to install the library system-wide.\n\n\n-Djava.library.path=/home/user/downloads/multimap-\nversion\n\n\n\n\n\nBuild Java Library\n\n\n./make-multimap-jar.sh\n\n\n\n\nThis builds the JAR file \nmultimap-\nversion\n.jar\n that you can add to your project's classpath.", 
             "title": "for Java Developers"
         }, 
         {
-            "location": "/javadownload/#for-java-developers", 
-            "text": "Multimap comes with a language binding for Java based on JNI. Although it's Java, the target platform of the native library is still GNU/Linux. At this time, the library has been tested under Debian 7.8 (wheezy) and 8.1 (jessie) both for x86-64 and x86-32.  The following steps will build   a shared library with JNI support,  a JAR file to be added to your project's classpath", 
+            "location": "/javainstallation/#for-java-developers", 
+            "text": "Multimap comes with a language binding for Java based on JNI. Although it's Java, the target platform of the native library is still GNU/Linux.  The following steps will build   a shared library with JNI support,  a JAR file to be added to your project's classpath", 
             "title": "For Java Developers"
         }, 
         {
-            "location": "/javadownload/#download-release-tarball", 
-            "text": "from GitHub:  https://github.com/mtrenkmann/multimap/releases  cd path/to/download\ntar xzvf multimap-{version}.tar.gz\ncd multimap-{version}", 
-            "title": "Download Release Tarball"
+            "location": "/javainstallation/#get-the-source-code", 
+            "text": "Download the latest release tarball from GitHub:  https://github.com/mtrenkmann/multimap/releases  cd path/to/download\ntar xzvf multimap- version .tar.gz\ncd multimap- version   or clone the repository to your local machine:  git clone https://github.com/mtrenkmann/multimap.git\ncd multimap\ngit checkout tags/ tagname \n\n# where  tagname  should be the latest release.\n# Use `git tag -l` to list all available tags.", 
+            "title": "Get the Source Code"
         }, 
         {
-            "location": "/javadownload/#install-build-tools", 
+            "location": "/javainstallation/#install-build-tools", 
             "text": "Multimap uses  qmake  as its Makefile generator.  sudo apt-get install qt5-make\n# For Debian 8 based distros\n\nsudo apt-get install qt4-make\n# For Debian 7 based distros\n\n# Don't know your Debian release?\n# lsb_release -r\n\nsudo apt-get install make g++", 
             "title": "Install Build Tools"
         }, 
         {
-            "location": "/javadownload/#install-dependencies", 
+            "location": "/javainstallation/#install-dependencies", 
             "text": "sudo apt-get install libboost-filesystem-dev libboost-system-dev libboost-thread-dev", 
             "title": "Install Dependencies"
         }, 
         {
-            "location": "/javadownload/#define-java_home", 
+            "location": "/javainstallation/#define-java_home", 
             "text": "In order to build the native library with JNI support, some header files from a Java Development Kit (JDK) are needed. If not yet available, install a JDK and define the  JAVA_HOME  environment variable pointing to it.  sudo apt-get install openjdk-7-jdk\n\nexport JAVA_HOME=/usr/lib/jvm/java-7-openjdk-amd64\n# For Debian 8 based distros (x86-64)\n\nexport JAVA_HOME=/usr/lib/jvm/java-7-openjdk-i386\n# For Debian 8 based distros (x86-32)", 
             "title": "Define JAVA_HOME"
         }, 
         {
-            "location": "/javadownload/#build-jni-shared-library", 
-            "text": "qmake multimap-library-jni.pro\nmake\n\n# Sometimes you need to run qmake directly from its installation directory\n# Debian 8 (x86-64): /usr/lib/x86_64-linux-gnu/qt5/bin/qmake\n# Debian 8 (x86-32): /usr/lib/i386-linux-gnu/qt5/bin/qmake\n# Debian 7 (x86-64): /usr/lib/x86_64-linux-gnu/qt4/bin/qmake\n# Debian 7 (x86-32): /usr/lib/i386-linux-gnu/qt4/bin/qmake", 
+            "location": "/javainstallation/#build-jni-shared-library", 
+            "text": "qmake multimap-library-jni.pro\n\n# if you encounter an error, try\nqmake -qt=5 multimap-library-jni.pro\n# or\nqmake -qt=4 multimap-library-jni.pro\n\nmake  This builds the shared library  libmultimap-jni.so .", 
             "title": "Build JNI Shared Library"
         }, 
         {
-            "location": "/javadownload/#install-jni-shared-library", 
-            "text": "sudo make install  This will install the shared library  libmultimap-jni.so  in  /usr/local/lib . If you don't have permission to install the library system-wide, you can copy it somewhere else and let the Java library path pointing to that location. For example, if the native library is in  /home/user/downloads/multimap-{version}  you can add  -Djava.library.path=/home/user/downloads/multimap-{version}  to the VM arguments of your Java project.", 
+            "location": "/javainstallation/#install-jni-shared-library", 
+            "text": "sudo make install\nsudo ldconfig  This installs the shared library in  /usr/local/lib . Since the Java VM does not search this directory by default when trying to load native libraries, you additionally need to set the  java.library.path  variable pointing to that location. Simply add  -Djava.library.path=/usr/local/lib  to the VM arguments of your Java project. Of course, you can let the variable pointing to any directory, even your download folder, if you won't or are not allowed to install the library system-wide.  -Djava.library.path=/home/user/downloads/multimap- version", 
             "title": "Install JNI Shared Library"
         }, 
         {
-            "location": "/javadownload/#build-java-library", 
-            "text": "./make-multimap-jar.sh  This builds the JAR file  multimap-{version}.jar  that you can add to your project's classpath.", 
+            "location": "/javainstallation/#build-java-library", 
+            "text": "./make-multimap-jar.sh  This builds the JAR file  multimap- version .jar  that you can add to your project's classpath.", 
             "title": "Build Java Library"
         }
     ]
