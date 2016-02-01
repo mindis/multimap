@@ -140,8 +140,8 @@ void Map::importFromBase64(const boost::filesystem::path& directory,
   Map map(directory, options);
 
   const auto import_file = [&](const boost::filesystem::path& file) {
-    std::ifstream stream(file.string());
-    mt::check(stream, "Could not open '%s'", file.c_str());
+    std::ifstream input(file.string());
+    mt::check(input.is_open(), "Could not open '%s'", file.c_str());
 
     if (!options.quiet) {
       mt::log(std::cout) << "Importing " << file << std::endl;
@@ -151,23 +151,23 @@ void Map::importFromBase64(const boost::filesystem::path& directory,
     std::string base64_value;
     std::string binary_key;
     std::string binary_value;
-    if (stream >> base64_key) {
+    if (input >> base64_key) {
       internal::Base64::decode(base64_key, &binary_key);
-      while (stream) {
-        switch (stream.peek()) {
+      while (input) {
+        switch (input.peek()) {
           case '\n':
           case '\r':
-            stream >> base64_key;
+            input >> base64_key;
             internal::Base64::decode(base64_key, &binary_key);
             break;
           case '\f':
           case '\t':
           case '\v':
           case ' ':
-            stream.ignore();
+            input.ignore();
             break;
           default:
-            stream >> base64_value;
+            input >> base64_value;
             internal::Base64::decode(base64_value, &binary_value);
             map.put(binary_key, binary_value);
         }
@@ -203,7 +203,7 @@ void Map::exportToBase64(const boost::filesystem::path& directory,
                          const boost::filesystem::path& output,
                          const Options& options) {
   std::ofstream stream(output.string());
-  mt::check(stream, "Could not create '%s'", output.c_str());
+  mt::check(stream.is_open(), "Could not create '%s'", output.c_str());
 
   const auto print_status = [&options](size_t index, size_t npartitions) {
     if (!options.quiet) {
