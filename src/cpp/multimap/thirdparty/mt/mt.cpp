@@ -43,9 +43,12 @@ std::string serializeToString(const Properties& properties) {
   for (const auto& entry : properties) {
     const auto key = boost::trim_copy(entry.first);
     const auto val = boost::trim_copy(entry.second);
-    if (std::any_of(key.begin(), key.end(), is_space)) continue;
-    if (std::any_of(val.begin(), val.end(), is_space)) continue;
-    if (key.empty() || val.empty()) continue;
+    if (std::any_of(key.begin(), key.end(), is_space))
+      continue;
+    if (std::any_of(val.begin(), val.end(), is_space))
+      continue;
+    if (key.empty() || val.empty())
+      continue;
     joined.append(key);
     joined.push_back('=');
     joined.append(val);
@@ -153,7 +156,7 @@ std::string makeErrorMessage(const char* file, unsigned line, const char* expr,
   return oss.str();
 }
 
-}  // namespace
+} // namespace
 
 bool isPrime(uint64_t number) {
   if (number % 2 == 0) {
@@ -178,13 +181,13 @@ uint64_t nextPrime(uint64_t number) {
 uint64_t currentResidentMemory() {
   const auto property = "VmRSS:";
   const auto filename = "/proc/self/status";
-  std::ifstream stream(filename);
-  check(stream, "Could not open '%s'", filename);
+  std::ifstream input(filename);
+  check(input.is_open(), "Could not open '%s'", filename);
   std::string token;
   uint64_t mem_in_kb;
-  while (stream >> token) {
+  while (input >> token) {
     if (token == property) {
-      stream >> mem_in_kb;
+      input >> mem_in_kb;
       return KiB(mem_in_kb);
     }
   }
@@ -202,7 +205,7 @@ uint32_t crc32(const void* data, size_t size) {
 
 // Source: http://www.isthe.com/chongo/src/fnv/hash_32a.c
 uint32_t fnv1aHash32(const void* data, size_t size) {
-  uint32_t h = 0x811c9dc5;  // FNV1_32A_INIT
+  uint32_t h = 0x811c9dc5; // FNV1_32A_INIT
   const auto ptr = reinterpret_cast<const std::uint8_t*>(data);
   for (size_t i = 0; i != size; ++i) {
     h ^= ptr[i];
@@ -213,7 +216,7 @@ uint32_t fnv1aHash32(const void* data, size_t size) {
 
 // Source: http://www.isthe.com/chongo/src/fnv/hash_64a.c
 uint64_t fnv1aHash64(const void* data, size_t size) {
-  uint64_t h = 0xcbf29ce484222325ULL;  // FNV1A_64_INIT
+  uint64_t h = 0xcbf29ce484222325ULL; // FNV1A_64_INIT
   const auto ptr = reinterpret_cast<const std::uint8_t*>(data);
   for (size_t i = 0; i != size; ++i) {
     h ^= ptr[i];
@@ -252,23 +255,23 @@ std::ostream& log(std::ostream& stream) {
 std::ostream& log() { return log(std::clog); }
 
 Files::Bytes Files::readAllBytes(const boost::filesystem::path& filepath) {
-  std::ifstream ifs(filepath.string());
-  mt::check(ifs, "Could not open '%s'", filepath.c_str());
+  std::ifstream input(filepath.string());
+  mt::check(input.is_open(), "Could not open '%s'", filepath.c_str());
 
   Bytes bytes(boost::filesystem::file_size(filepath));
-  ifs.read(bytes.data(), bytes.size());
-  MT_ENSURE_EQ(static_cast<size_t>(ifs.gcount()), bytes.size());
+  input.read(bytes.data(), bytes.size());
+  MT_ENSURE_EQ(static_cast<size_t>(input.gcount()), bytes.size());
   return bytes;
 }
 
 std::vector<std::string> Files::readAllLines(
     const boost::filesystem::path& filepath) {
-  std::ifstream ifs(filepath.string());
-  check(ifs, "Could not open '%s'", filepath.c_str());
+  std::ifstream input(filepath.string());
+  check(input.is_open(), "Could not open '%s'", filepath.c_str());
 
   std::string line;
   std::vector<std::string> lines;
-  while (std::getline(ifs, line)) {
+  while (std::getline(input, line)) {
     lines.push_back(line);
   }
   return lines;
@@ -314,15 +317,17 @@ const boost::filesystem::path& DirectoryLockGuard::directory() const {
 const std::string& DirectoryLockGuard::filename() const { return filename_; }
 
 Properties readPropertiesFromFile(const std::string& filepath) {
-  std::ifstream ifs(filepath);
-  check(ifs, "Could not open '%s'", filepath.c_str());
+  std::ifstream input(filepath);
+  check(input.is_open(), "Could not open '%s'", filepath.c_str());
 
   std::string line;
   Properties properties;
-  while (std::getline(ifs, line)) {
-    if (line.empty()) continue;
+  while (std::getline(input, line)) {
+    if (line.empty())
+      continue;
     const auto pos_of_delim = line.find('=');
-    if (pos_of_delim == std::string::npos) continue;
+    if (pos_of_delim == std::string::npos)
+      continue;
     const auto key = line.substr(0, pos_of_delim);
     const auto value = line.substr(pos_of_delim + 1);
     // We don't make any checks here, because external modification
@@ -345,11 +350,11 @@ void writePropertiesToFile(const Properties& properties,
                            const std::string& filepath) {
   MT_REQUIRE_EQ(properties.count("checksum"), 0);
 
-  std::ofstream ofs(filepath);
-  check(ofs, "Could not create '%s'", filepath.c_str());
+  std::ofstream output(filepath);
+  check(output.is_open(), "Could not create '%s'", filepath.c_str());
 
   const auto content = serializeToString(properties);
-  ofs << content << "checksum=" << crc32(content) << '\n';
+  output << content << "checksum=" << crc32(content) << '\n';
 }
 
 namespace internal {
@@ -392,7 +397,7 @@ void printStackTrace(size_t skip_head) {
   printStackTraceTo(std::cerr, skip_head);
 }
 
-}  // namespace internal
+} // namespace internal
 
 AssertionError::AssertionError(const char* message)
     : std::logic_error(message) {}
@@ -409,4 +414,4 @@ AssertionError::AssertionError(const char* file, size_t line, const char* expr,
                                AssertionError::Type type)
     : std::logic_error(makeErrorMessage(file, line, expr, expected, type, 5)) {}
 
-}  // namespace mt
+} // namespace mt
