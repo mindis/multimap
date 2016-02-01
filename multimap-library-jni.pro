@@ -14,7 +14,8 @@ isEmpty(JAVA_HOME) {
 }
 
 INCLUDEPATH += \
-    $$JAVA_HOME/include
+    $$JAVA_HOME/include \
+    $$JAVA_HOME/include/linux
 
 HEADERS += \
     src/cpp/multimap/jni/generated/io_multimap_Iterator_Native.h \
