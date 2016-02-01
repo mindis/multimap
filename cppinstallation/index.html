@@ -168,13 +168,13 @@
                 <h2 id="for-c-developers">For C++ Developers</h2>
 <p>Multimap is implemented in standard C++11 and POSIX. Its target platform is GNU/Linux.</p>
 <h3 id="get-the-source-code">Get the Source Code</h3>
-<p>Download the latest release tarball from GitHub: <a href="https://github.com/mtrenkmann/multimap/releases">https://github.com/mtrenkmann/multimap/releases</a></p>
+<p>Download the latest <a href="https://github.com/mtrenkmann/multimap/releases" target="_blank">release tarball</a> from GitHub and then</p>
 <pre><code class="bash">cd path/to/download
 tar xzvf multimap-&lt;version&gt;.tar.gz
 cd multimap-&lt;version&gt;
 </code></pre>
 
-<p>or clone the repository to your local machine:</p>
+<p>or clone the repository to your local machine as follows</p>
 <pre><code class="bash">git clone https://github.com/mtrenkmann/multimap.git
 cd multimap
 git checkout tags/&lt;tagname&gt;
@@ -216,6 +216,7 @@ sudo ldconfig
 
 <p>This installs the shared library <code>libmultimap.so</code> in <code>/usr/local/lib</code> and the header files in <code>/usr/local/include/multimap</code>. Note that some distributions do not search <code>/usr/local/lib</code> by default when looking for library dependencies. In this case you need to add <code>/usr/local/lib</code> to <code>/etc/ld.so.conf</code>. If you are not allowed to do so, you can also set <code>LD_LIBRARY_PATH=/usr/local/lib</code> before running your application. For more information see <a href="https://www.debian.org/doc/debian-policy/ch-sharedlibs.html#s-ldconfig" target="_blank">ldconfig</a> and/or <code>man ldconfig</code>.</p>
 <h3 id="install-command-line-tool">Install Command Line Tool</h3>
+<p>The command line tool allows you to perform some administration tasks right in your terminal and is recommended to be installed as well. <a href="../overview#command-line-tool">Read more</a>.</p>
 <pre><code class="bash">qmake multimap-tool.pro
 
 # if you encounter an error, try
