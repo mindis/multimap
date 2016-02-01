@@ -192,7 +192,7 @@ sudo apt-get install make g++
 <pre><code class="bash">sudo apt-get install libboost-filesystem-dev libboost-system-dev libboost-thread-dev
 </code></pre>
 
-<h3 id="buildinstall-shared-library">Build/Install Shared Library</h3>
+<h3 id="install-shared-library">Install Shared Library</h3>
 <pre><code class="bash">qmake multimap-library.pro
 make
 
@@ -206,7 +206,7 @@ sudo make install
 </code></pre>
 
 <p>This will install the shared library <code>libmultimap.so</code> in <code>/usr/local/lib</code> and the header files in <code>/usr/local/include/multimap</code>. Note that some distributions do not search <code>/usr/local/lib</code> by default when looking for library dependencies. In this case you need to add <code>/usr/local/lib</code> to <code>/etc/ld.so.conf</code>. If you are not allowed to do so, you can also set <code>LD_LIBRARY_PATH=/usr/local/lib</code> before running your application. For more information see <a href="https://www.debian.org/doc/debian-policy/ch-sharedlibs.html#s-ldconfig" target="_blank">ldconfig</a> and/or <code>man ldconfig</code>.</p>
-<h3 id="buildinstall-command-line-tool">Build/Install Command Line Tool</h3>
+<h3 id="install-command-line-tool">Install Command Line Tool</h3>
 <pre><code class="bash">qmake multimap-tool.pro
 make
 sudo make install
@@ -215,7 +215,9 @@ sudo make install
 <p>This builds and installs the executable <code>multimap</code> in <code>/usr/local/bin</code>. If this directory is not listed in your <code>PATH</code> variable, you can add it by putting <code>PATH="/usr/local/bin:$PATH"</code> either into <code>~/.profile</code> or <code>~/.bashrc</code>.</p>
               </div>
               <div class="col-md-3" role="complementary">
-                <nav id="multimap-sidebar" class="hidden-print hidden-xs hidden-sm affix-top" data-spy="affix" data-offset-top="130" data-offset-bottom="200">
+                <nav id="multimap-sidebar"
+                     class="hidden-print hidden-xs hidden-sm affix-top"
+                     data-spy="affix" data-offset-top="130" data-offset-bottom="200">
                   <ul class="nav">
                     
                       <li><a href="#for-c-developers">For C++ Developers</a>
@@ -227,9 +229,9 @@ sudo make install
                           
                           <li><a href="#install-dependencies">Install Dependencies</a></li>
                           
-                          <li><a href="#buildinstall-shared-library">Build/Install Shared Library</a></li>
+                          <li><a href="#install-shared-library">Install Shared Library</a></li>
                           
-                          <li><a href="#buildinstall-command-line-tool">Build/Install Command Line Tool</a></li>
+                          <li><a href="#install-command-line-tool">Install Command Line Tool</a></li>
                           
                         </ul>
                       </li>

@@ -321,7 +321,9 @@ map.replaceValues(key, incrementIfEven);
 <p>Note that if the list is already locked either by a <a href="../cppreference#reader-lock">reader</a> or <a href="../cppreference#writer-lock">writer lock</a> any replace method will block until the lock is released. A thread should never try to replace values while holding iterators to the same list to avoid deadlocks.</p>
               </div>
               <div class="col-md-3" role="complementary">
-                <nav id="multimap-sidebar" class="hidden-print hidden-xs hidden-sm affix-top" data-spy="affix" data-offset-top="130" data-offset-bottom="200">
+                <nav id="multimap-sidebar"
+                     class="hidden-print hidden-xs hidden-sm affix-top"
+                     data-spy="affix" data-offset-top="130" data-offset-bottom="200">
                   <ul class="nav">
                     
                       <li><a href="#creating-a-map">Creating a Map</a>

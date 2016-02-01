@@ -119,7 +119,9 @@
                 {{ content }}
               </div>
               <div class="col-md-3" role="complementary">
-                <nav id="multimap-sidebar" class="hidden-print hidden-xs hidden-sm affix-top" data-spy="affix" data-offset-top="130" data-offset-bottom="200">
+                <nav id="multimap-sidebar"
+                     class="hidden-print hidden-xs hidden-sm affix-top"
+                     data-spy="affix" data-offset-top="130" data-offset-bottom="200">
                   <ul class="nav">
                     {% for toc_item in toc %}
                       <li><a href="{{ toc_item.url }}">{{ toc_item.title }}</a>

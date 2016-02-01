@@ -1377,7 +1377,9 @@ namespace multimap
 <p>Unlike reader locks that are wrapped by iterators, the ownership of writer locks is never transferred to the client in order to reduce the risk of running into deadlocks. Nevertheless, iterators that allow the modification of the underlying list are used inside the library. So, any method of <a href="#class-map">Map</a> that needs to acquire a writer lock to perform its operation will block if the resource is currently locked either by a reader lock or writer lock, and until this lock is released.</p>
               </div>
               <div class="col-md-3" role="complementary">
-                <nav id="multimap-sidebar" class="hidden-print hidden-xs hidden-sm affix-top" data-spy="affix" data-offset-top="130" data-offset-bottom="200">
+                <nav id="multimap-sidebar"
+                     class="hidden-print hidden-xs hidden-sm affix-top"
+                     data-spy="affix" data-offset-top="130" data-offset-bottom="200">
                   <ul class="nav">
                     
                       <li><a href="#byteshpp">Bytes.hpp</a>
