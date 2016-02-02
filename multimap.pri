@@ -1,6 +1,7 @@
 CONFIG -= qt
 CONFIG += c++11
 DEFINES -= QT_WEBKIT
+VERSION = 0.3.1
 
 QMAKE_CXXFLAGS += -std=c++11  # for Qt4 compatibility
 QMAKE_LFLAGS += -rdynamic     # for GNU backtrace
