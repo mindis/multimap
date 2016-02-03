@@ -24,6 +24,7 @@ import io.multimap.Callables.Predicate;
 import io.multimap.Callables.Procedure;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -33,6 +34,7 @@ import java.nio.file.Paths;
  * <a href="http://multimap.io/cppreference/#maphpp">C++ Reference for class Map</a>.
  * 
  * @author Martin Trenkmann
+ * @since 0.3.0
  */
 public class Map implements AutoCloseable {
 
@@ -44,12 +46,15 @@ public class Map implements AutoCloseable {
       System.err.println(e);
     }
   }
+  
+  private static final Charset UTF8 = Charset.forName("UTF-8");
 
   /**
    * This type provides static methods for obtaining system limitations. Those limits which define
    * constraints on user supplied data also serve as preconditions.
    * 
    * @author Martin Trenkmann
+   * @since 0.3.0
    */
   static class Limits {
 
@@ -164,6 +169,28 @@ public class Map implements AutoCloseable {
     Check.notNull(value);
     Native.put(self, key, value);
   }
+  
+  /**
+   * Same as {@link #put(byte[], byte[])}, but takes the key as {@link String} instead of
+   * {@code byte[]}. Internally the key is converted to a byte array by calling
+   * {@link String#getBytes(Charset)} using UTF-8 as the character set.
+   * 
+   * @since 0.3.1
+   */
+  public void put(String key, byte[] value) throws Exception {
+    Native.put(self, key.getBytes(UTF8), value);
+  }
+  
+  /**
+   * Same as {@link #put(byte[], byte[])}, but takes both the key and the value as {@link String}
+   * instead of {@code byte[]}. Internally the key and the value are converted to byte arrays by
+   * calling {@link String#getBytes(Charset)} using UTF-8 as the character set.
+   * 
+   * @since 0.3.1
+   */
+  public void put(String key, String value) throws Exception {
+    Native.put(self, key.getBytes(UTF8), value.getBytes(UTF8));
+  }
 
   /**
    * Returns a read-only iterator for the list associated with {@code key}. If the key does not
@@ -185,12 +212,34 @@ public class Map implements AutoCloseable {
   }
   
   /**
+   * Same as {@link #get(byte[])}, but takes the key as {@link String} instead of {@code byte[]}.
+   * Internally the key is converted to a byte array by calling {@link String#getBytes(Charset)}
+   * using UTF-8 as the character set.
+   * 
+   * @since 0.3.1
+   */
+  public Iterator get(String key) {
+    return get(key.getBytes(UTF8));
+  }
+  
+  /**
    * Returns {@code true} if {@code key} is associated with at least one value, {@code false}
    * otherwise.
    */
   public boolean containsKey(byte[] key) {
     Check.notNull(key);
     return Native.containsKey(self, key);
+  }
+  
+  /**
+   * Same as {@link #containsKey(byte[])}, but takes the key as {@link String} instead of
+   * {@code byte[]}. Internally the key is converted to a byte array by calling
+   * {@link String#getBytes(Charset)} using UTF-8 as the character set.
+   * 
+   * @since 0.3.1
+   */
+  public boolean containsKey(String key) {
+    return containsKey(key.getBytes(UTF8));
   }
 
   /**
@@ -207,6 +256,17 @@ public class Map implements AutoCloseable {
   public boolean removeKey(byte[] key) {
     Check.notNull(key);
     return Native.removeKey(self, key);
+  }
+  
+  /**
+   * Same as {@link #removeKey(byte[])}, but takes the key as {@link String} instead of
+   * {@code byte[]}. Internally the key is converted to a byte array by calling
+   * {@link String#getBytes(Charset)} using UTF-8 as the character set.
+   * 
+   * @since 0.3.1
+   */
+  public boolean removeKey(String key) {
+    return removeKey(key.getBytes(UTF8));
   }
 
   /**
@@ -242,6 +302,28 @@ public class Map implements AutoCloseable {
     Check.notNull(value);
     return Native.removeValue(self, key, value);
   }
+  
+  /**
+   * Same as {@link #removeValue(byte[], byte[])}, but takes the key as {@link String} instead of
+   * {@code byte[]}. Internally the key is converted to a byte array by calling
+   * {@link String#getBytes(Charset)} using UTF-8 as the character set.
+   * 
+   * @since 0.3.1
+   */
+  public boolean removeValue(String key, byte[] value) {
+    return removeValue(key.getBytes(UTF8), value);
+  }
+  
+  /**
+   * Same as {@link #removeValue(byte[], byte[])}, but takes both the key and the value as
+   * {@link String} instead of {@code byte[]}. Internally the key and the value are converted to
+   * byte arrays by calling {@link String#getBytes(Charset)} using UTF-8 as the character set.
+   * 
+   * @since 0.3.1
+   */
+  public boolean removeValue(String key, String value) {
+    return removeValue(key.getBytes(UTF8), value.getBytes(UTF8));
+  }
 
   /**
    * Removes the first value from the list associated with {@code key} for which {@code predicate}
@@ -260,6 +342,17 @@ public class Map implements AutoCloseable {
     Check.notNull(key);
     Check.notNull(predicate);
     return Native.removeValue(self, key, predicate);
+  }
+  
+  /**
+   * Same as {@link #removeValue(byte[], Callables.Predicate)}, but takes the key as {@link String}
+   * instead of {@code byte[]}. Internally the key is converted to a byte array by calling
+   * {@link String#getBytes(Charset)} using UTF-8 as the character set.
+   * 
+   * @since 0.3.1
+   */
+  public boolean removeValue(String key, Predicate predicate) {
+    return removeValue(key.getBytes(UTF8), predicate);
   }
 
 
@@ -280,6 +373,28 @@ public class Map implements AutoCloseable {
     Check.notNull(value);
     return Native.removeValues(self, key, value);
   }
+  
+  /**
+   * Same as {@link #removeValues(byte[], byte[])}, but takes the key as {@link String} instead of
+   * {@code byte[]}. Internally the key is converted to a byte array by calling
+   * {@link String#getBytes(Charset)} using UTF-8 as the character set.
+   * 
+   * @since 0.3.1
+   */
+  public long removeValues(String key, byte[] value) {
+    return removeValues(key.getBytes(UTF8), value);
+  }
+  
+  /**
+   * Same as {@link #removeValues(byte[], byte[])}, but takes both the key and the value as
+   * {@link String} instead of {@code byte[]}. Internally the key and the value are converted to
+   * byte arrays by calling {@link String#getBytes(Charset)} using UTF-8 as the character set.
+   * 
+   * @since 0.3.1
+   */
+  public long removeValues(String key, String value) {
+    return removeValues(key.getBytes(UTF8), value.getBytes(UTF8));
+  }
 
   /**
    * Removes all values from the list associated with {@code key} for which {@code predicate}
@@ -298,6 +413,17 @@ public class Map implements AutoCloseable {
     Check.notNull(key);
     Check.notNull(predicate);
     return Native.removeValues(self, key, predicate);
+  }
+  
+  /**
+   * Same as {@link #removeValues(byte[], Callables.Predicate)}, but takes the key as {@link String}
+   * instead of {@code byte[]}. Internally the key is converted to a byte array by calling
+   * {@link String#getBytes(Charset)} using UTF-8 as the character set.
+   * 
+   * @since 0.3.1
+   */
+  public long removeValues(String key, Predicate predicate) {
+    return removeValues(key.getBytes(UTF8), predicate);
   }
 
   /**
@@ -322,6 +448,28 @@ public class Map implements AutoCloseable {
     Check.notNull(newValue);
     return Native.replaceValue(self, key, oldValue, newValue);
   }
+  
+  /**
+   * Same as {@link #replaceValue(byte[], byte[], byte[])}, but takes the key as {@link String}
+   * instead of {@code byte[]}. Internally the key is converted to a byte array by calling
+   * {@link String#getBytes(Charset)} using UTF-8 as the character set.
+   * 
+   * @since 0.3.1
+   */
+  public boolean replaceValue(String key, byte[] oldValue, byte[] newValue) {
+    return replaceValue(key.getBytes(UTF8), oldValue, newValue);
+  }
+  
+  /**
+   * Same as {@link #replaceValue(byte[], byte[], byte[])}, but takes all arguments as
+   * {@link String} instead of {@code byte[]}. Internally the arguments are converted to byte arrays
+   * by calling {@link String#getBytes(Charset)} using UTF-8 as the character set.
+   * 
+   * @since 0.3.1
+   */
+  public boolean replaceValue(String key, String oldValue, String newValue) {
+    return replaceValue(key.getBytes(UTF8), oldValue.getBytes(UTF8), newValue.getBytes(UTF8));
+  }
 
   /**
    * Replaces the first value in the list associated with {@code key} by the result of invoking
@@ -344,6 +492,17 @@ public class Map implements AutoCloseable {
     Check.notNull(key);
     Check.notNull(map);
     return Native.replaceValue(self, key, map);
+  }
+  
+  /**
+   * Same as {@link #replaceValue(byte[], Callables.Function)}, but takes the key as {@link String}
+   * instead of {@code byte[]}. Internally the key is converted to a byte array by calling
+   * {@link String#getBytes(Charset)} using UTF-8 as the character set.
+   * 
+   * @since 0.3.1
+   */
+  public boolean replaceValue(String key, Function map) {
+    return replaceValue(key.getBytes(UTF8), map);
   }
 
   /**
@@ -370,6 +529,28 @@ public class Map implements AutoCloseable {
   }
   
   /**
+   * Same as {@link #replaceValues(byte[], byte[], byte[])}, but takes the key as {@link String}
+   * instead of {@code byte[]}. Internally the key is converted to a byte array by calling
+   * {@link String#getBytes(Charset)} using UTF-8 as the character set.
+   * 
+   * @since 0.3.1
+   */
+  public long replaceValues(String key, byte[] oldValue, byte[] newValue) {
+    return replaceValues(key.getBytes(UTF8), oldValue, newValue);
+  }
+  
+  /**
+   * Same as {@link #replaceValues(byte[], byte[], byte[])}, but takes all arguments as
+   * {@link String} instead of {@code byte[]}. Internally the arguments are converted to byte arrays
+   * by calling {@link String#getBytes(Charset)} using UTF-8 as the character set.
+   * 
+   * @since 0.3.1
+   */
+  public long replaceValues(String key, String oldValue, String newValue) {
+    return replaceValues(key.getBytes(UTF8), oldValue.getBytes(UTF8), newValue.getBytes(UTF8));
+  }
+  
+  /**
    * Replaces each value in the list associated with {@code key} by the result of invoking
    * {@code map}. Values for which {@code map} returns {@code null} are not replaced. The map
    * function can be any callable that implements the {@link Function} interface.
@@ -390,6 +571,17 @@ public class Map implements AutoCloseable {
     Check.notNull(key);
     Check.notNull(map);
     return Native.replaceValues(self, key, map);
+  }
+  
+  /**
+   * Same as {@link #replaceValues(byte[], Callables.Function)}, but takes the key as {@link String}
+   * instead of {@code byte[]}. Internally the key is converted to a byte array by calling
+   * {@link String#getBytes(Charset)} using UTF-8 as the character set.
+   * 
+   * @since 0.3.1
+   */
+  public long replaceValues(String key, Function map) {
+    return replaceValues(key.getBytes(UTF8), map);
   }
 
   /**
@@ -416,6 +608,17 @@ public class Map implements AutoCloseable {
   public void forEachValue(byte[] key, Procedure process) {
     Check.notNull(process);
     Native.forEachValue(self, key, process);
+  }
+  
+  /**
+   * Same as {@link #forEachValue(byte[], Callables.Procedure)}, but takes the key as {@link String}
+   * instead of {@code byte[]}. Internally the key is converted to a byte array by calling
+   * {@link String#getBytes(Charset)} using UTF-8 as the character set.
+   * 
+   * @since 0.3.1
+   */
+  public void forEachValue(String key, Procedure process) {
+    forEachValue(key.getBytes(UTF8), process);
   }
 
   /*
