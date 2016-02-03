@@ -50,19 +50,11 @@
     
 
     
-        
     <url>
-     <loc>None/cppinstallation/</loc>
+     <loc>None/installation/</loc>
      <lastmod>2016-02-03</lastmod>
      <changefreq>daily</changefreq>
     </url>
-        
-    <url>
-     <loc>None/javainstallation/</loc>
-     <lastmod>2016-02-03</lastmod>
-     <changefreq>daily</changefreq>
-    </url>
-        
     
 
 </urlset>

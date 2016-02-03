@@ -126,23 +126,8 @@
                 
               
                 
-                  <li class="dropdown  active ">
-                    <a href="#">Installation <span class="caret"></span></a>
-                    <ul class="dropdown-menu">
-                      
-                        
-                          <li  class="active" >
-                            <a href="./">for C++ Developers</a>
-                          </li>
-                        
-                      
-                        
-                          <li >
-                            <a href="../javainstallation/">for Java Developers</a>
-                          </li>
-                        
-                      
-                    </ul>
+                  <li class="active">
+                    <a href="./">Installation</a>
                   </li>
                 
               
@@ -165,9 +150,10 @@
           <div class="row">
             
               <div class="col-md-9" role="main">
-                <h2 id="for-c-developers">For C++ Developers</h2>
+                <p><br></p>
 <p>Multimap is implemented in standard C++11 and POSIX. Its target platform is GNU/Linux.</p>
-<h3 id="get-the-source-code">Get the Source Code</h3>
+<p>As a C++ developer you have to follow the steps until, but including, <a href="#install-command-line-tool">Install Command Line Tool</a>. Java developers need to follow the entire guide, which additionally builds a second shared library with JNI support and a Java archive.</p>
+<h2 id="get-the-source-code">Get the Source Code</h2>
 <p>Download the latest <a href="https://github.com/mtrenkmann/multimap/releases" target="_blank">release tarball</a> from GitHub and then</p>
 <pre><code class="bash">cd path/to/download
 tar xzvf multimap-&lt;version&gt;.tar.gz
@@ -183,7 +169,7 @@ git checkout tags/&lt;tagname&gt;
 # Use `git tag -l` to list all available tags.
 </code></pre>
 
-<h3 id="install-build-tools">Install Build Tools</h3>
+<h2 id="install-build-tools">Install Build Tools</h2>
 <p>Multimap uses <a href="http://doc.qt.io/qt-5/qmake-manual.html" target="_blank">qmake</a> as its Makefile generator.</p>
 <pre><code class="bash">sudo apt-get install qt5-make
 # For Debian 8 based distros
@@ -197,11 +183,11 @@ sudo apt-get install qt4-make
 sudo apt-get install make g++ 
 </code></pre>
 
-<h3 id="install-dependencies">Install Dependencies</h3>
+<h2 id="install-dependencies">Install Dependencies</h2>
 <pre><code class="bash">sudo apt-get install libboost-filesystem-dev libboost-system-dev libboost-thread-dev
 </code></pre>
 
-<h3 id="install-shared-library">Install Shared Library</h3>
+<h2 id="install-shared-library">Install Shared Library</h2>
 <pre><code class="bash">qmake multimap-library.pro
 
 # if you encounter an error, try
@@ -215,8 +201,8 @@ sudo ldconfig
 </code></pre>
 
 <p>This installs the shared library <code>libmultimap.so</code> in <code>/usr/local/lib</code> and the header files in <code>/usr/local/include/multimap</code>. Note that some distributions do not search <code>/usr/local/lib</code> by default when looking for library dependencies. In this case you need to add <code>/usr/local/lib</code> to <code>/etc/ld.so.conf</code>. If you are not allowed to do so, you can also set <code>LD_LIBRARY_PATH=/usr/local/lib</code> before running your application. For more information see <a href="https://www.debian.org/doc/debian-policy/ch-sharedlibs.html#s-ldconfig" target="_blank">ldconfig</a> and/or <code>man ldconfig</code>.</p>
-<h3 id="install-command-line-tool">Install Command Line Tool</h3>
-<p>The command line tool allows you to perform some administration tasks right in your terminal and is recommended to be installed as well. <a href="../overview#command-line-tool">Read more</a>.</p>
+<h2 id="install-command-line-tool">Install Command Line Tool</h2>
+<p>The <a href="../overview#command-line-tool">command line tool</a> allows you to perform some administration tasks right in your terminal. Its installation is optional, but highly recommended.</p>
 <pre><code class="bash">qmake multimap-tool.pro
 
 # if you encounter an error, try
@@ -229,6 +215,45 @@ sudo make install
 </code></pre>
 
 <p>This builds and installs the executable <code>multimap</code> in <code>/usr/local/bin</code>. If this directory is not listed in your <code>PATH</code> variable, you can add it by putting <code>PATH="/usr/local/bin:$PATH"</code> either into <code>~/.profile</code> or <code>~/.bashrc</code>.</p>
+<p><br>
+If you are going to develop applications in C++ you are done. For Java support, read on.</p>
+<h2 id="define-java_home">Define JAVA_HOME</h2>
+<p>In order to build the native library with JNI support, some header files from a Java Development Kit (JDK) are needed. If not yet available, install a JDK and define the <code>JAVA_HOME</code> environment variable pointing to it.</p>
+<pre><code class="bash">sudo apt-get install openjdk-7-jdk
+
+export JAVA_HOME=/usr/lib/jvm/java-7-openjdk-amd64
+# For Debian 8 based distros (x86-64)
+
+export JAVA_HOME=/usr/lib/jvm/java-7-openjdk-i386
+# For Debian 8 based distros (x86-32)
+</code></pre>
+
+<h2 id="install-jni-shared-library">Install JNI Shared Library</h2>
+<pre><code class="bash">qmake multimap-library-jni.pro
+
+# if you encounter an error, try
+qmake -qt=5 multimap-library-jni.pro
+# or
+qmake -qt=4 multimap-library-jni.pro
+
+make
+sudo make install
+sudo ldconfig
+</code></pre>
+
+<p>This builds and install the shared library <code>libmultimap-jni.so</code> in <code>/usr/local/lib</code>. Since the Java VM does not search this directory by default when trying to load native libraries, you additionally need to set the <code>java.library.path</code> variable pointing to that location. Simply add</p>
+<pre><code class="bash">-Djava.library.path=/usr/local/lib
+</code></pre>
+
+<p>to the VM arguments of your Java project. Of course, you can let the variable pointing to any directory, even your download folder, if you won't or are not allowed to install the library system-wide.</p>
+<pre><code class="bash">-Djava.library.path=/home/user/downloads/multimap-&lt;version&gt;
+</code></pre>
+
+<h2 id="build-java-library">Build Java Library</h2>
+<pre><code class="bash">./make-multimap-jar.sh
+</code></pre>
+
+<p>This builds the JAR file <code>multimap-&lt;version&gt;.jar</code> that you can add to your project's classpath.</p>
               </div>
               <div class="col-md-3" role="complementary">
                 <nav id="multimap-sidebar"
@@ -236,18 +261,50 @@ sudo make install
                      data-spy="affix" data-offset-top="130" data-offset-bottom="200">
                   <ul class="nav">
                     
-                      <li><a href="#for-c-developers">For C++ Developers</a>
+                      <li><a href="#get-the-source-code">Get the Source Code</a>
                         <ul>
                           
-                          <li><a href="#get-the-source-code">Get the Source Code</a></li>
+                        </ul>
+                      </li>
+                    
+                      <li><a href="#install-build-tools">Install Build Tools</a>
+                        <ul>
                           
-                          <li><a href="#install-build-tools">Install Build Tools</a></li>
+                        </ul>
+                      </li>
+                    
+                      <li><a href="#install-dependencies">Install Dependencies</a>
+                        <ul>
                           
-                          <li><a href="#install-dependencies">Install Dependencies</a></li>
+                        </ul>
+                      </li>
+                    
+                      <li><a href="#install-shared-library">Install Shared Library</a>
+                        <ul>
                           
-                          <li><a href="#install-shared-library">Install Shared Library</a></li>
+                        </ul>
+                      </li>
+                    
+                      <li><a href="#install-command-line-tool">Install Command Line Tool</a>
+                        <ul>
                           
-                          <li><a href="#install-command-line-tool">Install Command Line Tool</a></li>
+                        </ul>
+                      </li>
+                    
+                      <li><a href="#define-java_home">Define JAVA_HOME</a>
+                        <ul>
+                          
+                        </ul>
+                      </li>
+                    
+                      <li><a href="#install-jni-shared-library">Install JNI Shared Library</a>
+                        <ul>
+                          
+                        </ul>
+                      </li>
+                    
+                      <li><a href="#build-java-library">Build Java Library</a>
+                        <ul>
                           
                         </ul>
                       </li>
