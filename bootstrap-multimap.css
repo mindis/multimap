@@ -130,7 +130,8 @@ pre code.plain {
 }
 
 #multimap-logo {
-  display: none;
+  position: absolute;
+  z-index: -1;
 }
 
 #multimap-sidebar {
