@@ -129,11 +129,6 @@ pre code.plain {
   color: #000;
 }
 
-#multimap-logo {
-  position: absolute;
-  z-index: -1;
-}
-
 #multimap-sidebar {
   font-size: 14px;
   margin-left: 25px;
