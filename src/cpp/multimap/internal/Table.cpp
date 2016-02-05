@@ -244,7 +244,6 @@ Table::Stats Table::getStats() const {
   stats.block_size = store_->getBlockSize();
   stats.num_blocks = store_->getNumBlocks();
   stats.num_keys_total = map_.size();
-  stats.num_partitions = 1;
   return stats;
 }
 
