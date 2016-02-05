@@ -127,8 +127,6 @@ public:
     }
   }
 
-  size_t getNumPartitions() const { return tables_.size(); }
-
   std::vector<Stats> getStats() const {
     std::vector<Stats> stats;
     for (const auto& table : tables_) {
