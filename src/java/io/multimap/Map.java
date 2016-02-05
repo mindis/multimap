@@ -190,7 +190,27 @@ public class Map implements AutoCloseable {
     public long numPartitions() {
       return numPartitions;
     }
-    
+
+    @Override
+    public String toString() {
+      return String.format(
+          "block_size        %d\n" +
+          "key_size_avg      %d\n" +
+          "key_size_max      %d\n" +
+          "key_size_min      %d\n" +
+          "list_size_avg     %d\n" +
+          "list_size_max     %d\n" +
+          "list_size_min     %d\n" +
+          "num_blocks        %d\n" +
+          "num_keys_total    %d\n" +
+          "num_keys_valid    %d\n" +
+          "num_values_total  %d\n" +
+          "num_values_valid  %d\n" +
+          "num_partitions    %d\n",
+          blockSize, keySizeAvg, keySizeMax, keySizeMin, listSizeAvg, listSizeMax, listSizeMin,
+          numBlocks, numKeysTotal, numKeysValid, numValuesTotal, numValuesValid, numPartitions);
+    }
+
     protected void parseFromBuffer(ByteBuffer buffer) {
       buffer.order(ByteOrder.LITTLE_ENDIAN);
       blockSize = buffer.getLong();
@@ -207,7 +227,7 @@ public class Map implements AutoCloseable {
       numValuesValid = buffer.getLong();
       numPartitions = buffer.getLong();
     }
-    
+
     // Needs to be synchronized with struct Table::Stats in C++.
     private long blockSize;
     private long keySizeAvg;
