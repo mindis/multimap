@@ -28,7 +28,7 @@
 #include "multimap/internal/Table.hpp"
 #include "multimap/thirdparty/mt/mt.hpp"
 #include "multimap/Options.hpp"
-#include "multimap/version.hpp"
+#include "multimap/Version.hpp"
 
 namespace multimap {
 
@@ -37,8 +37,8 @@ public:
   struct Id {
     uint64_t block_size = 0;
     uint64_t num_partitions = 0;
-    uint64_t major_version = MAJOR_VERSION;
-    uint64_t minor_version = MINOR_VERSION;
+    uint64_t major_version = Version::MAJOR;
+    uint64_t minor_version = Version::MINOR;
 
     static Id readFromDirectory(const boost::filesystem::path& directory);
     static Id readFromFile(const boost::filesystem::path& file);

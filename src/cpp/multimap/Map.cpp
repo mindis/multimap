@@ -335,11 +335,11 @@ const std::string getNameOfValuesFile(uint32_t index) {
 }
 
 void checkVersion(uint64_t major_version, uint64_t minor_version) {
-  mt::check(major_version == MAJOR_VERSION,
+  mt::check(major_version == Version::MAJOR,
             "Version check failed. The Multimap you are trying to open "
             "was created with version %u.%u of the library. Your "
             "installed version is %u.%u which is not compatible.",
-            major_version, minor_version, MAJOR_VERSION, MINOR_VERSION);
+            major_version, minor_version, Version::MAJOR, Version::MINOR);
 }
 
 } // namespace internal
