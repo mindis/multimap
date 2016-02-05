@@ -26,8 +26,8 @@
 namespace multimap {
 
 static const uint32_t MAJOR_VERSION = 0;
-static const uint32_t MINOR_VERSION = 3;
-static const uint32_t PATCH_VERSION = 1;
+static const uint32_t MINOR_VERSION = 4;
+static const uint32_t PATCH_VERSION = 0;
 
 } // namespace multimap
 

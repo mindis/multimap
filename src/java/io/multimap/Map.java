@@ -175,7 +175,7 @@ public class Map implements AutoCloseable {
    * {@code byte[]}. Internally the key is converted to a byte array by calling
    * {@link String#getBytes(Charset)} using UTF-8 as the character set.
    * 
-   * @since 0.3.1
+   * @since 0.4.0
    */
   public void put(String key, byte[] value) throws Exception {
     Native.put(self, key.getBytes(UTF8), value);
@@ -186,7 +186,7 @@ public class Map implements AutoCloseable {
    * instead of {@code byte[]}. Internally the key and the value are converted to byte arrays by
    * calling {@link String#getBytes(Charset)} using UTF-8 as the character set.
    * 
-   * @since 0.3.1
+   * @since 0.4.0
    */
   public void put(String key, String value) throws Exception {
     Native.put(self, key.getBytes(UTF8), value.getBytes(UTF8));
@@ -216,7 +216,7 @@ public class Map implements AutoCloseable {
    * Internally the key is converted to a byte array by calling {@link String#getBytes(Charset)}
    * using UTF-8 as the character set.
    * 
-   * @since 0.3.1
+   * @since 0.4.0
    */
   public Iterator get(String key) {
     return get(key.getBytes(UTF8));
@@ -236,7 +236,7 @@ public class Map implements AutoCloseable {
    * {@code byte[]}. Internally the key is converted to a byte array by calling
    * {@link String#getBytes(Charset)} using UTF-8 as the character set.
    * 
-   * @since 0.3.1
+   * @since 0.4.0
    */
   public boolean containsKey(String key) {
     return containsKey(key.getBytes(UTF8));
@@ -263,7 +263,7 @@ public class Map implements AutoCloseable {
    * {@code byte[]}. Internally the key is converted to a byte array by calling
    * {@link String#getBytes(Charset)} using UTF-8 as the character set.
    * 
-   * @since 0.3.1
+   * @since 0.4.0
    */
   public boolean removeKey(String key) {
     return removeKey(key.getBytes(UTF8));
@@ -308,7 +308,7 @@ public class Map implements AutoCloseable {
    * {@code byte[]}. Internally the key is converted to a byte array by calling
    * {@link String#getBytes(Charset)} using UTF-8 as the character set.
    * 
-   * @since 0.3.1
+   * @since 0.4.0
    */
   public boolean removeValue(String key, byte[] value) {
     return removeValue(key.getBytes(UTF8), value);
@@ -319,7 +319,7 @@ public class Map implements AutoCloseable {
    * {@link String} instead of {@code byte[]}. Internally the key and the value are converted to
    * byte arrays by calling {@link String#getBytes(Charset)} using UTF-8 as the character set.
    * 
-   * @since 0.3.1
+   * @since 0.4.0
    */
   public boolean removeValue(String key, String value) {
     return removeValue(key.getBytes(UTF8), value.getBytes(UTF8));
@@ -349,7 +349,7 @@ public class Map implements AutoCloseable {
    * instead of {@code byte[]}. Internally the key is converted to a byte array by calling
    * {@link String#getBytes(Charset)} using UTF-8 as the character set.
    * 
-   * @since 0.3.1
+   * @since 0.4.0
    */
   public boolean removeValue(String key, Predicate predicate) {
     return removeValue(key.getBytes(UTF8), predicate);
@@ -379,7 +379,7 @@ public class Map implements AutoCloseable {
    * {@code byte[]}. Internally the key is converted to a byte array by calling
    * {@link String#getBytes(Charset)} using UTF-8 as the character set.
    * 
-   * @since 0.3.1
+   * @since 0.4.0
    */
   public long removeValues(String key, byte[] value) {
     return removeValues(key.getBytes(UTF8), value);
@@ -390,7 +390,7 @@ public class Map implements AutoCloseable {
    * {@link String} instead of {@code byte[]}. Internally the key and the value are converted to
    * byte arrays by calling {@link String#getBytes(Charset)} using UTF-8 as the character set.
    * 
-   * @since 0.3.1
+   * @since 0.4.0
    */
   public long removeValues(String key, String value) {
     return removeValues(key.getBytes(UTF8), value.getBytes(UTF8));
@@ -420,7 +420,7 @@ public class Map implements AutoCloseable {
    * instead of {@code byte[]}. Internally the key is converted to a byte array by calling
    * {@link String#getBytes(Charset)} using UTF-8 as the character set.
    * 
-   * @since 0.3.1
+   * @since 0.4.0
    */
   public long removeValues(String key, Predicate predicate) {
     return removeValues(key.getBytes(UTF8), predicate);
@@ -454,7 +454,7 @@ public class Map implements AutoCloseable {
    * instead of {@code byte[]}. Internally the key is converted to a byte array by calling
    * {@link String#getBytes(Charset)} using UTF-8 as the character set.
    * 
-   * @since 0.3.1
+   * @since 0.4.0
    */
   public boolean replaceValue(String key, byte[] oldValue, byte[] newValue) {
     return replaceValue(key.getBytes(UTF8), oldValue, newValue);
@@ -465,7 +465,7 @@ public class Map implements AutoCloseable {
    * {@link String} instead of {@code byte[]}. Internally the arguments are converted to byte arrays
    * by calling {@link String#getBytes(Charset)} using UTF-8 as the character set.
    * 
-   * @since 0.3.1
+   * @since 0.4.0
    */
   public boolean replaceValue(String key, String oldValue, String newValue) {
     return replaceValue(key.getBytes(UTF8), oldValue.getBytes(UTF8), newValue.getBytes(UTF8));
@@ -499,7 +499,7 @@ public class Map implements AutoCloseable {
    * instead of {@code byte[]}. Internally the key is converted to a byte array by calling
    * {@link String#getBytes(Charset)} using UTF-8 as the character set.
    * 
-   * @since 0.3.1
+   * @since 0.4.0
    */
   public boolean replaceValue(String key, Function map) {
     return replaceValue(key.getBytes(UTF8), map);
@@ -533,7 +533,7 @@ public class Map implements AutoCloseable {
    * instead of {@code byte[]}. Internally the key is converted to a byte array by calling
    * {@link String#getBytes(Charset)} using UTF-8 as the character set.
    * 
-   * @since 0.3.1
+   * @since 0.4.0
    */
   public long replaceValues(String key, byte[] oldValue, byte[] newValue) {
     return replaceValues(key.getBytes(UTF8), oldValue, newValue);
@@ -544,7 +544,7 @@ public class Map implements AutoCloseable {
    * {@link String} instead of {@code byte[]}. Internally the arguments are converted to byte arrays
    * by calling {@link String#getBytes(Charset)} using UTF-8 as the character set.
    * 
-   * @since 0.3.1
+   * @since 0.4.0
    */
   public long replaceValues(String key, String oldValue, String newValue) {
     return replaceValues(key.getBytes(UTF8), oldValue.getBytes(UTF8), newValue.getBytes(UTF8));
@@ -578,7 +578,7 @@ public class Map implements AutoCloseable {
    * instead of {@code byte[]}. Internally the key is converted to a byte array by calling
    * {@link String#getBytes(Charset)} using UTF-8 as the character set.
    * 
-   * @since 0.3.1
+   * @since 0.4.0
    */
   public long replaceValues(String key, Function map) {
     return replaceValues(key.getBytes(UTF8), map);
@@ -615,7 +615,7 @@ public class Map implements AutoCloseable {
    * instead of {@code byte[]}. Internally the key is converted to a byte array by calling
    * {@link String#getBytes(Charset)} using UTF-8 as the character set.
    * 
-   * @since 0.3.1
+   * @since 0.4.0
    */
   public void forEachValue(String key, Procedure process) {
     forEachValue(key.getBytes(UTF8), process);
