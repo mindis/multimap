@@ -22,16 +22,18 @@
 #include <multimap/thirdparty/mt/mt.hpp>
 #include <multimap/Map.hpp>
 
-const auto HELP = "help";
-const auto STATS = "stats";
-const auto IMPORT = "import";
-const auto EXPORT = "export";
+// clang-format off
+const auto HELP     = "help";
+const auto STATS    = "stats";
+const auto IMPORT   = "import";
+const auto EXPORT   = "export";
 const auto OPTIMIZE = "optimize";
 
-const auto BS = "--bs";
+const auto BS     = "--bs";
 const auto CREATE = "--create";
 const auto NPARTS = "--nparts";
-const auto QUIET = "--quiet";
+const auto QUIET  = "--quiet";
+// clang-format on
 
 const auto COMMANDS = { HELP, STATS, IMPORT, EXPORT, OPTIMIZE };
 const auto OPTIONS = { BS, CREATE, NPARTS, QUIET };
@@ -113,6 +115,7 @@ multimap::Options initOptions(const CommandLine& cmd) {
 }
 
 void runHelpCommand(const char* toolname) {
+  // clang-format off
   const multimap::Options default_options;
   std::printf(
       "USAGE\n"
@@ -142,11 +145,26 @@ void runHelpCommand(const char* toolname) {
       "\n\n"
       "\nCopyright (C) 2015-2016 Martin Trenkmann"
       "\n<http://multimap.io>\n",
-      toolname, HELP, STATS, IMPORT, EXPORT, OPTIMIZE, CREATE, BS,
-      default_options.block_size, NPARTS, default_options.num_partitions, QUIET,
-      toolname, STATS, toolname, IMPORT, toolname, IMPORT, toolname, IMPORT,
-      CREATE, toolname, EXPORT, toolname, OPTIMIZE, toolname, OPTIMIZE, BS,
-      toolname, OPTIMIZE, NPARTS, toolname, OPTIMIZE, NPARTS, BS);
+      toolname,
+      HELP,
+      STATS,
+      IMPORT,
+      EXPORT,
+      OPTIMIZE,
+      CREATE,
+      BS, default_options.block_size,
+      NPARTS, default_options.num_partitions,
+      QUIET,
+      toolname, STATS,
+      toolname, IMPORT,
+      toolname, IMPORT,
+      toolname, IMPORT, CREATE,
+      toolname, EXPORT,
+      toolname, OPTIMIZE,
+      toolname, OPTIMIZE, BS,
+      toolname, OPTIMIZE, NPARTS,
+      toolname, OPTIMIZE, NPARTS, BS);
+  // clang-format on
 }
 
 void runStatsCommand(const CommandLine& cmd) {
@@ -186,10 +204,6 @@ void runStatsCommand(const CommandLine& cmd) {
                 eq_signs(first_column_width).c_str(), second_column_width,
                 names[i].c_str(), third_column_width, totals[i]);
   }
-  const uint64_t num_parts = stats.size();
-  std::printf("=%s  %-*s  %-*" PRIu64 "\n",
-              eq_signs(first_column_width).c_str(), second_column_width,
-              "num_partitions", third_column_width, num_parts);
 }
 
 void runImportCommand(const CommandLine& cmd) {
