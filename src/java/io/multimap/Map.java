@@ -24,6 +24,7 @@ import io.multimap.Callables.Predicate;
 import io.multimap.Callables.Procedure;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -47,7 +48,7 @@ public class Map implements AutoCloseable {
     }
   }
   
-  private static final Charset UTF8 = Charset.forName("UTF-8");
+  public static final Charset UTF8 = Charset.forName("UTF-8");
 
   /**
    * This type provides static methods for obtaining system limitations. Those limits which define
@@ -56,7 +57,7 @@ public class Map implements AutoCloseable {
    * @author Martin Trenkmann
    * @since 0.3.0
    */
-  static class Limits {
+  public static class Limits {
 
     /**
      * Returns the maximum size in number of bytes for a key to put.
@@ -76,6 +77,151 @@ public class Map implements AutoCloseable {
       static native int maxKeySize();
       static native int maxValueSize();
     }
+  }
+  
+  /**
+   * This type is a pure data holder for reporting statistical information.
+   * 
+   * @author Martin Trenkmann
+   * @since 0.4.0
+   */
+  public static class Stats {
+    
+    private Stats() {}
+    
+    /**
+     * Returns the block size of the map or partition.
+     */
+    public long getBlockSize() {
+      return blockSize;
+    }
+    
+    /**
+     * Returns the average size in number of bytes of all keys in a map or partition. Note that
+     * keys that are currently not associated with any value are not taken into account.
+     */
+    public long getKeySizeAvg() {
+      return keySizeAvg;
+    }
+    
+    /**
+     * Returns the size in number of bytes of the largest key in a map or partition.
+     */
+    public long getKeySizeMax() {
+      return keySizeMax;
+    }
+    
+    /**
+     * Returns the size in number of bytes of the smallest key in a map or partition.
+     */
+    public long getKeySizeMin() {
+      return keySizeMin;
+    }
+    
+    /**
+     * Returns the average number of values associated with a key in a map or partition. Note that
+     * keys that are currently not associated with any value are not taken into account.
+     */
+    public long getListSizeAvg() {
+      return listSizeAvg;
+    }
+    
+    /**
+     * Returns the largest number of values associated with a key in a map or partition.
+     */
+    public long getListSizeMax() {
+      return listSizeMax;
+    }
+    
+    /**
+     * Returns the smallest number of values associated with a key in a map or partition. Note that
+     * keys that are currently not associated with any value are not taken into account.
+     */
+    public long getListSizeMin() {
+      return listSizeMin;
+    }
+    
+    /**
+     * Returns the number of blocks currently written to disk. Note that in-memory write buffer
+     * blocks that are associated with each keys are not taken into account. For more details
+     * please refer to the <a href="http://multimap.io/overview">overview</a> section of the
+     * project's website.
+     */
+    public long getNumBlocks() {
+      return numBlocks;
+    }
+    
+    /**
+     * Returns the total number of keys in a map or partition, including keys that are currently
+     * not associated with any value.
+     */
+    public long getNumKeysTotal() {
+      return numKeysTotal;
+    }
+    
+    /**
+     * Returns the number of valid keys in a map or partition. A valid key is associated with at
+     * least one value.
+     */
+    public long getNumKeysValid() {
+      return numKeysValid;
+    }
+    
+    /**
+     * Returns the total number of values in a map or partition, including values that are marked
+     * as removed. Note that this number can only be decreased by running an optimize operation.
+     */
+    public long getNumValuesTotal() {
+      return numValuesTotal;
+    }
+    
+    /**
+     * Returns the number of values in a map or partition that are not marked as removed.
+     */
+    public long getNumValuesValid() {
+      return numValuesValid;
+    }
+    
+    /**
+     * Returns the number of partitions in a map. The value could be different from that specified
+     * in options when creating a map due to the fact that the next prime number has been chosen.
+     * For partition-specific statistics the value is set to 0.
+     */
+    public long numPartitions() {
+      return numPartitions;
+    }
+    
+    protected void parseFromBuffer(ByteBuffer buffer) {
+      buffer.order(ByteOrder.LITTLE_ENDIAN);
+      blockSize = buffer.getLong();
+      keySizeAvg = buffer.getLong();
+      keySizeMax = buffer.getLong();
+      keySizeMin = buffer.getLong();
+      listSizeAvg = buffer.getLong();
+      listSizeMax = buffer.getLong();
+      listSizeMin = buffer.getLong();
+      numBlocks = buffer.getLong();
+      numKeysTotal = buffer.getLong();
+      numKeysValid = buffer.getLong();
+      numValuesTotal = buffer.getLong();
+      numValuesValid = buffer.getLong();
+      numPartitions = buffer.getLong();
+    }
+    
+    // Needs to be synchronized with struct Table::Stats in C++.
+    private long blockSize;
+    private long keySizeAvg;
+    private long keySizeMax;
+    private long keySizeMin;
+    private long listSizeAvg;
+    private long listSizeMax;
+    private long listSizeMin;
+    private long numBlocks;
+    private long numKeysTotal;
+    private long numKeysValid;
+    private long numValuesTotal;
+    private long numValuesValid;
+    private long numPartitions;
   }
 
   private ByteBuffer self;
@@ -355,7 +501,6 @@ public class Map implements AutoCloseable {
     return removeValue(key.getBytes(UTF8), predicate);
   }
 
-
   /**
    * Removes all values from the list associated with {@code key} that are equal to {@code value}
    * after to byte-wise comparison.
@@ -626,15 +771,23 @@ public class Map implements AutoCloseable {
    * supported. Consider submitting a feature request if you really need it.
    */
 
-  /*
-   * The method `getStats` as provided in the C++ version of this library is currently not
-   * supported. Consider submitting a feature request if you really need it.
+  /**
+   * Returns statistical information about the map. Be aware that this operation requires to visit
+   * each key-list entry of the map. Extensive use will slow down your application.
+   * 
+   * <p><b>Acquires:</b></p>
+   * <ul>
+   * <li>a reader lock on the map object.</li>
+   * <li>a reader lock on the list that is currently visited.</li>
+   * </ul>
+   * 
+   * @since 0.4.0
    */
-
-  /*
-   * The method `getTotalStats` as provided in the C++ version of this library is currently not
-   * supported. Consider submitting a feature request if you really need it.
-   */
+  public Stats getStats() {
+    Stats stats = new Stats();
+    Native.getStats(self, stats);
+    return stats;
+  }
 
   /**
    * Returns {@code true} if the map is read-only, {@code false} otherwise.
@@ -667,10 +820,27 @@ public class Map implements AutoCloseable {
   // The following functions are long running operations also available via the command line tool.
   // -----------------------------------------------------------------------------------------------
 
-  /*
-   * The method `stats` as provided in the C++ version of this library is currently not supported.
-   * Consider submitting a feature request if you really need it.
+  /**
+   * Returns statistical information about each partition of the map located in directory. This
+   * method is similar to {@link #getStats()} except that the map does not need to be instantiated.
+   * 
+   * <p><b>Acquires</b> a directory lock on directory.</p>
+   * 
+   * @throws Exception if one of the following is true:
+   * <ul>
+   * <li>the directory does not exist</li>
+   * <li>the directory cannot be locked</li>
+   * <li>the directory does not contain a map</li>
+   * </ul>
+   * 
+   * @since 0.4.0
    */
+  public static Stats stats(Path directory) throws Exception {
+    Check.notNull(directory);
+    Stats stats = new Stats();
+    Native.stats(directory.toString(), stats);
+    return stats;
+  }
 
   /**
    * Imports key-value pairs from an input file or directory into the map located in
@@ -785,8 +955,10 @@ public class Map implements AutoCloseable {
     static native long replaceValues(ByteBuffer self, byte[] key, Function function);
     static native void forEachKey(ByteBuffer self, Procedure action);
     static native void forEachValue(ByteBuffer self, byte[] key, Procedure action);
+    static native void getStats(ByteBuffer self, Stats stats);
     static native boolean isReadOnly(ByteBuffer self);
     static native void close(ByteBuffer self);
+    static native void stats(String directory, Stats stats) throws Exception;
     static native void importFromBase64(String directory, String input, Options options) throws Exception;
     static native void exportToBase64(String directory, String output, Options options) throws Exception;
     static native void optimize(String directory, String output, Options options) throws Exception;
