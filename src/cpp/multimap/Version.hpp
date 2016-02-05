@@ -18,16 +18,13 @@
 #ifndef MULTIMAP_VERSION_HPP_INCLUDED
 #define MULTIMAP_VERSION_HPP_INCLUDED
 
-#include <cstdint>
-#include <functional>
-#include "multimap/Bytes.hpp"
-#include "multimap/thirdparty/mt/mt.hpp"
-
 namespace multimap {
 
-static const uint32_t MAJOR_VERSION = 0;
-static const uint32_t MINOR_VERSION = 4;
-static const uint32_t PATCH_VERSION = 0;
+struct Version {
+  static const uint32_t MAJOR = 0;
+  static const uint32_t MINOR = 4;
+  static const uint32_t PATCH = 0;
+};
 
 } // namespace multimap
 
