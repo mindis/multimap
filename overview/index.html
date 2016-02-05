@@ -453,7 +453,7 @@ key3 value8
 <p><span class="qa-q" /> Why is there no sort method for the list associated with a key?<br>
 <span class="qa-a" /> A sort method would be possible from an implementation point of view, but as a list grows the cost of calling this method increases as well. Users that are not aware about the complexity might trigger it carelessly too often, e.g. after every single replace operation, finally slowing down the entire system.</p>
 <p><span class="qa-q" /> Can I use Multimap as a 1:1 key value store?<br>
-<span class="qa-a" /> Multimap can be used as a 1:1 key-value store, although other libraries may be better suited for this purpose. As always, you should pick the library that best fits your needs, both with respect to features and performance. When using Multimap as a 1:1 key-value store, you should set the block size as small as possible to waste as little space as possible, because each block will only contain just one value.</p>
+<span class="qa-a" /> Multimap can be used as a 1:1 key-value store, although other libraries may be better suited for that purpose. As always, you should pick the library that best fits your requirements. When using Multimap as a 1:1 key-value store, you should set the block size as small as possible to waste as little space as possible, because each block will only contain one value.</p>
               </div>
               <div class="col-md-3" role="complementary">
                 <nav id="multimap-sidebar"

@@ -618,16 +618,6 @@ namespace multimap
  </tr>
  <tr>
   <td>
-    <code>size_t</code>
-  </td>
-  <td>
-   <code>getNumPartitions() const</code>
-   <div>Returns the number of partitions. This value could be different from that specified in options when creating the map due to the fact that the next prime number has been taken.<div>
-  </td>
- </tr>
- <tr>
- <tr>
-  <td>
     <code>std::vector&lt;Stats&gt;</code>
   </td>
   <td>
@@ -960,8 +950,14 @@ namespace multimap
   <code>static std::vector&lt;<a href="#type-mapstats">Map::Stats</a>&gt; Map::stats(</code><br>
   <code><script>nbsp(8)</script>const boost::filesystem::path & directory)</code>
  </h4>
- <p>Returns statistical information about each partition of the map located in directory. This method is similar to <a href="#map-get-stats">Map::getStats()</a> except that the map does not need to be instanciated.</p>
+ <p>Returns statistical information about each partition of the map located in directory. This method is similar to <a href="#map-get-stats">Map::getStats()</a> except that the map does not need to be instantiated.</p>
  <p><span class="acquires" />a <a href="#directory-lock">directory lock</a> on directory.</p>
+ <p><span class="throws" /><a href="http://en.cppreference.com/w/cpp/error/runtime_error" target="_blank">std::runtime_error</a> if one of the following is true:</p>
+ <ul>
+  <li>the directory does not exist</li>
+  <li>the directory cannot be locked</li>
+  <li>the directory does not contain a map</li>
+ </ul>
 </div>
 
 <div class="reference-more">
@@ -1172,6 +1168,13 @@ namespace multimap
    <div>Tells the number of values in a map or partition that are not marked as removed.</div>
   </td>
  </tr>
+ <tr>
+  <td><code>uint64_t</code></td>
+  <td>
+   <code>num_partitions</code>
+   <div>Tells the number of partitions in a map. The value could be different from that specified in options when creating a map due to the fact that the next prime number has been chosen. For partition-specific statistics the value is set to 0.</div>
+  </td>
+ </tr>
 </tbody>
 </table>
 
@@ -1317,7 +1320,7 @@ namespace multimap
 </table>
 
 <h3 id="procedure">Procedure</h3>
-<p>A callable that is applied to an instance of class <a href="#class-bytes">Bytes</a> without returning any value. Procedures can have state that may change during application. Objects implementing this interface are typically used to visit keys or values, e.g. to collect information about them.</p>
+<p>A callable that is applied to an instance of class <a href="#class-bytes">Bytes</a> without returning any value. Procedures may maintain an internal state that changes during application. Objects implementing this interface are typically used to visit keys or values, e.g. to collect information about them.</p>
 <table class="reference-table">
 <tbody>
  <tr>
@@ -1334,7 +1337,7 @@ namespace multimap
 </table>
 
 <h3 id="binaryprocedure">BinaryProcedure</h3>
-<p>A callable that is applied to a pair of objects without returning a value. The first object being an instance of class <a href="#class-bytes">Bytes</a> and the second object being an instance of class <a href="#type-mapiterator">Map::Iterator</a>. Binary procedures can have state that may change during application. Objects implementing this interface are typically used to visit entries when traversing a map.</p>
+<p>A callable that is applied to a pair of objects without returning a value. The first object being an instance of class <a href="#class-bytes">Bytes</a> and the second object being an instance of class <a href="#type-mapiterator">Map::Iterator</a>. Binary procedures may maintain an internal state that changes during application. Objects implementing this interface are typically used to visit entries when traversing a map.</p>
 <table class="reference-table">
 <tbody>
  <tr>

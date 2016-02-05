@@ -200,7 +200,8 @@ sudo make install
 sudo ldconfig
 </code></pre>
 
-<p>This installs the shared library <code>libmultimap.so</code> in <code>/usr/local/lib</code> and the header files in <code>/usr/local/include/multimap</code>. Note that some distributions do not search <code>/usr/local/lib</code> by default when looking for library dependencies. In this case you need to add <code>/usr/local/lib</code> to <code>/etc/ld.so.conf</code>. If you are not allowed to do so, you can also set <code>LD_LIBRARY_PATH=/usr/local/lib</code> before running your application. For more information see <a href="https://www.debian.org/doc/debian-policy/ch-sharedlibs.html#s-ldconfig" target="_blank">ldconfig</a> and/or <code>man ldconfig</code>.</p>
+<p>This installs the shared library <code>libmultimap.so</code> in <code>/usr/local/lib</code> and the header files in <code>/usr/local/include/multimap</code>. For compiling your own C++ application you need to add <code>-lmultimap</code> and <code>-lboost_system</code> to your linker options.</p>
+<p>Note that some distributions do not search <code>/usr/local/lib</code> by default when looking for library dependencies. In this case you need to add <code>/usr/local/lib</code> to <code>/etc/ld.so.conf</code>. If you are not allowed to do so, you can also set <code>LD_LIBRARY_PATH=/usr/local/lib</code> before running your application. For more information see <a href="https://www.debian.org/doc/debian-policy/ch-sharedlibs.html#s-ldconfig" target="_blank">ldconfig</a> and/or <code>man ldconfig</code>.</p>
 <h2 id="install-command-line-tool">Install Command Line Tool</h2>
 <p>The <a href="../overview#command-line-tool">command line tool</a> allows you to perform some administration tasks right in your terminal. Its installation is optional, but highly recommended.</p>
 <pre><code class="bash">qmake multimap-tool.pro
