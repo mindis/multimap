@@ -47,6 +47,7 @@ public:
   };
 
   struct Stats {
+    // Needs to be synchronized with class Map#Stats in Java.
     uint64_t block_size = 0;
     uint64_t key_size_avg = 0;
     uint64_t key_size_max = 0;
@@ -59,6 +60,7 @@ public:
     uint64_t num_keys_valid = 0;
     uint64_t num_values_total = 0;
     uint64_t num_values_valid = 0;
+    uint64_t num_partitions = 0;
 
     static const std::vector<std::string>& names();
 
@@ -80,7 +82,7 @@ public:
   static_assert(std::is_standard_layout<Stats>::value,
                 "Table::Stats is no standard layout type");
 
-  static_assert(mt::hasExpectedSize<Stats>(96, 96),
+  static_assert(mt::hasExpectedSize<Stats>(104, 104),
                 "Table::Stats does not have expected size");
   // sizeof(Stats) must be equal on 32- and 64-bit systems to be portable.
 

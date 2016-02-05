@@ -29,11 +29,12 @@ uint32_t Table::Limits::maxKeySize() { return Varint::Limits::MAX_N4; }
 uint32_t Table::Limits::maxValueSize() { return List::Limits::maxValueSize(); }
 
 const std::vector<std::string>& Table::Stats::names() {
-  static std::vector<std::string> names =
-      { "block_size",     "key_size_avg",     "key_size_max",
-        "key_size_min",   "list_size_avg",    "list_size_max",
-        "list_size_min",  "num_blocks",       "num_keys_total",
-        "num_keys_valid", "num_values_total", "num_values_valid" };
+  static std::vector<std::string> names = {
+    "block_size",     "key_size_avg",   "key_size_max",     "key_size_min",
+    "list_size_avg",  "list_size_max",  "list_size_min",    "num_blocks",
+    "num_keys_total", "num_keys_valid", "num_values_total", "num_values_valid",
+    "num_partitions"
+  };
   return names;
 }
 
@@ -49,44 +50,11 @@ void Table::Stats::writeToFile(const boost::filesystem::path& file) const {
   mt::fwrite(stream.get(), this, sizeof *this);
 }
 
-Table::Stats Table::Stats::fromProperties(const mt::Properties& properties) {
-  Stats stats;
-  stats.block_size = std::stoul(properties.at("block_size"));
-  stats.key_size_avg = std::stoul(properties.at("key_size_avg"));
-  stats.key_size_max = std::stoul(properties.at("key_size_max"));
-  stats.key_size_min = std::stoul(properties.at("key_size_min"));
-  stats.list_size_avg = std::stoul(properties.at("list_size_avg"));
-  stats.list_size_max = std::stoul(properties.at("list_size_max"));
-  stats.list_size_min = std::stoul(properties.at("list_size_min"));
-  stats.num_blocks = std::stoul(properties.at("num_blocks"));
-  stats.num_keys_total = std::stoul(properties.at("num_keys_total"));
-  stats.num_keys_valid = std::stoul(properties.at("num_keys_valid"));
-  stats.num_values_total = std::stoul(properties.at("num_values_total"));
-  stats.num_values_valid = std::stoul(properties.at("num_values_valid"));
-  return stats;
-}
-
-mt::Properties Table::Stats::toProperties() const {
-  mt::Properties properties;
-  properties["block_size"] = std::to_string(block_size);
-  properties["key_size_avg"] = std::to_string(key_size_avg);
-  properties["key_size_max"] = std::to_string(key_size_max);
-  properties["key_size_min"] = std::to_string(key_size_min);
-  properties["list_size_avg"] = std::to_string(list_size_avg);
-  properties["list_size_max"] = std::to_string(list_size_max);
-  properties["list_size_min"] = std::to_string(list_size_min);
-  properties["num_blocks"] = std::to_string(num_blocks);
-  properties["num_keys_total"] = std::to_string(num_keys_total);
-  properties["num_keys_valid"] = std::to_string(num_keys_valid);
-  properties["num_values_total"] = std::to_string(num_values_total);
-  properties["num_values_valid"] = std::to_string(num_values_valid);
-  return properties;
-}
-
 std::vector<uint64_t> Table::Stats::toVector() const {
   return { block_size,     key_size_avg,   key_size_max,     key_size_min,
            list_size_avg,  list_size_max,  list_size_min,    num_blocks,
-           num_keys_total, num_keys_valid, num_values_total, num_values_valid };
+           num_keys_total, num_keys_valid, num_values_total, num_values_valid,
+           num_partitions };
 }
 
 Table::Stats Table::Stats::total(const std::vector<Stats>& stats) {
@@ -126,6 +94,7 @@ Table::Stats Table::Stats::total(const std::vector<Stats>& stats) {
     total.key_size_avg = std::round(key_size_avg);
     total.list_size_avg = std::round(list_size_avg);
   }
+  total.num_partitions = stats.size();
   return total;
 }
 
@@ -275,6 +244,7 @@ Table::Stats Table::getStats() const {
   stats.block_size = store_->getBlockSize();
   stats.num_blocks = store_->getNumBlocks();
   stats.num_keys_total = map_.size();
+  stats.num_partitions = 1;
   return stats;
 }
 
