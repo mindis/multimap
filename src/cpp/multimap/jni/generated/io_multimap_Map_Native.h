@@ -137,6 +137,14 @@ JNIEXPORT void JNICALL Java_io_multimap_Map_00024Native_forEachValue
 
 /*
  * Class:     io_multimap_Map_Native
+ * Method:    getStats
+ * Signature: (Ljava/nio/ByteBuffer;Lio/multimap/Map/Stats;)V
+ */
+JNIEXPORT void JNICALL Java_io_multimap_Map_00024Native_getStats
+  (JNIEnv *, jclass, jobject, jobject);
+
+/*
+ * Class:     io_multimap_Map_Native
  * Method:    isReadOnly
  * Signature: (Ljava/nio/ByteBuffer;)Z
  */
@@ -150,6 +158,14 @@ JNIEXPORT jboolean JNICALL Java_io_multimap_Map_00024Native_isReadOnly
  */
 JNIEXPORT void JNICALL Java_io_multimap_Map_00024Native_close
   (JNIEnv *, jclass, jobject);
+
+/*
+ * Class:     io_multimap_Map_Native
+ * Method:    stats
+ * Signature: (Ljava/lang/String;Lio/multimap/Map/Stats;)V
+ */
+JNIEXPORT void JNICALL Java_io_multimap_Map_00024Native_stats
+  (JNIEnv *, jclass, jstring, jobject);
 
 /*
  * Class:     io_multimap_Map_Native

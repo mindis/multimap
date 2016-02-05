@@ -39,6 +39,8 @@
 // Java_io_multimap_Map_00024Native_removeValue__Ljava_nio_ByteBuffer_2_3BLio_multimap_Callables_00024Predicate_2
 //                                                                                               ^^^^^
 // Fix: find/replace by hand or via tool such as sed.
+//
+// Seems to be fixed in java version "1.7.0_95"
 
 namespace {
 
@@ -308,6 +310,23 @@ Java_io_multimap_Map_00024Native_forEachValue(JNIEnv* env, jclass, jobject self,
 
 /*
  * Class:     io_multimap_Map_Native
+ * Method:    getStats
+ * Signature: (Ljava/nio/ByteBuffer;Lio/multimap/Map/Stats;)V
+ */
+JNIEXPORT void JNICALL
+Java_io_multimap_Map_00024Native_getStats(JNIEnv* env, jclass, jobject self,
+                                          jobject jstats) {
+  const auto cls = env->GetObjectClass(jstats);
+  const auto mid =
+      env->GetMethodID(cls, "parseFromBuffer", "(Ljava/nio/ByteBuffer;)V");
+  mt::Check::notNull(mid, "GetMethodID() failed");
+  auto stats = toMap(env, self)->getTotalStats();
+  env->CallVoidMethod(jstats, mid,
+                      env->NewDirectByteBuffer(&stats, sizeof stats));
+}
+
+/*
+ * Class:     io_multimap_Map_Native
  * Method:    isReadOnly
  * Signature: (Ljava/nio/ByteBuffer;)Z
  */
@@ -324,6 +343,28 @@ Java_io_multimap_Map_00024Native_isReadOnly(JNIEnv* env, jclass, jobject self) {
 JNIEXPORT void JNICALL
 Java_io_multimap_Map_00024Native_close(JNIEnv* env, jclass, jobject self) {
   delete toMap(env, self);
+}
+
+/*
+ * Class:     io_multimap_Map_Native
+ * Method:    stats
+ * Signature: (Ljava/lang/String;Lio/multimap/Map/Stats;)V
+ */
+JNIEXPORT void JNICALL
+Java_io_multimap_Map_00024Native_stats(JNIEnv* env, jclass, jstring jdirectory,
+                                       jobject jstats) {
+  const auto directory = multimap::jni::makeString(env, jdirectory);
+  try {
+    const auto cls = env->GetObjectClass(jstats);
+    const auto mid =
+        env->GetMethodID(cls, "parseFromBuffer", "(Ljava/nio/ByteBuffer;)V");
+    mt::Check::notNull(mid, "GetMethodID() failed");
+    auto stats = multimap::Map::Stats::total(multimap::Map::stats(directory));
+    env->CallVoidMethod(jstats, mid,
+                        env->NewDirectByteBuffer(&stats, sizeof stats));
+  } catch (std::exception& error) {
+    multimap::jni::throwJavaException(env, error.what());
+  }
 }
 
 /*
