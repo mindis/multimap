@@ -105,7 +105,8 @@ public:
     // Note: java.nio.ByteBuffer cannot wrap a pointer to const void.
     // However, on Java side we will call ByteBuffer.asReadOnlyBuffer().
     const auto result =
-        env_->CallBooleanMethod(obj_, mid_, newDirectByteBuffer(env_, lhs),
+        env_->CallBooleanMethod(obj_, mid_,
+                                newDirectByteBuffer(env_, lhs),
                                 newDirectByteBuffer(env_, rhs));
     if (env_->ExceptionOccurred()) {
       throw std::runtime_error("Exception in comparator passed via JNI");
