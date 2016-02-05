@@ -29,6 +29,11 @@ using testing::Eq;
 using testing::ElementsAre;
 using testing::UnorderedElementsAre;
 
+std::unique_ptr<Table> openTable(const boost::filesystem::path& prefix,
+                                 const Table::Options& options) {
+  return std::unique_ptr<Table>(new Table(prefix, options));
+}
+
 std::unique_ptr<Table> openOrCreateTable(
     const boost::filesystem::path& prefix) {
   Table::Options options;
@@ -146,7 +151,10 @@ TEST_F(TableTestFixture, PutTooBigValueThrows) {
 
 TEST_F(TableTestFixture, PutValuesAndReopenInBetween) {
   {
-    auto table = openOrCreateTable(prefix);
+    Table::Options options;
+    options.block_size = 128;
+    options.create_if_missing = true;
+    auto table = openTable(prefix, options);
     table->put(k1, v1);
     table->put(k2, v1);
     table->put(k3, v1);

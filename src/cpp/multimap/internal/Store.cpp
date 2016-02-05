@@ -22,8 +22,6 @@
 namespace multimap {
 namespace internal {
 
-namespace {
-
 Store::Store(const boost::filesystem::path& filename, const Options& options)
     : options_(options) {
   MT_REQUIRE_NOT_ZERO(getBlockSize());

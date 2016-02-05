@@ -160,19 +160,20 @@ Table::Table(const boost::filesystem::path& file_prefix)
 Table::Table(const boost::filesystem::path& file_prefix, const Options& options)
     : prefix_(file_prefix) {
   Store::Options store_options;
-  const auto stats_file = getNameOfStatsFile(prefix_.string());
-  if (boost::filesystem::is_regular_file(stats_file)) {
-    stats_ = Stats::readFromFile(stats_file);
-    const auto keys_file = getNameOfKeysFile(prefix_.string());
-    const auto stream = mt::fopen(keys_file, "r");
+  const auto stats_filename = getNameOfStatsFile(prefix_.string());
+  if (boost::filesystem::is_regular_file(stats_filename)) {
+    stats_ = Stats::readFromFile(stats_filename);
+    store_options.block_size = stats_.block_size;
+    const auto keys_filename = getNameOfKeysFile(prefix_.string());
+    const auto keys_input = mt::fopen(keys_filename, "r");
     for (size_t i = 0; i != stats_.num_keys_valid; ++i) {
-      const auto entry = Entry::readFromStream(stream.get(), &arena_);
+      const auto entry = Entry::readFromStream(keys_input.get(), &arena_);
       map_[entry.key()].reset(new List(entry.head()));
       stats_.num_values_total -= entry.head().num_values_total;
       stats_.num_values_valid -= entry.head().num_values_valid();
     }
 
-    // Reset stats, but preserve number of total/valid values.
+    // Reset stats, but preserve number of total and valid values.
     Stats stats;
     stats.num_values_total = stats_.num_values_total;
     stats.num_values_valid = stats_.num_values_valid;
@@ -182,14 +183,12 @@ Table::Table(const boost::filesystem::path& file_prefix, const Options& options)
     mt::Check::isTrue(options.create_if_missing,
                       "Table with prefix '%s' does not exist",
                       boost::filesystem::absolute(file_prefix).c_str());
-
-    store_options.block_size = options.block_size;
-    store_options.create_if_missing = true;
   }
 
-  store_options.buffer_size = options.buffer_size;
-  store_options.readonly = options.readonly;
   store_options.quiet = options.quiet;
+  store_options.readonly = options.readonly;
+  store_options.buffer_size = options.buffer_size;
+  store_options.create_if_missing = options.create_if_missing;
   store_.reset(new Store(getNameOfValuesFile(prefix_.string()), store_options));
 }
 
