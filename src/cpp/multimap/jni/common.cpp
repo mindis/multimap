@@ -86,5 +86,5 @@ Options makeOptions(JNIEnv* env, jobject options) {
   return opts;
 }
 
-}  // namespace jni
-}  // namespace multimap
+} // namespace jni
+} // namespace multimap
