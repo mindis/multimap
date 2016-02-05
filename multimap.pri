@@ -25,7 +25,7 @@ HEADERS += \
     src/cpp/multimap/callables.hpp \
     src/cpp/multimap/Map.hpp \
     src/cpp/multimap/Options.hpp \
-    src/cpp/multimap/version.hpp
+    src/cpp/multimap/Version.hpp
 
 SOURCES += \
     src/cpp/multimap/internal/Arena.cpp \
