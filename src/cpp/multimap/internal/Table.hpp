@@ -43,7 +43,6 @@ public:
     uint32_t buffer_size = mt::MiB(1);
     bool create_if_missing = false;
     bool readonly = false;
-    bool quiet = false;
   };
 
   struct Stats {

@@ -79,28 +79,24 @@ Map::Map(const boost::filesystem::path& directory, const Options& options)
     : lock_(directory, internal::getNameOfLockFile()) {
   checkOptions(options);
   internal::Table::Options table_options;
-  const auto id_file = directory / internal::getNameOfIdFile();
-  if (boost::filesystem::is_regular_file(id_file)) {
+  const auto id_filename = directory / internal::getNameOfIdFile();
+  if (boost::filesystem::is_regular_file(id_filename)) {
     mt::Check::isFalse(options.error_if_exists, "Map in '%s' already exists",
                        boost::filesystem::absolute(directory).c_str());
-
-    const auto id = Id::readFromFile(id_file);
+    const auto id = Id::readFromFile(id_filename);
     internal::checkVersion(id.major_version, id.minor_version);
     tables_.resize(id.num_partitions);
 
   } else {
     mt::Check::isTrue(options.create_if_missing, "Map in '%s' does not exist",
                       boost::filesystem::absolute(directory).c_str());
-
-    table_options.block_size = options.block_size;
-    table_options.create_if_missing = true;
     tables_.resize(mt::nextPrime(options.num_partitions));
   }
 
-  table_options.buffer_size = options.buffer_size;
   table_options.readonly = options.readonly;
-  table_options.quiet = options.quiet;
-
+  table_options.block_size = options.block_size;
+  table_options.buffer_size = options.buffer_size;
+  table_options.create_if_missing = options.create_if_missing;
   for (size_t i = 0; i != tables_.size(); ++i) {
     const auto prefix = directory / internal::getTablePrefix(i);
     tables_[i].reset(new internal::Table(prefix, table_options));
