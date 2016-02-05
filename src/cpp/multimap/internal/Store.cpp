@@ -57,11 +57,7 @@ Store::~Store() {
       mt::munmap(mapped_.data, mapped_.size);
     }
     if (!buffer_.empty()) {
-      if (options_.quiet) {
-        mt::write(fd_.get(), buffer_.data.get(), buffer_.offset);
-      } else {
-        mt::writeOrPrompt(fd_.get(), buffer_.data.get(), buffer_.offset);
-      }
+      mt::write(fd_.get(), buffer_.data.get(), buffer_.offset);
     }
   }
 }
@@ -82,15 +78,8 @@ void Store::adviseAccessPattern(AccessPattern pattern) const {
 
 uint32_t Store::putUnlocked(const char* block) {
   if (buffer_.full()) {
-    // Flush buffer
-    if (options_.quiet) {
-      mt::write(fd_.get(), buffer_.data.get(), buffer_.size);
-    } else {
-      mt::writeOrPrompt(fd_.get(), buffer_.data.get(), buffer_.size);
-    }
-    buffer_.offset = 0;
-
-    // Remap file
+    // Flush buffer and remap data file.
+    buffer_.flushTo(fd_.get());
     const auto new_size = mt::tell(fd_.get());
     if (mapped_.data) {
       // fsync(fd_);
@@ -120,7 +109,7 @@ void Store::getUnlocked(uint32_t id, char* block) const {
   if (fill_page_cache_) {
     fill_page_cache_ = false;
     // Touch each block to load it into the OS page cache.
-    const auto num_blocks_mapped = mapped_.num_blocks(getBlockSize());
+    const auto num_blocks_mapped = mapped_.getNumBlocks(getBlockSize());
     for (uint32_t i = 0; i != num_blocks_mapped; ++i) {
       std::memcpy(block, getAddressOf(i), getBlockSize());
     }
@@ -136,7 +125,7 @@ void Store::replaceUnlocked(uint32_t id, const char* block) {
 char* Store::getAddressOf(uint32_t id) const {
   MT_REQUIRE_LT(id, getNumBlocksUnlocked());
 
-  const auto num_blocks_mapped = mapped_.num_blocks(getBlockSize());
+  const auto num_blocks_mapped = mapped_.getNumBlocks(getBlockSize());
   if (id < num_blocks_mapped) {
     const auto offset = getBlockSize() * id;
     return static_cast<char*>(mapped_.data) + offset;

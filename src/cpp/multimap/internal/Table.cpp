@@ -185,10 +185,8 @@ Table::Table(const boost::filesystem::path& file_prefix, const Options& options)
                       boost::filesystem::absolute(file_prefix).c_str());
   }
 
-  store_options.quiet = options.quiet;
   store_options.readonly = options.readonly;
   store_options.buffer_size = options.buffer_size;
-  store_options.create_if_missing = options.create_if_missing;
   store_.reset(new Store(getNameOfValuesFile(prefix_.string()), store_options));
 }
 

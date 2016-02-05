@@ -44,7 +44,7 @@
 
 namespace mt {
 
-static const uint32_t VERSION = 20160201;
+static const uint32_t VERSION = 20160205;
 
 // -----------------------------------------------------------------------------
 // COMMON
@@ -383,29 +383,6 @@ inline void write(int fd, const void* buf, size_t len) {
   Check::notEqual(result, -1, "write() failed because of '%s'", errnostr());
   Check::isEqual(static_cast<size_t>(result), len,
                  "write() wrote less bytes than expected");
-}
-
-inline void writeOrPrompt(int fd, const void* buf, size_t len) {
-  while (true) {
-    const auto result = ::write(fd, buf, len);
-    Check::notEqual(result, -1, "write() failed because of '%s'", errnostr());
-    if (static_cast<size_t>(result) < len) {
-      std::cout << "Write operation failed because only " << result << " of "
-                << len << " bytes could be written.\nIn case you ran out of "
-                          "disk space you can do some cleanup now and then "
-                          "try to continue.\nTry to continue? [Y/n] "
-                << std::flush;
-      std::string answer;
-      std::getline(std::cin, answer);
-      if (answer == "n") {
-        fail("write() wrote less bytes than expected");
-      }
-      buf = static_cast<const char*>(buf) + result;
-      len -= result;
-    } else {
-      break;
-    }
-  }
 }
 
 inline void pwrite(int fd, const void* buf, size_t len, uint64_t offset) {

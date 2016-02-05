@@ -33,9 +33,7 @@ public:
   struct Options {
     uint32_t block_size = 512;
     uint32_t buffer_size = mt::MiB(1);
-    bool create_if_missing = false;
     bool readonly = false;
-    bool quiet = false;
   };
 
   Store(const boost::filesystem::path& file, const Options& options);
@@ -137,8 +135,8 @@ private:
   char* getAddressOf(uint32_t id) const;
 
   uint64_t getNumBlocksUnlocked() const {
-    return mapped_.num_blocks(options_.block_size) +
-           buffer_.num_blocks(options_.block_size);
+    return mapped_.getNumBlocks(options_.block_size) +
+           buffer_.getNumBlocks(options_.block_size);
   }
 
   struct Mapped {
@@ -146,7 +144,9 @@ private:
     uint64_t size = 0;
 
     // Requires: `block_size` != 0
-    uint64_t num_blocks(uint32_t block_size) const { return size / block_size; }
+    uint64_t getNumBlocks(uint32_t block_size) const {
+      return size / block_size;
+    }
   };
 
   struct Buffer {
@@ -154,12 +154,17 @@ private:
     uint64_t offset = 0;
     uint64_t size = 0;
 
-    bool empty() const { return offset == 0; }
+    void flushTo(int fd) {
+      mt::write(fd, data.get(), offset);
+      offset = 0;
+    }
 
     bool full() const { return offset == size; }
 
+    bool empty() const { return offset == 0; }
+
     // Requires: `block_size` != 0
-    uint64_t num_blocks(uint32_t block_size) const {
+    uint64_t getNumBlocks(uint32_t block_size) const {
       return offset / block_size;
     }
   };

@@ -437,7 +437,6 @@ struct ListIteratorTestWithParam : testing::TestWithParam<uint32_t> {
     MT_ASSERT_TRUE(boost::filesystem::create_directory(dir));
 
     Store::Options options;
-    options.create_if_missing = true;
     store.reset(new Store(boost::filesystem::path(dir) / "store", options));
 
     for (size_t i = 0; i != GetParam(); ++i) {
