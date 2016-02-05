@@ -39,8 +39,6 @@
 // Java_io_multimap_Map_00024Native_removeValue__Ljava_nio_ByteBuffer_2_3BLio_multimap_Callables_00024Predicate_2
 //                                                                                               ^^^^^
 // Fix: find/replace by hand or via tool such as sed.
-//
-// Seems to be fixed in java version "1.7.0_95"
 
 namespace {
 
