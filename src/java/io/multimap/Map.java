@@ -31,6 +31,8 @@ import java.nio.file.Paths;
 
 /**
  * This class implements a 1:n key-value store where each key is associated with a list of values.
+ * 
+ * <br>
  * For more information please visit the
  * <a href="http://multimap.io/cppreference/#maphpp">C++ Reference for class Map</a>.
  * 
@@ -264,15 +266,15 @@ public class Map implements AutoCloseable {
    * <li>the directory does not contain a map</li>
    * </ul>
    */
-  public Map(String directory) throws Exception {
-    this(Paths.get(directory), new Options());
+  public Map(Path directory) throws Exception {
+    this(directory, new Options());
   }
   
   /**
-   * @see Map#Map(String)
+   * Same as before, but taking {@code directory} as string.
    */
-  public Map(Path directory) throws Exception {
-    this(directory, new Options());
+  public Map(String directory) throws Exception {
+    this(Paths.get(directory), new Options());
   }
   
   /**
@@ -303,15 +305,15 @@ public class Map implements AutoCloseable {
    * <li>the directory already contains a map</li>
    * </ul>
    */
-  public Map(String directory, Options options) throws Exception {
-    this(Paths.get(directory), options);
+  public Map(Path directory, Options options) throws Exception {
+    this(Native.newMap(directory.toString(), options));
   }
   
   /**
-   * @see Map#Map(String, Options)
+   * Same as before, but taking {@code directory} as string.
    */
-  public Map(Path directory, Options options) throws Exception {
-    this(Native.newMap(directory.toString(), options));
+  public Map(String directory, Options options) throws Exception {
+    this(Paths.get(directory), options);
   }
 
   /**
@@ -337,9 +339,9 @@ public class Map implements AutoCloseable {
   }
   
   /**
-   * Same as {@link #put(byte[], byte[])}, but takes the key as {@link String} instead of
-   * {@code byte[]}. Internally the key is converted to a byte array by calling
-   * {@link String#getBytes(Charset)} using UTF-8 as the character set.
+   * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
+   * converted to a byte array by calling {@link String#getBytes(Charset)} using UTF-8 as the
+   * character set.
    * 
    * @since 0.4.0
    */
@@ -348,9 +350,9 @@ public class Map implements AutoCloseable {
   }
   
   /**
-   * Same as {@link #put(byte[], byte[])}, but takes both the key and the value as {@link String}
-   * instead of {@code byte[]}. Internally the key and the value are converted to byte arrays by
-   * calling {@link String#getBytes(Charset)} using UTF-8 as the character set.
+   * Same as before, but taking both {@code key} and {@code value} as string instead of byte array.
+   * Internally the key and the value are converted to byte arrays by calling
+   * {@link String#getBytes(Charset)} using UTF-8 as the character set.
    * 
    * @since 0.4.0
    */
@@ -378,9 +380,9 @@ public class Map implements AutoCloseable {
   }
   
   /**
-   * Same as {@link #get(byte[])}, but takes the key as {@link String} instead of {@code byte[]}.
-   * Internally the key is converted to a byte array by calling {@link String#getBytes(Charset)}
-   * using UTF-8 as the character set.
+   * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
+   * converted to a byte array by calling {@link String#getBytes(Charset)} using UTF-8 as the
+   * character set.
    * 
    * @since 0.4.0
    */
@@ -398,9 +400,9 @@ public class Map implements AutoCloseable {
   }
   
   /**
-   * Same as {@link #containsKey(byte[])}, but takes the key as {@link String} instead of
-   * {@code byte[]}. Internally the key is converted to a byte array by calling
-   * {@link String#getBytes(Charset)} using UTF-8 as the character set.
+   * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
+   * converted to a byte array by calling {@link String#getBytes(Charset)} using UTF-8 as the
+   * character set.
    * 
    * @since 0.4.0
    */
@@ -425,9 +427,9 @@ public class Map implements AutoCloseable {
   }
   
   /**
-   * Same as {@link #removeKey(byte[])}, but takes the key as {@link String} instead of
-   * {@code byte[]}. Internally the key is converted to a byte array by calling
-   * {@link String#getBytes(Charset)} using UTF-8 as the character set.
+   * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
+   * converted to a byte array by calling {@link String#getBytes(Charset)} using UTF-8 as the
+   * character set.
    * 
    * @since 0.4.0
    */
@@ -470,9 +472,9 @@ public class Map implements AutoCloseable {
   }
   
   /**
-   * Same as {@link #removeValue(byte[], byte[])}, but takes the key as {@link String} instead of
-   * {@code byte[]}. Internally the key is converted to a byte array by calling
-   * {@link String#getBytes(Charset)} using UTF-8 as the character set.
+   * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
+   * converted to a byte array by calling {@link String#getBytes(Charset)} using UTF-8 as the
+   * character set.
    * 
    * @since 0.4.0
    */
@@ -481,9 +483,9 @@ public class Map implements AutoCloseable {
   }
   
   /**
-   * Same as {@link #removeValue(byte[], byte[])}, but takes both the key and the value as
-   * {@link String} instead of {@code byte[]}. Internally the key and the value are converted to
-   * byte arrays by calling {@link String#getBytes(Charset)} using UTF-8 as the character set.
+   * Same as before, but taking both {@code key} and {@code value} as string instead of byte array.
+   * Internally the key and the value are converted to byte arrays by calling
+   * {@link String#getBytes(Charset)} using UTF-8 as the character set.
    * 
    * @since 0.4.0
    */
@@ -511,9 +513,9 @@ public class Map implements AutoCloseable {
   }
   
   /**
-   * Same as {@link #removeValue(byte[], Callables.Predicate)}, but takes the key as {@link String}
-   * instead of {@code byte[]}. Internally the key is converted to a byte array by calling
-   * {@link String#getBytes(Charset)} using UTF-8 as the character set.
+   * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
+   * converted to a byte array by calling {@link String#getBytes(Charset)} using UTF-8 as the
+   * character set.
    * 
    * @since 0.4.0
    */
@@ -540,9 +542,9 @@ public class Map implements AutoCloseable {
   }
   
   /**
-   * Same as {@link #removeValues(byte[], byte[])}, but takes the key as {@link String} instead of
-   * {@code byte[]}. Internally the key is converted to a byte array by calling
-   * {@link String#getBytes(Charset)} using UTF-8 as the character set.
+   * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
+   * converted to a byte array by calling {@link String#getBytes(Charset)} using UTF-8 as the
+   * character set.
    * 
    * @since 0.4.0
    */
@@ -551,9 +553,9 @@ public class Map implements AutoCloseable {
   }
   
   /**
-   * Same as {@link #removeValues(byte[], byte[])}, but takes both the key and the value as
-   * {@link String} instead of {@code byte[]}. Internally the key and the value are converted to
-   * byte arrays by calling {@link String#getBytes(Charset)} using UTF-8 as the character set.
+   * Same as before, but taking both {@code key} and {@code value} as string instead of byte array.
+   * Internally the key and the value are converted to byte arrays by calling
+   * {@link String#getBytes(Charset)} using UTF-8 as the character set.
    * 
    * @since 0.4.0
    */
@@ -581,9 +583,9 @@ public class Map implements AutoCloseable {
   }
   
   /**
-   * Same as {@link #removeValues(byte[], Callables.Predicate)}, but takes the key as {@link String}
-   * instead of {@code byte[]}. Internally the key is converted to a byte array by calling
-   * {@link String#getBytes(Charset)} using UTF-8 as the character set.
+   * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
+   * converted to a byte array by calling {@link String#getBytes(Charset)} using UTF-8 as the
+   * character set.
    * 
    * @since 0.4.0
    */
@@ -615,9 +617,9 @@ public class Map implements AutoCloseable {
   }
   
   /**
-   * Same as {@link #replaceValue(byte[], byte[], byte[])}, but takes the key as {@link String}
-   * instead of {@code byte[]}. Internally the key is converted to a byte array by calling
-   * {@link String#getBytes(Charset)} using UTF-8 as the character set.
+   * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
+   * converted to a byte array by calling {@link String#getBytes(Charset)} using UTF-8 as the
+   * character set.
    * 
    * @since 0.4.0
    */
@@ -626,9 +628,9 @@ public class Map implements AutoCloseable {
   }
   
   /**
-   * Same as {@link #replaceValue(byte[], byte[], byte[])}, but takes all arguments as
-   * {@link String} instead of {@code byte[]}. Internally the arguments are converted to byte arrays
-   * by calling {@link String#getBytes(Charset)} using UTF-8 as the character set.
+   * Same as before, but taking all arguments as strings instead of byte arrays. Internally the
+   * arguments are converted to byte arrays by calling {@link String#getBytes(Charset)} using UTF-8
+   * as the character set.
    * 
    * @since 0.4.0
    */
@@ -660,9 +662,9 @@ public class Map implements AutoCloseable {
   }
   
   /**
-   * Same as {@link #replaceValue(byte[], Callables.Function)}, but takes the key as {@link String}
-   * instead of {@code byte[]}. Internally the key is converted to a byte array by calling
-   * {@link String#getBytes(Charset)} using UTF-8 as the character set.
+   * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
+   * converted to a byte array by calling {@link String#getBytes(Charset)} using UTF-8 as the
+   * character set.
    * 
    * @since 0.4.0
    */
@@ -694,9 +696,9 @@ public class Map implements AutoCloseable {
   }
   
   /**
-   * Same as {@link #replaceValues(byte[], byte[], byte[])}, but takes the key as {@link String}
-   * instead of {@code byte[]}. Internally the key is converted to a byte array by calling
-   * {@link String#getBytes(Charset)} using UTF-8 as the character set.
+   * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
+   * converted to a byte array by calling {@link String#getBytes(Charset)} using UTF-8 as the
+   * character set.
    * 
    * @since 0.4.0
    */
@@ -705,9 +707,9 @@ public class Map implements AutoCloseable {
   }
   
   /**
-   * Same as {@link #replaceValues(byte[], byte[], byte[])}, but takes all arguments as
-   * {@link String} instead of {@code byte[]}. Internally the arguments are converted to byte arrays
-   * by calling {@link String#getBytes(Charset)} using UTF-8 as the character set.
+   * Same as before, but taking all arguments as strings instead of byte arrays. Internally the
+   * arguments are converted to byte arrays by calling {@link String#getBytes(Charset)} using UTF-8
+   * as the character set.
    * 
    * @since 0.4.0
    */
@@ -739,9 +741,9 @@ public class Map implements AutoCloseable {
   }
   
   /**
-   * Same as {@link #replaceValues(byte[], Callables.Function)}, but takes the key as {@link String}
-   * instead of {@code byte[]}. Internally the key is converted to a byte array by calling
-   * {@link String#getBytes(Charset)} using UTF-8 as the character set.
+   * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
+   * converted to a byte array by calling {@link String#getBytes(Charset)} using UTF-8 as the
+   * character set.
    * 
    * @since 0.4.0
    */
@@ -776,9 +778,9 @@ public class Map implements AutoCloseable {
   }
   
   /**
-   * Same as {@link #forEachValue(byte[], Callables.Procedure)}, but takes the key as {@link String}
-   * instead of {@code byte[]}. Internally the key is converted to a byte array by calling
-   * {@link String#getBytes(Charset)} using UTF-8 as the character set.
+   * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
+   * converted to a byte array by calling {@link String#getBytes(Charset)} using UTF-8 as the
+   * character set.
    * 
    * @since 0.4.0
    */
@@ -818,6 +820,7 @@ public class Map implements AutoCloseable {
 
   /**
    * Flushes all data to disk and ensures that the map is stored in consistent state.
+   * This method must be called when an application shuts down in order to avoid data loss.
    */
   @Override
   public void close() {
@@ -879,9 +882,9 @@ public class Map implements AutoCloseable {
   }
 
   /**
-   * Same as {@link #importFromBase64(Path, Path)}, but gives the user more control by providing an
-   * {@link Options} parameter which is passed to the constructor of Map when opening. This way a
-   * map can be created if it does not already exist.
+   * Same as before, but gives the user more control by providing an {@link Options} parameter
+   * which is passed to the constructor of Map when opening. This way a map can be created if it
+   * does not already exist.
    */
   public static void importFromBase64(Path directory, Path input, Options options) throws Exception {
     Check.notNull(directory);
@@ -912,9 +915,9 @@ public class Map implements AutoCloseable {
   }
   
   /**
-   * Same as {@link #exportToBase64(Path, Path)}, but gives the user more control by providing an
-   * {@link Options} parameter. Most users will use this to pass a compare function that triggers a
-   * sorting of all lists before exporting them.
+   * Same as before, but gives the user more control by providing an {@link Options} parameter.
+   * Most users will use this to pass a compare function that triggers a sorting of all lists
+   * before exporting them.
    */
   public static void exportToBase64(Path directory, Path output, Options options) throws Exception {
     Check.notNull(directory);
@@ -947,9 +950,8 @@ public class Map implements AutoCloseable {
   }
   
   /**
-   * Same as {@link #optimize(Path, Path)}, but gives the user more control by providing an
-   * {@link Options} parameter. Most users will use this to pass a compare function that triggers a
-   * sorting of all lists.
+   * Same as before, but gives the user more control by providing an {@link Options} parameter.
+   * Most users will use this to pass a compare function that triggers a sorting of all lists.
    */
   public static void optimize(Path directory, Path output, Options options) throws Exception {
     Check.notNull(directory);
