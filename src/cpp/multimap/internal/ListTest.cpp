@@ -110,7 +110,7 @@ struct ListTestIteration : testing::TestWithParam<uint32_t> {
     boost::filesystem::remove_all(directory);
     MT_ASSERT_TRUE(boost::filesystem::create_directory(directory));
 
-    store.reset(new Store(directory / "store"));
+    store.reset(new Store(directory / "store", Store::Options()));
   }
 
   void TearDown() override {

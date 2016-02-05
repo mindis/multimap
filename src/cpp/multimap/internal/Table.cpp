@@ -235,9 +235,8 @@ Table::~Table() {
       stats_.key_size_avg /= stats_.num_keys_valid;
       stats_.list_size_avg /= stats_.num_keys_valid;
     }
-    const auto store_stats = store_->getStats();
-    stats_.block_size = store_stats.block_size;
-    stats_.num_blocks = store_stats.num_blocks;
+    stats_.block_size = store_->getBlockSize();
+    stats_.num_blocks = store_->getNumBlocks();
     stats_.num_keys_total = map_.size();
 
     stats_.writeToFile(getNameOfStatsFile(prefix_.string()));
@@ -276,9 +275,8 @@ Table::Stats Table::getStats() const {
     stats.key_size_avg /= stats.num_keys_valid;
     stats.list_size_avg /= stats.num_keys_valid;
   }
-  const auto store_stats = store_->getStats();
-  stats.block_size = store_stats.block_size;
-  stats.num_blocks = store_stats.num_blocks;
+  stats.block_size = store_->getBlockSize();
+  stats.num_blocks = store_->getNumBlocks();
   stats.num_keys_total = map_.size();
   return stats;
 }

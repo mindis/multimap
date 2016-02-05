@@ -38,30 +38,6 @@ public:
     bool quiet = false;
   };
 
-  struct Stats {
-    uint64_t block_size = 0;
-    uint64_t num_blocks = 0;
-    // uint64 is used to promote uint64 conversion
-    // of other operands in arithmetic expressions.
-
-    static Stats fromProperties(const mt::Properties& properties);
-
-    mt::Properties toProperties() const;
-
-    static Stats readFromFd(int fd);
-
-    void writeToFd(int fd) const;
-  };
-
-  static_assert(std::is_standard_layout<Stats>::value,
-                "Store::Stats is no standard layout type");
-
-  static_assert(mt::hasExpectedSize<Stats>(16, 16),
-                "Store::Stats does not have expected size");
-  // sizeof(Stats) must be equal on 32- and 64-bit systems to be portable.
-
-  explicit Store(const boost::filesystem::path& file);
-
   Store(const boost::filesystem::path& file, const Options& options);
 
   ~Store();
@@ -138,11 +114,13 @@ public:
 
   bool isReadOnly() const { return buffer_.size == 0; }
 
-  uint32_t getBlockSize() const { return stats_.block_size; }
+  uint64_t getBlockSize() const { return options_.block_size; }
+  // uint64 is used to promote uint64 conversion
+  // of other operands in arithmetic expressions.
 
-  Stats getStats() const {
+  uint64_t getNumBlocks() const {
     std::lock_guard<std::mutex> lock(mutex_);
-    return stats_;
+    return getNumBlocksUnlocked();
   }
 
 private:
@@ -158,14 +136,17 @@ private:
 
   char* getAddressOf(uint32_t id) const;
 
+  uint64_t getNumBlocksUnlocked() const {
+    return mapped_.num_blocks(options_.block_size) +
+           buffer_.num_blocks(options_.block_size);
+  }
+
   struct Mapped {
     void* data = nullptr;
     uint64_t size = 0;
 
-    uint64_t num_blocks(uint32_t block_size) const {
-      // Callers must ensure that `block_size` isn't zero.
-      return size / block_size;
-    }
+    // Requires: `block_size` != 0
+    uint64_t num_blocks(uint32_t block_size) const { return size / block_size; }
   };
 
   struct Buffer {
@@ -175,19 +156,20 @@ private:
 
     bool empty() const { return offset == 0; }
 
+    bool full() const { return offset == size; }
+
+    // Requires: `block_size` != 0
     uint64_t num_blocks(uint32_t block_size) const {
-      // Callers must ensure that `block_size` isn't zero.
-      return size / block_size;
+      return offset / block_size;
     }
   };
 
   mutable std::mutex mutex_;
   mutable bool fill_page_cache_ = false;
   mt::AutoCloseFd fd_;
+  Options options_;
   Mapped mapped_;
   Buffer buffer_;
-  Stats stats_;
-  bool quiet_;
 };
 
 } // namespace internal

@@ -24,76 +24,33 @@ namespace internal {
 
 namespace {
 
-Store::Stats readStatsFromTail(int fd) {
-  Store::Stats stats;
-  mt::seek(fd, -(sizeof stats), SEEK_END);
-  mt::read(fd, &stats, sizeof stats);
-  return stats;
-}
-
-void writeStatsToTail(const Store::Stats& stats, int fd, bool quiet) {
-  mt::seek(fd, 0, SEEK_END);
-  if (quiet) {
-    mt::write(fd, &stats, sizeof stats);
-  } else {
-    mt::writeOrPrompt(fd, &stats, sizeof stats);
-  }
-}
-
-void removeStatsFromTail(int fd) {
-  const auto end_of_data = mt::seek(fd, -sizeof(Store::Stats), SEEK_CUR);
-  mt::truncate(fd, end_of_data);
-}
-
-} // namespace
-
-Store::Stats Store::Stats::fromProperties(const mt::Properties& properties) {
-  Stats stats;
-  stats.block_size = std::stoull(properties.at("block_size"));
-  stats.num_blocks = std::stoull(properties.at("num_blocks"));
-  return stats;
-}
-
-mt::Properties Store::Stats::toProperties() const {
-  mt::Properties properties;
-  properties["block_size"] = std::to_string(block_size);
-  properties["num_blocks"] = std::to_string(num_blocks);
-  return properties;
-}
-
-Store::Store(const boost::filesystem::path& file) : Store(file, Options()) {}
-
-Store::Store(const boost::filesystem::path& file, const Options& options) {
-  if (boost::filesystem::is_regular_file(file)) {
-    fd_ = mt::open(file, options.readonly ? O_RDONLY : O_RDWR);
-    stats_ = readStatsFromTail(fd_.get());
-    if (!options.readonly) {
-      removeStatsFromTail(fd_.get());
-    }
-    if (stats_.num_blocks) {
+Store::Store(const boost::filesystem::path& filename, const Options& options)
+    : options_(options) {
+  MT_REQUIRE_NOT_ZERO(getBlockSize());
+  if (boost::filesystem::is_regular_file(filename)) {
+    fd_ = mt::open(filename, options.readonly ? O_RDONLY : O_RDWR);
+    mt::seek(fd_.get(), 0, SEEK_END);
+    const auto length = mt::tell(fd_.get());
+    mt::Check::isZero(length % getBlockSize(),
+                      "Store: block size does not match size of data file");
+    if (length != 0) {
       auto prot = PROT_READ;
       if (!options.readonly) {
         prot |= PROT_WRITE;
       }
-      const auto len = stats_.num_blocks * stats_.block_size;
-      mapped_.data = mt::mmap(nullptr, len, prot, MAP_SHARED, fd_.get(), 0);
-      mapped_.size = len;
+      mapped_.data = mt::mmap(nullptr, length, prot, MAP_SHARED, fd_.get(), 0);
+      mapped_.size = length;
     }
 
   } else {
-    // Create new data file.
-    mt::Check::isZero(
-        options.buffer_size % options.block_size,
-        "options.buffer_size must be a multiple of options.block_size");
-
-    fd_ = mt::open(file, O_RDWR | O_CREAT, 0644);
-    stats_.block_size = options.block_size;
+    fd_ = mt::open(filename, O_RDWR | O_CREAT, 0644);
   }
   if (!options.readonly) {
+    mt::Check::isZero(options.buffer_size % getBlockSize(),
+                      "Store: buffer size must be a multiple of block size");
     buffer_.data.reset(new char[options.buffer_size]);
     buffer_.size = options.buffer_size;
   }
-  quiet_ = options.quiet;
 }
 
 Store::~Store() {
@@ -102,14 +59,11 @@ Store::~Store() {
       mt::munmap(mapped_.data, mapped_.size);
     }
     if (!buffer_.empty()) {
-      if (quiet_) {
+      if (options_.quiet) {
         mt::write(fd_.get(), buffer_.data.get(), buffer_.offset);
       } else {
         mt::writeOrPrompt(fd_.get(), buffer_.data.get(), buffer_.offset);
       }
-    }
-    if (!isReadOnly()) {
-      writeStatsToTail(getStats(), fd_.get(), quiet_);
     }
   }
 }
@@ -124,14 +78,14 @@ void Store::adviseAccessPattern(AccessPattern pattern) const {
       fill_page_cache_ = true;
       break;
     default:
-      mt::fail("Default case in switch statement reached");
+      MT_FAIL("Default case in switch statement reached");
   }
 }
 
 uint32_t Store::putUnlocked(const char* block) {
-  if (buffer_.offset == buffer_.size) {
+  if (buffer_.full()) {
     // Flush buffer
-    if (quiet_) {
+    if (options_.quiet) {
       mt::write(fd_.get(), buffer_.data.get(), buffer_.size);
     } else {
       mt::writeOrPrompt(fd_.get(), buffer_.data.get(), buffer_.size);
@@ -139,7 +93,7 @@ uint32_t Store::putUnlocked(const char* block) {
     buffer_.offset = 0;
 
     // Remap file
-    const auto new_size = stats_.block_size * stats_.num_blocks;
+    const auto new_size = mt::tell(fd_.get());
     if (mapped_.data) {
       // fsync(fd_);
       // Since Linux provides a so-called unified virtual memory system, it
@@ -158,38 +112,38 @@ uint32_t Store::putUnlocked(const char* block) {
     mapped_.size = new_size;
   }
 
-  std::memcpy(buffer_.data.get() + buffer_.offset, block, stats_.block_size);
-  buffer_.offset += stats_.block_size;
+  std::memcpy(buffer_.data.get() + buffer_.offset, block, getBlockSize());
+  buffer_.offset += getBlockSize();
 
-  return stats_.num_blocks++;
+  return getNumBlocksUnlocked() - 1;
 }
 
 void Store::getUnlocked(uint32_t id, char* block) const {
   if (fill_page_cache_) {
     fill_page_cache_ = false;
     // Touch each block to load it into the OS page cache.
-    const auto num_blocks_mapped = mapped_.num_blocks(stats_.block_size);
+    const auto num_blocks_mapped = mapped_.num_blocks(getBlockSize());
     for (uint32_t i = 0; i != num_blocks_mapped; ++i) {
-      std::memcpy(block, getAddressOf(i), stats_.block_size);
+      std::memcpy(block, getAddressOf(i), getBlockSize());
     }
   }
-  std::memcpy(block, getAddressOf(id), stats_.block_size);
+  std::memcpy(block, getAddressOf(id), getBlockSize());
 }
 
 void Store::replaceUnlocked(uint32_t id, const char* block) {
   MT_REQUIRE_NOT_NULL(block);
-  std::memcpy(getAddressOf(id), block, stats_.block_size);
+  std::memcpy(getAddressOf(id), block, getBlockSize());
 }
 
 char* Store::getAddressOf(uint32_t id) const {
-  MT_REQUIRE_LT(id, stats_.num_blocks);
+  MT_REQUIRE_LT(id, getNumBlocksUnlocked());
 
-  const auto num_blocks_mapped = mapped_.num_blocks(stats_.block_size);
+  const auto num_blocks_mapped = mapped_.num_blocks(getBlockSize());
   if (id < num_blocks_mapped) {
-    const auto offset = stats_.block_size * id;
+    const auto offset = getBlockSize() * id;
     return static_cast<char*>(mapped_.data) + offset;
   } else {
-    const auto offset = stats_.block_size * (id - num_blocks_mapped);
+    const auto offset = getBlockSize() * (id - num_blocks_mapped);
     return buffer_.data.get() + offset;
   }
 }
