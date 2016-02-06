@@ -49,8 +49,6 @@ public class Map implements AutoCloseable {
       System.err.println(e);
     }
   }
-  
-  public static final Charset UTF8 = Charset.forName("UTF-8");
 
   /**
    * This type provides static methods for obtaining system limitations. Those limits which define
@@ -346,7 +344,7 @@ public class Map implements AutoCloseable {
    * @since 0.4.0
    */
   public void put(String key, byte[] value) throws Exception {
-    Native.put(self, key.getBytes(UTF8), value);
+    Native.put(self, key.getBytes(Utils.UTF8), value);
   }
   
   /**
@@ -357,7 +355,7 @@ public class Map implements AutoCloseable {
    * @since 0.4.0
    */
   public void put(String key, String value) throws Exception {
-    Native.put(self, key.getBytes(UTF8), value.getBytes(UTF8));
+    Native.put(self, key.getBytes(Utils.UTF8), value.getBytes(Utils.UTF8));
   }
 
   /**
@@ -387,7 +385,7 @@ public class Map implements AutoCloseable {
    * @since 0.4.0
    */
   public Iterator get(String key) {
-    return get(key.getBytes(UTF8));
+    return get(key.getBytes(Utils.UTF8));
   }
   
   /**
@@ -407,7 +405,7 @@ public class Map implements AutoCloseable {
    * @since 0.4.0
    */
   public boolean containsKey(String key) {
-    return containsKey(key.getBytes(UTF8));
+    return containsKey(key.getBytes(Utils.UTF8));
   }
 
   /**
@@ -434,7 +432,7 @@ public class Map implements AutoCloseable {
    * @since 0.4.0
    */
   public boolean removeKey(String key) {
-    return removeKey(key.getBytes(UTF8));
+    return removeKey(key.getBytes(Utils.UTF8));
   }
 
   /**
@@ -479,7 +477,7 @@ public class Map implements AutoCloseable {
    * @since 0.4.0
    */
   public boolean removeValue(String key, byte[] value) {
-    return removeValue(key.getBytes(UTF8), value);
+    return removeValue(key.getBytes(Utils.UTF8), value);
   }
   
   /**
@@ -490,7 +488,7 @@ public class Map implements AutoCloseable {
    * @since 0.4.0
    */
   public boolean removeValue(String key, String value) {
-    return removeValue(key.getBytes(UTF8), value.getBytes(UTF8));
+    return removeValue(key.getBytes(Utils.UTF8), value.getBytes(Utils.UTF8));
   }
 
   /**
@@ -520,7 +518,7 @@ public class Map implements AutoCloseable {
    * @since 0.4.0
    */
   public boolean removeValue(String key, Predicate predicate) {
-    return removeValue(key.getBytes(UTF8), predicate);
+    return removeValue(key.getBytes(Utils.UTF8), predicate);
   }
 
   /**
@@ -549,7 +547,7 @@ public class Map implements AutoCloseable {
    * @since 0.4.0
    */
   public long removeValues(String key, byte[] value) {
-    return removeValues(key.getBytes(UTF8), value);
+    return removeValues(key.getBytes(Utils.UTF8), value);
   }
   
   /**
@@ -560,7 +558,7 @@ public class Map implements AutoCloseable {
    * @since 0.4.0
    */
   public long removeValues(String key, String value) {
-    return removeValues(key.getBytes(UTF8), value.getBytes(UTF8));
+    return removeValues(key.getBytes(Utils.UTF8), value.getBytes(Utils.UTF8));
   }
 
   /**
@@ -590,7 +588,7 @@ public class Map implements AutoCloseable {
    * @since 0.4.0
    */
   public long removeValues(String key, Predicate predicate) {
-    return removeValues(key.getBytes(UTF8), predicate);
+    return removeValues(key.getBytes(Utils.UTF8), predicate);
   }
 
   /**
@@ -624,7 +622,7 @@ public class Map implements AutoCloseable {
    * @since 0.4.0
    */
   public boolean replaceValue(String key, byte[] oldValue, byte[] newValue) {
-    return replaceValue(key.getBytes(UTF8), oldValue, newValue);
+    return replaceValue(key.getBytes(Utils.UTF8), oldValue, newValue);
   }
   
   /**
@@ -635,7 +633,8 @@ public class Map implements AutoCloseable {
    * @since 0.4.0
    */
   public boolean replaceValue(String key, String oldValue, String newValue) {
-    return replaceValue(key.getBytes(UTF8), oldValue.getBytes(UTF8), newValue.getBytes(UTF8));
+    return replaceValue(key.getBytes(Utils.UTF8), oldValue.getBytes(Utils.UTF8),
+        newValue.getBytes(Utils.UTF8));
   }
 
   /**
@@ -669,7 +668,7 @@ public class Map implements AutoCloseable {
    * @since 0.4.0
    */
   public boolean replaceValue(String key, Function map) {
-    return replaceValue(key.getBytes(UTF8), map);
+    return replaceValue(key.getBytes(Utils.UTF8), map);
   }
 
   /**
@@ -703,7 +702,7 @@ public class Map implements AutoCloseable {
    * @since 0.4.0
    */
   public long replaceValues(String key, byte[] oldValue, byte[] newValue) {
-    return replaceValues(key.getBytes(UTF8), oldValue, newValue);
+    return replaceValues(key.getBytes(Utils.UTF8), oldValue, newValue);
   }
   
   /**
@@ -714,7 +713,8 @@ public class Map implements AutoCloseable {
    * @since 0.4.0
    */
   public long replaceValues(String key, String oldValue, String newValue) {
-    return replaceValues(key.getBytes(UTF8), oldValue.getBytes(UTF8), newValue.getBytes(UTF8));
+    return replaceValues(key.getBytes(Utils.UTF8), oldValue.getBytes(Utils.UTF8),
+        newValue.getBytes(Utils.UTF8));
   }
   
   /**
@@ -748,7 +748,7 @@ public class Map implements AutoCloseable {
    * @since 0.4.0
    */
   public long replaceValues(String key, Function map) {
-    return replaceValues(key.getBytes(UTF8), map);
+    return replaceValues(key.getBytes(Utils.UTF8), map);
   }
 
   /**
@@ -785,7 +785,7 @@ public class Map implements AutoCloseable {
    * @since 0.4.0
    */
   public void forEachValue(String key, Procedure process) {
-    forEachValue(key.getBytes(UTF8), process);
+    forEachValue(key.getBytes(Utils.UTF8), process);
   }
 
   /*
