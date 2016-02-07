@@ -44,7 +44,7 @@
 
 namespace mt {
 
-static const uint32_t VERSION = 20160205;
+static const uint32_t VERSION = 20160207;
 
 // -----------------------------------------------------------------------------
 // COMMON
@@ -413,6 +413,12 @@ inline void* mmap(void* addr, uint64_t length, int prot, int flags, int fd,
   return result;
 }
 
+inline void munmap(void* addr, uint64_t length) {
+  const auto result = ::munmap(addr, length);
+  Check::isZero(result, "munmap() failed because of '%s'", errnostr());
+}
+
+#ifdef _GNU_SOURCE
 inline void* mremap(void* old_addr, uint64_t old_size, uint64_t new_size,
                     int flags) {
   const auto result = ::mremap(old_addr, old_size, new_size, flags);
@@ -420,11 +426,7 @@ inline void* mremap(void* old_addr, uint64_t old_size, uint64_t new_size,
                   errnostr());
   return result;
 }
-
-inline void munmap(void* addr, uint64_t length) {
-  const auto result = ::munmap(addr, length);
-  Check::isZero(result, "munmap() failed because of '%s'", errnostr());
-}
+#endif
 
 class AutoCloseFile {
 public:

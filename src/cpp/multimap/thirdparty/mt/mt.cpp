@@ -1,6 +1,6 @@
 // This file is part of the MT library.
 //
-// Copyright (C) 2015  Martin Trenkmann
+// Copyright (C) 2015-2016  Martin Trenkmann
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -43,12 +43,9 @@ std::string serializeToString(const Properties& properties) {
   for (const auto& entry : properties) {
     const auto key = boost::trim_copy(entry.first);
     const auto val = boost::trim_copy(entry.second);
-    if (std::any_of(key.begin(), key.end(), is_space))
-      continue;
-    if (std::any_of(val.begin(), val.end(), is_space))
-      continue;
-    if (key.empty() || val.empty())
-      continue;
+    if (std::any_of(key.begin(), key.end(), is_space)) continue;
+    if (std::any_of(val.begin(), val.end(), is_space)) continue;
+    if (key.empty() || val.empty()) continue;
     joined.append(key);
     joined.push_back('=');
     joined.append(val);
@@ -328,11 +325,9 @@ Properties readPropertiesFromFile(const std::string& filepath) {
   std::string line;
   Properties properties;
   while (std::getline(input, line)) {
-    if (line.empty())
-      continue;
+    if (line.empty()) continue;
     const auto pos_of_delim = line.find('=');
-    if (pos_of_delim == std::string::npos)
-      continue;
+    if (pos_of_delim == std::string::npos) continue;
     const auto key = line.substr(0, pos_of_delim);
     const auto value = line.substr(pos_of_delim + 1);
     // We don't make any checks here, because external modification
