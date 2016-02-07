@@ -81,6 +81,7 @@ uint32_t Store::putUnlocked(const char* block) {
     // Flush buffer and remap data file.
     buffer_.flushTo(fd_.get());
     const auto new_size = mt::tell(fd_.get());
+    const auto prot = PROT_READ | PROT_WRITE;
     if (mapped_.data) {
       // fsync(fd_);
       // Since Linux provides a so-called unified virtual memory system, it
@@ -89,10 +90,15 @@ uint32_t Store::putUnlocked(const char* block) {
       // In a unified virtual memory system, memory mappings and blocks of the
       // buffer cache share the same pages of physical memory. [kerrisk p1032]
       MT_ASSERT_LT(mapped_.size, new_size);
+#ifdef _GNU_SOURCE
       mapped_.data =
           mt::mremap(mapped_.data, mapped_.size, new_size, MREMAP_MAYMOVE);
+#else
+      mt::munmap(mapped_.data, mapped_.size);
+      mapped_.data =
+          mt::mmap(nullptr, new_size, prot, MAP_SHARED, fd_.get(), 0);
+#endif
     } else {
-      const auto prot = PROT_READ | PROT_WRITE;
       mapped_.data =
           mt::mmap(nullptr, new_size, prot, MAP_SHARED, fd_.get(), 0);
     }
