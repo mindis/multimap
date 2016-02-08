@@ -187,7 +187,7 @@ public class Map implements AutoCloseable {
      * in options when creating a map due to the fact that the next prime number has been chosen.
      * For partition-specific statistics the value is set to 0.
      */
-    public long numPartitions() {
+    public long getNumPartitions() {
       return numPartitions;
     }
 
