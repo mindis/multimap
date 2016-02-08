@@ -22,6 +22,7 @@ package io.multimap;
 import io.multimap.Callables.Function;
 import io.multimap.Callables.Predicate;
 import io.multimap.Callables.Procedure;
+import io.multimap.Map.Stats;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -566,6 +567,23 @@ public class MapTest {
       Assert.assertTrue(values.contains(i));
     }
     map.close();
+  }
+  
+  @Test
+  public void testGetStats() throws Exception {
+    int numKeys = 1000;
+    int numValuesPerKeys = 1000;
+    Map map = createAndFillMap(DIRECTORY, numKeys, numValuesPerKeys);
+    Stats stats = map.getStats();
+    Assert.assertEquals(Options.DEFAULT.getBlockSize(), stats.getBlockSize());
+    Assert.assertEquals(1000, stats.getListSizeAvg());
+    Assert.assertEquals(1000, stats.getListSizeMax());
+    Assert.assertEquals(1000, stats.getListSizeMin());
+    Assert.assertEquals(1000, stats.getNumKeysTotal());
+    Assert.assertEquals(1000, stats.getNumKeysValid());
+    Assert.assertEquals(1000 * 1000, stats.getNumValuesTotal());
+    Assert.assertEquals(1000 * 1000, stats.getNumValuesValid());
+    Assert.assertEquals(Options.DEFAULT.getNumPartitions(), stats.getNumPartitions());
   }
 
   @Test
