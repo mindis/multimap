@@ -28,6 +28,8 @@ import io.multimap.Callables.LessThan;
  */
 public class Options {
   
+  public static final Options DEFAULT = new Options();
+  
   private int blockSize = 512;
   private int numPartitions = 23;
   private boolean createIfMissing = false;
