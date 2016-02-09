@@ -584,6 +584,7 @@ public class MapTest {
     Assert.assertEquals(1000 * 1000, stats.getNumValuesTotal());
     Assert.assertEquals(1000 * 1000, stats.getNumValuesValid());
     Assert.assertEquals(Options.DEFAULT.getNumPartitions(), stats.getNumPartitions());
+    map.close();
   }
 
   @Test
@@ -610,6 +611,38 @@ public class MapTest {
     map.close(); // Double close should have no effect.
   }
 
+  @Test (expected = Exception.class)
+  public void testStatsShouldThrowBecauseDirectoryDoesNotExist() throws Exception {
+    Map.stats(DIRECTORY);
+  }
+  
+  @Test (expected = Exception.class)
+  public void testStatsShouldThrowBecauseDirectoryIsAlreadyLocked() throws Exception {
+    int numKeys = 1000;
+    int numValuesPerKeys = 1000;
+    Map map = createAndFillMap(DIRECTORY, numKeys, numValuesPerKeys);
+    Map.stats(DIRECTORY);
+    map.close();
+  }
+  
+  @Test
+  public void testStatsShouldNotThrow() throws Exception {
+    int numKeys = 1000;
+    int numValuesPerKeys = 1000;
+    Map map = createAndFillMap(DIRECTORY, numKeys, numValuesPerKeys);
+    map.close();
+    Stats stats = Map.stats(DIRECTORY);
+    Assert.assertEquals(Options.DEFAULT.getBlockSize(), stats.getBlockSize());
+    Assert.assertEquals(1000, stats.getListSizeAvg());
+    Assert.assertEquals(1000, stats.getListSizeMax());
+    Assert.assertEquals(1000, stats.getListSizeMin());
+    Assert.assertEquals(1000, stats.getNumKeysTotal());
+    Assert.assertEquals(1000, stats.getNumKeysValid());
+    Assert.assertEquals(1000 * 1000, stats.getNumValuesTotal());
+    Assert.assertEquals(1000 * 1000, stats.getNumValuesValid());
+    Assert.assertEquals(Options.DEFAULT.getNumPartitions(), stats.getNumPartitions());
+  }
+  
   @Test (expected = Exception.class)
   public void testImportFromBase64ShouldThrow() throws Exception {
     int numKeys = 1000;
