@@ -28,6 +28,9 @@ import io.multimap.Callables.LessThan;
  */
 public class Options {
   
+  /**
+   * A static instance useful to obtain the default configuration of the options parameter.
+   */
   public static final Options DEFAULT = new Options();
   
   private int blockSize = 512;
