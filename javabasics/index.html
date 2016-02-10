@@ -194,18 +194,20 @@ try {
 <p>Putting a value means to append a value to the end of the list that is associated with a key. Both the key and the value are of type <code>byte[]</code>.</p>
 <pre><code class="java">Charset cs = Charset.forName(&quot;UTF-8&quot;);
 
-byte[] key = &quot;key&quot;.getBytes(cs);
-
-map.put(key, &quot;value&quot;.getBytes(cs));
+map.put(&quot;key&quot;.getBytes(cs), &quot;value&quot;.getBytes(cs));
 // Puts a value constructed from a string.
 
-map.put(key, Integer.toString(23).getBytes(cs));
+map.put(&quot;key&quot;, &quot;value2&quot;);
+// There is an overload that accepts strings instead of byte arrays.
+// Internally the strings are converted to bytes as shown before.
+
+map.put(&quot;key&quot;, Integer.toString(23));
 // Puts a value constructed from an integer.
 
-map.put(key, ByteBuffer.allocate(4).putInt(23).array());
+map.put(&quot;key&quot;, ByteBuffer.allocate(4).putInt(23).array());
 // Puts a value constructed from a java.nio.ByteBuffer.
 
-map.put(key, somelib.serializeAsByteArray(someObject));
+map.put(&quot;key&quot;, somelib.serializeAsByteArray(someObject));
 // Puts a value packed by some serialization library.
 </code></pre>
 
@@ -226,28 +228,29 @@ iter.close();  // Releases the internal reader lock.
 <ul>
 <li>Since iterators can be put into containers or the like, there has to take special care not to run into deadlocks, because there is another type of iterator which holds a writer lock on a list for exclusive access. This type of iterator is only used internally for implementing remove and replace operations.</li>
 <li>Iterators support lazy initialization which means that no I/O operation is performed until its <code>next()</code> method has been called. This feature is useful in cases where multiple iterators must be requested first in order to determine in which order they have to be processed.</li>
-<li>Calling <code>nextAsByteArray()</code> instead of <code>next()</code> is a simple way to get a deep copy of the current value as a newly allocated <code>byte[]</code> that is managed by the Java Garbage Collector.</li>
+<li>Calling <code>nextAsByteArray()</code> or <code>nextAsString()</code> instead of <code>next()</code> is a simple way to get a deep copy of the current value that is managed by the Java Garbage Collector.</li>
 <li>Iterators can tell the number of values left to iterate by invoking <code>available()</code>.</li>
 </ul>
 <h2 id="removing-values">Removing Values</h2>
 <p>Values can be removed from a list by injecting a <a href="../javadoc/io/multimap/Callables.Predicate.html">Predicate</a> which yields true for values to be removed. There are methods to remove only the first or all matches from a list. Since this is a mutating operation the methods require exclusive access to the list and therefore try to acquire a <a href="../cppreference#writer-lock">writer lock</a> for that list.</p>
-<pre><code class="java">import io.multimap.Callables;
+<pre><code class="java">import io.multimap.Callables.Predicate;
+import io.multimap.Utils;
 
-map.put(key, &quot;1&quot;.getBytes(cs));
-map.put(key, &quot;2&quot;.getBytes(cs));
-map.put(key, &quot;3&quot;.getBytes(cs));
-map.put(key, &quot;4&quot;.getBytes(cs));
-map.put(key, &quot;5&quot;.getBytes(cs));
-map.put(key, &quot;6&quot;.getBytes(cs));
+map.put(key, &quot;1&quot;);
+map.put(key, &quot;2&quot;);
+map.put(key, &quot;3&quot;);
+map.put(key, &quot;4&quot;);
+map.put(key, &quot;5&quot;);
+map.put(key, &quot;6&quot;);
 
-map.removeValue(key, &quot;3&quot;.getBytes(cs));
+map.removeValue(key, &quot;3&quot;);
 // Removes the first value equal to &quot;3&quot;.
 // key -&gt; {&quot;1&quot;, &quot;2&quot;, &quot;4&quot;, &quot;5&quot;, &quot;6&quot;}
 
 Predicate isEven = new Predicate() {  
   @Override
-  protected boolean callOnReadOnly(ByteBuffer value) {
-    return Integer.parseInt(Util.toString(value, cs)) % 2 == 0;
+  public boolean call(ByteBuffer value) {
+    return Integer.parseInt(Utils.toString(value)) % 2 == 0;
   }
 };
 
@@ -269,24 +272,25 @@ map.removeKey(key);
 <h2 id="replacing-values">Replacing Values</h2>
 <p>Values can be replaced by injecting a <a href="../javadoc/io/multimap/Callables.Procedure.html">Procedure</a> that represents a map function which yields a <code>byte[]</code> for values to be replaced or <code>null</code> if not. There are methods to replace only the first or all matches in a list. Since this is a mutating operation the methods require exclusive access to the list and therefore try to acquire a <a href="../overview#writer-lock">writer lock</a> for that list.</p>
 <p>When a value is replaced the old value is marked as removed and the new value is appended to the end of the list. Hence, replace operations will not preserve the order of values. If a certain order needs to be restored an <a href="../overview#multimap-optimize">optimize</a> operation has to be run parameterized with an appropriate <a href="../javadoc/io/multimap/Callables.LessThan.html">LessThan</a> function.</p>
-<pre><code class="java">import io.multimap.Callables;
+<pre><code class="java">import io.multimap.Callables.Function;
+import io.multimap.Utils;
 
-map.put(key, &quot;1&quot;.getBytes(cs));
-map.put(key, &quot;2&quot;.getBytes(cs));
-map.put(key, &quot;3&quot;.getBytes(cs));
-map.put(key, &quot;4&quot;.getBytes(cs));
-map.put(key, &quot;5&quot;.getBytes(cs));
-map.put(key, &quot;6&quot;.getBytes(cs));
+map.put(key, &quot;1&quot;);
+map.put(key, &quot;2&quot;);
+map.put(key, &quot;3&quot;);
+map.put(key, &quot;4&quot;);
+map.put(key, &quot;5&quot;);
+map.put(key, &quot;6&quot;);
 
-map.replaceValue(key, &quot;3&quot;.getBytes(cs), &quot;4&quot;.getBytes(cs));
+map.replaceValue(key, &quot;3&quot;, &quot;4&quot;);
 // Replaces the first value equal to &quot;3&quot; by &quot;4&quot;.
 // key -&gt; {&quot;1&quot;, &quot;2&quot;, &quot;4&quot;, &quot;5&quot;, &quot;6&quot;, &quot;4&quot;}
 
 Function incrementIfEven = new Function() {  
   @Override
-  protected byte[] callOnReadOnly(ByteBuffer value) {
-    int number = Integer.parseInt(Util.toString(value, cs));
-    return (number % 2 == 0) ? Integer.toString(number + 1).getBytes(cs) : null;
+  public byte[] call(ByteBuffer value) {
+    int number = Integer.parseInt(Utils.toString(value));
+    return (number % 2 == 0) ? Utils.toByteArray(Integer.toString(number + 1)) : null;
   }
 };
 
@@ -294,7 +298,7 @@ map.replaceValue(key, incrementIfEven);
 // Replaces the first value that is even by its successor.
 // key -&gt; {&quot;1&quot;, &quot;4&quot;, &quot;5&quot;, &quot;6&quot;, &quot;4&quot;, &quot;3&quot;}
 
-map.replaceValues(key, &quot;4&quot;.getBytes(cs), &quot;8&quot;.getBytes(cs));
+map.replaceValues(key, &quot;4&quot;, &quot;8&quot;);
 // Replaces all values equal to &quot;4&quot; by &quot;8&quot;.
 // key -&gt; {&quot;1&quot;, &quot;5&quot;, &quot;6&quot;, &quot;3&quot;, &quot;8&quot;, &quot;8&quot;}
 
