@@ -12,11 +12,12 @@ SOURCE_FILES=($PACKAGE/Callables.java \
               $PACKAGE/Check.java \
               $PACKAGE/Iterator.java \
               $PACKAGE/Map.java \
-              $PACKAGE/Options.java)
+              $PACKAGE/Options.java \
+              $PACKAGE/Utils.java)
 
-MAJOR_VERSION=$(grep MAJOR_VERSION src/cpp/multimap/version.hpp | cut -d';' -f1 | cut -d' ' -f6)
-MINOR_VERSION=$(grep MINOR_VERSION src/cpp/multimap/version.hpp | cut -d';' -f1 | cut -d' ' -f6)
-PATCH_VERSION=$(grep PATCH_VERSION src/cpp/multimap/version.hpp | cut -d';' -f1 | cut -d' ' -f6)
+MAJOR_VERSION=$(grep MAJOR src/cpp/multimap/Version.hpp | grep -Po '[0-9]+(?=;)')
+MINOR_VERSION=$(grep MINOR src/cpp/multimap/Version.hpp | grep -Po '[0-9]+(?=;)')
+PATCH_VERSION=$(grep PATCH src/cpp/multimap/Version.hpp | grep -Po '[0-9]+(?=;)')
 JAR_FILE=multimap-$MAJOR_VERSION.$MINOR_VERSION.$PATCH_VERSION.jar
 
 mkdir $JAR_DIR
