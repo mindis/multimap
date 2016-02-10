@@ -22,7 +22,6 @@
 // Enables large file support (> 2 GiB) on 32-bit systems.
 
 // TODO Add feature test macros
-
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -44,7 +43,7 @@
 
 namespace mt {
 
-static const uint32_t VERSION = 20160207;
+static const uint32_t VERSION = 20160210;
 
 // -----------------------------------------------------------------------------
 // COMMON
@@ -512,20 +511,12 @@ inline uint64_t ftell(std::FILE* stream) {
   return result;
 }
 
-class DirectoryLockGuard {
+class DirectoryLockGuard : Resource {
 public:
   static const char* DEFAULT_FILENAME;
 
-  DirectoryLockGuard() = default;
-
   DirectoryLockGuard(const boost::filesystem::path& directory,
                      const std::string& filename = DEFAULT_FILENAME);
-
-  DirectoryLockGuard(const DirectoryLockGuard&) = delete;
-  DirectoryLockGuard& operator=(const DirectoryLockGuard&) = delete;
-
-  DirectoryLockGuard(DirectoryLockGuard&& other);
-  DirectoryLockGuard& operator=(DirectoryLockGuard&& other);
 
   ~DirectoryLockGuard();
 

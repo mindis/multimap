@@ -279,6 +279,8 @@ const char* DirectoryLockGuard::DEFAULT_FILENAME = ".lock";
 DirectoryLockGuard::DirectoryLockGuard(const boost::filesystem::path& directory,
                                        const std::string& filename)
     : directory_(directory), filename_(filename) {
+  Check::isTrue(boost::filesystem::is_directory(directory),
+                "No such directory '%s'", directory.c_str());
   const auto lock_filename = directory / filename;
   Check::isFalse(
       boost::filesystem::exists(lock_filename),
@@ -288,22 +290,7 @@ DirectoryLockGuard::DirectoryLockGuard(const boost::filesystem::path& directory,
   Check::isTrue(lock_file.is_open(),
                 "Could not create lock file '%s' for unknown reason",
                 lock_filename.c_str());
-}
-
-DirectoryLockGuard::DirectoryLockGuard(DirectoryLockGuard&& other)
-    : directory_(other.directory_), filename_(other.filename_) {
-  other.directory_.clear();
-  other.filename_.clear();
-}
-
-DirectoryLockGuard& DirectoryLockGuard::operator=(DirectoryLockGuard&& other) {
-  if (&other != this) {
-    directory_ = other.directory_;
-    filename_ = other.filename_;
-    other.directory_.clear();
-    other.filename_.clear();
-  }
-  return *this;
+  lock_file << ::getpid();
 }
 
 DirectoryLockGuard::~DirectoryLockGuard() {
