@@ -41,24 +41,13 @@ public final class Callables {
   public static abstract class Function {
 
     /**
-     * Applies the function to {@code bytes}. This is a wrapper around
-     * {@link #callOnReadOnly(ByteBuffer)} which marks the input as read-only.
-     * 
-     * @return a new {@code byte[]} or {@code null} if explicitly allowed by an implementation.
-     * 
-     * @see #callOnReadOnly(ByteBuffer)
-     */
-    public byte[] call(ByteBuffer bytes) {
-      return callOnReadOnly(bytes.asReadOnlyBuffer());
-    }
-
-    /**
-     * Applies the function to {@code bytes}. The input is guaranteed to be read-only. Must be
-     * implemented in derived classes.
+     * Applies the function to {@code bytes}. The given byte buffer should be treated read-only,
+     * even if {@link ByteBuffer#isReadOnly()} is true. Attempts to write into the given buffer
+     * might let the VM crash.
      * 
      * @return a new {@code byte[]} or {@code null} if explicitly allowed by an implementation.
      */
-    protected abstract byte[] callOnReadOnly(ByteBuffer bytes);
+    public abstract byte[] call(ByteBuffer bytes);
   }
   
   /**
@@ -71,24 +60,13 @@ public final class Callables {
   public static abstract class LessThan {
 
     /**
-     * Determines whether {@code a} is less than {@code b}. This is a wrapper around
-     * {@link #callOnReadOnly(ByteBuffer, ByteBuffer)} which marks the input as read-only.
-     * 
-     * @return {@code true} if {@code a} is less than {@code b}, {@code false} otherwise.
-     * 
-     * @see #callOnReadOnly(ByteBuffer, ByteBuffer)
-     */
-    public boolean call(ByteBuffer a, ByteBuffer b) {
-      return callOnReadOnly(a.asReadOnlyBuffer(), b.asReadOnlyBuffer());
-    }
-
-    /**
-     * Determines whether {@code a} is less than {@code b}. The input is guaranteed to be read-only.
-     * Must be implemented in derived classes.
+     * Determines whether {@code a} is less than {@code b}. The given byte buffers should be
+     * treated read-only, even if {@link ByteBuffer#isReadOnly()} is true. Attempts to write into
+     * the given buffers might let the VM crash.
      * 
      * @return {@code true} if {@code a} is less than {@code b}, {@code false} otherwise.
      */
-    protected abstract boolean callOnReadOnly(ByteBuffer a, ByteBuffer b);
+    public abstract boolean call(ByteBuffer a, ByteBuffer b);
   }
   
   /**
@@ -103,24 +81,13 @@ public final class Callables {
   public static abstract class Predicate {
 
     /**
-     * Applies the predicate to {@code bytes}. This is a wrapper around
-     * {@link #callOnReadOnly(ByteBuffer)} which marks the input as read-only.
-     * 
-     * @return {@code true} if the predicate matches, {@code false} otherwise.
-     * 
-     * @see #callOnReadOnly(ByteBuffer)
-     */
-    public boolean call(ByteBuffer bytes) {
-      return callOnReadOnly(bytes.asReadOnlyBuffer());
-    }
-
-    /**
-     * Applies the predicate to {@code bytes}. The input is guaranteed to be read-only. Must be
-     * implemented in derived classes.
+     * Applies the predicate to {@code bytes}. The given byte buffer should be treated read-only,
+     * even if {@link ByteBuffer#isReadOnly()} is true. Attempts to write into the given buffer
+     * might let the VM crash.
      * 
      * @return {@code true} if the predicate matches, {@code false} otherwise.
      */
-    protected abstract boolean callOnReadOnly(ByteBuffer bytes);
+    public abstract boolean call(ByteBuffer bytes);
   }
 
   /**
@@ -134,21 +101,11 @@ public final class Callables {
   public static abstract class Procedure {
 
     /**
-     * Applies the procedure to {@code bytes}. This is a wrapper around
-     * {@link #callOnReadOnly(ByteBuffer)} which marks the input as read-only.
-     * 
-     * @see #callOnReadOnly(ByteBuffer)
+     * Applies the procedure to {@code bytes}. The given byte buffer should be treated read-only,
+     * even if {@link ByteBuffer#isReadOnly()} is true. Attempts to write into the given buffer
+     * might let the VM crash.
      */
-    public void call(ByteBuffer bytes) {
-      Check.notNull(bytes);
-      callOnReadOnly(bytes.asReadOnlyBuffer());
-    }
-
-    /**
-     * Applies the procedure to {@code bytes}. The input is guaranteed to be read-only. Must be
-     * implemented in derived classes.
-     */
-    protected abstract void callOnReadOnly(ByteBuffer bytes);
+    public abstract void call(ByteBuffer bytes);
   }
 
 }

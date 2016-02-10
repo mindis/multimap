@@ -56,14 +56,14 @@ public class MapTest {
   
   static final Predicate IS_EVEN = new Predicate() {
     @Override
-    protected boolean callOnReadOnly(ByteBuffer bytes) {
+    public boolean call(ByteBuffer bytes) {
       return getSuffix(bytes) % 2 == 0;
     }
   };
   
   static final Function NEXT_IF_EVEN = new Function() {
     @Override
-    protected byte[] callOnReadOnly(ByteBuffer bytes) {
+    public byte[] call(ByteBuffer bytes) {
       int suffix = getSuffix(bytes);
       return (suffix % 2 == 0) ? makeValue(suffix + 1) : null;
     }
@@ -506,7 +506,7 @@ public class MapTest {
     final Set<Integer> keys = new HashSet<>();
     map.forEachKey(new Procedure() {
       @Override
-      protected void callOnReadOnly(ByteBuffer bytes) {
+      public void call(ByteBuffer bytes) {
         keys.add(getSuffix(bytes));
       }
     });
@@ -522,7 +522,7 @@ public class MapTest {
     keys.clear();
     map.forEachKey(new Procedure() {
       @Override
-      protected void callOnReadOnly(ByteBuffer bytes) {
+      public void call(ByteBuffer bytes) {
         keys.add(getSuffix(bytes));
       }
     });
@@ -544,7 +544,7 @@ public class MapTest {
     final Set<Integer> values = new HashSet<>();
     map.forEachValue(key, new Procedure() {
       @Override
-      protected void callOnReadOnly(ByteBuffer bytes) {
+      public void call(ByteBuffer bytes) {
         values.add(getSuffix(bytes));
       }
     });
@@ -558,7 +558,7 @@ public class MapTest {
     values.clear();
     map.forEachValue(key, new Procedure() {
       @Override
-      protected void callOnReadOnly(ByteBuffer bytes) {
+      public void call(ByteBuffer bytes) {
         values.add(getSuffix(bytes));
       }
     });
@@ -689,7 +689,7 @@ public class MapTest {
     Map map = new Map(DIRECTORY);
     Assert.assertEquals(numKeys, map.removeKeys(new Predicate() {
       @Override
-      protected boolean callOnReadOnly(ByteBuffer bytes) {
+      public boolean call(ByteBuffer bytes) {
         return true;
       }
     }));
