@@ -25,6 +25,8 @@ package io.multimap;
  * @author Martin Trenkmann
  */
 public final class Check {
+  
+  private Check() {}
 
   public static final void notNull(Object object) {
     if (object == null) {
