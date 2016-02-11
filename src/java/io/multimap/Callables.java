@@ -41,8 +41,8 @@ public final class Callables {
   public static abstract class Function {
 
     /**
-     * Applies the function to {@code bytes}. The given byte buffer should be treated read-only,
-     * even if {@link ByteBuffer#isReadOnly()} is true. Attempts to write into the given buffer
+     * Applies the function to {@code bytes}. The given byte buffer should be treated as read-only,
+     * even if {@link ByteBuffer#isReadOnly()} yields false. Attempts to write into the given buffer
      * might let the VM crash.
      * 
      * @return a new {@code byte[]} or {@code null} if explicitly allowed by an implementation.
@@ -60,8 +60,8 @@ public final class Callables {
   public static abstract class LessThan {
 
     /**
-     * Determines whether {@code a} is less than {@code b}. The given byte buffers should be
-     * treated read-only, even if {@link ByteBuffer#isReadOnly()} is true. Attempts to write into
+     * Determines whether {@code a} is less than {@code b}. The given byte buffers should be treated
+     * as read-only, even if {@link ByteBuffer#isReadOnly()} yields false. Attempts to write into
      * the given buffers might let the VM crash.
      * 
      * @return {@code true} if {@code a} is less than {@code b}, {@code false} otherwise.
@@ -81,8 +81,8 @@ public final class Callables {
   public static abstract class Predicate {
 
     /**
-     * Applies the predicate to {@code bytes}. The given byte buffer should be treated read-only,
-     * even if {@link ByteBuffer#isReadOnly()} is true. Attempts to write into the given buffer
+     * Applies the predicate to {@code bytes}. The given byte buffer should be treated as read-only,
+     * even if {@link ByteBuffer#isReadOnly()} yields false. Attempts to write into the given buffer
      * might let the VM crash.
      * 
      * @return {@code true} if the predicate matches, {@code false} otherwise.
@@ -92,8 +92,8 @@ public final class Callables {
 
   /**
    * A callable that is applied to a {@link ByteBuffer} without returning any value. Procedures
-   * can have state that may change during application. Objects implementing this interface are
-   * typically used to visit keys or values, e.g. to collect information about them.
+   * often maintain an internal state that changes during application. Objects implementing this
+   * interface are typically used to visit keys or values, e.g. to collect information about them.
    * 
    * @see Map#forEachKey(Callables.Procedure)
    * @see Map#forEachValue(byte[], Callables.Procedure)
@@ -101,8 +101,8 @@ public final class Callables {
   public static abstract class Procedure {
 
     /**
-     * Applies the procedure to {@code bytes}. The given byte buffer should be treated read-only,
-     * even if {@link ByteBuffer#isReadOnly()} is true. Attempts to write into the given buffer
+     * Applies the procedure to {@code bytes}. The given byte buffer should be treated as read-only,
+     * even if {@link ByteBuffer#isReadOnly()} yields false. Attempts to write into the given buffer
      * might let the VM crash.
      */
     public abstract void call(ByteBuffer bytes);
