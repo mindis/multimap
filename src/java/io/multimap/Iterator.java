@@ -102,7 +102,7 @@ public class Iterator implements AutoCloseable {
    * @since 0.4.0
    */
   public String nextAsString() {
-    return Utils.toString(nextAsByteArray());
+    return Utils.toString(next());
   }
   
   /**
@@ -125,7 +125,7 @@ public class Iterator implements AutoCloseable {
    * @since 0.4.0
    */
   public String peekNextAsString() {
-    return Utils.toString(peekNextAsByteArray());
+    return Utils.toString(peekNext());
   }
 
   /**
