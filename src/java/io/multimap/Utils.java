@@ -32,10 +32,13 @@ public class Utils {
 
   private Utils() {}
   
+  /**
+   * An UTF-8 charset constant used for encoding/decoding strings to/from byte arrays.
+   */
   public static final Charset UTF8 = Charset.forName("UTF-8");
   
   /**
-   * Converts a byte buffer to a byte array.
+   * Copies the byte buffer's content to a newly allocated byte array.
    */
   public static byte[] toByteArray(ByteBuffer bytes) {
     byte[] array = new byte[bytes.capacity()];
@@ -44,14 +47,21 @@ public class Utils {
   }
   
   /**
-   * Converts a byte buffer to a string using UTF-8 as the character set for decoding.
+   * Serializes the string's content to an UTF-8 encoded byte array.
+   */
+  public static byte[] toByteArray(String string) {
+    return string.getBytes(UTF8);
+  }
+  
+  /**
+   * Parses a string out of a byte buffer whose content is UTF-8 encoded.
    */
   public static String toString(ByteBuffer bytes) {
     return toString(toByteArray(bytes));
   }
   
   /**
-   * Converts a byte array to a string using UTF-8 as the character set for decoding.
+   * Parses a string out of a byte array whose content is UTF-8 encoded.
    */
   public static String toString(byte[] bytes) {
     return new String(bytes, UTF8);
