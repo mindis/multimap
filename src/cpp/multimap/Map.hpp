@@ -26,14 +26,16 @@
 #include <vector>
 #include <boost/filesystem/path.hpp>
 #include "multimap/thirdparty/mt/mt.hpp"
+#include "multimap/internal/MapPartition.hpp"
+#include "multimap/internal/Stats.hpp"
 #include "multimap/Iterator.hpp"
 #include "multimap/Options.hpp"
 #include "multimap/Version.hpp"
 
 namespace multimap {
 
-class Map : mt::Resource {
-public:
+class Map : private mt::Resource {
+ public:
   struct Id {
     uint64_t block_size = 0;
     uint64_t num_partitions = 0;
@@ -53,9 +55,7 @@ public:
     static uint32_t maxValueSize();
   };
 
-  typedef internal::Partition::Stats Stats;
-
-  typedef internal::Partition::Iterator Iterator;
+  typedef internal::Stats Stats;
 
   explicit Map(const boost::filesystem::path& directory);
 
@@ -63,81 +63,71 @@ public:
 
   ~Map();
 
-  void put(const Bytes& key, const Bytes& value) {
-    getPartition(key).put(key, value);
-  }
+  void put(const Bytes& key, const Bytes& value);
 
-  Iterator get(const Bytes& key) const { return getPartition(key).get(key); }
+  std::unique_ptr<Iterator> get(const Bytes& key) const;
 
-  bool removeKey(const Bytes& key) { return getPartition(key).removeKey(key); }
+  bool removeKey(const Bytes& key);
 
-  template <typename Predicate> uint32_t removeKeys(Predicate predicate) {
+  template <typename Predicate>
+  uint32_t removeKeys(Predicate predicate) {
     uint32_t num_removed = 0;
-    for (const auto& table : partitions_) {
-      num_removed += table->removeKeys(predicate);
+    for (const auto& partition : partitions_) {
+      num_removed += partition->removeKeys(predicate);
     }
     return num_removed;
   }
 
   template <typename Predicate>
   bool removeValue(const Bytes& key, Predicate predicate) {
-    return getPartition(key).removeValue(key, predicate);
+    return getPartition(key)->removeValue(key, predicate);
   }
 
   template <typename Predicate>
   uint32_t removeValues(const Bytes& key, Predicate predicate) {
-    return getPartition(key).removeValues(key, predicate);
+    return getPartition(key)->removeValues(key, predicate);
   }
 
   bool replaceValue(const Bytes& key, const Bytes& old_value,
-                    const Bytes& new_value) {
-    return getPartition(key).replaceValue(key, old_value, new_value);
-  }
+                    const Bytes& new_value);
 
   template <typename Function>
   bool replaceValue(const Bytes& key, Function map) {
-    return getPartition(key).replaceValue(key, map);
+    return getPartition(key)->replaceValue(key, map);
   }
 
   template <typename Function>
   uint32_t replaceValues(const Bytes& key, Function map) {
-    return getPartition(key).replaceValues(key, map);
+    return getPartition(key)->replaceValues(key, map);
   }
 
   uint32_t replaceValues(const Bytes& key, const Bytes& old_value,
-                         const Bytes& new_value) {
-    return getPartition(key).replaceValues(key, old_value, new_value);
-  }
+                         const Bytes& new_value);
 
-  template <typename Procedure> void forEachKey(Procedure process) const {
-    for (const auto& table : partitions_) {
-      table->forEachKey(process);
+  template <typename Procedure>
+  void forEachKey(Procedure process) const {
+    for (const auto& partition : partitions_) {
+      partition->forEachKey(process);
     }
   }
 
   template <typename Procedure>
   void forEachValue(const Bytes& key, Procedure process) const {
-    getPartition(key).forEachValue(key, process);
+    getPartition(key)->forEachValue(key, process);
   }
 
   template <typename BinaryProcedure>
   void forEachEntry(BinaryProcedure process) const {
-    for (const auto& table : partitions_) {
-      table->forEachEntry(process);
+    for (const auto& partition : partitions_) {
+      partition->forEachEntry(process);
     }
   }
 
-  std::vector<Stats> getStats() const {
-    std::vector<Stats> stats;
-    for (const auto& table : partitions_) {
-      stats.push_back(table->getStats());
-    }
-    return stats;
-  }
+  std::vector<Stats> getStats() const;
 
-  Stats getTotalStats() const { return Stats::total(getStats()); }
+  Stats getTotalStats() const;
 
-  bool isReadOnly() const { return partitions_.front()->isReadOnly(); }
+  bool isReadOnly() const;
 
   // ---------------------------------------------------------------------------
   // Static member functions
@@ -166,20 +156,18 @@ public:
                        const boost::filesystem::path& output,
                        const Options& options);
 
-private:
-  class Partition;
-
-  Partition* getPartition(const Bytes& key) {
+ private:
+  internal::MapPartition* getPartition(const Bytes& key) {
     const auto hash = mt::fnv1aHash(key.data(), key.size());
     return partitions_[hash % partitions_.size()].get();
   }
 
-  const Partition* getPartition(const Bytes& key) const {
+  const internal::MapPartition* getPartition(const Bytes& key) const {
     const auto hash = mt::fnv1aHash(key.data(), key.size());
     return partitions_[hash % partitions_.size()].get();
   }
 
-  std::vector<std::unique_ptr<Partition> > partitions_;
+  std::vector<std::unique_ptr<internal::MapPartition> > partitions_;
   mt::DirectoryLockGuard lock_;
 };
 
@@ -194,7 +182,7 @@ const std::string getNameOfStatsFile(uint32_t index);
 const std::string getNameOfValuesFile(uint32_t index);
 void checkVersion(uint64_t major_version, uint64_t minor_version);
 
-} // namespace internal
-} // namespace multimap
+}  // namespace internal
+}  // namespace multimap
 
-#endif // MULTIMAP_MAP_HPP_INCLUDED
+#endif  // MULTIMAP_MAP_HPP_INCLUDED
