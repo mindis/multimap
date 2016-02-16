@@ -23,7 +23,7 @@
 
 namespace multimap {
 
-class Iterator : mt::Resource {
+class Iterator : private mt::Resource {
  public:
   virtual ~Iterator() = default;
 
