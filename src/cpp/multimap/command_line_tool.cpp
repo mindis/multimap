@@ -171,14 +171,14 @@ void runStatsCommand(const CommandLine& cmd) {
   const auto stats = multimap::Map::stats(cmd.map);
   const int first_column_width = std::to_string(stats.size()).size();
 
-  const auto names = multimap::internal::Table::Stats::names();
+  const auto names = multimap::internal::Stats::names();
   const int second_column_width =
       std::max_element(names.begin(), names.end(),
                        [](const std::string& a, const std::string& b) {
                          return a.size() < b.size();
                        })->size();
 
-  const auto totals = multimap::internal::Table::Stats::total(stats).toVector();
+  const auto totals = multimap::internal::Stats::total(stats).toVector();
   const int third_column_width =
       std::to_string(*std::max_element(totals.begin(), totals.end())).size();
 
@@ -187,7 +187,7 @@ void runStatsCommand(const CommandLine& cmd) {
     return value != 0 ? std::string(std::ceil(30 * value / max), '*') : "";
   };
 
-  const auto max = multimap::internal::Table::Stats::max(stats).toVector();
+  const auto max = multimap::internal::Stats::max(stats).toVector();
   for (uint32_t i = 0; i != stats.size(); ++i) {
     const auto stat = stats[i].toVector();
     for (size_t j = 0; j != stat.size(); ++j) {
