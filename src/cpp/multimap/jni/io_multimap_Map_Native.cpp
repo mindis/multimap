@@ -95,7 +95,7 @@ Java_io_multimap_Map_00024Native_get(JNIEnv* env, jclass, jobject self,
   multimap::jni::BytesRaiiHelper key(env, jkey);
   auto iter = getMapPtrFromByteBuffer(env, self)->get(key.get());
   if (iter->hasNext()) {
-    return multimap::jni::newByteBufferFromPtr(env, iter.get());
+    return multimap::jni::newByteBufferFromPtr(env, iter.release());
   }
   return nullptr;
 }
