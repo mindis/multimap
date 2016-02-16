@@ -25,7 +25,7 @@
 #include "multimap/internal/Store.hpp"
 #include "multimap/internal/UintVector.hpp"
 #include "multimap/thirdparty/mt/mt.hpp"
-#include "multimap/Bytes.hpp"
+#include "multimap/Iterator.hpp"
 
 namespace multimap {
 namespace internal {
@@ -425,44 +425,41 @@ private:
   friend class SharedListIterator;
 };
 
-class SharedListIterator {
+class SharedListIterator : public Iterator {
 public:
   SharedListIterator() = default;
 
-  SharedListIterator(SharedList&& list) : list_(std::move(list)) {
+  explicit SharedListIterator(SharedList&& list) : list_(std::move(list)) {
     if (list_) {
       iter_ = list_.list_->iterator(*list_.store_);
     }
   }
 
-  SharedListIterator(SharedListIterator&&) = default;
-  SharedListIterator& operator=(SharedListIterator&&) = default;
+  uint32_t available() const override { return iter_.available(); }
 
-  uint32_t available() const { return iter_.available(); }
+  bool hasNext() const override { return iter_.hasNext(); }
 
-  bool hasNext() const { return iter_.hasNext(); }
+  Bytes next() override { return iter_.next(); }
 
-  Bytes next() { return iter_.next(); }
-
-  Bytes peekNext() { return iter_.peekNext(); }
+  Bytes peekNext() override { return iter_.peekNext(); }
 
 private:
   List::Iterator iter_;
   SharedList list_;
 };
 
-class UniqueList {
+class ExclusiveList {
 public:
   typedef List::MutableIterator Iterator;
 
-  UniqueList() = default;
+  ExclusiveList() = default;
 
-  UniqueList(List* list, Store* store, Arena* arena)
+  ExclusiveList(List* list, Store* store, Arena* arena)
       : list_(list), store_(store), arena_(arena) {
     list_->lock();
   }
 
-  UniqueList(List* list, Store* store, Arena* arena, std::try_to_lock_t) {
+  ExclusiveList(List* list, Store* store, Arena* arena, std::try_to_lock_t) {
     if (list->try_lock()) {
       list_ = list;
       store_ = store;
@@ -470,16 +467,16 @@ public:
     }
   }
 
-  UniqueList(UniqueList&& other)
+  ExclusiveList(ExclusiveList&& other)
       : list_(other.release()), store_(other.store_), arena_(other.arena_) {}
 
-  ~UniqueList() {
+  ~ExclusiveList() {
     if (list_) {
       list_->unlock();
     }
   }
 
-  UniqueList& operator=(UniqueList&& other) {
+  ExclusiveList& operator=(ExclusiveList&& other) {
     if (list_) {
       list_->unlock();
     }
@@ -514,35 +511,32 @@ private:
   Store* store_ = nullptr;
   Arena* arena_ = nullptr;
 
-  friend class UniqueListIterator;
+  friend class ExclusiveListIterator;
 };
 
-class UniqueListIterator {
+class ExclusiveListIterator : public Iterator {
 public:
-  UniqueListIterator() = default;
+  ExclusiveListIterator() = default;
 
-  UniqueListIterator(UniqueList&& list) : list_(std::move(list)) {
+  explicit ExclusiveListIterator(ExclusiveList&& list) : list_(std::move(list)) {
     if (list_) {
       iter_ = list_.list_->iterator(list_.store_);
     }
   }
 
-  UniqueListIterator(UniqueListIterator&&) = default;
-  UniqueListIterator& operator=(UniqueListIterator&&) = default;
+  uint32_t available() const override { return iter_.available(); }
 
-  uint32_t available() const { return iter_.available(); }
+  bool hasNext() const override { return iter_.hasNext(); }
 
-  bool hasNext() const { return iter_.hasNext(); }
+  Bytes next() override { return iter_.next(); }
 
-  Bytes next() { return iter_.next(); }
-
-  Bytes peekNext() { return iter_.peekNext(); }
+  Bytes peekNext() override { return iter_.peekNext(); }
 
   void remove() { iter_.remove(); }
 
 private:
   List::MutableIterator iter_;
-  UniqueList list_;
+  ExclusiveList list_;
 };
 
 } // namespace internal
