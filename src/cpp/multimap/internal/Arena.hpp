@@ -26,7 +26,7 @@
 namespace multimap {
 namespace internal {
 
-class Arena : mt::Resource {
+class Arena : private mt::Resource {
   // Objects of this class are thread-safe.
 
 public:
