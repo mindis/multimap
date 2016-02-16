@@ -24,6 +24,9 @@
 namespace multimap {
 namespace internal {
 
+const char* MapPartition::ATTEMPT_TO_MODIFY_READ_ONLY_PARTITION =
+    "Attempt to modify read-only partition";
+
 uint32_t MapPartition::Limits::maxKeySize() { return Varint::Limits::MAX_N4; }
 
 uint32_t MapPartition::Limits::maxValueSize() {

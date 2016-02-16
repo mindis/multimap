@@ -34,6 +34,8 @@ namespace multimap {
 namespace internal {
 
 class MapPartition : private mt::Resource {
+  static const char* ATTEMPT_TO_MODIFY_READ_ONLY_PARTITION;
+
  public:
   struct Limits {
     static uint32_t maxKeySize();
@@ -55,7 +57,7 @@ class MapPartition : private mt::Resource {
   ~MapPartition();
 
   void put(const Bytes& key, const Bytes& value) {
-    mt::check(!isReadOnly(), "Attempt to put value into read-only table");
+    mt::Check::isFalse(isReadOnly(), ATTEMPT_TO_MODIFY_READ_ONLY_PARTITION);
     getOrCreateUniqueList(key).add(value);
   }
 
@@ -65,7 +67,7 @@ class MapPartition : private mt::Resource {
   }
 
   bool removeKey(const Bytes& key) {
-    mt::check(!isReadOnly(), "Attempt to remove key from read-only table");
+    mt::Check::isFalse(isReadOnly(), ATTEMPT_TO_MODIFY_READ_ONLY_PARTITION);
     bool removed = false;
     auto list = getUniqueList(key);
     if (list && !list.empty()) {
@@ -78,7 +80,7 @@ class MapPartition : private mt::Resource {
 
   template <typename Predicate>
   uint32_t removeKeys(Predicate predicate) {
-    mt::check(!isReadOnly(), "Attempt to remove keys from read-only table");
+    mt::Check::isFalse(isReadOnly(), ATTEMPT_TO_MODIFY_READ_ONLY_PARTITION);
     uint32_t num_removed = 0;
     boost::shared_lock<boost::shared_mutex> lock(mutex_);
     for (const auto& entry : map_) {
@@ -163,7 +165,7 @@ class MapPartition : private mt::Resource {
 
   Stats getStats() const;
   // Returns various statistics about the partition.
-  // The data is collected upon request and triggers a full table scan.
+  // The data is collected upon request and triggers a full partition scan.
 
   bool isReadOnly() const { return store_->isReadOnly(); }
 
@@ -222,8 +224,7 @@ class MapPartition : private mt::Resource {
   template <typename Predicate>
   uint32_t remove(const Bytes& key, Predicate predicate,
                   bool exit_after_first_success) {
-    mt::Check::isFalse(isReadOnly(),
-                       "Attempt to remove values from read-only partition");
+    mt::Check::isFalse(isReadOnly(), ATTEMPT_TO_MODIFY_READ_ONLY_PARTITION);
     uint32_t num_removed = 0;
     ExclusiveListIterator iter(getUniqueList(key));
     while (iter.hasNext()) {
@@ -241,8 +242,7 @@ class MapPartition : private mt::Resource {
   template <typename Function>
   uint32_t replace(const Bytes& key, Function map,
                    bool exit_after_first_success) {
-    mt::Check::isFalse(isReadOnly(),
-                       "Attempt to replace values in read-only partition");
+    mt::Check::isFalse(isReadOnly(), ATTEMPT_TO_MODIFY_READ_ONLY_PARTITION);
     std::vector<std::string> replaced_values;
     if (auto list = getUniqueList(key)) {
       auto iter = list.iterator();
