@@ -386,25 +386,25 @@ TEST(SharedListTest, DefaultConstructedHasProperState) {
 }
 
 // -----------------------------------------------------------------------------
-// class UniqueList
+// class ExclusiveList
 // -----------------------------------------------------------------------------
 
-TEST(UniqueListTest, IsDefaultConstructible) {
-  ASSERT_TRUE(std::is_default_constructible<UniqueList>::value);
+TEST(ExclusiveListTest, IsDefaultConstructible) {
+  ASSERT_TRUE(std::is_default_constructible<ExclusiveList>::value);
 }
 
-TEST(UniqueListTest, IsNotCopyConstructibleOrAssignable) {
-  ASSERT_FALSE(std::is_copy_constructible<UniqueList>::value);
-  ASSERT_FALSE(std::is_copy_assignable<UniqueList>::value);
+TEST(ExclusiveListTest, IsNotCopyConstructibleOrAssignable) {
+  ASSERT_FALSE(std::is_copy_constructible<ExclusiveList>::value);
+  ASSERT_FALSE(std::is_copy_assignable<ExclusiveList>::value);
 }
 
-TEST(UniqueListTest, IsMoveConstructibleAndAssignable) {
-  ASSERT_TRUE(std::is_move_constructible<UniqueList>::value);
-  ASSERT_TRUE(std::is_move_assignable<UniqueList>::value);
+TEST(ExclusiveListTest, IsMoveConstructibleAndAssignable) {
+  ASSERT_TRUE(std::is_move_constructible<ExclusiveList>::value);
+  ASSERT_TRUE(std::is_move_assignable<ExclusiveList>::value);
 }
 
-TEST(UniqueListTest, DefaultConstructedHasProperState) {
-  ASSERT_FALSE(UniqueList());
+TEST(ExclusiveListTest, DefaultConstructedHasProperState) {
+  ASSERT_FALSE(ExclusiveList());
 }
 
 // -----------------------------------------------------------------------------
@@ -421,8 +421,8 @@ TEST(SharedListIteratorTest, IsNotCopyConstructibleOrAssignable) {
 }
 
 TEST(SharedListIteratorTest, IsMoveConstructibleAndAssignable) {
-  ASSERT_TRUE(std::is_move_constructible<SharedListIterator>::value);
-  ASSERT_TRUE(std::is_move_assignable<SharedListIterator>::value);
+  ASSERT_FALSE(std::is_move_constructible<SharedListIterator>::value);
+  ASSERT_FALSE(std::is_move_assignable<SharedListIterator>::value);
 }
 
 TEST(SharedListIteratorTest, DefaultConstructedHasProperState) {
@@ -454,109 +454,109 @@ struct ListIteratorTestWithParam : testing::TestWithParam<uint32_t> {
 };
 
 struct SharedListIteratorTestWithParam : public ListIteratorTestWithParam {
-  SharedListIterator getIterator() {
-    return SharedListIterator(SharedList(list, *store));
+  std::unique_ptr<SharedListIterator> getIterator() {
+    return std::unique_ptr<SharedListIterator>(new SharedListIterator(SharedList(list, *store)));
   }
 };
 
 TEST_P(SharedListIteratorTestWithParam, Iterate) {
-  SharedListIterator iter = getIterator();
-  ASSERT_EQ(iter.available(), GetParam());
-  for (size_t i = 0; iter.hasNext(); ++i) {
-    ASSERT_EQ(iter.available(), GetParam() - i);
-    ASSERT_EQ(iter.next(), std::to_string(i));
+  auto iter = getIterator();
+  ASSERT_EQ(iter->available(), GetParam());
+  for (size_t i = 0; iter->hasNext(); ++i) {
+    ASSERT_EQ(iter->available(), GetParam() - i);
+    ASSERT_EQ(iter->next(), std::to_string(i));
   }
-  ASSERT_EQ(iter.available(), 0);
-  ASSERT_FALSE(iter.hasNext());
+  ASSERT_EQ(iter->available(), 0);
+  ASSERT_FALSE(iter->hasNext());
 }
 
 INSTANTIATE_TEST_CASE_P(Parameterized, SharedListIteratorTestWithParam,
                         testing::Values(0, 1, 2, 10, 100, 1000, 1000000));
 
 // -----------------------------------------------------------------------------
-// class UniqueListIterator
+// class ExclusiveListIterator
 // -----------------------------------------------------------------------------
 
-TEST(UniqueListIteratorTest, IsDefaultConstructible) {
-  ASSERT_TRUE(std::is_default_constructible<UniqueListIterator>::value);
+TEST(ExclusiveListIteratorTest, IsDefaultConstructible) {
+  ASSERT_TRUE(std::is_default_constructible<ExclusiveListIterator>::value);
 }
 
-TEST(UniqueListIteratorTest, IsNotCopyConstructibleOrAssignable) {
-  ASSERT_FALSE(std::is_copy_constructible<UniqueListIterator>::value);
-  ASSERT_FALSE(std::is_copy_assignable<UniqueListIterator>::value);
+TEST(ExclusiveListIteratorTest, IsNotCopyConstructibleOrAssignable) {
+  ASSERT_FALSE(std::is_copy_constructible<ExclusiveListIterator>::value);
+  ASSERT_FALSE(std::is_copy_assignable<ExclusiveListIterator>::value);
 }
 
-TEST(UniqueListIteratorTest, IsMoveConstructibleAndAssignable) {
-  ASSERT_TRUE(std::is_move_constructible<UniqueListIterator>::value);
-  ASSERT_TRUE(std::is_move_assignable<UniqueListIterator>::value);
+TEST(ExclusiveListIteratorTest, IsMoveConstructibleAndAssignable) {
+  ASSERT_FALSE(std::is_move_constructible<ExclusiveListIterator>::value);
+  ASSERT_FALSE(std::is_move_assignable<ExclusiveListIterator>::value);
 }
 
-TEST(UniqueListIteratorTest, DefaultConstructedHasProperState) {
-  ASSERT_EQ(UniqueListIterator().available(), 0);
-  ASSERT_FALSE(UniqueListIterator().hasNext());
+TEST(ExclusiveListIteratorTest, DefaultConstructedHasProperState) {
+  ASSERT_EQ(ExclusiveListIterator().available(), 0);
+  ASSERT_FALSE(ExclusiveListIterator().hasNext());
   // Calling `next()` or `peekNext()` or `remove()` is undefined behavior.
 }
 
-struct UniqueListIteratorTestWithParam : public ListIteratorTestWithParam {
-  UniqueListIterator getIterator() {
-    return UniqueListIterator(UniqueList(&list, store.get(), &arena));
+struct ExclusiveListIteratorTestWithParam : public ListIteratorTestWithParam {
+  std::unique_ptr<ExclusiveListIterator> getIterator() {
+    return std::unique_ptr<ExclusiveListIterator>(new ExclusiveListIterator(ExclusiveList(&list, store.get(), &arena)));
   }
 };
 
-TEST_P(UniqueListIteratorTestWithParam, Iterate) {
-  UniqueListIterator iter = getIterator();
-  ASSERT_EQ(iter.available(), GetParam());
-  for (size_t i = 0; iter.hasNext(); ++i) {
-    ASSERT_EQ(iter.available(), GetParam() - i);
-    ASSERT_EQ(iter.next(), std::to_string(i));
+TEST_P(ExclusiveListIteratorTestWithParam, Iterate) {
+  auto iter = getIterator();
+  ASSERT_EQ(iter->available(), GetParam());
+  for (size_t i = 0; iter->hasNext(); ++i) {
+    ASSERT_EQ(iter->available(), GetParam() - i);
+    ASSERT_EQ(iter->next(), std::to_string(i));
   }
-  ASSERT_EQ(iter.available(), 0);
-  ASSERT_FALSE(iter.hasNext());
+  ASSERT_EQ(iter->available(), 0);
+  ASSERT_FALSE(iter->hasNext());
 }
 
-TEST_P(UniqueListIteratorTestWithParam, IterateOnceAndRemoveEvery23thValue) {
-  UniqueListIterator iter = getIterator();
+TEST_P(ExclusiveListIteratorTestWithParam, IterateOnceAndRemoveEvery23thValue) {
+  auto iter = getIterator();
   size_t num_removed = 0;
-  for (size_t i = 0; iter.hasNext(); ++i) {
-    ASSERT_EQ(iter.next(), std::to_string(i));
+  for (size_t i = 0; iter->hasNext(); ++i) {
+    ASSERT_EQ(iter->next(), std::to_string(i));
     if (i % 23 == 0) {
-      iter.remove();
+      iter->remove();
       ++num_removed;
     }
   }
-  ASSERT_EQ(iter.available(), 0);
-  ASSERT_FALSE(iter.hasNext());
+  ASSERT_EQ(iter->available(), 0);
+  ASSERT_FALSE(iter->hasNext());
 }
 
-TEST_P(UniqueListIteratorTestWithParam,
+TEST_P(ExclusiveListIteratorTestWithParam,
        IterateTwiceAndRemoveEvery23thValueIn1stRun) {
   size_t num_removed = 0;
   {
-    UniqueListIterator iter = getIterator();
-    for (size_t i = 0; iter.hasNext(); ++i) {
-      iter.next();
+    auto iter = getIterator();
+    for (size_t i = 0; iter->hasNext(); ++i) {
+      iter->next();
       if (i % 23 == 0) {
-        iter.remove();
+        iter->remove();
         ++num_removed;
       }
     }
-    ASSERT_EQ(iter.available(), 0);
-    ASSERT_FALSE(iter.hasNext());
+    ASSERT_EQ(iter->available(), 0);
+    ASSERT_FALSE(iter->hasNext());
   }
   {
-    UniqueListIterator iter = getIterator();
-    ASSERT_EQ(iter.available(), GetParam() - num_removed);
-    for (size_t i = 0; iter.hasNext(); ++i) {
+    auto iter = getIterator();
+    ASSERT_EQ(iter->available(), GetParam() - num_removed);
+    for (size_t i = 0; iter->hasNext(); ++i) {
       if (i % 23 != 0) {
-        ASSERT_NE(std::stoi(iter.next().toString()) % 23, 0);
+        ASSERT_NE(std::stoi(iter->next().toString()) % 23, 0);
       }
     }
-    ASSERT_EQ(iter.available(), 0);
-    ASSERT_FALSE(iter.hasNext());
+    ASSERT_EQ(iter->available(), 0);
+    ASSERT_FALSE(iter->hasNext());
   }
 }
 
-INSTANTIATE_TEST_CASE_P(Parameterized, UniqueListIteratorTestWithParam,
+INSTANTIATE_TEST_CASE_P(Parameterized, ExclusiveListIteratorTestWithParam,
                         testing::Values(0, 1, 2, 10, 100, 1000, 1000000));
 
 } // namespace internal
