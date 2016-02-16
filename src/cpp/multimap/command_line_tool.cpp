@@ -116,7 +116,7 @@ multimap::Options initOptions(const CommandLine& cmd) {
 
 void runHelpCommand(const char* toolname) {
   // clang-format off
-  const multimap::Options default_options;
+  const multimap::Options default_options {};
   std::printf(
       "USAGE\n"
       "\n  %s COMMAND PATH_TO_MAP [PATH] [OPTIONS]"
