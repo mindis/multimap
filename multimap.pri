@@ -16,7 +16,6 @@ HEADERS += \
     src/cpp/multimap/internal/Block.hpp \
     src/cpp/multimap/internal/List.hpp \
     src/cpp/multimap/internal/Store.hpp \
-    src/cpp/multimap/internal/Table.hpp \
     src/cpp/multimap/internal/UintVector.hpp \
     src/cpp/multimap/internal/Varint.hpp \
     src/cpp/multimap/thirdparty/mt/mt.hpp \
@@ -26,19 +25,22 @@ HEADERS += \
     src/cpp/multimap/Map.hpp \
     src/cpp/multimap/Options.hpp \
     src/cpp/multimap/Version.hpp \
-    src/cpp/multimap/Iterator.hpp
+    src/cpp/multimap/Iterator.hpp \
+    src/cpp/multimap/internal/Partition.hpp \
+    src/cpp/multimap/Stats.hpp
 
 SOURCES += \
     src/cpp/multimap/internal/Arena.cpp \
     src/cpp/multimap/internal/Base64.cpp \
     src/cpp/multimap/internal/List.cpp \
     src/cpp/multimap/internal/Store.cpp \
-    src/cpp/multimap/internal/Table.cpp \
     src/cpp/multimap/internal/UintVector.cpp \
     src/cpp/multimap/internal/Varint.cpp \
     src/cpp/multimap/thirdparty/mt/mt.cpp \
     src/cpp/multimap/thirdparty/xxhash/xxhash.c \
-    src/cpp/multimap/Map.cpp
+    src/cpp/multimap/Map.cpp \
+    src/cpp/multimap/internal/Partition.cpp \
+    src/cpp/multimap/Stats.cpp
 
 unix:!macx: LIBS += -lboost_filesystem -lboost_system -lboost_thread -pthread
 

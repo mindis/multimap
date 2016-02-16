@@ -65,11 +65,11 @@ void Map::Id::writeToFile(const boost::filesystem::path& file) const {
 }
 
 uint32_t Map::Limits::maxKeySize() {
-  return internal::Table::Limits::maxKeySize();
+  return internal::Partition::Limits::maxKeySize();
 }
 
 uint32_t Map::Limits::maxValueSize() {
-  return internal::Table::Limits::maxValueSize();
+  return internal::Partition::Limits::maxValueSize();
 }
 
 Map::Map(const boost::filesystem::path& directory)
@@ -78,49 +78,49 @@ Map::Map(const boost::filesystem::path& directory)
 Map::Map(const boost::filesystem::path& directory, const Options& options)
     : lock_(directory, internal::getNameOfLockFile()) {
   checkOptions(options);
-  internal::Table::Options table_options;
+  internal::Partition::Options table_options;
   const auto id_filename = directory / internal::getNameOfIdFile();
   if (boost::filesystem::is_regular_file(id_filename)) {
     mt::Check::isFalse(options.error_if_exists, "Map in '%s' already exists",
                        boost::filesystem::absolute(directory).c_str());
     const auto id = Id::readFromFile(id_filename);
     internal::checkVersion(id.major_version, id.minor_version);
-    tables_.resize(id.num_partitions);
+    partitions_.resize(id.num_partitions);
 
   } else {
     mt::Check::isTrue(options.create_if_missing, "Map in '%s' does not exist",
                       boost::filesystem::absolute(directory).c_str());
-    tables_.resize(mt::nextPrime(options.num_partitions));
+    partitions_.resize(mt::nextPrime(options.num_partitions));
   }
 
   table_options.readonly = options.readonly;
   table_options.block_size = options.block_size;
   table_options.buffer_size = options.buffer_size;
   table_options.create_if_missing = options.create_if_missing;
-  for (size_t i = 0; i != tables_.size(); ++i) {
+  for (size_t i = 0; i != partitions_.size(); ++i) {
     const auto prefix = directory / internal::getTablePrefix(i);
-    tables_[i].reset(new internal::Table(prefix, table_options));
+    partitions_[i].reset(new internal::Partition(prefix, table_options));
   }
 }
 
 Map::~Map() {
-  if (!tables_.empty()) {
+  if (!partitions_.empty()) {
     Id id;
-    id.block_size = tables_.front()->getBlockSize();
-    id.num_partitions = tables_.size();
+    id.block_size = partitions_.front()->getBlockSize();
+    id.num_partitions = partitions_.size();
     id.writeToFile(lock_.directory() / internal::getNameOfIdFile());
   }
 }
 
-std::vector<internal::Table::Stats> Map::stats(
+std::vector<internal::Partition::Stats> Map::stats(
     const boost::filesystem::path& directory) {
   mt::DirectoryLockGuard lock(directory, internal::getNameOfLockFile());
   const auto id = Id::readFromDirectory(directory);
   internal::checkVersion(id.major_version, id.minor_version);
-  std::vector<internal::Table::Stats> stats;
+  std::vector<internal::Partition::Stats> stats;
   for (size_t i = 0; i != id.num_partitions; ++i) {
     const auto stats_file = directory / internal::getNameOfStatsFile(i);
-    stats.push_back(internal::Table::Stats::readFromFile(stats_file));
+    stats.push_back(internal::Partition::Stats::readFromFile(stats_file));
   }
   return stats;
 }
@@ -215,7 +215,7 @@ void Map::exportToBase64(const boost::filesystem::path& directory,
     forEachTable(directory, [&](const boost::filesystem::path& prefix,
                                 size_t index, size_t npartitions) {
       print_status(index, npartitions);
-      internal::Table::forEachEntry(prefix, [&](const Bytes& key,
+      internal::Partition::forEachEntry(prefix, [&](const Bytes& key,
                                                 Map::Iterator iter) {
         sorted_values.clear();
         sorted_values.reserve(iter.available());
@@ -238,7 +238,7 @@ void Map::exportToBase64(const boost::filesystem::path& directory,
     forEachTable(directory, [&](const boost::filesystem::path& prefix,
                                 size_t index, size_t npartitions) {
       print_status(index, npartitions);
-      internal::Table::forEachEntry(
+      internal::Partition::forEachEntry(
           prefix, [&](const Bytes& key, Map::Iterator iter) {
             internal::Base64::encode(key, &base64_key);
             stream << base64_key;
@@ -287,7 +287,7 @@ void Map::optimize(const boost::filesystem::path& directory,
 
     if (options.compare) {
       std::vector<std::string> sorted_values;
-      internal::Table::forEachEntry(prefix, [&](const Bytes& key,
+      internal::Partition::forEachEntry(prefix, [&](const Bytes& key,
                                                 Map::Iterator iter) {
         sorted_values.clear();
         sorted_values.reserve(iter.available());
@@ -300,7 +300,7 @@ void Map::optimize(const boost::filesystem::path& directory,
         }
       });
     } else {
-      internal::Table::forEachEntry(prefix,
+      internal::Partition::forEachEntry(prefix,
                                     [&](const Bytes& key, Map::Iterator iter) {
                                       while (iter.hasNext()) {
                                         new_map->put(key, iter.next());
@@ -323,15 +323,15 @@ const std::string getTablePrefix(uint32_t index) {
 }
 
 const std::string getNameOfKeysFile(uint32_t index) {
-  return Table::getNameOfKeysFile(getTablePrefix(index));
+  return Partition::getNameOfKeysFile(getTablePrefix(index));
 }
 
 const std::string getNameOfStatsFile(uint32_t index) {
-  return Table::getNameOfStatsFile(getTablePrefix(index));
+  return Partition::getNameOfStatsFile(getTablePrefix(index));
 }
 
 const std::string getNameOfValuesFile(uint32_t index) {
-  return Table::getNameOfValuesFile(getTablePrefix(index));
+  return Partition::getNameOfValuesFile(getTablePrefix(index));
 }
 
 void checkVersion(uint64_t major_version, uint64_t minor_version) {

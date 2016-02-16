@@ -25,8 +25,8 @@
 #include <memory>
 #include <vector>
 #include <boost/filesystem/path.hpp>
-#include "multimap/internal/Table.hpp"
 #include "multimap/thirdparty/mt/mt.hpp"
+#include "multimap/Iterator.hpp"
 #include "multimap/Options.hpp"
 #include "multimap/Version.hpp"
 
@@ -53,9 +53,9 @@ public:
     static uint32_t maxValueSize();
   };
 
-  typedef internal::Table::Stats Stats;
+  typedef internal::Partition::Stats Stats;
 
-  typedef internal::Table::Iterator Iterator;
+  typedef internal::Partition::Iterator Iterator;
 
   explicit Map(const boost::filesystem::path& directory);
 
@@ -64,16 +64,16 @@ public:
   ~Map();
 
   void put(const Bytes& key, const Bytes& value) {
-    getTable(key).put(key, value);
+    getPartition(key).put(key, value);
   }
 
-  Iterator get(const Bytes& key) const { return getTable(key).get(key); }
+  Iterator get(const Bytes& key) const { return getPartition(key).get(key); }
 
-  bool removeKey(const Bytes& key) { return getTable(key).removeKey(key); }
+  bool removeKey(const Bytes& key) { return getPartition(key).removeKey(key); }
 
   template <typename Predicate> uint32_t removeKeys(Predicate predicate) {
     uint32_t num_removed = 0;
-    for (const auto& table : tables_) {
+    for (const auto& table : partitions_) {
       num_removed += table->removeKeys(predicate);
     }
     return num_removed;
@@ -81,55 +81,55 @@ public:
 
   template <typename Predicate>
   bool removeValue(const Bytes& key, Predicate predicate) {
-    return getTable(key).removeValue(key, predicate);
+    return getPartition(key).removeValue(key, predicate);
   }
 
   template <typename Predicate>
   uint32_t removeValues(const Bytes& key, Predicate predicate) {
-    return getTable(key).removeValues(key, predicate);
+    return getPartition(key).removeValues(key, predicate);
   }
 
   bool replaceValue(const Bytes& key, const Bytes& old_value,
                     const Bytes& new_value) {
-    return getTable(key).replaceValue(key, old_value, new_value);
+    return getPartition(key).replaceValue(key, old_value, new_value);
   }
 
   template <typename Function>
   bool replaceValue(const Bytes& key, Function map) {
-    return getTable(key).replaceValue(key, map);
+    return getPartition(key).replaceValue(key, map);
   }
 
   template <typename Function>
   uint32_t replaceValues(const Bytes& key, Function map) {
-    return getTable(key).replaceValues(key, map);
+    return getPartition(key).replaceValues(key, map);
   }
 
   uint32_t replaceValues(const Bytes& key, const Bytes& old_value,
                          const Bytes& new_value) {
-    return getTable(key).replaceValues(key, old_value, new_value);
+    return getPartition(key).replaceValues(key, old_value, new_value);
   }
 
   template <typename Procedure> void forEachKey(Procedure process) const {
-    for (const auto& table : tables_) {
+    for (const auto& table : partitions_) {
       table->forEachKey(process);
     }
   }
 
   template <typename Procedure>
   void forEachValue(const Bytes& key, Procedure process) const {
-    getTable(key).forEachValue(key, process);
+    getPartition(key).forEachValue(key, process);
   }
 
   template <typename BinaryProcedure>
   void forEachEntry(BinaryProcedure process) const {
-    for (const auto& table : tables_) {
+    for (const auto& table : partitions_) {
       table->forEachEntry(process);
     }
   }
 
   std::vector<Stats> getStats() const {
     std::vector<Stats> stats;
-    for (const auto& table : tables_) {
+    for (const auto& table : partitions_) {
       stats.push_back(table->getStats());
     }
     return stats;
@@ -137,7 +137,7 @@ public:
 
   Stats getTotalStats() const { return Stats::total(getStats()); }
 
-  bool isReadOnly() const { return tables_.front()->isReadOnly(); }
+  bool isReadOnly() const { return partitions_.front()->isReadOnly(); }
 
   // ---------------------------------------------------------------------------
   // Static member functions
@@ -167,15 +167,19 @@ public:
                        const Options& options);
 
 private:
-  internal::Table& getTable(const Bytes& key) {
-    return *tables_[mt::fnv1aHash(key.data(), key.size()) % tables_.size()];
+  class Partition;
+
+  Partition* getPartition(const Bytes& key) {
+    const auto hash = mt::fnv1aHash(key.data(), key.size());
+    return partitions_[hash % partitions_.size()].get();
   }
 
-  const internal::Table& getTable(const Bytes& key) const {
-    return *tables_[mt::fnv1aHash(key.data(), key.size()) % tables_.size()];
+  const Partition* getPartition(const Bytes& key) const {
+    const auto hash = mt::fnv1aHash(key.data(), key.size());
+    return partitions_[hash % partitions_.size()].get();
   }
 
-  std::vector<std::unique_ptr<internal::Table> > tables_;
+  std::vector<std::unique_ptr<Partition> > partitions_;
   mt::DirectoryLockGuard lock_;
 };
 

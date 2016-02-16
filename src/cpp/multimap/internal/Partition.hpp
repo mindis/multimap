@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTIMAP_INTERNAL_TABLE_HPP_INCLUDED
-#define MULTIMAP_INTERNAL_TABLE_HPP_INCLUDED
+#ifndef MULTIMAP_INTERNAL_PARTITION_HPP_INCLUDED
+#define MULTIMAP_INTERNAL_PARTITION_HPP_INCLUDED
 
 #include <memory>
 #include <type_traits>
@@ -31,7 +31,7 @@
 namespace multimap {
 namespace internal {
 
-class Table : mt::Resource {
+class Partition : mt::Resource {
 public:
   struct Limits {
     static uint32_t maxKeySize();
@@ -45,53 +45,13 @@ public:
     bool readonly = false;
   };
 
-  struct Stats {
-    // Needs to be synchronized with class Map#Stats in Java.
-    uint64_t block_size = 0;
-    uint64_t key_size_avg = 0;
-    uint64_t key_size_max = 0;
-    uint64_t key_size_min = 0;
-    uint64_t list_size_avg = 0;
-    uint64_t list_size_max = 0;
-    uint64_t list_size_min = 0;
-    uint64_t num_blocks = 0;
-    uint64_t num_keys_total = 0;
-    uint64_t num_keys_valid = 0;
-    uint64_t num_values_total = 0;
-    uint64_t num_values_valid = 0;
-    uint64_t num_partitions = 0;
-
-    static const std::vector<std::string>& names();
-
-    static Stats readFromFile(const boost::filesystem::path& file);
-
-    void writeToFile(const boost::filesystem::path& file) const;
-
-    static Stats fromProperties(const mt::Properties& properties);
-
-    mt::Properties toProperties() const;
-
-    std::vector<uint64_t> toVector() const;
-
-    static Stats total(const std::vector<Stats>& stats);
-
-    static Stats max(const std::vector<Stats>& stats);
-  };
-
-  static_assert(std::is_standard_layout<Stats>::value,
-                "Table::Stats is no standard layout type");
-
-  static_assert(mt::hasExpectedSize<Stats>(104, 104),
-                "Table::Stats does not have expected size");
-  // sizeof(Stats) must be equal on 32- and 64-bit systems to be portable.
-
   typedef SharedListIterator Iterator;
 
-  explicit Table(const boost::filesystem::path& file_prefix);
+  explicit Partition(const boost::filesystem::path& file_prefix);
 
-  Table(const boost::filesystem::path& file_prefix, const Options& options);
+  Partition(const boost::filesystem::path& file_prefix, const Options& options);
 
-  ~Table();
+  ~Partition();
 
   void put(const Bytes& key, const Bytes& value) {
     mt::check(!isReadOnly(), "Attempt to put value into read-only table");
@@ -313,4 +273,4 @@ private:
 } // namespace internal
 } // namespace multimap
 
-#endif // MULTIMAP_INTERNAL_TABLE_HPP_INCLUDED
+#endif // MULTIMAP_INTERNAL_PARTITION_HPP_INCLUDED

@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "multimap/internal/Table.hpp"
+#include "multimap/internal/Partition.hpp"
 
 #include <cmath>
 #include <boost/filesystem/operations.hpp>
@@ -24,109 +24,14 @@
 namespace multimap {
 namespace internal {
 
-uint32_t Table::Limits::maxKeySize() { return Varint::Limits::MAX_N4; }
+uint32_t Partition::Limits::maxKeySize() { return Varint::Limits::MAX_N4; }
 
-uint32_t Table::Limits::maxValueSize() { return List::Limits::maxValueSize(); }
+uint32_t Partition::Limits::maxValueSize() { return List::Limits::maxValueSize(); }
 
-const std::vector<std::string>& Table::Stats::names() {
-  static std::vector<std::string> names = {
-    "block_size",     "key_size_avg",   "key_size_max",     "key_size_min",
-    "list_size_avg",  "list_size_max",  "list_size_min",    "num_blocks",
-    "num_keys_total", "num_keys_valid", "num_values_total", "num_values_valid",
-    "num_partitions"
-  };
-  return names;
-}
+Partition::Partition(const boost::filesystem::path& file_prefix)
+    : Partition(file_prefix, Options()) {}
 
-Table::Stats Table::Stats::readFromFile(const boost::filesystem::path& file) {
-  Stats stats;
-  const auto stream = mt::fopen(file, "r");
-  mt::fread(stream.get(), &stats, sizeof stats);
-  return stats;
-}
-
-void Table::Stats::writeToFile(const boost::filesystem::path& file) const {
-  const auto stream = mt::fopen(file.c_str(), "w");
-  mt::fwrite(stream.get(), this, sizeof *this);
-}
-
-std::vector<uint64_t> Table::Stats::toVector() const {
-  return { block_size,     key_size_avg,   key_size_max,     key_size_min,
-           list_size_avg,  list_size_max,  list_size_min,    num_blocks,
-           num_keys_total, num_keys_valid, num_values_total, num_values_valid,
-           num_partitions };
-}
-
-Table::Stats Table::Stats::total(const std::vector<Stats>& stats) {
-  Table::Stats total;
-  for (const auto& stat : stats) {
-    if (total.block_size == 0) {
-      total.block_size = stat.block_size;
-    } else {
-      MT_ASSERT_EQ(total.block_size, stat.block_size);
-    }
-    total.key_size_max = std::max(total.key_size_max, stat.key_size_max);
-    if (stat.key_size_min) {
-      total.key_size_min = total.key_size_min
-                               ? mt::min(total.key_size_min, stat.key_size_min)
-                               : stat.key_size_min;
-    }
-    total.list_size_max = std::max(total.list_size_max, stat.list_size_max);
-    if (stat.list_size_min) {
-      total.list_size_min =
-          total.list_size_min ? mt::min(total.list_size_min, stat.list_size_min)
-                              : stat.list_size_min;
-    }
-    total.num_blocks += stat.num_blocks;
-    total.num_keys_total += stat.num_keys_total;
-    total.num_keys_valid += stat.num_keys_valid;
-    total.num_values_total += stat.num_values_total;
-    total.num_values_valid += stat.num_values_valid;
-  }
-  if (total.num_keys_valid != 0) {
-    double key_size_avg = 0;
-    double list_size_avg = 0;
-    for (const auto& stat : stats) {
-      auto w = stat.num_keys_valid / static_cast<double>(total.num_keys_valid);
-      key_size_avg += w * stat.key_size_avg;
-      list_size_avg += w * stat.list_size_avg;
-    }
-    total.key_size_avg = std::round(key_size_avg);
-    total.list_size_avg = std::round(list_size_avg);
-  }
-  total.num_partitions = stats.size();
-  return total;
-}
-
-Table::Stats Table::Stats::max(const std::vector<Stats>& stats) {
-  Table::Stats max;
-  for (const auto& stat : stats) {
-    max.block_size = std::max(max.block_size, stat.block_size);
-    max.key_size_avg = std::max(max.key_size_avg, stat.key_size_avg);
-    max.key_size_max = std::max(max.key_size_max, stat.key_size_max);
-    if (stat.key_size_min) {
-      max.key_size_min = std::max(max.key_size_min, stat.key_size_min);
-    }
-    max.list_size_avg = std::max(max.list_size_avg, stat.list_size_avg);
-    max.list_size_max = std::max(max.list_size_max, stat.list_size_max);
-    if (stat.list_size_min) {
-      max.list_size_min = std::max(max.list_size_min, stat.list_size_min);
-    }
-    max.num_blocks = std::max(max.num_blocks, stat.num_blocks);
-    max.num_keys_total = std::max(max.num_keys_total, stat.num_keys_total);
-    max.num_keys_valid = std::max(max.num_keys_valid, stat.num_keys_valid);
-    max.num_values_total =
-        std::max(max.num_values_total, stat.num_values_total);
-    max.num_values_valid =
-        std::max(max.num_values_valid, stat.num_values_valid);
-  }
-  return max;
-}
-
-Table::Table(const boost::filesystem::path& file_prefix)
-    : Table(file_prefix, Options()) {}
-
-Table::Table(const boost::filesystem::path& file_prefix, const Options& options)
+Partition::Partition(const boost::filesystem::path& file_prefix, const Options& options)
     : prefix_(file_prefix) {
   Store::Options store_options;
   const auto stats_filename = getNameOfStatsFile(prefix_.string());
@@ -159,7 +64,7 @@ Table::Table(const boost::filesystem::path& file_prefix, const Options& options)
   store_.reset(new Store(getNameOfValuesFile(prefix_.string()), store_options));
 }
 
-Table::~Table() {
+Partition::~Partition() {
   if (!prefix_.empty() && !isReadOnly()) {
     const auto keys_file = getNameOfKeysFile(prefix_.string());
     const auto old_keys_file = keys_file + ".old";
@@ -214,7 +119,7 @@ Table::~Table() {
   }
 }
 
-Table::Stats Table::getStats() const {
+Partition::Stats Partition::getStats() const {
   boost::shared_lock<boost::shared_mutex> lock(mutex_);
   Stats stats = stats_;
   for (const auto& entry : map_) {
@@ -247,19 +152,19 @@ Table::Stats Table::getStats() const {
   return stats;
 }
 
-std::string Table::getNameOfKeysFile(const std::string& prefix) {
+std::string Partition::getNameOfKeysFile(const std::string& prefix) {
   return prefix + ".keys";
 }
 
-std::string Table::getNameOfStatsFile(const std::string& prefix) {
+std::string Partition::getNameOfStatsFile(const std::string& prefix) {
   return prefix + ".stats";
 }
 
-std::string Table::getNameOfValuesFile(const std::string& prefix) {
+std::string Partition::getNameOfValuesFile(const std::string& prefix) {
   return prefix + ".values";
 }
 
-Table::Entry Table::Entry::readFromStream(std::FILE* stream, Arena* arena) {
+Partition::Entry Partition::Entry::readFromStream(std::FILE* stream, Arena* arena) {
   uint32_t key_size;
   mt::fread(stream, &key_size, sizeof key_size);
   const auto key_data = arena->allocate(key_size);
@@ -268,15 +173,15 @@ Table::Entry Table::Entry::readFromStream(std::FILE* stream, Arena* arena) {
   return Entry(Bytes(key_data, key_size), std::move(head));
 }
 
-void Table::Entry::writeToStream(std::FILE* stream) const {
-  MT_REQUIRE_LE(key().size(), Table::Limits::maxKeySize());
+void Partition::Entry::writeToStream(std::FILE* stream) const {
+  MT_REQUIRE_LE(key().size(), Partition::Limits::maxKeySize());
   const uint32_t key_size = key().size();
   mt::fwrite(stream, &key_size, sizeof key_size);
   mt::fwrite(stream, key().data(), key().size());
   head().writeToStream(stream);
 }
 
-SharedList Table::getSharedList(const Bytes& key) const {
+SharedList Partition::getSharedList(const Bytes& key) const {
   List* list = nullptr;
   {
     boost::shared_lock<boost::shared_mutex> lock(mutex_);
@@ -289,7 +194,7 @@ SharedList Table::getSharedList(const Bytes& key) const {
   return list ? SharedList(*list, *store_) : SharedList();
 }
 
-UniqueList Table::getUniqueList(const Bytes& key) {
+UniqueList Partition::getUniqueList(const Bytes& key) {
   List* list = nullptr;
   {
     boost::shared_lock<boost::shared_mutex> lock(mutex_);
@@ -302,7 +207,7 @@ UniqueList Table::getUniqueList(const Bytes& key) {
   return list ? UniqueList(list, store_.get(), &arena_) : UniqueList();
 }
 
-UniqueList Table::getOrCreateUniqueList(const Bytes& key) {
+UniqueList Partition::getOrCreateUniqueList(const Bytes& key) {
   MT_REQUIRE_LE(key.size(), Limits::maxKeySize());
   List* list = nullptr;
   {
