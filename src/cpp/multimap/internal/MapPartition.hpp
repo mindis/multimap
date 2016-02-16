@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTIMAP_INTERNAL_PARTITION_HPP_INCLUDED
-#define MULTIMAP_INTERNAL_PARTITION_HPP_INCLUDED
+#ifndef MULTIMAP_INTERNAL_MAP_PARTITION_HPP_INCLUDED
+#define MULTIMAP_INTERNAL_MAP_PARTITION_HPP_INCLUDED
 
 #include <memory>
 #include <type_traits>
@@ -26,12 +26,14 @@
 #include <boost/thread/shared_mutex.hpp>
 #include "multimap/internal/Arena.hpp"
 #include "multimap/internal/List.hpp"
+#include "multimap/internal/Stats.hpp"
 #include "multimap/thirdparty/mt/mt.hpp"
+#include "multimap/Iterator.hpp"
 
 namespace multimap {
 namespace internal {
 
-class Partition : mt::Resource {
+class MapPartition : private mt::Resource {
 public:
   struct Limits {
     static uint32_t maxKeySize();
@@ -45,20 +47,18 @@ public:
     bool readonly = false;
   };
 
-  typedef SharedListIterator Iterator;
+  explicit MapPartition(const boost::filesystem::path& file_prefix);
 
-  explicit Partition(const boost::filesystem::path& file_prefix);
+  MapPartition(const boost::filesystem::path& file_prefix, const Options& options);
 
-  Partition(const boost::filesystem::path& file_prefix, const Options& options);
-
-  ~Partition();
+  ~MapPartition();
 
   void put(const Bytes& key, const Bytes& value) {
     mt::check(!isReadOnly(), "Attempt to put value into read-only table");
     getOrCreateUniqueList(key).add(value);
   }
 
-  Iterator get(const Bytes& key) const { return Iterator(getSharedList(key)); }
+  std::unique_ptr<Iterator> get(const Bytes& key) const { return std::unique_ptr<Iterator>(new SharedListIterator(getSharedList(key))); }
 
   bool removeKey(const Bytes& key) {
     mt::check(!isReadOnly(), "Attempt to remove key from read-only table");
@@ -78,7 +78,7 @@ public:
     boost::shared_lock<boost::shared_mutex> lock(mutex_);
     for (const auto& entry : map_) {
       if (predicate(entry.first)) {
-        UniqueList list(entry.second.get(), store_.get(), &arena_);
+        ExclusiveList list(entry.second.get(), store_.get(), &arena_);
         if (!list.empty()) {
           stats_.num_values_total += list.head().num_values_total;
           ++num_removed;
@@ -136,8 +136,8 @@ public:
   template <typename Procedure>
   void forEachValue(const Bytes& key, Procedure process) const {
     auto iter = get(key);
-    while (iter.hasNext()) {
-      process(iter.next());
+    while (iter->hasNext()) {
+      process(iter->next());
     }
   }
 
@@ -148,14 +148,15 @@ public:
     for (const auto& entry : map_) {
       SharedList list(*entry.second, *store_);
       if (!list.empty()) {
-        process(entry.first, Iterator(std::move(list)));
+        SharedListIterator iter(std::move(list));
+        process(entry.first, &iter);
       }
     }
     store_->adviseAccessPattern(Store::AccessPattern::NORMAL);
   }
 
   Stats getStats() const;
-  // Returns various statistics about the table.
+  // Returns various statistics about the partition.
   // The data is collected upon request and triggers a full table scan.
 
   bool isReadOnly() const { return store_->isReadOnly(); }
@@ -178,8 +179,8 @@ public:
     const auto stream = mt::fopen(getNameOfKeysFile(prefix.string()), "r");
     for (size_t i = 0; i != stats.num_keys_valid; ++i) {
       const auto entry = Entry::readFromStream(stream.get(), &arena);
-      List list(entry.head());
-      process(entry.key(), Iterator(SharedList(list, store)));
+      SharedListIterator iter(SharedList(List(entry.head()), store));
+      process(entry.key(), &iter);
     }
   }
 
@@ -208,24 +209,16 @@ private:
 
   SharedList getSharedList(const Bytes& key) const;
 
-  SharedListIterator getSharedListIterator(const Bytes& key) const {
-    return SharedListIterator(getSharedList(key));
-  }
+  ExclusiveList getUniqueList(const Bytes& key);
 
-  UniqueList getUniqueList(const Bytes& key);
-
-  UniqueListIterator getUniqueListIterator(const Bytes& key) {
-    return UniqueListIterator(getUniqueList(key));
-  }
-
-  UniqueList getOrCreateUniqueList(const Bytes& key);
+  ExclusiveList getOrCreateUniqueList(const Bytes& key);
 
   template <typename Predicate>
   uint32_t remove(const Bytes& key, Predicate predicate,
                   bool exit_after_first_success) {
-    mt::check(!isReadOnly(), "Attempt to remove values from read-only table");
+    mt::Check::isFalse(isReadOnly(), "Attempt to remove values from read-only partition");
     uint32_t num_removed = 0;
-    auto iter = getUniqueListIterator(key);
+    ExclusiveListIterator iter(getUniqueList(key));
     while (iter.hasNext()) {
       if (predicate(iter.next())) {
         iter.remove();
@@ -241,7 +234,7 @@ private:
   template <typename Function>
   uint32_t replace(const Bytes& key, Function map,
                    bool exit_after_first_success) {
-    mt::check(!isReadOnly(), "Attempt to replace values in read-only table");
+    mt::Check::isFalse(isReadOnly(), "Attempt to replace values in read-only partition");
     std::vector<std::string> replaced_values;
     if (auto list = getUniqueList(key)) {
       auto iter = list.iterator();
@@ -273,4 +266,4 @@ private:
 } // namespace internal
 } // namespace multimap
 
-#endif // MULTIMAP_INTERNAL_PARTITION_HPP_INCLUDED
+#endif // MULTIMAP_INTERNAL_MAP_PARTITION_HPP_INCLUDED

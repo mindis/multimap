@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "multimap/internal/Partition.hpp"
+#include "multimap/internal/MapPartition.hpp"
 
 #include <cmath>
 #include <boost/filesystem/operations.hpp>
@@ -24,14 +24,14 @@
 namespace multimap {
 namespace internal {
 
-uint32_t Partition::Limits::maxKeySize() { return Varint::Limits::MAX_N4; }
+uint32_t MapPartition::Limits::maxKeySize() { return Varint::Limits::MAX_N4; }
 
-uint32_t Partition::Limits::maxValueSize() { return List::Limits::maxValueSize(); }
+uint32_t MapPartition::Limits::maxValueSize() { return List::Limits::maxValueSize(); }
 
-Partition::Partition(const boost::filesystem::path& file_prefix)
-    : Partition(file_prefix, Options()) {}
+MapPartition::MapPartition(const boost::filesystem::path& file_prefix)
+    : MapPartition(file_prefix, Options()) {}
 
-Partition::Partition(const boost::filesystem::path& file_prefix, const Options& options)
+MapPartition::MapPartition(const boost::filesystem::path& file_prefix, const Options& options)
     : prefix_(file_prefix) {
   Store::Options store_options;
   const auto stats_filename = getNameOfStatsFile(prefix_.string());
@@ -55,7 +55,7 @@ Partition::Partition(const boost::filesystem::path& file_prefix, const Options& 
 
   } else {
     mt::Check::isTrue(options.create_if_missing,
-                      "Table with prefix '%s' does not exist",
+                      "MapPartition with prefix '%s' does not exist",
                       boost::filesystem::absolute(file_prefix).c_str());
   }
 
@@ -64,7 +64,7 @@ Partition::Partition(const boost::filesystem::path& file_prefix, const Options& 
   store_.reset(new Store(getNameOfValuesFile(prefix_.string()), store_options));
 }
 
-Partition::~Partition() {
+MapPartition::~MapPartition() {
   if (!prefix_.empty() && !isReadOnly()) {
     const auto keys_file = getNameOfKeysFile(prefix_.string());
     const auto old_keys_file = keys_file + ".old";
@@ -119,7 +119,7 @@ Partition::~Partition() {
   }
 }
 
-Partition::Stats Partition::getStats() const {
+Stats MapPartition::getStats() const {
   boost::shared_lock<boost::shared_mutex> lock(mutex_);
   Stats stats = stats_;
   for (const auto& entry : map_) {
@@ -152,19 +152,19 @@ Partition::Stats Partition::getStats() const {
   return stats;
 }
 
-std::string Partition::getNameOfKeysFile(const std::string& prefix) {
+std::string MapPartition::getNameOfKeysFile(const std::string& prefix) {
   return prefix + ".keys";
 }
 
-std::string Partition::getNameOfStatsFile(const std::string& prefix) {
+std::string MapPartition::getNameOfStatsFile(const std::string& prefix) {
   return prefix + ".stats";
 }
 
-std::string Partition::getNameOfValuesFile(const std::string& prefix) {
+std::string MapPartition::getNameOfValuesFile(const std::string& prefix) {
   return prefix + ".values";
 }
 
-Partition::Entry Partition::Entry::readFromStream(std::FILE* stream, Arena* arena) {
+MapPartition::Entry MapPartition::Entry::readFromStream(std::FILE* stream, Arena* arena) {
   uint32_t key_size;
   mt::fread(stream, &key_size, sizeof key_size);
   const auto key_data = arena->allocate(key_size);
@@ -173,15 +173,15 @@ Partition::Entry Partition::Entry::readFromStream(std::FILE* stream, Arena* aren
   return Entry(Bytes(key_data, key_size), std::move(head));
 }
 
-void Partition::Entry::writeToStream(std::FILE* stream) const {
-  MT_REQUIRE_LE(key().size(), Partition::Limits::maxKeySize());
+void MapPartition::Entry::writeToStream(std::FILE* stream) const {
+  MT_REQUIRE_LE(key().size(), MapPartition::Limits::maxKeySize());
   const uint32_t key_size = key().size();
   mt::fwrite(stream, &key_size, sizeof key_size);
   mt::fwrite(stream, key().data(), key().size());
   head().writeToStream(stream);
 }
 
-SharedList Partition::getSharedList(const Bytes& key) const {
+SharedList MapPartition::getSharedList(const Bytes& key) const {
   List* list = nullptr;
   {
     boost::shared_lock<boost::shared_mutex> lock(mutex_);
@@ -194,7 +194,7 @@ SharedList Partition::getSharedList(const Bytes& key) const {
   return list ? SharedList(*list, *store_) : SharedList();
 }
 
-UniqueList Partition::getUniqueList(const Bytes& key) {
+ExclusiveList MapPartition::getUniqueList(const Bytes& key) {
   List* list = nullptr;
   {
     boost::shared_lock<boost::shared_mutex> lock(mutex_);
@@ -204,10 +204,10 @@ UniqueList Partition::getUniqueList(const Bytes& key) {
     }
   }
   // `mutex_` is unlocked now.
-  return list ? UniqueList(list, store_.get(), &arena_) : UniqueList();
+  return list ? ExclusiveList(list, store_.get(), &arena_) : ExclusiveList();
 }
 
-UniqueList Partition::getOrCreateUniqueList(const Bytes& key) {
+ExclusiveList MapPartition::getOrCreateUniqueList(const Bytes& key) {
   MT_REQUIRE_LE(key.size(), Limits::maxKeySize());
   List* list = nullptr;
   {
@@ -225,7 +225,7 @@ UniqueList Partition::getOrCreateUniqueList(const Bytes& key) {
     list = iter->second.get();
   }
   // `mutex_` is unlocked now.
-  return UniqueList(list, store_.get(), &arena_);
+  return ExclusiveList(list, store_.get(), &arena_);
 }
 
 } // namespace internal
