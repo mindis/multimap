@@ -24,7 +24,7 @@ namespace multimap {
 
 class Iterator : mt::Resource {
  public:
-  virtual Iterator() = default;
+  virtual ~Iterator() = default;
 
   virtual uint32_t available() const = 0;
 
