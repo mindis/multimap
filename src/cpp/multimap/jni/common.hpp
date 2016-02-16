@@ -22,12 +22,13 @@
 #include <exception>
 #include "multimap/thirdparty/mt/mt.hpp"
 #include "multimap/Bytes.hpp"
+#include "multimap/Iterator.hpp"
 #include "multimap/Options.hpp"
 
 namespace multimap {
 namespace jni {
 
-struct BytesRaiiHelper : mt::Resource {
+struct BytesRaiiHelper : private mt::Resource {
   BytesRaiiHelper(JNIEnv* env, jbyteArray array)
       : env_(env),
         array_(array),
@@ -50,32 +51,21 @@ private:
   const Bytes bytes_;
 };
 
-template <typename T> struct Owner : mt::Resource {
-  Owner(T&& value) : value_(std::move(value)) {}
-
-  T& get() { return value_; }
-
-private:
-  T value_;
-};
-
-template <typename T> Owner<T>* newOwner(T&& value) {
-  return new Owner<T>(std::move(value));
-}
-
-inline jobject newDirectByteBuffer(JNIEnv* env, const Bytes& bytes) {
+inline jobject newByteBufferFromBytes(JNIEnv* env, const Bytes& bytes) {
   return env->NewDirectByteBuffer(const_cast<char*>(bytes.data()),
                                   bytes.size());
 }
 
-template <typename T> jobject toDirectByteBuffer(JNIEnv* env, T* ptr) {
-  MT_REQUIRE_NOT_NULL(ptr);
+template <typename T> jobject newByteBufferFromPtr(JNIEnv* env, T* ptr) {
   return env->NewDirectByteBuffer(ptr, sizeof ptr);
 }
 
-template <typename T> T* fromDirectByteBuffer(JNIEnv* env, jobject jbuf) {
-  MT_REQUIRE_NOT_NULL(jbuf);
-  return static_cast<T*>(env->GetDirectBufferAddress(jbuf));
+template <typename T> T* getPtrFromByteBuffer(JNIEnv* env, jobject buffer) {
+  return static_cast<T*>(env->GetDirectBufferAddress(buffer));
+}
+
+inline Iterator* getIteratorPtrFromByteBuffer(JNIEnv* env, jobject buffer) {
+  return getPtrFromByteBuffer<Iterator>(env, buffer);
 }
 
 class JavaCallable {
@@ -105,8 +95,8 @@ public:
     // Note: java.nio.ByteBuffer cannot wrap a pointer to const void.
     // However, on Java side we will call ByteBuffer.asReadOnlyBuffer().
     const auto result =
-        env_->CallBooleanMethod(obj_, mid_, newDirectByteBuffer(env_, lhs),
-                                newDirectByteBuffer(env_, rhs));
+        env_->CallBooleanMethod(obj_, mid_, newByteBufferFromBytes(env_, lhs),
+                                newByteBufferFromBytes(env_, rhs));
     if (env_->ExceptionOccurred()) {
       throw std::runtime_error("Exception in comparator passed via JNI");
       // This exception is to escape from the for-each loop.
@@ -128,7 +118,7 @@ public:
     // Note: java.nio.ByteBuffer cannot wrap a pointer to const void.
     // However, on Java side we will call ByteBuffer.asReadOnlyBuffer().
     const auto result =
-        env_->CallObjectMethod(obj_, mid_, newDirectByteBuffer(env_, bytes));
+        env_->CallObjectMethod(obj_, mid_, newByteBufferFromBytes(env_, bytes));
     if (env_->ExceptionOccurred()) {
       throw std::runtime_error("Exception in function passed via JNI");
       // This exception is to escape from the for-each loop.
@@ -152,7 +142,7 @@ public:
     // Note: java.nio.ByteBuffer cannot wrap a pointer to const void.
     // However, on Java side we will call ByteBuffer.asReadOnlyBuffer().
     const auto result =
-        env_->CallBooleanMethod(obj_, mid_, newDirectByteBuffer(env_, bytes));
+        env_->CallBooleanMethod(obj_, mid_, newByteBufferFromBytes(env_, bytes));
     if (env_->ExceptionOccurred()) {
       throw std::runtime_error("Exception in predicate passed via JNI");
       // This exception is to escape from the for-each loop.
@@ -173,7 +163,7 @@ public:
   void operator()(const multimap::Bytes& bytes) const {
     // Note: java.nio.ByteBuffer cannot wrap a pointer to const void.
     // However, on Java side we will call ByteBuffer.asReadOnlyBuffer().
-    env_->CallVoidMethod(obj_, mid_, newDirectByteBuffer(env_, bytes));
+    env_->CallVoidMethod(obj_, mid_, newByteBufferFromBytes(env_, bytes));
     if (env_->ExceptionOccurred()) {
       throw std::runtime_error("Exception in procedure passed via JNI");
       // This exception is to escape from the for-each loop.

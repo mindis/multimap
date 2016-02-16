@@ -20,17 +20,6 @@
 #include "multimap/jni/common.hpp"
 #include "multimap/Map.hpp"
 
-namespace {
-
-typedef multimap::jni::Owner<multimap::Map::Iterator> IteratorOwner;
-
-inline IteratorOwner* toIteratorOwner(JNIEnv* env, jobject self) {
-  MT_REQUIRE_NOT_NULL(self);
-  return static_cast<IteratorOwner*>(env->GetDirectBufferAddress(self));
-}
-
-} // namespace
-
 /*
  * Class:     io_multimap_Iterator_Native
  * Method:    available
@@ -39,7 +28,7 @@ inline IteratorOwner* toIteratorOwner(JNIEnv* env, jobject self) {
 JNIEXPORT jlong JNICALL
 Java_io_multimap_Iterator_00024Native_available(JNIEnv* env, jclass,
                                                 jobject self) {
-  return toIteratorOwner(env, self)->get().available();
+  return multimap::jni::getIteratorPtrFromByteBuffer(env, self)->available();
 }
 
 /*
@@ -50,7 +39,7 @@ Java_io_multimap_Iterator_00024Native_available(JNIEnv* env, jclass,
 JNIEXPORT jboolean JNICALL
 Java_io_multimap_Iterator_00024Native_hasNext(JNIEnv* env, jclass,
                                               jobject self) {
-  return toIteratorOwner(env, self)->get().hasNext();
+  return multimap::jni::getIteratorPtrFromByteBuffer(env, self)->hasNext();
 }
 
 /*
@@ -60,8 +49,8 @@ Java_io_multimap_Iterator_00024Native_hasNext(JNIEnv* env, jclass,
  */
 JNIEXPORT jobject JNICALL
 Java_io_multimap_Iterator_00024Native_next(JNIEnv* env, jclass, jobject self) {
-  return multimap::jni::newDirectByteBuffer(
-      env, toIteratorOwner(env, self)->get().next());
+  return multimap::jni::newByteBufferFromBytes(
+      env, multimap::jni::getIteratorPtrFromByteBuffer(env, self)->next());
 }
 
 /*
@@ -72,8 +61,8 @@ Java_io_multimap_Iterator_00024Native_next(JNIEnv* env, jclass, jobject self) {
 JNIEXPORT jobject JNICALL
 Java_io_multimap_Iterator_00024Native_peekNext(JNIEnv* env, jclass,
                                                jobject self) {
-  return multimap::jni::newDirectByteBuffer(
-      env, toIteratorOwner(env, self)->get().peekNext());
+  return multimap::jni::newByteBufferFromBytes(
+      env, multimap::jni::getIteratorPtrFromByteBuffer(env, self)->peekNext());
 }
 
 /*
@@ -83,5 +72,5 @@ Java_io_multimap_Iterator_00024Native_peekNext(JNIEnv* env, jclass,
  */
 JNIEXPORT void JNICALL
 Java_io_multimap_Iterator_00024Native_close(JNIEnv* env, jclass, jobject self) {
-  delete toIteratorOwner(env, self);
+  delete multimap::jni::getIteratorPtrFromByteBuffer(env, self);
 }
