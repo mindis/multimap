@@ -8,6 +8,11 @@ QMAKE_CXXFLAGS += -std=c++11
 
 SOURCES += src/cpp/multimap/command_line_tool.cpp
 
+macx {
+    INCLUDEPATH += /usr/local/include
+    LIBS += -L/usr/local/lib
+}
+
 unix: LIBS += -lboost_filesystem -lboost_system -lmultimap
 
 unix {
