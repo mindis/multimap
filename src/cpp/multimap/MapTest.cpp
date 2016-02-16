@@ -29,7 +29,7 @@ const auto NULL_PROCEDURE = [](const Bytes&) {};
 const auto TRUE_PREDICATE = [](const Bytes&) { return true; };
 const auto FALSE_PREDICATE = [](const Bytes&) { return false; };
 const auto EMPTY_FUNCTION = [](const Bytes&) { return std::string(); };
-const auto NULL_BINARY_PROCEDURE = [](const Bytes&, Map::Iterator&&) {};
+const auto NULL_BINARY_PROCEDURE = [](const Bytes&, Iterator*) {};
 const auto IS_ODD = [](const Bytes& b) { return std::stoul(b.toString()) % 2; };
 
 std::unique_ptr<Map> openOrCreateMap(const boost::filesystem::path& directory) {
@@ -114,12 +114,12 @@ TEST_P(MapTestWithParam, PutDataThenReadAll) {
   }
   for (auto k = 0; k != GetParam(); ++k) {
     auto iter = map->get(std::to_string(k));
-    ASSERT_THAT(iter.available(), Eq(GetParam()));
-    for (auto v = 0; iter.hasNext(); ++v) {
-      ASSERT_THAT(iter.next(), Eq(std::to_string(v)));
+    ASSERT_THAT(iter->available(), Eq(GetParam()));
+    for (auto v = 0; iter->hasNext(); ++v) {
+      ASSERT_THAT(iter->next(), Eq(std::to_string(v)));
     }
-    ASSERT_THAT(iter.available(), Eq(0));
-    ASSERT_FALSE(iter.hasNext());
+    ASSERT_THAT(iter->available(), Eq(0));
+    ASSERT_FALSE(iter->hasNext());
   }
 }
 
@@ -136,12 +136,12 @@ TEST_P(MapTestWithParam, PutDataThenReopenThenReadAll) {
     auto map = openOrCreateMap(directory);
     for (auto k = 0; k != GetParam(); ++k) {
       auto iter = map->get(std::to_string(k));
-      ASSERT_THAT(iter.available(), Eq(GetParam()));
-      for (auto v = 0; iter.hasNext(); ++v) {
-        ASSERT_THAT(iter.next(), Eq(std::to_string(v)));
+      ASSERT_THAT(iter->available(), Eq(GetParam()));
+      for (auto v = 0; iter->hasNext(); ++v) {
+        ASSERT_THAT(iter->next(), Eq(std::to_string(v)));
       }
-      ASSERT_THAT(iter.available(), Eq(0));
-      ASSERT_FALSE(iter.hasNext());
+      ASSERT_THAT(iter->available(), Eq(0));
+      ASSERT_FALSE(iter->hasNext());
     }
   }
 }
