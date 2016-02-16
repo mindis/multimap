@@ -43,7 +43,7 @@ struct Base64 {
   Base64() = delete;
 };
 
-} // namespace internal
-} // namespace multimap
+}  // namespace internal
+}  // namespace multimap
 
-#endif // MULTIMAP_INTERNAL_BASE64_HPP_INCLUDED
+#endif  // MULTIMAP_INTERNAL_BASE64_HPP_INCLUDED

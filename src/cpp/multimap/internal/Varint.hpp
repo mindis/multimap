@@ -90,7 +90,7 @@ struct Varint {
   Varint() = delete;
 };
 
-} // namespace internal
-} // namespace multimap
+}  // namespace internal
+}  // namespace multimap
 
-#endif // MULTIMAP_INTERNAL_VARINT_HPP_INCLUDED
+#endif  // MULTIMAP_INTERNAL_VARINT_HPP_INCLUDED

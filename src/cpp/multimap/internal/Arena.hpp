@@ -29,7 +29,7 @@ namespace internal {
 class Arena : private mt::Resource {
   // Objects of this class are thread-safe.
 
-public:
+ public:
   static const uint32_t DEFAULT_CHUNK_SIZE = 4096;
 
   explicit Arena(uint32_t chunk_size = DEFAULT_CHUNK_SIZE);
@@ -40,7 +40,7 @@ public:
 
   void deallocateAll();
 
-private:
+ private:
   mutable std::mutex mutex_;
   std::vector<std::unique_ptr<char[]> > chunks_;
   std::vector<std::unique_ptr<char[]> > blobs_;
@@ -49,7 +49,7 @@ private:
   uint64_t allocated_ = 0;
 };
 
-} // namespace internal
-} // namespace multimap
+}  // namespace internal
+}  // namespace multimap
 
-#endif // MULTIMAP_INTERNAL_ARENA_HPP_INCLUDED
+#endif  // MULTIMAP_INTERNAL_ARENA_HPP_INCLUDED

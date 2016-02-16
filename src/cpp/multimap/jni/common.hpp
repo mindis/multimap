@@ -45,7 +45,7 @@ struct BytesRaiiHelper : private mt::Resource {
 
   const Bytes& get() const { return bytes_; }
 
-private:
+ private:
   JNIEnv* env_;
   const jbyteArray array_;
   const Bytes bytes_;
@@ -56,11 +56,13 @@ inline jobject newByteBufferFromBytes(JNIEnv* env, const Bytes& bytes) {
                                   bytes.size());
 }
 
-template <typename T> jobject newByteBufferFromPtr(JNIEnv* env, T* ptr) {
+template <typename T>
+jobject newByteBufferFromPtr(JNIEnv* env, T* ptr) {
   return env->NewDirectByteBuffer(ptr, sizeof ptr);
 }
 
-template <typename T> T* getPtrFromByteBuffer(JNIEnv* env, jobject buffer) {
+template <typename T>
+T* getPtrFromByteBuffer(JNIEnv* env, jobject buffer) {
   return static_cast<T*>(env->GetDirectBufferAddress(buffer));
 }
 
@@ -69,7 +71,7 @@ inline Iterator* getIteratorPtrFromByteBuffer(JNIEnv* env, jobject buffer) {
 }
 
 class JavaCallable {
-public:
+ public:
   JavaCallable(JNIEnv* env, jobject obj, const char* signature)
       : env_(env), obj_(obj) {
     const auto cls = env->GetObjectClass(obj);
@@ -77,14 +79,14 @@ public:
     mt::Check::notNull(mid_, "GetMethodID() failed");
   }
 
-protected:
+ protected:
   JNIEnv* env_;
   jobject obj_;
   jmethodID mid_;
 };
 
 class JavaCompare : public JavaCallable {
-public:
+ public:
   typedef JavaCallable Base;
 
   JavaCompare(JNIEnv* env, jobject obj)
@@ -108,7 +110,7 @@ public:
 };
 
 class JavaFunction : public JavaCallable {
-public:
+ public:
   typedef JavaCallable Base;
 
   JavaFunction(JNIEnv* env, jobject obj)
@@ -132,7 +134,7 @@ public:
 };
 
 class JavaPredicate : public JavaCallable {
-public:
+ public:
   typedef JavaCallable Base;
 
   JavaPredicate(JNIEnv* env, jobject obj)
@@ -141,8 +143,8 @@ public:
   bool operator()(const multimap::Bytes& bytes) const {
     // Note: java.nio.ByteBuffer cannot wrap a pointer to const void.
     // However, on Java side we will call ByteBuffer.asReadOnlyBuffer().
-    const auto result =
-        env_->CallBooleanMethod(obj_, mid_, newByteBufferFromBytes(env_, bytes));
+    const auto result = env_->CallBooleanMethod(
+        obj_, mid_, newByteBufferFromBytes(env_, bytes));
     if (env_->ExceptionOccurred()) {
       throw std::runtime_error("Exception in predicate passed via JNI");
       // This exception is to escape from the for-each loop.
@@ -154,7 +156,7 @@ public:
 };
 
 class JavaProcedure : public JavaCallable {
-public:
+ public:
   typedef JavaCallable Base;
 
   JavaProcedure(JNIEnv* env, jobject obj)
@@ -181,7 +183,7 @@ std::string makeString(JNIEnv* env, jstring string);
 
 Options makeOptions(JNIEnv* env, jobject options);
 
-} // namespace jni
-} // namespace multimap
+}  // namespace jni
+}  // namespace multimap
 
-#endif // MULTIMAP_JNI_COMMON_HPP_INCLUDED
+#endif  // MULTIMAP_JNI_COMMON_HPP_INCLUDED

@@ -32,7 +32,7 @@
 namespace multimap {
 
 class Bytes {
-public:
+ public:
   Bytes() : data_(""), size_(0) {}
 
   Bytes(const char* cstr) : Bytes(cstr, std::strlen(cstr)) {}
@@ -59,7 +59,7 @@ public:
 
   std::string toString() const { return std::string(data_, size_); }
 
-private:
+ private:
   const char* data_;
   size_t size_;
 };
@@ -80,11 +80,12 @@ inline bool operator<(const Bytes& lhs, const Bytes& rhs) {
   return (result == 0) ? (lhs.size() < rhs.size()) : (result < 0);
 }
 
-} // namespace multimap
+}  // namespace multimap
 
 namespace std {
 
-template <> struct hash< ::multimap::Bytes> {
+template <>
+struct hash< ::multimap::Bytes> {
   size_t operator()(const ::multimap::Bytes& bytes) const {
     return mt::is64BitSystem() ? XXH64(bytes.data(), bytes.size(), 0)
                                : XXH32(bytes.data(), bytes.size(), 0);
@@ -92,6 +93,6 @@ template <> struct hash< ::multimap::Bytes> {
   }
 };
 
-} // namespace std
+}  // namespace std
 
-#endif // MULTIMAP_BYTES_HPP_INCLUDED
+#endif  // MULTIMAP_BYTES_HPP_INCLUDED

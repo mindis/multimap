@@ -27,7 +27,7 @@ namespace multimap {
 namespace internal {
 
 class Generator {
-public:
+ public:
   virtual std::string next() = 0;
 
   std::string generate(std::size_t len) {
@@ -44,7 +44,7 @@ public:
 };
 
 class RandomGenerator : public Generator {
-public:
+ public:
   RandomGenerator() : num_unique_(std::numeric_limits<std::size_t>::max()) {}
 
   RandomGenerator(std::size_t num_unique) : num_unique_(num_unique) {}
@@ -57,14 +57,14 @@ public:
 
   std::size_t num_unique() const { return num_unique_; }
 
-private:
+ private:
   const std::size_t num_unique_;
   std::default_random_engine random_engine_;
   std::uniform_int_distribution<std::uint64_t> distribution_;
 };
 
 class SequenceGenerator : public Generator {
-public:
+ public:
   SequenceGenerator() : SequenceGenerator(0) {}
 
   SequenceGenerator(std::size_t start) : start_(start), state_(start) {}
@@ -75,12 +75,12 @@ public:
 
   std::size_t start() const { return start_; }
 
-private:
+ private:
   const std::size_t start_;
   std::size_t state_;
 };
 
-} // namespace internal
-} // namespace multimap
+}  // namespace internal
+}  // namespace multimap
 
-#endif // MULTIMAP_INTERNAL_GENERATOR_HPP_INCLUDED
+#endif  // MULTIMAP_INTERNAL_GENERATOR_HPP_INCLUDED

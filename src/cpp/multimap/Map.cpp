@@ -249,7 +249,7 @@ void Map::exportToBase64(const boost::filesystem::path& directory,
                                 size_t index, size_t npartitions) {
       print_status(index, npartitions);
       internal::MapPartition::forEachEntry(prefix, [&](const Bytes& key,
-                                                    Iterator* iter) {
+                                                       Iterator* iter) {
         sorted_values.clear();
         sorted_values.reserve(iter->available());
         while (iter->hasNext()) {
@@ -321,7 +321,7 @@ void Map::optimize(const boost::filesystem::path& directory,
     if (options.compare) {
       std::vector<std::string> sorted_values;
       internal::MapPartition::forEachEntry(prefix, [&](const Bytes& key,
-                                                    Iterator* iter) {
+                                                       Iterator* iter) {
         sorted_values.clear();
         sorted_values.reserve(iter->available());
         while (iter->hasNext()) {

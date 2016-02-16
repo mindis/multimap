@@ -26,6 +26,6 @@ struct Version {
   static const uint32_t PATCH = 0;
 };
 
-} // namespace multimap
+}  // namespace multimap
 
-#endif // MULTIMAP_VERSION_HPP_INCLUDED
+#endif  // MULTIMAP_VERSION_HPP_INCLUDED

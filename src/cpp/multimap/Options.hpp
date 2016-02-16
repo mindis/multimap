@@ -51,6 +51,6 @@ struct Options {
   void keepBlockSize() { block_size = 0; }
 };
 
-} // namespace multimap
+}  // namespace multimap
 
-#endif // MULTIMAP_OPTIONS_HPP_INCLUDED
+#endif  // MULTIMAP_OPTIONS_HPP_INCLUDED

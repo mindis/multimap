@@ -242,4 +242,4 @@ INSTANTIATE_TEST_CASE_P(Parameterized, MapTestWithParam,
 // INSTANTIATE_TEST_CASE_P(ParameterizedLongRunning, MapTestWithParam,
 //                         testing::Values(10000, 100000));
 
-} // namespace multimap
+}  // namespace multimap

@@ -65,5 +65,5 @@ void Arena::deallocateAll() {
   allocated_ = 0;
 }
 
-} // namespace internal
-} // namespace multimap
+}  // namespace internal
+}  // namespace multimap

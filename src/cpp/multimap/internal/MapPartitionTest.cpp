@@ -29,8 +29,9 @@ using testing::Eq;
 using testing::ElementsAre;
 using testing::UnorderedElementsAre;
 
-std::unique_ptr<MapPartition> openMapPartition(const boost::filesystem::path& prefix,
-                                 const MapPartition::Options& options) {
+std::unique_ptr<MapPartition> openMapPartition(
+    const boost::filesystem::path& prefix,
+    const MapPartition::Options& options) {
   return std::unique_ptr<MapPartition>(new MapPartition(prefix, options));
 }
 
@@ -71,7 +72,8 @@ struct MapPartitionTestFixture : public testing::Test {
 
   void TearDown() override { boost::filesystem::remove_all(directory); }
 
-  const boost::filesystem::path directory = "/tmp/multimap.MapPartitionTestFixture";
+  const boost::filesystem::path directory =
+      "/tmp/multimap.MapPartitionTestFixture";
   const boost::filesystem::path prefix = directory / "partition";
   const std::string k1 = "k1";
   const std::string k2 = "k2";
@@ -271,36 +273,31 @@ TEST_F(MapPartitionTestFixture, ReplaceValueReplacesOnlyFirstMatch) {
   partition->put(k1, v2);
   partition->put(k1, v3);
   auto rotate_any = [&](const Bytes& value) {
-    if (value == v1)
-      return v2;
-    if (value == v2)
-      return v3;
-    if (value == v3)
-      return v1;
+    if (value == v1) return v2;
+    if (value == v2) return v3;
+    if (value == v3) return v1;
     return std::string();
   };
   ASSERT_TRUE(partition->replaceValue(k1, rotate_any));
   auto iter = partition->get(k1);
   ASSERT_THAT(iter->next(), Eq(v2));
   ASSERT_THAT(iter->next(), Eq(v3));
-  ASSERT_THAT(iter->next(), Eq(v2)); // v1 replacement
+  ASSERT_THAT(iter->next(), Eq(v2));  // v1 replacement
   ASSERT_FALSE(iter->hasNext());
 
   partition->put(k2, v1);
   partition->put(k2, v2);
   partition->put(k2, v3);
   auto rotate_v2_or_v3 = [&](const Bytes& value) {
-    if (value == v2)
-      return v3;
-    if (value == v3)
-      return v1;
+    if (value == v2) return v3;
+    if (value == v3) return v1;
     return std::string();
   };
   ASSERT_TRUE(partition->replaceValue(k2, rotate_v2_or_v3));
   iter = partition->get(k2);
   ASSERT_THAT(iter->next(), Eq(v1));
   ASSERT_THAT(iter->next(), Eq(v3));
-  ASSERT_THAT(iter->next(), Eq(v3)); // v2 replacement
+  ASSERT_THAT(iter->next(), Eq(v3));  // v2 replacement
   ASSERT_FALSE(iter->hasNext());
 }
 
@@ -310,36 +307,31 @@ TEST_F(MapPartitionTestFixture, ReplaceValuesReplacesAllMatches) {
   partition->put(k1, v2);
   partition->put(k1, v3);
   auto rotate_any = [&](const Bytes& value) {
-    if (value == v1)
-      return v2;
-    if (value == v2)
-      return v3;
-    if (value == v3)
-      return v1;
+    if (value == v1) return v2;
+    if (value == v2) return v3;
+    if (value == v3) return v1;
     return std::string();
   };
   ASSERT_THAT(partition->replaceValues(k1, rotate_any), Eq(3));
   auto iter = partition->get(k1);
-  ASSERT_THAT(iter->next(), Eq(v2)); // v1 replacement
-  ASSERT_THAT(iter->next(), Eq(v3)); // v2 replacement
-  ASSERT_THAT(iter->next(), Eq(v1)); // v3 replacement
+  ASSERT_THAT(iter->next(), Eq(v2));  // v1 replacement
+  ASSERT_THAT(iter->next(), Eq(v3));  // v2 replacement
+  ASSERT_THAT(iter->next(), Eq(v1));  // v3 replacement
   ASSERT_FALSE(iter->hasNext());
 
   partition->put(k2, v1);
   partition->put(k2, v2);
   partition->put(k2, v3);
   auto rotate_v2_or_v3 = [&](const Bytes& value) {
-    if (value == v2)
-      return v3;
-    if (value == v3)
-      return v1;
+    if (value == v2) return v3;
+    if (value == v3) return v1;
     return std::string();
   };
   ASSERT_THAT(partition->replaceValues(k2, rotate_v2_or_v3), Eq(2));
   iter = partition->get(k2);
   ASSERT_THAT(iter->next(), Eq(v1));
-  ASSERT_THAT(iter->next(), Eq(v3)); // v2 replacement
-  ASSERT_THAT(iter->next(), Eq(v1)); // v3 replacement
+  ASSERT_THAT(iter->next(), Eq(v3));  // v2 replacement
+  ASSERT_THAT(iter->next(), Eq(v1));  // v3 replacement
   ASSERT_FALSE(iter->hasNext());
 }
 
@@ -524,7 +516,8 @@ TEST_F(MapPartitionTestFixture, GetStatsReturnsCorrectValuesAfterRemovingKeys) {
   ASSERT_THAT(stats.num_values_valid, Eq(12));
 }
 
-TEST_F(MapPartitionTestFixture, GetStatsReturnsCorrectValuesAfterRemovingValues) {
+TEST_F(MapPartitionTestFixture,
+       GetStatsReturnsCorrectValuesAfterRemovingValues) {
   {
     auto partition = openOrCreateMapPartition(prefix);
     partition->put("k", "vvvvv");
@@ -544,7 +537,8 @@ TEST_F(MapPartitionTestFixture, GetStatsReturnsCorrectValuesAfterRemovingValues)
     partition->put("kkkkk", "v");
 
     partition->removeValue("k", Equal("vvvvv"));
-    partition->removeValues("kk", [](const Bytes& val) { return val == "vvvv"; });
+    partition->removeValues("kk",
+                            [](const Bytes& val) { return val == "vvvv"; });
 
     const auto stats = partition->getStats();
     ASSERT_THAT(stats.num_keys_total, Eq(5));
@@ -584,8 +578,9 @@ TEST_F(MapPartitionTestFixture, RemoveKeyThrowsIfOpenedAsReadOnly) {
 
 TEST_F(MapPartitionTestFixture, RemoveKeysThrowsIfOpenedAsReadOnly) {
   auto partition = openOrCreateMapPartitionAsReadOnly(prefix);
-  ASSERT_THROW(partition->removeKeys([](const Bytes& /* key */) { return true; }),
-               std::runtime_error);
+  ASSERT_THROW(
+      partition->removeKeys([](const Bytes& /* key */) { return true; }),
+      std::runtime_error);
 }
 
 TEST_F(MapPartitionTestFixture, RemoveValueThrowsIfOpenedAsReadOnly) {
@@ -610,7 +605,8 @@ TEST_F(MapPartitionTestFixture, ReplaceValuesThrowsIfOpenedAsReadOnly) {
 
 TEST_F(MapPartitionTestFixture, GetBlockSizeReturnsCorrectValue) {
   auto partition = openOrCreateMapPartition(prefix);
-  ASSERT_THAT(partition->getBlockSize(), Eq(MapPartition::Options().block_size));
+  ASSERT_THAT(partition->getBlockSize(),
+              Eq(MapPartition::Options().block_size));
 }
 
 // -----------------------------------------------------------------------------
@@ -625,7 +621,8 @@ struct MapPartitionTestWithParam : public testing::TestWithParam<int> {
 
   void TearDown() override { boost::filesystem::remove_all(directory); }
 
-  const boost::filesystem::path directory = "/tmp/multimap.MapPartitionTestWithParam";
+  const boost::filesystem::path directory =
+      "/tmp/multimap.MapPartitionTestWithParam";
   const boost::filesystem::path prefix = directory / "partition";
 };
 
@@ -919,5 +916,5 @@ TEST(MapPartitionStatsTest, NamesAndToVectorHaveSameDimension) {
   ASSERT_THAT(Stats::names().size(), Eq(Stats().toVector().size()));
 }
 
-} // namespace internal
-} // namespace multimap
+}  // namespace internal
+}  // namespace multimap

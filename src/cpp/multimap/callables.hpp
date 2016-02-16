@@ -36,7 +36,7 @@ struct Equal {
 
   bool operator()(const Bytes& bytes) const { return bytes == bytes_; }
 
-private:
+ private:
   const Bytes bytes_;
 };
 
@@ -52,7 +52,7 @@ struct Contains {
                : true;
   }
 
-private:
+ private:
   const Bytes bytes_;
 };
 
@@ -67,7 +67,7 @@ struct StartsWith {
                : false;
   }
 
-private:
+ private:
   const Bytes bytes_;
 };
 
@@ -84,10 +84,10 @@ struct EndsWith {
                : false;
   }
 
-private:
+ private:
   const Bytes bytes_;
 };
 
-} // namespace multimap
+}  // namespace multimap
 
-#endif // MULTIMAP_CALLABLES_HPP_INCLUDED
+#endif  // MULTIMAP_CALLABLES_HPP_INCLUDED

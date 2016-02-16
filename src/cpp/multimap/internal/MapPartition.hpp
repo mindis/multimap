@@ -34,7 +34,7 @@ namespace multimap {
 namespace internal {
 
 class MapPartition : private mt::Resource {
-public:
+ public:
   struct Limits {
     static uint32_t maxKeySize();
     static uint32_t maxValueSize();
@@ -49,7 +49,8 @@ public:
 
   explicit MapPartition(const boost::filesystem::path& file_prefix);
 
-  MapPartition(const boost::filesystem::path& file_prefix, const Options& options);
+  MapPartition(const boost::filesystem::path& file_prefix,
+               const Options& options);
 
   ~MapPartition();
 
@@ -58,7 +59,10 @@ public:
     getOrCreateUniqueList(key).add(value);
   }
 
-  std::unique_ptr<Iterator> get(const Bytes& key) const { return std::unique_ptr<Iterator>(new SharedListIterator(getSharedList(key))); }
+  std::unique_ptr<Iterator> get(const Bytes& key) const {
+    return std::unique_ptr<Iterator>(
+        new SharedListIterator(getSharedList(key)));
+  }
 
   bool removeKey(const Bytes& key) {
     mt::check(!isReadOnly(), "Attempt to remove key from read-only table");
@@ -72,7 +76,8 @@ public:
     return removed;
   }
 
-  template <typename Predicate> uint32_t removeKeys(Predicate predicate) {
+  template <typename Predicate>
+  uint32_t removeKeys(Predicate predicate) {
     mt::check(!isReadOnly(), "Attempt to remove keys from read-only table");
     uint32_t num_removed = 0;
     boost::shared_lock<boost::shared_mutex> lock(mutex_);
@@ -123,7 +128,8 @@ public:
     return replace(key, map, false);
   }
 
-  template <typename Procedure> void forEachKey(Procedure process) const {
+  template <typename Procedure>
+  void forEachKey(Procedure process) const {
     boost::shared_lock<boost::shared_mutex> lock(mutex_);
     for (const auto& entry : map_) {
       SharedList list(*entry.second, *store_);
@@ -188,7 +194,7 @@ public:
   static std::string getNameOfStatsFile(const std::string& prefix);
   static std::string getNameOfValuesFile(const std::string& prefix);
 
-private:
+ private:
   struct Entry : public std::pair<Bytes, List::Head> {
     typedef std::pair<Bytes, List::Head> Base;
 
@@ -216,7 +222,8 @@ private:
   template <typename Predicate>
   uint32_t remove(const Bytes& key, Predicate predicate,
                   bool exit_after_first_success) {
-    mt::Check::isFalse(isReadOnly(), "Attempt to remove values from read-only partition");
+    mt::Check::isFalse(isReadOnly(),
+                       "Attempt to remove values from read-only partition");
     uint32_t num_removed = 0;
     ExclusiveListIterator iter(getUniqueList(key));
     while (iter.hasNext()) {
@@ -234,7 +241,8 @@ private:
   template <typename Function>
   uint32_t replace(const Bytes& key, Function map,
                    bool exit_after_first_success) {
-    mt::Check::isFalse(isReadOnly(), "Attempt to replace values in read-only partition");
+    mt::Check::isFalse(isReadOnly(),
+                       "Attempt to replace values in read-only partition");
     std::vector<std::string> replaced_values;
     if (auto list = getUniqueList(key)) {
       auto iter = list.iterator();
@@ -263,7 +271,7 @@ private:
   boost::filesystem::path prefix_;
 };
 
-} // namespace internal
-} // namespace multimap
+}  // namespace internal
+}  // namespace multimap
 
-#endif // MULTIMAP_INTERNAL_MAP_PARTITION_HPP_INCLUDED
+#endif  // MULTIMAP_INTERNAL_MAP_PARTITION_HPP_INCLUDED

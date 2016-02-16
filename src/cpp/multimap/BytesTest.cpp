@@ -80,4 +80,4 @@ TEST(BytesTest, LessThanOperatorTakesStdString) {
   ASSERT_FALSE(Bytes("bc") < std::string("abcd"));
 }
 
-} // namespace multimap
+}  // namespace multimap

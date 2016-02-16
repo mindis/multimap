@@ -69,5 +69,5 @@ void Base64::decode(const std::string& base64, std::string* binary) {
 
 // TODO Consider to use Base64 encoder/decoder from Boost.Iostreams.
 
-} // namespace internal
-} // namespace multimap
+}  // namespace internal
+}  // namespace multimap

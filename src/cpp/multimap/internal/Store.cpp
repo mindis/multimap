@@ -141,5 +141,5 @@ char* Store::getAddressOf(uint32_t id) const {
   }
 }
 
-} // namespace internal
-} // namespace multimap
+}  // namespace internal
+}  // namespace multimap

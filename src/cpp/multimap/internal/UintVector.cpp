@@ -34,7 +34,7 @@ uint32_t writeUint32(uint32_t source, char* target) {
   return sizeof source;
 }
 
-} // namespace
+}  // namespace
 
 UintVector::UintVector(const UintVector& other)
     : offset_(other.offset_), size_(other.size_) {
@@ -122,5 +122,5 @@ void UintVector::allocateMoreIfFull() {
   }
 }
 
-} // namespace internal
-} // namespace multimap
+}  // namespace internal
+}  // namespace multimap

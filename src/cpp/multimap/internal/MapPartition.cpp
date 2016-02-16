@@ -26,12 +26,15 @@ namespace internal {
 
 uint32_t MapPartition::Limits::maxKeySize() { return Varint::Limits::MAX_N4; }
 
-uint32_t MapPartition::Limits::maxValueSize() { return List::Limits::maxValueSize(); }
+uint32_t MapPartition::Limits::maxValueSize() {
+  return List::Limits::maxValueSize();
+}
 
 MapPartition::MapPartition(const boost::filesystem::path& file_prefix)
     : MapPartition(file_prefix, Options()) {}
 
-MapPartition::MapPartition(const boost::filesystem::path& file_prefix, const Options& options)
+MapPartition::MapPartition(const boost::filesystem::path& file_prefix,
+                           const Options& options)
     : prefix_(file_prefix) {
   Store::Options store_options;
   const auto stats_filename = getNameOfStatsFile(prefix_.string());
@@ -164,7 +167,8 @@ std::string MapPartition::getNameOfValuesFile(const std::string& prefix) {
   return prefix + ".values";
 }
 
-MapPartition::Entry MapPartition::Entry::readFromStream(std::FILE* stream, Arena* arena) {
+MapPartition::Entry MapPartition::Entry::readFromStream(std::FILE* stream,
+                                                        Arena* arena) {
   uint32_t key_size;
   mt::fread(stream, &key_size, sizeof key_size);
   const auto key_data = arena->allocate(key_size);
@@ -228,5 +232,5 @@ ExclusiveList MapPartition::getOrCreateUniqueList(const Bytes& key) {
   return ExclusiveList(list, store_.get(), &arena_);
 }
 
-} // namespace internal
-} // namespace multimap
+}  // namespace internal
+}  // namespace multimap

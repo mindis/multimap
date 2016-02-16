@@ -24,12 +24,12 @@ namespace {
 
 std::mutex list_mutex_allocation_mutex;
 
-} // namespace
+}  // namespace
 
 class MutexPool {
   // This singleton is not thread-safe by design and needs external locking.
 
-public:
+ public:
   typedef List::RefCountedMutex Mutex;
 
   static MutexPool& instance() {
@@ -69,7 +69,7 @@ public:
     }
   }
 
-private:
+ private:
   MutexPool() { setMaximumSize(getDefaultSize()); }
 
   std::vector<std::unique_ptr<Mutex> > mutexes_;
@@ -257,5 +257,5 @@ void List::MutexPoolConfig::setMaximumSize(uint32_t size) {
   return MutexPool::instance().setMaximumSize(size);
 }
 
-} // namespace internal
-} // namespace multimap
+}  // namespace internal
+}  // namespace multimap

@@ -114,14 +114,14 @@ struct ListTestIteration : testing::TestWithParam<uint32_t> {
   }
 
   void TearDown() override {
-    store.reset(); // Destructor flushes all data to disk.
+    store.reset();  // Destructor flushes all data to disk.
     MT_ASSERT_TRUE(boost::filesystem::remove_all(directory));
   }
 
   Store* getStore() { return store.get(); }
   Arena* getArena() { return &arena; }
 
-private:
+ private:
   boost::filesystem::path directory;
   std::unique_ptr<Store> store;
   Arena arena;
@@ -455,7 +455,8 @@ struct ListIteratorTestWithParam : testing::TestWithParam<uint32_t> {
 
 struct SharedListIteratorTestWithParam : public ListIteratorTestWithParam {
   std::unique_ptr<SharedListIterator> getIterator() {
-    return std::unique_ptr<SharedListIterator>(new SharedListIterator(SharedList(list, *store)));
+    return std::unique_ptr<SharedListIterator>(
+        new SharedListIterator(SharedList(list, *store)));
   }
 };
 
@@ -499,7 +500,8 @@ TEST(ExclusiveListIteratorTest, DefaultConstructedHasProperState) {
 
 struct ExclusiveListIteratorTestWithParam : public ListIteratorTestWithParam {
   std::unique_ptr<ExclusiveListIterator> getIterator() {
-    return std::unique_ptr<ExclusiveListIterator>(new ExclusiveListIterator(ExclusiveList(&list, store.get(), &arena)));
+    return std::unique_ptr<ExclusiveListIterator>(
+        new ExclusiveListIterator(ExclusiveList(&list, store.get(), &arena)));
   }
 };
 
@@ -559,5 +561,5 @@ TEST_P(ExclusiveListIteratorTestWithParam,
 INSTANTIATE_TEST_CASE_P(Parameterized, ExclusiveListIteratorTestWithParam,
                         testing::Values(0, 1, 2, 10, 100, 1000, 1000000));
 
-} // namespace internal
-} // namespace multimap
+}  // namespace internal
+}  // namespace multimap
