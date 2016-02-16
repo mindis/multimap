@@ -34,7 +34,5 @@
 *.jar
 Makefile*
 libmultimap*
-multimap
-multimap-tests
 mkdocs
 bin
