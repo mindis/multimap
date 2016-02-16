@@ -1,6 +1,5 @@
-TEMPLATE = lib
 TARGET = multimap-dbg
-VERSION = 0.3
+TEMPLATE = lib
 
 COMMON = multimap.pri
 !include($$COMMON) {

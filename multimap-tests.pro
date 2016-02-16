@@ -1,5 +1,5 @@
-TEMPLATE = app
 TARGET = multimap-tests
+TEMPLATE = app
 CONFIG += console
 
 COMMON = multimap.pri
@@ -69,8 +69,8 @@ SOURCES += \
     src/cpp/multimap/internal/Base64Test.cpp \
     src/cpp/multimap/internal/BlockTest.cpp \
     src/cpp/multimap/internal/ListTest.cpp \
+    src/cpp/multimap/internal/MapPartitionTest.cpp \
     src/cpp/multimap/internal/StoreTest.cpp \
-    src/cpp/multimap/internal/TableTest.cpp \
     src/cpp/multimap/internal/UintVectorTest.cpp \
     src/cpp/multimap/internal/VarintTest.cpp \
     src/cpp/multimap/thirdparty/googlemock/src/gmock_main.cc \

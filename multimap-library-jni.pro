@@ -1,5 +1,5 @@
-TEMPLATE = lib
 TARGET = multimap-jni
+TEMPLATE = lib
 
 COMMON = multimap.pri
 !include($$COMMON) {
