@@ -30,7 +30,7 @@
 namespace multimap {
 namespace internal {
 
-class List {
+class List : public mt::Resource {
   // This class is designed for minimal memory footprint since
   // there will be an instance for each key put into Multimap.
   // The following patterns were applied:
@@ -285,9 +285,6 @@ class List {
 
   explicit List(const Head& head);
 
-  List(List&&) = default;
-  List& operator=(List&&) = default;
-
   void add(const Bytes& value, Store* store, Arena* arena);
 
   void flush(Store* store);
@@ -437,13 +434,15 @@ class SharedListIterator : public Iterator {
     }
   }
 
-  uint32_t available() const override { return iter_.available(); }
+  virtual ~SharedListIterator() = default;
 
-  bool hasNext() const override { return iter_.hasNext(); }
+  virtual uint32_t available() const override { return iter_.available(); }
 
-  Bytes next() override { return iter_.next(); }
+  virtual bool hasNext() const override { return iter_.hasNext(); }
 
-  Bytes peekNext() override { return iter_.peekNext(); }
+  virtual Bytes next() override { return iter_.next(); }
+
+  virtual Bytes peekNext() override { return iter_.peekNext(); }
 
  private:
   List::Iterator iter_;
@@ -527,13 +526,15 @@ class ExclusiveListIterator : public Iterator {
     }
   }
 
-  uint32_t available() const override { return iter_.available(); }
+  virtual ~ExclusiveListIterator() = default;
 
-  bool hasNext() const override { return iter_.hasNext(); }
+  virtual uint32_t available() const override { return iter_.available(); }
 
-  Bytes next() override { return iter_.next(); }
+  virtual bool hasNext() const override { return iter_.hasNext(); }
 
-  Bytes peekNext() override { return iter_.peekNext(); }
+  virtual Bytes next() override { return iter_.next(); }
+
+  virtual Bytes peekNext() override { return iter_.peekNext(); }
 
   void remove() { iter_.remove(); }
 

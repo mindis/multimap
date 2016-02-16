@@ -87,8 +87,8 @@ TEST(ListTest, IsNotCopyConstructibleOrAssignable) {
 }
 
 TEST(ListTest, IsMoveConstructibleAndAssignable) {
-  ASSERT_TRUE(std::is_move_constructible<List>::value);
-  ASSERT_TRUE(std::is_move_assignable<List>::value);
+  ASSERT_FALSE(std::is_move_constructible<List>::value);
+  ASSERT_FALSE(std::is_move_assignable<List>::value);
 }
 
 TEST(ListTest, DefaultConstructedHasProperState) {
