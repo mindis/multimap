@@ -18,10 +18,14 @@
 #ifndef MULTIMAP_INTERNAL_LIST_HPP_INCLUDED
 #define MULTIMAP_INTERNAL_LIST_HPP_INCLUDED
 
+#include <cstdio>
 #include <functional>
+#include <memory>
+#include <mutex>
 #include <vector>
-#include <boost/thread/shared_mutex.hpp>
+#include <boost/thread/shared_lock_guard.hpp>
 #include "multimap/internal/Arena.hpp"
+#include "multimap/internal/SharedMutex.hpp"
 #include "multimap/internal/Store.hpp"
 #include "multimap/internal/UintVector.hpp"
 #include "multimap/thirdparty/mt/mt.hpp"
@@ -65,21 +69,20 @@ class List : public mt::Resource {
   void writeToStream(std::FILE* stream) const;
 
   void append(const Bytes& value, Store* store, Arena* arena) {
-    std::lock_guard<List> lock(*this);
+    WriterLockGuard lock(mutex_);
     appendUnlocked(value, store, arena);
   }
 
   template <typename InputIter>
   void append(InputIter first, InputIter last, Store* store, Arena* arena) {
-    std::lock_guard<List> lock(*this);
+    WriterLockGuard lock(mutex_);
     while (first != last) {
       appendUnlocked(*first, store, arena);
       ++first;
     }
   }
 
-  // TODO Make const
-  std::unique_ptr<Iterator> newIterator(const Store& store) {
+  std::unique_ptr<Iterator> newIterator(const Store& store) const {
     return newSharedIterator(store);
   }
 
@@ -145,28 +148,25 @@ class List : public mt::Resource {
     return replaced_values.size();
   }
 
-  // TODO Make const
-  Stats getStats() {
-    std::lock_guard<List> lock(*this);
+  Stats getStats() const {
+    ReaderLockGuard lock(mutex_);
     return getStatsUnlocked();
   }
 
-  // TODO Make const
-  bool tryGetStats(Stats* stats) {
-    std::unique_lock<List> lock(*this, std::try_to_lock);
+  bool tryGetStats(Stats* stats) const {
+    ReaderLock lock(mutex_, boost::try_to_lock);
     return lock ? (*stats = getStatsUnlocked(), true) : false;
   }
 
-  // TODO Make const
-  Stats getStatsUnlocked() { return stats_; }
+  Stats getStatsUnlocked() const { return stats_; }
 
   void flush(Store* store, Stats* stats = nullptr) {
-    std::lock_guard<List> lock(*this);
+    WriterLockGuard lock(mutex_);
     flushUnlocked(store, stats);
   }
 
   bool tryFlush(Store* store, Stats* stats = nullptr) {
-    std::unique_lock<List> lock(*this, std::try_to_lock);
+    WriterLock lock(mutex_, std::try_to_lock);
     return lock ? (flushUnlocked(store, stats), true) : false;
   }
 
@@ -180,40 +180,26 @@ class List : public mt::Resource {
   }
 
   uint32_t clear() {
-    std::lock_guard<List> lock(*this);
+    WriterLockGuard lock(mutex_);
     const auto num_removed = stats_.num_values_valid();
     stats_.num_values_removed = stats_.num_values_total;
     block_ids_.clear();
     return num_removed;
   }
 
-  // TODO Make const
-  uint32_t size() {
-    std::lock_guard<List> lock(*this);
+  uint32_t size() const {
+    ReaderLockGuard lock(mutex_);
     return stats_.num_values_valid();
   }
 
-  // TODO Make const
-  bool empty() { return size() == 0; }
-
-  // ---------------------------------------------------------------------------
-  // Synchronization interface based on std::shared_mutex.
-
-  void lock() const;
-
-  bool try_lock() const;
-
-  void unlock() const;
-
-  void lock_shared() const;
-
-  bool try_lock_shared() const;
-
-  void unlock_shared() const;
-
-  bool is_locked() const;
+  bool empty() const { return size() == 0; }
 
  private:
+  typedef boost::shared_lock<SharedMutex> ReaderLock;
+  typedef boost::shared_lock_guard<SharedMutex> ReaderLockGuard;
+  typedef std::unique_lock<SharedMutex> WriterLock;
+  typedef std::lock_guard<SharedMutex> WriterLockGuard;
+
   template <bool IsMutable>
   class Iter : public Iterator {
     class Stream : public mt::Resource {
@@ -367,14 +353,14 @@ class List : public mt::Resource {
     MT_ENABLE_IF(IsMutable)
     Iter(List* list, Store* store)
         : list_(list), stream_(new Stream(list, store)) {
-      list_->lock();
+      list_->mutex_.lock();
       stats_.available = list->stats_.num_values_valid();
     }
 
     MT_DISABLE_IF(IsMutable)
     Iter(const List& list, const Store& store)
         : list_(&list), stream_(new Stream(list, store)) {
-      list_->lock_shared();
+      list_->mutex_.lock_shared();
       stats_.available = list.stats_.num_values_valid();
     }
 
@@ -424,7 +410,7 @@ class List : public mt::Resource {
     };
 
     typename std::conditional<IsMutable, List, const List>::type* list_;
-    std::unique_ptr<Stream> stream_;
+    std::unique_ptr<Stream> stream_;  // Make stack object
     std::vector<char> value_;
     Stats stats_;
   };
@@ -436,7 +422,7 @@ class List : public mt::Resource {
     return std::unique_ptr<UniqueIterator>(new UniqueIterator(this, store));
   }
 
-  std::unique_ptr<SharedIterator> newSharedIterator(const Store& store) {
+  std::unique_ptr<SharedIterator> newSharedIterator(const Store& store) const {
     return std::unique_ptr<SharedIterator>(new SharedIterator(*this, store));
   }
 
@@ -445,6 +431,7 @@ class List : public mt::Resource {
 
   void appendUnlocked(const Bytes& value, Store* store, Arena* arena);
 
+  /*
   struct MutexPoolConfig {
     static uint32_t getDefaultSize();
     static uint32_t getCurrentSize();
@@ -452,20 +439,12 @@ class List : public mt::Resource {
     static void setMaximumSize(uint32_t size);
     MutexPoolConfig() = delete;
   };
-
-  void createMutexUnlocked() const;
-  void deleteMutexUnlocked() const;
+  */
 
   Stats stats_;
   UintVector block_ids_;
   ReadWriteBlock block_;
-
-  struct RefCountedMutex : public boost::shared_mutex {
-    uint32_t refcount = 0;
-  };
-  // `std::unique_ptr` requires type definition.
-  mutable std::unique_ptr<RefCountedMutex> mutex_;
-  friend class MutexPool;
+  mutable SharedMutex mutex_;
 };
 
 static_assert(mt::hasExpectedSize<List>(36, 48),
@@ -480,12 +459,12 @@ inline void List::Iter<true>::Stream::writeBackMutatedBlocks() {
 
 template <>
 inline List::Iter<true>::~Iter() {
-  list_->unlock();
+  list_->mutex_.unlock();
 }
 
 template <>
 inline List::Iter<false>::~Iter() {
-  list_->unlock_shared();
+  list_->mutex_.unlock_shared();
 }
 
 /*

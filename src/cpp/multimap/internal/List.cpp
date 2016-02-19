@@ -20,6 +20,7 @@
 namespace multimap {
 namespace internal {
 
+/*
 namespace {
 
 std::mutex list_mutex_allocation_mutex;
@@ -75,6 +76,7 @@ class MutexPool {
   std::vector<std::unique_ptr<Mutex> > mutexes_;
   uint32_t maximum_size_;
 };
+*/
 
 uint32_t List::Limits::maxValueSize() {
   return Varint::Limits::MAX_N4_WITH_FLAG;
@@ -151,6 +153,7 @@ void List::appendUnlocked(const Bytes& value, Store* store, Arena* arena) {
   stats_.num_values_total++;
 }
 
+/*
 void List::lock() const {
   {
     std::lock_guard<std::mutex> lock(list_mutex_allocation_mutex);
@@ -253,6 +256,7 @@ uint32_t List::MutexPoolConfig::getMaximumSize() {
 void List::MutexPoolConfig::setMaximumSize(uint32_t size) {
   return MutexPool::instance().setMaximumSize(size);
 }
+*/
 
 }  // namespace internal
 }  // namespace multimap
