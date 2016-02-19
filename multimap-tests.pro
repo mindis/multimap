@@ -89,3 +89,19 @@ SOURCES += \
     src/cpp/multimap/BytesTest.cpp \
     src/cpp/multimap/callablesTest.cpp \
     src/cpp/multimap/MapTest.cpp
+
+# Only enable for memory leak checking with Google Address Sanitizer.
+# Caution: You may experience increased memory usage.
+# QMAKE_CXXFLAGS_DEBUG += -fsanitize=address -fno-omit-frame-pointer
+# QMAKE_LFLAGS_DEBUG += -fsanitize=address
+
+# Eventually export the following before running the executable.
+# export ASAN_SYMBOLIZER_PATH=/usr/bin/llvm-symbolizer-3.5
+# export ASAN_OPTIONS=symbolize=1
+# ./<excutable> [params]
+
+# Only enable for profiling with Google CPU Profiler.
+# LIBS += -lprofiler
+
+# Only enable for profiling with Google Heap Profiler.
+# LIBS += -ltcmalloc
