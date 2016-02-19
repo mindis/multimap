@@ -4,6 +4,7 @@ SUBDIRS = \
   multimap-library.pro \
   multimap-library-dbg.pro \
   multimap-library-jni.pro \
+  multimap-library-jni-dbg.pro \
   multimap-tests.pro \
   multimap-tool.pro
 
