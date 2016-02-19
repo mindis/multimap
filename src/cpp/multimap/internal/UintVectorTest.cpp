@@ -29,9 +29,9 @@ TEST(UintVectorTest, IsDefaultConstructible) {
   ASSERT_TRUE(std::is_default_constructible<UintVector>::value);
 }
 
-TEST(UintVectorTest, IsCopyConstructibleAndAssignable) {
-  ASSERT_TRUE(std::is_copy_constructible<UintVector>::value);
-  ASSERT_TRUE(std::is_copy_assignable<UintVector>::value);
+TEST(UintVectorTest, IsNotCopyConstructibleOrAssignable) {
+  ASSERT_FALSE(std::is_copy_constructible<UintVector>::value);
+  ASSERT_FALSE(std::is_copy_assignable<UintVector>::value);
 }
 
 TEST(UintVectorTest, IsMoveConstructibleAndAssignable) {
