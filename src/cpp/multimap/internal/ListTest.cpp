@@ -203,116 +203,134 @@ INSTANTIATE_TEST_CASE_P(Parameterized, ListTestIteration,
                         testing::Values(0, 1, 2, 10, 100, 1000, 1000000));
 
 // -----------------------------------------------------------------------------
-// class List / Locking
+// class List / Concurrency
 // -----------------------------------------------------------------------------
 
-TEST(ListTest, LockUniqueFailsIfAlreadyLockedUnique) {
+TEST(ListTest, ReadOperationsDoNotBlockEachOther) {
   List list;
-  list.lock();
-  ASSERT_TRUE(list.is_locked());
+  Store store;
 
-  bool other_thread_acquired_unique_lock = false;
+  // First reader
+  auto iter = list.newIterator(store);
+
+  // Second reader
+  bool second_reader_has_finished = false;
   std::thread([&] {
-    list.lock();
-    other_thread_acquired_unique_lock = true;
+    auto iter = list.newIterator(store);
+    second_reader_has_finished = true;
   }).detach();
-  std::this_thread::sleep_for(std::chrono::milliseconds(10));
-  ASSERT_FALSE(other_thread_acquired_unique_lock);
 
-  list.unlock();
-  // Other thread acquires unique lock now.
   std::this_thread::sleep_for(std::chrono::milliseconds(10));
-  ASSERT_TRUE(other_thread_acquired_unique_lock);
-  ASSERT_TRUE(list.is_locked());
+  ASSERT_TRUE(second_reader_has_finished);
 }
 
-TEST(ListTest, LockSharedFailsIfAlreadyLockedUnique) {
+TEST(ListTest, ReadOperationBlocksWriteOperation) {
   List list;
-  list.lock();
-  ASSERT_TRUE(list.is_locked());
+  bool writer_has_finished = false;
+  {
+    Arena arena;
+    Store store;
 
-  bool other_thread_acquired_shared_lock = false;
+    // Reader
+    auto iter = list.newIterator(store);
+
+    // Writer
+    std::thread([&] {
+      list.append("value", &store, &arena);
+      writer_has_finished = true;
+    }).detach();
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    ASSERT_FALSE(writer_has_finished);
+  }
+
+  // iter is destroyed, list gets unlocked
+  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  ASSERT_TRUE(writer_has_finished);
+}
+
+TEST(ListTest, WriteOperationBlocksReadOperation) {
+  List list;  // TODO Add values to list
+  Store store;
+
+  // Writer
   std::thread([&] {
-    list.lock_shared();
-    other_thread_acquired_shared_lock = true;
+    list.removeOne([](const Bytes& /* value */) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      return false;
+    }, &store);
   }).detach();
-  std::this_thread::sleep_for(std::chrono::milliseconds(10));
-  ASSERT_FALSE(other_thread_acquired_shared_lock);
 
-  list.unlock();
-  // Other thread acquires shared lock now.
-  std::this_thread::sleep_for(std::chrono::milliseconds(10));
-  ASSERT_TRUE(other_thread_acquired_shared_lock);
-  ASSERT_TRUE(list.is_locked());
-}
-
-TEST(ListTest, LockUniqueFailsIfAlreadyLockedShared) {
-  List list;
-  list.lock_shared();
-  ASSERT_TRUE(list.is_locked());
-
-  bool other_thread_acquired_unique_lock = false;
+  // Reader
+  bool reader_has_finished = false;
   std::thread([&] {
-    list.lock();
-    other_thread_acquired_unique_lock = true;
+    auto iter = list.newIterator(store);
+    reader_has_finished = true;
   }).detach();
-  std::this_thread::sleep_for(std::chrono::milliseconds(10));
-  ASSERT_FALSE(other_thread_acquired_unique_lock);
 
-  list.unlock_shared();
-  // Other thread acquires unique lock now.
-  std::this_thread::sleep_for(std::chrono::milliseconds(10));
-  ASSERT_TRUE(other_thread_acquired_unique_lock);
-  ASSERT_TRUE(list.is_locked());
+  ASSERT_FALSE(reader_has_finished);
+  std::this_thread::sleep_for(std::chrono::milliseconds(15));
+  // Writer has finished and iter could be created.
+  ASSERT_TRUE(reader_has_finished);
 }
 
-TEST(ListTest, LockSharedSucceedsIfAlreadyLockedShared) {
-  List list;
-  list.lock_shared();
-  ASSERT_TRUE(list.is_locked());
+TEST(ListTest, WriteOperationBlocksWriteOperation) {
+  List list;  // TODO Add values to list
+  Store store;
 
-  bool other_thread_acquired_shared_lock = false;
+  // First writer
   std::thread([&] {
-    list.lock_shared();
-    other_thread_acquired_shared_lock = true;
+    list.removeOne([](const Bytes& /* value */) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      return false;
+    }, &store);
   }).detach();
+
+  // Second writer
+  bool writer_has_finished = false;
+  std::thread([&] {
+    list.removeOne([](const Bytes& /* value */) { return false; }, &store);
+    writer_has_finished = true;
+  }).detach();
+
+  ASSERT_FALSE(writer_has_finished);
+  std::this_thread::sleep_for(std::chrono::milliseconds(15));
+  // Both writers have finished.
+  ASSERT_TRUE(writer_has_finished);
+}
+
+TEST(ListTest, TryGetStatsSucceedsForOngoingReadOperation) {
+  List list;
+  Store store;
+
+  // First reader
+  auto iter = list.newIterator(store);
+
+  // Second reader
+  List::Stats stats;
+  ASSERT_TRUE(list.tryGetStats(&stats));
+}
+
+TEST(ListTest, TryGetStatsFailsForOngoingWriteOperation) {
+  List list;
+  Arena arena;
+  Store store;
+  list.append("value", &store, &arena);
+
+  // Writer
+  std::thread([&] {
+    list.removeOne([](const Bytes& /* value */) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      return false;
+    }, &store);
+  }).detach();
+
+  // Reader
+  List::Stats stats;
+  std::this_thread::sleep_for(std::chrono::milliseconds(5));
+  ASSERT_FALSE(list.tryGetStats(&stats));
   std::this_thread::sleep_for(std::chrono::milliseconds(10));
-  ASSERT_TRUE(other_thread_acquired_shared_lock);
-
-  list.unlock_shared();
-  // Other thread still owns shared lock.
-  ASSERT_TRUE(list.is_locked());
-
-  list.unlock_shared();
-  ASSERT_FALSE(list.is_locked());
-}
-
-TEST(ListTest, TryLockUniqueFailsIfAlreadyLockedUnique) {
-  List list;
-  list.lock();
-  ASSERT_TRUE(list.is_locked());
-  std::thread([&] { ASSERT_FALSE(list.try_lock()); }).join();
-}
-
-TEST(ListTest, TryLockSharedFailsIfAlreadyLockedUnique) {
-  List list;
-  list.lock();
-  ASSERT_TRUE(list.is_locked());
-  std::thread([&] { ASSERT_FALSE(list.try_lock_shared()); }).join();
-}
-
-TEST(ListTest, TryLockUniqueFailsIfAlreadyLockedShared) {
-  List list;
-  list.lock_shared();
-  ASSERT_TRUE(list.is_locked());
-  std::thread([&] { ASSERT_FALSE(list.try_lock()); }).join();
-}
-
-TEST(ListTest, TryLockSharedSucceedsIfAlreadyLockedShared) {
-  List list;
-  list.lock_shared();
-  ASSERT_TRUE(list.is_locked());
-  std::thread([&] { ASSERT_TRUE(list.try_lock_shared()); }).join();
+  ASSERT_TRUE(list.tryGetStats(&stats));
 }
 
 struct ListIteratorTestWithParam : testing::TestWithParam<uint32_t> {
