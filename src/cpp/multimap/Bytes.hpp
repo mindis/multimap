@@ -23,9 +23,11 @@
 #define MULTIMAP_BYTES_HPP_INCLUDED
 
 #include <algorithm>
+#include <cstdio>
 #include <cstring>
 #include <functional>
 #include <string>
+#include <vector>
 #include "multimap/thirdparty/mt/mt.hpp"
 #include "multimap/thirdparty/xxhash/xxhash.h"
 
@@ -89,7 +91,6 @@ struct hash< ::multimap::Bytes> {
   size_t operator()(const ::multimap::Bytes& bytes) const {
     return mt::is64BitSystem() ? XXH64(bytes.data(), bytes.size(), 0)
                                : XXH32(bytes.data(), bytes.size(), 0);
-    // Compiler will optimize out branching.
   }
 };
 
