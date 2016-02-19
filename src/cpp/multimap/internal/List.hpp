@@ -31,8 +31,8 @@ namespace multimap {
 namespace internal {
 
 class List : public mt::Resource {
-  // This class is designed for minimal memory footprint to allow many
-  // simultaneous instances.  The following patterns were applied:
+  // This class is designed for minimal memory footprint in order to allow many
+  // simultaneous instances. The following patterns were applied:
   //
   //   * Dependency injection, e.g. for `List::append()`.
   //   * `List::mutex_` is allocated only on demand.
