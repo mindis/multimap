@@ -22,7 +22,7 @@ namespace multimap {
 
 struct Version {
   static const uint32_t MAJOR = 0;
-  static const uint32_t MINOR = 4;
+  static const uint32_t MINOR = 5;
   static const uint32_t PATCH = 0;
 };
 
