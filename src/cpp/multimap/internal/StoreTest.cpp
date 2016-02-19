@@ -22,8 +22,8 @@
 namespace multimap {
 namespace internal {
 
-TEST(StoreTest, IsNotDefaultConstructible) {
-  ASSERT_FALSE(std::is_default_constructible<Store>::value);
+TEST(StoreTest, IsDefaultConstructible) {
+  ASSERT_TRUE(std::is_default_constructible<Store>::value);
 }
 
 TEST(StoreTest, IsNotCopyConstructibleOrAssignable) {

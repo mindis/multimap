@@ -36,6 +36,8 @@ class Store : public mt::Resource {
     bool readonly = false;
   };
 
+  Store() = default;
+
   Store(const boost::filesystem::path& file, const Options& options);
 
   ~Store();
