@@ -112,28 +112,6 @@ Map::~Map() {
   }
 }
 
-void Map::put(const Bytes& key, const Bytes& value) {
-  getPartition(key)->put(key, value);
-}
-
-std::unique_ptr<Iterator> Map::get(const Bytes& key) const {
-  return getPartition(key)->get(key);
-}
-
-bool Map::removeKey(const Bytes& key) {
-  return getPartition(key)->removeKey(key);
-}
-
-bool Map::replaceValue(const Bytes& key, const Bytes& old_value,
-                       const Bytes& new_value) {
-  return getPartition(key)->replaceValue(key, old_value, new_value);
-}
-
-uint32_t Map::replaceValues(const Bytes& key, const Bytes& old_value,
-                            const Bytes& new_value) {
-  return getPartition(key)->replaceValues(key, old_value, new_value);
-}
-
 std::vector<Map::Stats> Map::getStats() const {
   std::vector<Stats> stats;
   for (const auto& table : partitions_) {

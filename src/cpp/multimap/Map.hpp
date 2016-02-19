@@ -34,7 +34,7 @@
 
 namespace multimap {
 
-class Map : private mt::Resource {
+class Map : public mt::Resource {
  public:
   struct Id {
     uint64_t block_size = 0;
@@ -63,46 +63,72 @@ class Map : private mt::Resource {
 
   ~Map();
 
-  void put(const Bytes& key, const Bytes& value);
+  void put(const Bytes& key, const Bytes& value) {
+    getPartition(key)->put(key, value);
+  }
 
-  std::unique_ptr<Iterator> get(const Bytes& key) const;
+  template <typename InputIter>
+  void put(const Bytes& key, InputIter first, InputIter last) {
+    getPartition(key)->put(key, first, last);
+  }
 
-  bool removeKey(const Bytes& key);
+  std::unique_ptr<Iterator> get(const Bytes& key) const {
+    return getPartition(key)->get(key);
+  }
+
+  uint32_t remove(const Bytes& key) { return getPartition(key)->remove(key); }
 
   template <typename Predicate>
-  uint32_t removeKeys(Predicate predicate) {
-    uint32_t num_removed = 0;
+  uint32_t removeOne(Predicate predicate) {
+    uint32_t num_values_removed = 0;
     for (const auto& partition : partitions_) {
-      num_removed += partition->removeKeys(predicate);
+      num_values_removed = partition->removeOne(predicate);
+      if (num_values_removed != 0) break;
     }
-    return num_removed;
+    return num_values_removed;
   }
 
   template <typename Predicate>
-  bool removeValue(const Bytes& key, Predicate predicate) {
-    return getPartition(key)->removeValue(key, predicate);
+  std::pair<uint32_t, uint32_t> removeAll(Predicate predicate) {
+    uint32_t num_keys_removed = 0;
+    uint32_t num_values_removed = 0;
+    for (const auto& partition : partitions_) {
+      const auto result = partition->removeAll(predicate);
+      num_keys_removed += result.first;
+      num_values_removed += result.second;
+    }
+    return {num_keys_removed, num_values_removed};
   }
 
   template <typename Predicate>
-  uint32_t removeValues(const Bytes& key, Predicate predicate) {
-    return getPartition(key)->removeValues(key, predicate);
+  bool removeOne(const Bytes& key, Predicate predicate) {
+    return getPartition(key)->removeOne(key, predicate);
   }
 
-  bool replaceValue(const Bytes& key, const Bytes& old_value,
-                    const Bytes& new_value);
-
-  template <typename Function>
-  bool replaceValue(const Bytes& key, Function map) {
-    return getPartition(key)->replaceValue(key, map);
+  template <typename Predicate>
+  uint32_t removeAll(const Bytes& key, Predicate predicate) {
+    return getPartition(key)->removeAll(key, predicate);
   }
 
   template <typename Function>
-  uint32_t replaceValues(const Bytes& key, Function map) {
-    return getPartition(key)->replaceValues(key, map);
+  bool replaceOne(const Bytes& key, Function map) {
+    return getPartition(key)->replaceOne(key, map);
   }
 
-  uint32_t replaceValues(const Bytes& key, const Bytes& old_value,
-                         const Bytes& new_value);
+  bool replaceOne(const Bytes& key, const Bytes& old_value,
+                  const Bytes& new_value) {
+    return getPartition(key)->replaceOne(key, old_value, new_value);
+  }
+
+  template <typename Function>
+  uint32_t replaceAll(const Bytes& key, Function map) {
+    return getPartition(key)->replaceAll(key, map);
+  }
+
+  uint32_t replaceAll(const Bytes& key, const Bytes& old_value,
+                      const Bytes& new_value) {
+    return getPartition(key)->replaceAll(key, old_value, new_value);
+  }
 
   template <typename Procedure>
   void forEachKey(Procedure process) const {

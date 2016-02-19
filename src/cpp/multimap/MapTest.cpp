@@ -184,14 +184,18 @@ TEST_P(MapTestWithParam, GetTotalStatsReturnsCorrectValuesAfterRemovingKeys) {
       }
     }
 
-    const auto num_keys_removed =
-        map->removeKey(std::to_string(0)) + map->removeKeys(IS_ODD);
+    uint32_t num_keys_removed = 0;
+    uint32_t num_values_removed = 0;
+    num_values_removed += map->remove(std::to_string(0));
+    if (num_values_removed != 0) num_keys_removed++;
+    auto result = map->removeAll(IS_ODD);
+    num_keys_removed += result.first;
+    num_values_removed += result.second;
 
     stats_backup = map->getTotalStats();
     ASSERT_THAT(stats_backup.num_keys_total, Eq(GetParam()));
     ASSERT_THAT(stats_backup.num_keys_valid, Eq(GetParam() - num_keys_removed));
 
-    const auto num_values_removed = num_keys_removed * GetParam();
     const auto exp_num_values_total = GetParam() * GetParam();
     const auto exp_num_values_valid = exp_num_values_total - num_values_removed;
     ASSERT_THAT(stats_backup.num_values_total, Eq(exp_num_values_total));
@@ -219,7 +223,7 @@ TEST_P(MapTestWithParam, GetTotalStatsReturnsCorrectValuesAfterRemovingValues) {
     const auto key = std::to_string(0);
     const auto val = std::to_string(0);
     const auto num_values_removed =
-        map->removeValue(key, Equal(val)) + map->removeValues(key, IS_ODD);
+        map->removeOne(key, Equal(val)) + map->removeAll(key, IS_ODD);
 
     stats_backup = map->getTotalStats();
     const auto exp_num_values_total = GetParam() * GetParam();
