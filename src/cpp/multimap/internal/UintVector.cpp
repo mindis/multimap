@@ -36,24 +36,6 @@ uint32_t writeUint32(uint32_t source, char* target) {
 
 }  // namespace
 
-UintVector::UintVector(const UintVector& other)
-    : offset_(other.offset_), size_(other.size_) {
-  if (other.data_) {
-    data_.reset(new char[size_]);
-    std::memcpy(data_.get(), other.data_.get(), size_);
-  }
-}
-
-UintVector& UintVector::operator=(const UintVector& other) {
-  if (&other != this) {
-    size_ = other.size_;
-    offset_ = other.offset_;
-    data_.reset(new char[size_]);
-    std::memcpy(data_.get(), other.data_.get(), size_);
-  }
-  return *this;
-}
-
 UintVector UintVector::readFromStream(std::FILE* stream) {
   UintVector vector;
   mt::fread(stream, &vector.offset_, sizeof vector.offset_);

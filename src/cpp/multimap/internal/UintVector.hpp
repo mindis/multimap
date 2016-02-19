@@ -30,9 +30,8 @@ class UintVector {
  public:
   UintVector() = default;
 
-  UintVector(const UintVector& other);
-
-  UintVector& operator=(const UintVector& other);
+  UintVector(UintVector&&) = default;
+  UintVector& operator=(UintVector&&) = default;
 
   static UintVector readFromStream(std::FILE* stream);
 
@@ -49,15 +48,6 @@ class UintVector {
     offset_ = 0;
     size_ = 0;
   }
-
-  bool operator==(const UintVector& other) const {
-    if (size_ == other.size_ && offset_ == other.offset_) {
-      return std::memcmp(data_.get(), other.data_.get(), size_) == 0;
-    }
-    return false;
-  }
-
-  bool operator!=(const UintVector& other) const { return !(*this == other); }
 
  private:
   void allocateMoreIfFull();
