@@ -80,25 +80,30 @@ uint32_t List::Limits::maxValueSize() {
   return Varint::Limits::MAX_N4_WITH_FLAG;
 }
 
-List::Head List::Head::readFromStream(std::FILE* stream) {
-  Head head;
-  mt::fread(stream, &head.num_values_total, sizeof head.num_values_total);
-  mt::fread(stream, &head.num_values_removed, sizeof head.num_values_removed);
-  head.block_ids = UintVector::readFromStream(stream);
-  return head;
+std::unique_ptr<List> List::readFromStream(std::FILE* stream) {
+  std::unique_ptr<List> list(new List());
+  readFromStream(stream, list.get());
+  return list;
 }
 
-void List::Head::writeToStream(std::FILE* stream) const {
-  mt::fwrite(stream, &num_values_total, sizeof num_values_total);
-  mt::fwrite(stream, &num_values_removed, sizeof num_values_removed);
-  block_ids.writeToStream(stream);
+void List::readFromStream(std::FILE* stream, List* list) {
+  mt::fread(stream, &list->stats_.num_values_total,
+            sizeof list->stats_.num_values_total);
+  mt::fread(stream, &list->stats_.num_values_removed,
+            sizeof list->stats_.num_values_removed);
+  list->block_ids_ = UintVector::readFromStream(stream);
 }
 
-List::List(const Head& head) : head_(head) {}
+void List::writeToStream(std::FILE* stream) const {
+  mt::fwrite(stream, &stats_.num_values_total, sizeof stats_.num_values_total);
+  mt::fwrite(stream, &stats_.num_values_removed,
+             sizeof stats_.num_values_removed);
+  block_ids_.writeToStream(stream);
+}
 
-void List::add(const Bytes& value, Store* store, Arena* arena) {
+void List::appendUnlocked(const Bytes& value, Store* store, Arena* arena) {
   MT_REQUIRE_LE(value.size(), Limits::maxValueSize());
-  MT_REQUIRE_LT(head_.num_values_total, std::numeric_limits<uint32_t>::max());
+  MT_REQUIRE_LT(stats_.num_values_total, std::numeric_limits<uint32_t>::max());
 
   if (!block_.hasData()) {
     const auto block_size = store->getBlockSize();
@@ -109,7 +114,7 @@ void List::add(const Bytes& value, Store* store, Arena* arena) {
   // Write value's metadata.
   auto nbytes = block_.writeSizeWithFlag(value.size(), false);
   if (nbytes == 0) {
-    flush(store);
+    flushUnlocked(store);
     nbytes = block_.writeSizeWithFlag(value.size(), false);
     MT_ASSERT_NOT_ZERO(nbytes);
   }
@@ -117,7 +122,7 @@ void List::add(const Bytes& value, Store* store, Arena* arena) {
   // Write value's data.
   nbytes = block_.writeData(value.data(), value.size());
   if (nbytes < value.size()) {
-    flush(store);
+    flushUnlocked(store);
 
     // The value does not fit into the local block as a whole.
     // Write the remaining bytes which cover entire blocks directly
@@ -135,7 +140,7 @@ void List::add(const Bytes& value, Store* store, Arena* arena) {
     if (!blocks.empty()) {
       store->put(blocks);
       for (const auto& block : blocks) {
-        head_.block_ids.add(block.id);
+        block_ids_.add(block.id);
       }
     }
     if (remaining != 0) {
@@ -143,16 +148,7 @@ void List::add(const Bytes& value, Store* store, Arena* arena) {
       MT_ASSERT_EQ(nbytes, remaining);
     }
   }
-
-  ++head_.num_values_total;
-}
-
-void List::flush(Store* store) {
-  if (block_.hasData()) {
-    block_.fillUpWithZeros();
-    head_.block_ids.add(store->put(block_));
-    block_.rewind();
-  }
+  stats_.num_values_total++;
 }
 
 void List::lock() const {
@@ -221,6 +217,7 @@ void List::unlock_shared() const {
   }
 }
 
+// TODO remove
 bool List::is_locked() const {
   std::lock_guard<std::mutex> lock(list_mutex_allocation_mutex);
   return mutex_.get();

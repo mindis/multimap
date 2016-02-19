@@ -31,11 +31,10 @@ namespace multimap {
 namespace internal {
 
 class List : public mt::Resource {
-  // This class is designed for minimal memory footprint since
-  // there will be an instance for each key put into Multimap.
-  // The following patterns were applied:
+  // This class is designed for minimal memory footprint to allow many
+  // simultaneous instances.  The following patterns were applied:
   //
-  //   * Dependency injection, e.g. for `List::add()`.
+  //   * Dependency injection, e.g. for `List::append()`.
   //   * `List::mutex_` is allocated only on demand.
 
  public:
@@ -43,33 +42,187 @@ class List : public mt::Resource {
     static uint32_t maxValueSize();
   };
 
-  struct Head {
+  struct Stats {
     uint32_t num_values_total = 0;
     uint32_t num_values_removed = 0;
-    UintVector block_ids;
 
     uint32_t num_values_valid() const {
       MT_ASSERT_GE(num_values_total, num_values_removed);
       return num_values_total - num_values_removed;
     }
 
-    static Head readFromStream(std::FILE* file);
-
+    static Stats readFromStream(std::FILE* file);
     void writeToStream(std::FILE* file) const;
   };
 
-  static_assert(mt::hasExpectedSize<Head>(20, 24),
-                "class Head does not have expected size");
+  static_assert(mt::hasExpectedSize<Stats>(8, 8),
+                "class List::Stats does not have expected size");
 
+  List() = default;
+
+  static std::unique_ptr<List> readFromStream(std::FILE* stream);
+  static void readFromStream(std::FILE* stream, List* list);
+  void writeToStream(std::FILE* stream) const;
+
+  void append(const Bytes& value, Store* store, Arena* arena) {
+    std::lock_guard<List> lock(*this);
+    appendUnlocked(value, store, arena);
+  }
+
+  template <typename InputIter>
+  void append(InputIter first, InputIter last, Store* store, Arena* arena) {
+    std::lock_guard<List> lock(*this);
+    while (first != last) {
+      appendUnlocked(*first, store, arena);
+      ++first;
+    }
+  }
+
+  // TODO Make const
+  std::unique_ptr<Iterator> newIterator(const Store& store) {
+    return newSharedIterator(store);
+  }
+
+  template <typename Predicate>
+  bool removeOne(Predicate predicate, Store* store) {
+    auto iter = newUniqueIterator(store);
+    while (iter->hasNext()) {
+      if (predicate(iter->next())) {
+        iter->remove();
+        return true;
+      }
+    }
+    return false;
+  }
+
+  template <typename Predicate>
+  uint32_t removeAll(Predicate predicate, Store* store) {
+    uint32_t num_removed = 0;
+    auto iter = newUniqueIterator(store);
+    while (iter->hasNext()) {
+      if (predicate(iter->next())) {
+        iter->remove();
+        ++num_removed;
+      }
+    }
+    return num_removed;
+  }
+
+  template <typename Function>
+  bool replaceOne(Function map, Store* store, Arena* arena) {
+    std::vector<std::string> replaced_values;
+    auto iter = newUniqueIterator(store);
+    while (iter->hasNext()) {
+      auto replaced_value = map(iter->next());
+      if (!replaced_value.empty()) {
+        replaced_values.push_back(std::move(replaced_value));
+        iter->remove();
+        break;
+      }
+    }
+    // `iter` keeps the list in locked state.
+    for (const auto& value : replaced_values) {
+      appendUnlocked(value, store, arena);
+    }
+    return replaced_values.size();
+  }
+
+  template <typename Function>
+  uint32_t replaceAll(Function map, Store* store, Arena* arena) {
+    std::vector<std::string> replaced_values;
+    auto iter = newUniqueIterator(store);
+    while (iter->hasNext()) {
+      auto replaced_value = map(iter->next());
+      if (!replaced_value.empty()) {
+        replaced_values.push_back(std::move(replaced_value));
+        iter->remove();
+      }
+    }
+    // `iter` keeps the list in locked state.
+    for (const auto& value : replaced_values) {
+      appendUnlocked(value, store, arena);
+    }
+    return replaced_values.size();
+  }
+
+  // TODO Make const
+  Stats getStats() {
+    std::lock_guard<List> lock(*this);
+    return getStatsUnlocked();
+  }
+
+  // TODO Make const
+  bool tryGetStats(Stats* stats) {
+    std::unique_lock<List> lock(*this, std::try_to_lock);
+    return lock ? (*stats = getStatsUnlocked(), true) : false;
+  }
+
+  // TODO Make const
+  Stats getStatsUnlocked() { return stats_; }
+
+  void flush(Store* store, Stats* stats = nullptr) {
+    std::lock_guard<List> lock(*this);
+    flushUnlocked(store, stats);
+  }
+
+  bool tryFlush(Store* store, Stats* stats = nullptr) {
+    std::unique_lock<List> lock(*this, std::try_to_lock);
+    return lock ? (flushUnlocked(store, stats), true) : false;
+  }
+
+  void flushUnlocked(Store* store, Stats* stats = nullptr) {
+    if (block_.hasData()) {
+      block_.fillUpWithZeros();
+      block_ids_.add(store->put(block_));
+      block_.rewind();
+    }
+    if (stats) *stats = stats_;
+  }
+
+  uint32_t clear() {
+    std::lock_guard<List> lock(*this);
+    const auto num_removed = stats_.num_values_valid();
+    stats_.num_values_removed = stats_.num_values_total;
+    block_ids_.clear();
+    return num_removed;
+  }
+
+  // TODO Make const
+  uint32_t size() {
+    std::lock_guard<List> lock(*this);
+    return stats_.num_values_valid();
+  }
+
+  // TODO Make const
+  bool empty() { return size() == 0; }
+
+  // ---------------------------------------------------------------------------
+  // Synchronization interface based on std::shared_mutex.
+
+  void lock() const;
+
+  bool try_lock() const;
+
+  void unlock() const;
+
+  void lock_shared() const;
+
+  bool try_lock_shared() const;
+
+  void unlock_shared() const;
+
+  bool is_locked() const;
+
+ private:
   template <bool IsMutable>
-  class Iter {
-    class Stream : mt::Resource {
+  class Iter : public Iterator {
+    class Stream : public mt::Resource {
      public:
       static const uint32_t BLOCK_CACHE_SIZE = 1024;
 
       MT_ENABLE_IF(IsMutable)
       Stream(List* list, Store* store)
-          : block_ids_(list->head_.block_ids.unpack()),
+          : block_ids_(list->block_ids_.unpack()),
             last_block_(list->block_.getView()),
             store_(store) {
         std::reverse(block_ids_.begin(), block_ids_.end());
@@ -77,7 +230,7 @@ class List : public mt::Resource {
 
       MT_DISABLE_IF(IsMutable)
       Stream(const List& list, const Store& store)
-          : block_ids_(list.head_.block_ids.unpack()),
+          : block_ids_(list.block_ids_.unpack()),
             last_block_(list.block_.getView()),
             store_(&store) {
         std::reverse(block_ids_.begin(), block_ids_.end());
@@ -214,26 +367,24 @@ class List : public mt::Resource {
     MT_ENABLE_IF(IsMutable)
     Iter(List* list, Store* store)
         : list_(list), stream_(new Stream(list, store)) {
-      stats_.available = list->head_.num_values_valid();
+      list_->lock();
+      stats_.available = list->stats_.num_values_valid();
     }
 
     MT_DISABLE_IF(IsMutable)
     Iter(const List& list, const Store& store)
         : list_(&list), stream_(new Stream(list, store)) {
-      stats_.available = list.head_.num_values_valid();
+      list_->lock_shared();
+      stats_.available = list.stats_.num_values_valid();
     }
 
-    Iter(Iter&&) = default;
-    Iter& operator=(Iter&&) = default;
+    ~Iter() override;
 
-    Iter(const Iter&) = delete;
-    Iter& operator=(const Iter&) = delete;
+    uint32_t available() const override { return stats_.available; }
 
-    uint32_t available() const { return stats_.available; }
+    bool hasNext() const override { return available() != 0; }
 
-    bool hasNext() const { return available() != 0; }
-
-    Bytes next() {
+    Bytes next() override {
       MT_REQUIRE_TRUE(hasNext());
       const auto value = peekNext();
       stats_.load_next_value = true;
@@ -243,7 +394,7 @@ class List : public mt::Resource {
     // Preconditions:
     //  * `hasNext()` yields `true`.
 
-    Bytes peekNext() {
+    Bytes peekNext() override {
       if (stats_.load_next_value) {
         uint32_t value_size = 0;
         bool is_marked_as_removed = false;
@@ -261,7 +412,7 @@ class List : public mt::Resource {
 
     MT_ENABLE_IF(IsMutable) void remove() {
       stream_->overwriteLastExtractedFlag(true);
-      ++list_->head_.num_values_removed;
+      ++list_->stats_.num_values_removed;
     }
     // Preconditions:
     //  * `next()` must have been called.
@@ -278,47 +429,21 @@ class List : public mt::Resource {
     Stats stats_;
   };
 
-  typedef Iter<true> MutableIterator;
-  typedef Iter<false> Iterator;
+  typedef Iter<true> UniqueIterator;
+  typedef Iter<false> SharedIterator;
 
-  List() = default;
+  std::unique_ptr<UniqueIterator> newUniqueIterator(Store* store) {
+    return std::unique_ptr<UniqueIterator>(new UniqueIterator(this, store));
+  }
 
-  explicit List(const Head& head);
-
-  void add(const Bytes& value, Store* store, Arena* arena);
-
-  void flush(Store* store);
-
-  const Head& head() const { return head_; }
-
-  uint32_t size() const { return head_.num_values_valid(); }
-
-  bool empty() const { return size() == 0; }
-
-  void clear() { head_ = Head(); }
-
-  Iterator iterator(const Store& store) const { return Iterator(*this, store); }
-
-  MutableIterator iterator(Store* store) {
-    return MutableIterator(this, store);
+  std::unique_ptr<SharedIterator> newSharedIterator(const Store& store) {
+    return std::unique_ptr<SharedIterator>(new SharedIterator(*this, store));
   }
 
   // ---------------------------------------------------------------------------
-  // Synchronization interface based on std::shared_mutex.
+  // Not thread-safe interface
 
-  void lock() const;
-
-  bool try_lock() const;
-
-  void unlock() const;
-
-  void lock_shared() const;
-
-  bool try_lock_shared() const;
-
-  void unlock_shared() const;
-
-  bool is_locked() const;
+  void appendUnlocked(const Bytes& value, Store* store, Arena* arena);
 
   struct MutexPoolConfig {
     static uint32_t getDefaultSize();
@@ -328,11 +453,11 @@ class List : public mt::Resource {
     MutexPoolConfig() = delete;
   };
 
- private:
   void createMutexUnlocked() const;
   void deleteMutexUnlocked() const;
 
-  Head head_;
+  Stats stats_;
+  UintVector block_ids_;
   ReadWriteBlock block_;
 
   struct RefCountedMutex : public boost::shared_mutex {
@@ -346,16 +471,6 @@ class List : public mt::Resource {
 static_assert(mt::hasExpectedSize<List>(36, 48),
               "class List does not have expected size");
 
-inline bool operator==(const List::Head& lhs, const List::Head& rhs) {
-  return (lhs.block_ids == rhs.block_ids) &&
-         (lhs.num_values_total == rhs.num_values_total) &&
-         (lhs.num_values_removed == rhs.num_values_removed);
-}
-
-inline bool operator!=(const List::Head& lhs, const List::Head& rhs) {
-  return !(lhs == rhs);
-}
-
 template <>
 inline void List::Iter<true>::Stream::writeBackMutatedBlocks() {
   if (store_) {
@@ -363,7 +478,18 @@ inline void List::Iter<true>::Stream::writeBackMutatedBlocks() {
   }
 }
 
-class SharedList {
+template <>
+inline List::Iter<true>::~Iter() {
+  list_->unlock();
+}
+
+template <>
+inline List::Iter<false>::~Iter() {
+  list_->unlock_shared();
+}
+
+/*
+class SharedList : public mt::Resource {
  public:
   typedef List::Iterator Iterator;
 
@@ -381,22 +507,10 @@ class SharedList {
     }
   }
 
-  SharedList(SharedList&& other)
-      : list_(other.release()), store_(other.store_) {}
-
   ~SharedList() {
     if (list_) {
       list_->unlock_shared();
     }
-  }
-
-  SharedList& operator=(SharedList&& other) {
-    if (list_) {
-      list_->unlock_shared();
-    }
-    list_ = other.release();
-    store_ = other.store_;
-    return *this;
   }
 
   operator bool() const { return list_ != nullptr; }
@@ -428,9 +542,15 @@ class SharedListIterator : public Iterator {
  public:
   SharedListIterator() = default;
 
-  explicit SharedListIterator(SharedList&& list) : list_(std::move(list)) {
-    if (list_) {
-      iter_ = list_.list_->iterator(*list_.store_);
+  SharedListIterator(const List& list, const Store& store)
+    : shared_list_(list, store) {
+    iter_ = shared_list_.iterator();
+  }
+
+  SharedListIterator(const List& list, const Store& store, std::try_to_lock_t)
+    : shared_list_(list, store, std::try_to_lock) {
+    if (shared_list_) {
+      iter_ = shared_list_.iterator();
     }
   }
 
@@ -445,11 +565,11 @@ class SharedListIterator : public Iterator {
   virtual Bytes peekNext() override { return iter_.peekNext(); }
 
  private:
+  SharedList shared_list_;
   List::Iterator iter_;
-  SharedList list_;
 };
 
-class ExclusiveList {
+class ExclusiveList : public mt::Resource {
  public:
   typedef List::MutableIterator Iterator;
 
@@ -468,23 +588,10 @@ class ExclusiveList {
     }
   }
 
-  ExclusiveList(ExclusiveList&& other)
-      : list_(other.release()), store_(other.store_), arena_(other.arena_) {}
-
   ~ExclusiveList() {
     if (list_) {
       list_->unlock();
     }
-  }
-
-  ExclusiveList& operator=(ExclusiveList&& other) {
-    if (list_) {
-      list_->unlock();
-    }
-    list_ = other.release();
-    store_ = other.store_;
-    arena_ = other.arena_;
-    return *this;
   }
 
   operator bool() const { return list_ != nullptr; }
@@ -519,10 +626,16 @@ class ExclusiveListIterator : public Iterator {
  public:
   ExclusiveListIterator() = default;
 
-  explicit ExclusiveListIterator(ExclusiveList&& list)
-      : list_(std::move(list)) {
-    if (list_) {
-      iter_ = list_.list_->iterator(list_.store_);
+  ExclusiveListIterator(List* list, Store* store, Arena* arena)
+    : exclusive_list_(list, store, arena) {
+    iter_ = exclusive_list_.iterator();
+  }
+
+  ExclusiveListIterator(List* list, Store* store, Arena* arena,
+std::try_to_lock_t)
+    : exclusive_list_(list, store, arena, std::try_to_lock) {
+    if (exclusive_list_) {
+      iter_ = exclusive_list_.iterator();
     }
   }
 
@@ -539,10 +652,10 @@ class ExclusiveListIterator : public Iterator {
   void remove() { iter_.remove(); }
 
  private:
+  ExclusiveList exclusive_list_;
   List::MutableIterator iter_;
-  ExclusiveList list_;
 };
-
+*/
 }  // namespace internal
 }  // namespace multimap
 

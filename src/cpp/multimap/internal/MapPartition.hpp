@@ -33,7 +33,7 @@
 namespace multimap {
 namespace internal {
 
-class MapPartition : private mt::Resource {
+class MapPartition : public mt::Resource {
   static const char* ATTEMPT_TO_MODIFY_READ_ONLY_PARTITION;
 
  public:
@@ -58,84 +58,102 @@ class MapPartition : private mt::Resource {
 
   void put(const Bytes& key, const Bytes& value) {
     mt::Check::isFalse(isReadOnly(), ATTEMPT_TO_MODIFY_READ_ONLY_PARTITION);
-    getOrCreateUniqueList(key).add(value);
+    getListOrCreate(key)->append(value, store_.get(), &arena_);
+  }
+
+  template <typename InputIter>
+  void put(const Bytes& key, InputIter first, InputIter last) {
+    mt::Check::isFalse(isReadOnly(), ATTEMPT_TO_MODIFY_READ_ONLY_PARTITION);
+    getListOrCreate(key)->append(first, last, store_.get(), &arena_);
   }
 
   std::unique_ptr<Iterator> get(const Bytes& key) const {
-    return std::unique_ptr<Iterator>(
-        new SharedListIterator(getSharedList(key)));
+    const auto list = getList(key);
+    return list ? list->newIterator(*store_) : std::unique_ptr<Iterator>();
   }
 
-  bool removeKey(const Bytes& key) {
+  uint32_t remove(const Bytes& key) {
     mt::Check::isFalse(isReadOnly(), ATTEMPT_TO_MODIFY_READ_ONLY_PARTITION);
-    bool removed = false;
-    auto list = getUniqueList(key);
-    if (list && !list.empty()) {
-      stats_.num_values_total += list.head().num_values_total;
-      removed = true;
-      list.clear();
-    }
-    return removed;
+    const auto list = getList(key);
+    return list ? list->clear() : 0;
   }
 
   template <typename Predicate>
-  uint32_t removeKeys(Predicate predicate) {
+  uint32_t removeOne(Predicate predicate) {
     mt::Check::isFalse(isReadOnly(), ATTEMPT_TO_MODIFY_READ_ONLY_PARTITION);
-    uint32_t num_removed = 0;
+    uint32_t num_values_removed = 0;
     boost::shared_lock<boost::shared_mutex> lock(mutex_);
     for (const auto& entry : map_) {
       if (predicate(entry.first)) {
-        ExclusiveList list(entry.second.get(), store_.get(), &arena_);
-        if (!list.empty()) {
-          stats_.num_values_total += list.head().num_values_total;
-          ++num_removed;
-          list.clear();
-        }
+        num_values_removed += entry.second->clear();
+        break;
       }
     }
-    return num_removed;
+    return num_values_removed;
   }
 
   template <typename Predicate>
-  bool removeValue(const Bytes& key, Predicate predicate) {
-    return remove(key, predicate, true);
+  std::pair<uint32_t, uint32_t> removeAll(Predicate predicate) {
+    mt::Check::isFalse(isReadOnly(), ATTEMPT_TO_MODIFY_READ_ONLY_PARTITION);
+    uint32_t num_keys_removed = 0;
+    uint32_t num_values_removed = 0;
+    boost::shared_lock<boost::shared_mutex> lock(mutex_);
+    for (const auto& entry : map_) {
+      if (predicate(entry.first)) {
+        num_values_removed += entry.second->clear();
+        num_keys_removed++;
+      }
+    }
+    return std::make_pair(num_keys_removed, num_values_removed);
   }
 
   template <typename Predicate>
-  uint32_t removeValues(const Bytes& key, Predicate predicate) {
-    return remove(key, predicate, false);
+  bool removeOne(const Bytes& key, Predicate predicate) {
+    mt::Check::isFalse(isReadOnly(), ATTEMPT_TO_MODIFY_READ_ONLY_PARTITION);
+    const auto list = getList(key);
+    return list ? list->removeOne(predicate, store_.get()) : false;
   }
 
-  bool replaceValue(const Bytes& key, const Bytes& old_value,
-                    const Bytes& new_value) {
-    return replaceValue(key, [&old_value, &new_value](const Bytes& value) {
+  template <typename Predicate>
+  uint32_t removeAll(const Bytes& key, Predicate predicate) {
+    mt::Check::isFalse(isReadOnly(), ATTEMPT_TO_MODIFY_READ_ONLY_PARTITION);
+    const auto list = getList(key);
+    return list ? list->removeAll(predicate, store_.get()) : 0;
+  }
+
+  template <typename Function>
+  bool replaceOne(const Bytes& key, Function map) {
+    mt::Check::isFalse(isReadOnly(), ATTEMPT_TO_MODIFY_READ_ONLY_PARTITION);
+    const auto list = getList(key);
+    return list ? list->replaceOne(map, store_.get(), &arena_) : false;
+  }
+
+  bool replaceOne(const Bytes& key, const Bytes& old_value,
+                  const Bytes& new_value) {
+    return replaceOne(key, [&old_value, &new_value](const Bytes& value) {
       return (value == old_value) ? new_value.toString() : std::string();
     });
   }
 
   template <typename Function>
-  bool replaceValue(const Bytes& key, Function map) {
-    return replace(key, map, true);
+  uint32_t replaceAll(const Bytes& key, Function map) {
+    mt::Check::isFalse(isReadOnly(), ATTEMPT_TO_MODIFY_READ_ONLY_PARTITION);
+    const auto list = getList(key);
+    return list ? list->replaceAll(map, store_.get(), &arena_) : 0;
   }
 
-  uint32_t replaceValues(const Bytes& key, const Bytes& old_value,
-                         const Bytes& new_value) {
-    return replaceValues(key, [&old_value, &new_value](const Bytes& value) {
+  uint32_t replaceAll(const Bytes& key, const Bytes& old_value,
+                      const Bytes& new_value) {
+    return replaceAll(key, [&old_value, &new_value](const Bytes& value) {
       return (value == old_value) ? new_value.toString() : std::string();
     });
-  }
-
-  template <typename Function>
-  uint32_t replaceValues(const Bytes& key, Function map) {
-    return replace(key, map, false);
   }
 
   template <typename Procedure>
   void forEachKey(Procedure process) const {
     boost::shared_lock<boost::shared_mutex> lock(mutex_);
     for (const auto& entry : map_) {
-      SharedList list(*entry.second, *store_);
-      if (!list.empty()) {
+      if (!entry.second->empty()) {
         process(entry.first);
       }
     }
@@ -143,9 +161,11 @@ class MapPartition : private mt::Resource {
 
   template <typename Procedure>
   void forEachValue(const Bytes& key, Procedure process) const {
-    auto iter = get(key);
-    while (iter->hasNext()) {
-      process(iter->next());
+    if (auto list = getList(key)) {
+      auto iter = list->newIterator(*store_);
+      while (iter->hasNext()) {
+        process(iter->next());
+      }
     }
   }
 
@@ -154,10 +174,9 @@ class MapPartition : private mt::Resource {
     boost::shared_lock<boost::shared_mutex> lock(mutex_);
     store_->adviseAccessPattern(Store::AccessPattern::WILLNEED);
     for (const auto& entry : map_) {
-      SharedList list(*entry.second, *store_);
-      if (!list.empty()) {
-        SharedListIterator iter(std::move(list));
-        process(entry.first, &iter);
+      auto iter = entry.second->newIterator(*store_);
+      if (iter->hasNext()) {
+        process(entry.first, iter.get());
       }
     }
     store_->adviseAccessPattern(Store::AccessPattern::NORMAL);
@@ -178,7 +197,8 @@ class MapPartition : private mt::Resource {
   template <typename BinaryProcedure>
   static void forEachEntry(const boost::filesystem::path& prefix,
                            BinaryProcedure process) {
-    Arena arena;
+    List list;
+    std::vector<char> key;
     Store::Options store_options;
     store_options.readonly = true;
     Store store(getNameOfValuesFile(prefix.string()), store_options);
@@ -186,9 +206,10 @@ class MapPartition : private mt::Resource {
     const auto stats = Stats::readFromFile(getNameOfStatsFile(prefix.string()));
     const auto stream = mt::fopen(getNameOfKeysFile(prefix.string()), "r");
     for (size_t i = 0; i != stats.num_keys_valid; ++i) {
-      const auto entry = Entry::readFromStream(stream.get(), &arena);
-      SharedListIterator iter(SharedList(List(entry.head()), store));
-      process(entry.key(), &iter);
+      readBytesFromStream(stream.get(), &key);
+      List::readFromStream(stream.get(), &list);
+      const auto iter = list.newIterator(store);
+      process(Bytes(key.data(), key.size()), iter.get());
     }
   }
 
@@ -197,70 +218,51 @@ class MapPartition : private mt::Resource {
   static std::string getNameOfValuesFile(const std::string& prefix);
 
  private:
-  struct Entry : public std::pair<Bytes, List::Head> {
-    typedef std::pair<Bytes, List::Head> Base;
-
-    Entry(Bytes&& key, List::Head&& head) : Base(key, head) {}
-
-    Entry(const Bytes& key, const List::Head& head) : Base(key, head) {}
-
-    Bytes& key() { return first; }
-    const Bytes& key() const { return first; }
-
-    List::Head& head() { return second; }
-    const List::Head& head() const { return second; }
-
-    static Entry readFromStream(std::FILE* stream, Arena* arena);
-
-    void writeToStream(std::FILE* stream) const;
-  };
-
-  SharedList getSharedList(const Bytes& key) const;
-
-  ExclusiveList getUniqueList(const Bytes& key);
-
-  ExclusiveList getOrCreateUniqueList(const Bytes& key);
-
-  template <typename Predicate>
-  uint32_t remove(const Bytes& key, Predicate predicate,
-                  bool exit_after_first_success) {
-    mt::Check::isFalse(isReadOnly(), ATTEMPT_TO_MODIFY_READ_ONLY_PARTITION);
-    uint32_t num_removed = 0;
-    ExclusiveListIterator iter(getUniqueList(key));
-    while (iter.hasNext()) {
-      if (predicate(iter.next())) {
-        iter.remove();
-        ++num_removed;
-        if (exit_after_first_success) {
-          break;
-        }
-      }
-    }
-    return num_removed;
+  static void readBytesFromStream(std::FILE* stream, std::vector<char>* bytes) {
+    uint32_t size;
+    mt::fread(stream, &size, sizeof size);
+    bytes->resize(size);
+    mt::fread(stream, bytes->data(), bytes->size());
   }
 
-  template <typename Function>
-  uint32_t replace(const Bytes& key, Function map,
-                   bool exit_after_first_success) {
-    mt::Check::isFalse(isReadOnly(), ATTEMPT_TO_MODIFY_READ_ONLY_PARTITION);
-    std::vector<std::string> replaced_values;
-    if (auto list = getUniqueList(key)) {
-      auto iter = list.iterator();
-      while (iter.hasNext()) {
-        auto replaced_value = map(iter.next());
-        if (!replaced_value.empty()) {
-          replaced_values.push_back(std::move(replaced_value));
-          iter.remove();
-          if (exit_after_first_success) {
-            break;
-          }
-        }
-      }
-      for (const auto& value : replaced_values) {
-        list.add(value);
-      }
+  template <typename Allocate>
+  static Bytes readBytesFromStream(std::FILE* stream, Allocate allocate) {
+    uint32_t size;
+    mt::fread(stream, &size, sizeof size);
+    char* data = allocate(size);
+    mt::fread(stream, data, size);
+    return Bytes(data, size);
+  }
+
+  void writeBytesToStream(const Bytes& bytes, std::FILE* stream) const {
+    const uint32_t size = bytes.size();
+    mt::fwrite(stream, &size, sizeof size);
+    mt::fwrite(stream, bytes.data(), bytes.size());
+  }
+
+  List* getList(const Bytes& key) const {
+    boost::shared_lock<boost::shared_mutex> lock(mutex_);
+    return getListUnlocked(key);
+  }
+
+  List* getListUnlocked(const Bytes& key) const {
+    const auto iter = map_.find(key);
+    return (iter != map_.end()) ? iter->second.get() : nullptr;
+  }
+
+  List* getListOrCreate(const Bytes& key) {
+    MT_REQUIRE_LE(key.size(), Limits::maxKeySize());
+    std::lock_guard<boost::shared_mutex> lock(mutex_);
+    const auto emplace_result = map_.emplace(key, std::unique_ptr<List>());
+    if (emplace_result.second) {
+      // Overrides the inserted key with a new deep copy.
+      const auto new_key_data = arena_.allocate(key.size());
+      std::memcpy(new_key_data, key.data(), key.size());
+      const auto old_key_ptr = const_cast<Bytes*>(&emplace_result.first->first);
+      *old_key_ptr = Bytes(new_key_data, key.size());
+      emplace_result.first->second.reset(new List());
     }
-    return replaced_values.size();
+    return emplace_result.first->second.get();
   }
 
   mutable boost::shared_mutex mutex_;

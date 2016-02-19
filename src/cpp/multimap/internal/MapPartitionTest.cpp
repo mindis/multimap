@@ -81,6 +81,8 @@ struct MapPartitionTestFixture : public testing::Test {
   const std::string v1 = "v1";
   const std::string v2 = "v2";
   const std::string v3 = "v3";
+  const std::vector<std::string> keys = {k1, k2, k3};
+  const std::vector<std::string> values = {v1, v2, v3};
 };
 
 TEST_F(MapPartitionTestFixture, ConstructorThrowsIfNotExist) {
@@ -193,9 +195,9 @@ TEST_F(MapPartitionTestFixture, PutValuesAndReopenInBetween) {
   ASSERT_FALSE(iter3->hasNext());
 }
 
-TEST_F(MapPartitionTestFixture, GetReturnsEmptyListForNonExistingKey) {
+TEST_F(MapPartitionTestFixture, GetReturnsNullForNonExistingKey) {
   auto partition = openOrCreateMapPartition(prefix);
-  ASSERT_FALSE(partition->get(k1)->hasNext());
+  ASSERT_FALSE(partition->get(k1));
 }
 
 TEST_F(MapPartitionTestFixture, RemoveKeyRemovesMappedValues) {
@@ -203,32 +205,52 @@ TEST_F(MapPartitionTestFixture, RemoveKeyRemovesMappedValues) {
   partition->put(k1, v1);
   partition->put(k2, v1);
   partition->put(k3, v1);
-  ASSERT_TRUE(partition->removeKey(k1));
-  ASSERT_TRUE(partition->removeKey(k2));
+  ASSERT_THAT(partition->remove(k1), Eq(1));
+  ASSERT_THAT(partition->remove(k2), Eq(1));
   ASSERT_FALSE(partition->get(k1)->hasNext());
   ASSERT_FALSE(partition->get(k2)->hasNext());
   ASSERT_TRUE(partition->get(k3)->hasNext());
 }
 
-TEST_F(MapPartitionTestFixture, RemoveKeysRemovesMappedValues) {
+TEST_F(MapPartitionTestFixture, RemoveOneKeyRemovesFirstMatch) {
+  auto partition = openOrCreateMapPartition(prefix);
+  for (const auto& key : keys) {
+    partition->put(key, values.begin(), values.end());
+  }
+  auto is_k1_or_k2 = [&](const Bytes& key) { return key == k1 || key == k2; };
+  ASSERT_THAT(partition->removeOne(is_k1_or_k2), Eq(values.size()));
+  if (partition->get(k1)->hasNext()) {
+    ASSERT_THAT(partition->get(k1)->available(), Eq(values.size()));
+    ASSERT_THAT(partition->get(k2)->available(), Eq(0));
+  }
+  if (partition->get(k2)->hasNext()) {
+    ASSERT_THAT(partition->get(k2)->available(), Eq(values.size()));
+    ASSERT_THAT(partition->get(k1)->available(), Eq(0));
+  }
+  ASSERT_THAT(partition->get(k3)->available(), Eq(values.size()));
+}
+
+TEST_F(MapPartitionTestFixture, RemoveAllKeysRemovesAllMatches) {
   auto partition = openOrCreateMapPartition(prefix);
   partition->put(k1, v1);
   partition->put(k2, v1);
   partition->put(k3, v1);
   auto is_k1_or_k2 = [&](const Bytes& key) { return key == k1 || key == k2; };
-  ASSERT_THAT(partition->removeKeys(is_k1_or_k2), Eq(2));
+  auto result = partition->removeAll(is_k1_or_k2);
+  ASSERT_THAT(result.first, Eq(2));
+  ASSERT_THAT(result.second, Eq(2));
   ASSERT_FALSE(partition->get(k1)->hasNext());
   ASSERT_FALSE(partition->get(k2)->hasNext());
   ASSERT_TRUE(partition->get(k3)->hasNext());
 }
 
-TEST_F(MapPartitionTestFixture, RemoveValueRemovesOnlyFirstMatch) {
+TEST_F(MapPartitionTestFixture, RemoveOneValueRemovesFirstMatch) {
   auto partition = openOrCreateMapPartition(prefix);
   partition->put(k1, v1);
   partition->put(k1, v2);
   partition->put(k1, v3);
-  auto is_any_value = [&](const Bytes& /* value */) { return true; };
-  ASSERT_TRUE(partition->removeValue(k1, is_any_value));
+  auto is_any = [&](const Bytes& /* value */) { return true; };
+  ASSERT_TRUE(partition->removeOne(k1, is_any));
   auto iter = partition->get(k1);
   ASSERT_THAT(iter->next(), Eq(v2));
   ASSERT_THAT(iter->next(), Eq(v3));
@@ -239,20 +261,20 @@ TEST_F(MapPartitionTestFixture, RemoveValueRemovesOnlyFirstMatch) {
   partition->put(k2, v3);
   auto is_v2_or_v3 =
       [&](const Bytes& value) { return value == v2 || value == v3; };
-  ASSERT_TRUE(partition->removeValue(k2, is_v2_or_v3));
+  ASSERT_TRUE(partition->removeOne(k2, is_v2_or_v3));
   iter = partition->get(k2);
   ASSERT_THAT(iter->next(), Eq(v1));
   ASSERT_THAT(iter->next(), Eq(v3));
   ASSERT_FALSE(iter->hasNext());
 }
 
-TEST_F(MapPartitionTestFixture, RemoveValuesRemovesAllMatches) {
+TEST_F(MapPartitionTestFixture, RemoveAllValuesRemovesAllMatches) {
   auto partition = openOrCreateMapPartition(prefix);
   partition->put(k1, v1);
   partition->put(k1, v2);
   partition->put(k1, v3);
-  auto is_any_value = [&](const Bytes& /* value */) { return true; };
-  ASSERT_THAT(partition->removeValues(k1, is_any_value), Eq(3));
+  auto is_any = [&](const Bytes& /* value */) { return true; };
+  ASSERT_THAT(partition->removeAll(k1, is_any), Eq(3));
   auto iter = partition->get(k1);
   ASSERT_FALSE(iter->hasNext());
 
@@ -261,24 +283,24 @@ TEST_F(MapPartitionTestFixture, RemoveValuesRemovesAllMatches) {
   partition->put(k2, v3);
   auto is_v2_or_v3 =
       [&](const Bytes& value) { return value == v2 || value == v3; };
-  ASSERT_TRUE(partition->removeValues(k2, is_v2_or_v3));
+  ASSERT_TRUE(partition->removeAll(k2, is_v2_or_v3));
   iter = partition->get(k2);
   ASSERT_THAT(iter->next(), Eq(v1));
   ASSERT_FALSE(iter->hasNext());
 }
 
-TEST_F(MapPartitionTestFixture, ReplaceValueReplacesOnlyFirstMatch) {
+TEST_F(MapPartitionTestFixture, ReplaceOneValueReplacesFirstMatch) {
   auto partition = openOrCreateMapPartition(prefix);
   partition->put(k1, v1);
   partition->put(k1, v2);
   partition->put(k1, v3);
-  auto rotate_any = [&](const Bytes& value) {
+  auto rotate = [&](const Bytes& value) {
     if (value == v1) return v2;
     if (value == v2) return v3;
     if (value == v3) return v1;
     return std::string();
   };
-  ASSERT_TRUE(partition->replaceValue(k1, rotate_any));
+  ASSERT_TRUE(partition->replaceOne(k1, rotate));
   auto iter = partition->get(k1);
   ASSERT_THAT(iter->next(), Eq(v2));
   ASSERT_THAT(iter->next(), Eq(v3));
@@ -293,7 +315,7 @@ TEST_F(MapPartitionTestFixture, ReplaceValueReplacesOnlyFirstMatch) {
     if (value == v3) return v1;
     return std::string();
   };
-  ASSERT_TRUE(partition->replaceValue(k2, rotate_v2_or_v3));
+  ASSERT_TRUE(partition->replaceOne(k2, rotate_v2_or_v3));
   iter = partition->get(k2);
   ASSERT_THAT(iter->next(), Eq(v1));
   ASSERT_THAT(iter->next(), Eq(v3));
@@ -301,33 +323,30 @@ TEST_F(MapPartitionTestFixture, ReplaceValueReplacesOnlyFirstMatch) {
   ASSERT_FALSE(iter->hasNext());
 }
 
-TEST_F(MapPartitionTestFixture, ReplaceValuesReplacesAllMatches) {
+TEST_F(MapPartitionTestFixture, ReplaceAllValuesReplacesAllMatches) {
   auto partition = openOrCreateMapPartition(prefix);
-  partition->put(k1, v1);
-  partition->put(k1, v2);
-  partition->put(k1, v3);
-  auto rotate_any = [&](const Bytes& value) {
+  for (const auto& key : keys) {
+    partition->put(key, values.begin(), values.end());
+  }
+  auto rotate = [&](const Bytes& value) {
     if (value == v1) return v2;
     if (value == v2) return v3;
     if (value == v3) return v1;
     return std::string();
   };
-  ASSERT_THAT(partition->replaceValues(k1, rotate_any), Eq(3));
+  ASSERT_THAT(partition->replaceAll(k1, rotate), Eq(3));
   auto iter = partition->get(k1);
   ASSERT_THAT(iter->next(), Eq(v2));  // v1 replacement
   ASSERT_THAT(iter->next(), Eq(v3));  // v2 replacement
   ASSERT_THAT(iter->next(), Eq(v1));  // v3 replacement
   ASSERT_FALSE(iter->hasNext());
 
-  partition->put(k2, v1);
-  partition->put(k2, v2);
-  partition->put(k2, v3);
   auto rotate_v2_or_v3 = [&](const Bytes& value) {
     if (value == v2) return v3;
     if (value == v3) return v1;
     return std::string();
   };
-  ASSERT_THAT(partition->replaceValues(k2, rotate_v2_or_v3), Eq(2));
+  ASSERT_THAT(partition->replaceAll(k2, rotate_v2_or_v3), Eq(2));
   iter = partition->get(k2);
   ASSERT_THAT(iter->next(), Eq(v1));
   ASSERT_THAT(iter->next(), Eq(v3));  // v2 replacement
@@ -346,17 +365,17 @@ TEST_F(MapPartitionTestFixture, ForEachKeyIgnoresEmptyLists) {
   ASSERT_THAT(keys, UnorderedElementsAre(k1, k2, k3));
 
   keys.clear();
-  partition->removeKey(k1);
+  partition->remove(k1);
   partition->forEachKey(collect);
   ASSERT_THAT(keys, UnorderedElementsAre(k2, k3));
 
   keys.clear();
-  partition->removeKey(k2);
+  partition->remove(k2);
   partition->forEachKey(collect);
   ASSERT_THAT(keys, UnorderedElementsAre(k3));
 
   keys.clear();
-  partition->removeKey(k3);
+  partition->remove(k3);
   partition->forEachKey(collect);
   ASSERT_TRUE(keys.empty());
 
@@ -366,20 +385,20 @@ TEST_F(MapPartitionTestFixture, ForEachKeyIgnoresEmptyLists) {
   partition->forEachKey(collect);
   ASSERT_THAT(keys, UnorderedElementsAre(k1, k2, k3));
 
-  auto any_value = [](const Bytes& /* value */) { return true; };
+  auto is_any = [](const Bytes& /* value */) { return true; };
 
   keys.clear();
-  partition->removeValues(k1, any_value);
+  partition->removeAll(k1, is_any);
   partition->forEachKey(collect);
   ASSERT_THAT(keys, UnorderedElementsAre(k2, k3));
 
   keys.clear();
-  partition->removeValues(k2, any_value);
+  partition->removeAll(k2, is_any);
   partition->forEachKey(collect);
   ASSERT_THAT(keys, UnorderedElementsAre(k3));
 
   keys.clear();
-  partition->removeValues(k3, any_value);
+  partition->removeAll(k3, is_any);
   partition->forEachKey(collect);
   ASSERT_TRUE(keys.empty());
 }
@@ -424,7 +443,7 @@ TEST_F(MapPartitionTestFixture, ForEachEntryIgnoresEmptyLists) {
   ASSERT_THAT(mapping.at(k3), ElementsAre(v1, v2, v3));
 
   mapping.clear();
-  partition->removeValues(k2, [](const Bytes& /* value */) { return true; });
+  partition->removeAll(k2, [](const Bytes& /* value */) { return true; });
   partition->forEachEntry(collect);
   ASSERT_THAT(mapping.size(), Eq(2));
   ASSERT_THAT(mapping.at(k1), ElementsAre(v1));
@@ -463,7 +482,7 @@ TEST_F(MapPartitionTestFixture, GetStatsReturnsCorrectValues) {
   ASSERT_THAT(stats.num_values_total, Eq(15));
   ASSERT_THAT(stats.num_values_valid, Eq(15));
 
-  partition->removeKey("kkkkk");
+  partition->remove("kkkkk");
   stats = partition->getStats();
   ASSERT_THAT(stats.block_size, Eq(MapPartition::Options().block_size));
   ASSERT_THAT(stats.key_size_avg, Eq(2));
@@ -498,8 +517,8 @@ TEST_F(MapPartitionTestFixture, GetStatsReturnsCorrectValuesAfterRemovingKeys) {
     partition->put("kkkkk", "v");
     partition->put("kkkkk", "v");
 
-    partition->removeKey("k");
-    partition->removeKeys([](const Bytes& key) { return key == "kk"; });
+    partition->remove("k");
+    partition->removeOne([](const Bytes& key) { return key == "kk"; });
 
     const auto stats = partition->getStats();
     ASSERT_THAT(stats.num_keys_total, Eq(5));
@@ -536,9 +555,8 @@ TEST_F(MapPartitionTestFixture,
     partition->put("kkkkk", "v");
     partition->put("kkkkk", "v");
 
-    partition->removeValue("k", Equal("vvvvv"));
-    partition->removeValues("kk",
-                            [](const Bytes& val) { return val == "vvvv"; });
+    partition->removeOne("k", Equal("vvvvv"));
+    partition->removeAll("kk", [](const Bytes& val) { return val == "vvvv"; });
 
     const auto stats = partition->getStats();
     ASSERT_THAT(stats.num_keys_total, Eq(5));
@@ -573,34 +591,41 @@ TEST_F(MapPartitionTestFixture, PutThrowsIfOpenedAsReadOnly) {
 
 TEST_F(MapPartitionTestFixture, RemoveKeyThrowsIfOpenedAsReadOnly) {
   auto partition = openOrCreateMapPartitionAsReadOnly(prefix);
-  ASSERT_THROW(partition->removeKey(k1), std::runtime_error);
+  ASSERT_THROW(partition->remove(k1), std::runtime_error);
 }
 
-TEST_F(MapPartitionTestFixture, RemoveKeysThrowsIfOpenedAsReadOnly) {
+TEST_F(MapPartitionTestFixture, RemoveOneKeyThrowsIfOpenedAsReadOnly) {
   auto partition = openOrCreateMapPartitionAsReadOnly(prefix);
   ASSERT_THROW(
-      partition->removeKeys([](const Bytes& /* key */) { return true; }),
+      partition->removeOne([](const Bytes& /* key */) { return true; }),
+      std::runtime_error);
+}
+
+TEST_F(MapPartitionTestFixture, RemoveAllKeysThrowsIfOpenedAsReadOnly) {
+  auto partition = openOrCreateMapPartitionAsReadOnly(prefix);
+  ASSERT_THROW(
+      partition->removeAll([](const Bytes& /* key */) { return true; }),
       std::runtime_error);
 }
 
 TEST_F(MapPartitionTestFixture, RemoveValueThrowsIfOpenedAsReadOnly) {
   auto partition = openOrCreateMapPartitionAsReadOnly(prefix);
-  ASSERT_THROW(partition->removeValue(k1, Equal(v1)), std::runtime_error);
+  ASSERT_THROW(partition->removeOne(k1, Equal(v1)), std::runtime_error);
 }
 
 TEST_F(MapPartitionTestFixture, RemoveValuesThrowsIfOpenedAsReadOnly) {
   auto partition = openOrCreateMapPartitionAsReadOnly(prefix);
-  ASSERT_THROW(partition->removeValues(k1, Equal(v1)), std::runtime_error);
+  ASSERT_THROW(partition->removeAll(k1, Equal(v1)), std::runtime_error);
 }
 
 TEST_F(MapPartitionTestFixture, ReplaceValueThrowsIfOpenedAsReadOnly) {
   auto partition = openOrCreateMapPartitionAsReadOnly(prefix);
-  ASSERT_THROW(partition->replaceValue(k1, v1, v2), std::runtime_error);
+  ASSERT_THROW(partition->replaceOne(k1, v1, v2), std::runtime_error);
 }
 
 TEST_F(MapPartitionTestFixture, ReplaceValuesThrowsIfOpenedAsReadOnly) {
   auto partition = openOrCreateMapPartitionAsReadOnly(prefix);
-  ASSERT_THROW(partition->replaceValues(k1, v1, v2), std::runtime_error);
+  ASSERT_THROW(partition->replaceAll(k1, v1, v2), std::runtime_error);
 }
 
 TEST_F(MapPartitionTestFixture, GetBlockSizeReturnsCorrectValue) {
@@ -669,7 +694,7 @@ TEST_P(MapPartitionTestWithParam, PutDataThenRemoveSomeThenReadAll) {
     for (auto k = 0; k != GetParam(); ++k) {
       const auto key = std::to_string(k);
       if (is_odd(key)) {
-        partition->removeValues(key, is_odd);
+        partition->removeAll(key, is_odd);
       }
     }
 
@@ -763,7 +788,7 @@ TEST_F(MapPartitionTestFixture, RemoveKeyBlocksIfListIsLocked) {
     auto iter = partition->get(k1);
     ASSERT_TRUE(iter->hasNext());
     std::thread thread([&] {
-      partition->removeKey(k1);
+      partition->remove(k1);
       thread_is_running = false;
     });
     thread.detach();
@@ -774,7 +799,7 @@ TEST_F(MapPartitionTestFixture, RemoveKeyBlocksIfListIsLocked) {
   ASSERT_FALSE(thread_is_running);
 }
 
-TEST_F(MapPartitionTestFixture, RemoveKeysBlocksIfListIsLocked) {
+TEST_F(MapPartitionTestFixture, RemoveOneKeyBlocksIfListIsLocked) {
   auto partition = openOrCreateMapPartition(prefix);
   partition->put(k1, v1);
   auto thread_is_running = true;
@@ -782,7 +807,26 @@ TEST_F(MapPartitionTestFixture, RemoveKeysBlocksIfListIsLocked) {
     auto iter = partition->get(k1);
     ASSERT_TRUE(iter->hasNext());
     std::thread thread([&] {
-      partition->removeKeys(TRUE_PREDICATE);
+      partition->removeOne(TRUE_PREDICATE);
+      thread_is_running = false;
+    });
+    thread.detach();
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    ASSERT_TRUE(thread_is_running);
+  }
+  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  ASSERT_FALSE(thread_is_running);
+}
+
+TEST_F(MapPartitionTestFixture, RemoveAllKeysBlocksIfListIsLocked) {
+  auto partition = openOrCreateMapPartition(prefix);
+  partition->put(k1, v1);
+  auto thread_is_running = true;
+  {
+    auto iter = partition->get(k1);
+    ASSERT_TRUE(iter->hasNext());
+    std::thread thread([&] {
+      partition->removeAll(TRUE_PREDICATE);
       thread_is_running = false;
     });
     thread.detach();
@@ -801,7 +845,7 @@ TEST_F(MapPartitionTestFixture, RemoveValueBlocksIfListIsLocked) {
     auto iter = partition->get(k1);
     ASSERT_TRUE(iter->hasNext());
     std::thread thread([&] {
-      partition->removeValue(k1, TRUE_PREDICATE);
+      partition->removeOne(k1, TRUE_PREDICATE);
       thread_is_running = false;
     });
     thread.detach();
@@ -820,7 +864,7 @@ TEST_F(MapPartitionTestFixture, RemoveValuesBlocksIfListIsLocked) {
     auto iter = partition->get(k1);
     ASSERT_TRUE(iter->hasNext());
     std::thread thread([&] {
-      partition->removeValues(k1, TRUE_PREDICATE);
+      partition->removeAll(k1, TRUE_PREDICATE);
       thread_is_running = false;
     });
     thread.detach();
@@ -839,7 +883,7 @@ TEST_F(MapPartitionTestFixture, ReplaceValueBlocksIfListIsLocked) {
     auto iter = partition->get(k1);
     ASSERT_TRUE(iter->hasNext());
     std::thread thread([&] {
-      partition->replaceValue(k1, EMPTY_FUNCTION);
+      partition->replaceOne(k1, EMPTY_FUNCTION);
       thread_is_running = false;
     });
     thread.detach();
@@ -858,7 +902,7 @@ TEST_F(MapPartitionTestFixture, ReplaceValuesBlocksIfListIsLocked) {
     auto iter = partition->get(k1);
     ASSERT_TRUE(iter->hasNext());
     std::thread thread([&] {
-      partition->replaceValues(k1, EMPTY_FUNCTION);
+      partition->replaceAll(k1, EMPTY_FUNCTION);
       thread_is_running = false;
     });
     thread.detach();

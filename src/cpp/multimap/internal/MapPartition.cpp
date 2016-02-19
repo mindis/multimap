@@ -47,10 +47,12 @@ MapPartition::MapPartition(const boost::filesystem::path& file_prefix,
     const auto keys_filename = getNameOfKeysFile(prefix_.string());
     const auto keys_input = mt::fopen(keys_filename, "r");
     for (size_t i = 0; i != stats_.num_keys_valid; ++i) {
-      const auto entry = Entry::readFromStream(keys_input.get(), &arena_);
-      map_[entry.key()].reset(new List(entry.head()));
-      stats_.num_values_total -= entry.head().num_values_total;
-      stats_.num_values_valid -= entry.head().num_values_valid();
+      auto key = readBytesFromStream(
+          keys_input.get(), [this](int size) { return arena_.allocate(size); });
+      auto list = List::readFromStream(keys_input.get());
+      stats_.num_values_total -= list->getStatsUnlocked().num_values_total;
+      stats_.num_values_valid -= list->getStatsUnlocked().num_values_valid();
+      map_.emplace(key, std::move(list));
     }
 
     // Reset stats, but preserve number of total and valid values.
@@ -78,34 +80,38 @@ MapPartition::~MapPartition() {
       boost::filesystem::rename(keys_file, old_keys_file);
     }
 
+    List::Stats list_stats;
     const auto stream = mt::fopen(keys_file, "w");
     for (const auto& entry : map_) {
-      const auto& key = entry.first;
-      const auto& list = entry.second.get();
-      if (list->is_locked()) {
+      auto& key = entry.first;
+      auto& list = *entry.second;
+      if (list.tryFlush(store_.get(), &list_stats)) {
+        // Ok, everything is fine.
+      } else {
         const auto key_as_base64 = Base64::encode(key);
         mt::log() << "The list with the key " << key_as_base64
-                  << " (Base64) was still locked when shutting down."
-                  << " Recent updates of the list may be lost.\n";
+                  << " (Base64) was still locked when shutting down.\n"
+                  << " The last known state of the list has been safed,"
+                  << " but ongoing updates, if any, may be lost.\n";
+        list.flushUnlocked(store_.get(), &list_stats);
       }
-      // We do not skip or even throw if a list is still locked to prevent data
-      // loss. However, this causes a race which could let the program crash...
-      list->flush(store_.get());
-      stats_.num_values_total += list->head().num_values_total;
-      stats_.num_values_valid += list->head().num_values_valid();
-      if (!list->empty()) {
+      stats_.num_values_total += list_stats.num_values_total;
+      stats_.num_values_valid += list_stats.num_values_valid();
+      const auto list_size = list_stats.num_values_valid();
+      if (list_size != 0) {
         ++stats_.num_keys_valid;
         stats_.key_size_avg += key.size();
         stats_.key_size_max = mt::max(stats_.key_size_max, key.size());
         stats_.key_size_min = stats_.key_size_min
                                   ? mt::min(stats_.key_size_min, key.size())
                                   : key.size();
-        stats_.list_size_avg += list->size();
-        stats_.list_size_max = mt::max(stats_.list_size_max, list->size());
+        stats_.list_size_avg += list_size;
+        stats_.list_size_max = mt::max(stats_.list_size_max, list_size);
         stats_.list_size_min = stats_.list_size_min
-                                   ? mt::min(stats_.list_size_min, list->size())
-                                   : list->size();
-        Entry(key, list->head()).writeToStream(stream.get());
+                                   ? mt::min(stats_.list_size_min, list_size)
+                                   : list_size;
+        writeBytesToStream(key, stream.get());
+        list.writeToStream(stream.get());
       }
     }
     if (stats_.num_keys_valid) {
@@ -128,23 +134,25 @@ MapPartition::~MapPartition() {
 Stats MapPartition::getStats() const {
   boost::shared_lock<boost::shared_mutex> lock(mutex_);
   Stats stats = stats_;
+  List::Stats list_stats;
   for (const auto& entry : map_) {
-    if (auto list = SharedList(*entry.second, *store_, std::try_to_lock)) {
-      stats.num_values_total += list.head().num_values_total;
-      stats.num_values_valid += list.head().num_values_valid();
-      if (!list.empty()) {
+    if (entry.second->tryGetStats(&list_stats)) {
+      stats.num_values_total += list_stats.num_values_total;
+      stats.num_values_valid += list_stats.num_values_valid();
+      const auto list_size = list_stats.num_values_valid();
+      if (list_size != 0) {
         const auto& key = entry.first;
-        ++stats.num_keys_valid;
+        stats.num_keys_valid++;
         stats.key_size_avg += key.size();
         stats.key_size_max = mt::max(stats.key_size_max, key.size());
         stats.key_size_min = stats.key_size_min
                                  ? mt::min(stats.key_size_min, key.size())
                                  : key.size();
-        stats.list_size_avg += list.size();
-        stats.list_size_max = mt::max(stats.list_size_max, list.size());
+        stats.list_size_avg += list_size;
+        stats.list_size_max = mt::max(stats.list_size_max, list_size);
         stats.list_size_min = stats.list_size_min
-                                  ? mt::min(stats.list_size_min, list.size())
-                                  : list.size();
+                                  ? mt::min(stats.list_size_min, list_size)
+                                  : list_size;
       }
     }
   }
@@ -170,13 +178,14 @@ std::string MapPartition::getNameOfValuesFile(const std::string& prefix) {
   return prefix + ".values";
 }
 
+/*
 MapPartition::Entry MapPartition::Entry::readFromStream(std::FILE* stream,
                                                         Arena* arena) {
   uint32_t key_size;
   mt::fread(stream, &key_size, sizeof key_size);
   const auto key_data = arena->allocate(key_size);
   mt::fread(stream, key_data, key_size);
-  auto head = List::Head::readFromStream(stream);
+  auto head = List::Stats::readFromStream(stream);
   return Entry(Bytes(key_data, key_size), std::move(head));
 }
 
@@ -187,7 +196,8 @@ void MapPartition::Entry::writeToStream(std::FILE* stream) const {
   mt::fwrite(stream, key().data(), key().size());
   head().writeToStream(stream);
 }
-
+*/
+/*
 SharedList MapPartition::getSharedList(const Bytes& key) const {
   List* list = nullptr;
   {
@@ -234,6 +244,6 @@ ExclusiveList MapPartition::getOrCreateUniqueList(const Bytes& key) {
   // `mutex_` is unlocked now.
   return ExclusiveList(list, store_.get(), &arena_);
 }
-
+*/
 }  // namespace internal
 }  // namespace multimap
