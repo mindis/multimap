@@ -40,6 +40,9 @@ Partition::Partition(const boost::filesystem::path& file_prefix,
                      const Options& options)
     : prefix_(file_prefix) {
   Store::Options store_options;
+  store_options.readonly = options.readonly;
+  store_options.block_size = options.block_size;
+  store_options.buffer_size = options.buffer_size;
   const auto stats_filename = getNameOfStatsFile(prefix_.string());
   if (boost::filesystem::is_regular_file(stats_filename)) {
     stats_ = Stats::readFromFile(stats_filename);
@@ -66,9 +69,6 @@ Partition::Partition(const boost::filesystem::path& file_prefix,
                       "MapPartition with prefix '%s' does not exist",
                       boost::filesystem::absolute(file_prefix).c_str());
   }
-
-  store_options.readonly = options.readonly;
-  store_options.buffer_size = options.buffer_size;
   store_.reset(new Store(getNameOfValuesFile(prefix_.string()), store_options));
 }
 
