@@ -25,6 +25,7 @@
 #include <boost/thread/shared_mutex.hpp>
 #include "multimap/internal/Arena.hpp"
 #include "multimap/internal/List.hpp"
+#include "multimap/internal/Locks.hpp"
 #include "multimap/internal/Stats.hpp"
 #include "multimap/thirdparty/mt/mt.hpp"
 #include "multimap/Iterator.hpp"
@@ -79,8 +80,8 @@ class Partition : public mt::Resource {
   template <typename Predicate>
   uint32_t removeOne(Predicate predicate) {
     mt::Check::isFalse(isReadOnly(), ATTEMPT_TO_MODIFY_READ_ONLY_PARTITION);
+    WriterLockGuard<boost::shared_mutex> lock(mutex_);
     uint32_t num_values_removed = 0;
-    boost::shared_lock<boost::shared_mutex> lock(mutex_);
     for (const auto& entry : map_) {
       if (predicate(entry.first)) {
         num_values_removed += entry.second->clear();
@@ -93,9 +94,9 @@ class Partition : public mt::Resource {
   template <typename Predicate>
   std::pair<uint32_t, uint32_t> removeAll(Predicate predicate) {
     mt::Check::isFalse(isReadOnly(), ATTEMPT_TO_MODIFY_READ_ONLY_PARTITION);
+    WriterLockGuard<boost::shared_mutex> lock(mutex_);
     uint32_t num_keys_removed = 0;
     uint32_t num_values_removed = 0;
-    boost::shared_lock<boost::shared_mutex> lock(mutex_);
     for (const auto& entry : map_) {
       if (predicate(entry.first)) {
         num_values_removed += entry.second->clear();
@@ -149,7 +150,7 @@ class Partition : public mt::Resource {
 
   template <typename Procedure>
   void forEachKey(Procedure process) const {
-    boost::shared_lock<boost::shared_mutex> lock(mutex_);
+    ReaderLockGuard<boost::shared_mutex> lock(mutex_);
     for (const auto& entry : map_) {
       if (!entry.second->empty()) {
         process(entry.first);
@@ -169,7 +170,7 @@ class Partition : public mt::Resource {
 
   template <typename BinaryProcedure>
   void forEachEntry(BinaryProcedure process) const {
-    boost::shared_lock<boost::shared_mutex> lock(mutex_);
+    ReaderLockGuard<boost::shared_mutex> lock(mutex_);
     store_->adviseAccessPattern(Store::AccessPattern::WILLNEED);
     for (const auto& entry : map_) {
       auto iter = entry.second->newIterator(*store_);
@@ -239,18 +240,14 @@ class Partition : public mt::Resource {
   }
 
   List* getList(const Bytes& key) const {
-    boost::shared_lock<boost::shared_mutex> lock(mutex_);
-    return getListUnlocked(key);
-  }
-
-  List* getListUnlocked(const Bytes& key) const {
+    ReaderLockGuard<boost::shared_mutex> lock(mutex_);
     const auto iter = map_.find(key);
     return (iter != map_.end()) ? iter->second.get() : nullptr;
   }
 
   List* getListOrCreate(const Bytes& key) {
     MT_REQUIRE_LE(key.size(), Limits::maxKeySize());
-    std::lock_guard<boost::shared_mutex> lock(mutex_);
+    WriterLockGuard<boost::shared_mutex> lock(mutex_);
     const auto emplace_result = map_.emplace(key, std::unique_ptr<List>());
     if (emplace_result.second) {
       // Overrides the inserted key with a new deep copy.
