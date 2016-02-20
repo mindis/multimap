@@ -69,7 +69,7 @@ SOURCES += \
     src/cpp/multimap/internal/Base64Test.cpp \
     src/cpp/multimap/internal/BlockTest.cpp \
     src/cpp/multimap/internal/ListTest.cpp \
-    src/cpp/multimap/internal/MapPartitionTest.cpp \
+    src/cpp/multimap/internal/PartitionTest.cpp \
     src/cpp/multimap/internal/StoreTest.cpp \
     src/cpp/multimap/internal/UintVectorTest.cpp \
     src/cpp/multimap/internal/VarintTest.cpp \

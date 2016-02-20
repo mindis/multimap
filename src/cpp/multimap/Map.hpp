@@ -26,7 +26,7 @@
 #include <vector>
 #include <boost/filesystem/path.hpp>
 #include "multimap/thirdparty/mt/mt.hpp"
-#include "multimap/internal/MapPartition.hpp"
+#include "multimap/internal/Partition.hpp"
 #include "multimap/internal/Stats.hpp"
 #include "multimap/Iterator.hpp"
 #include "multimap/Options.hpp"
@@ -183,17 +183,17 @@ class Map : public mt::Resource {
                        const Options& options);
 
  private:
-  internal::MapPartition* getPartition(const Bytes& key) {
+  internal::Partition* getPartition(const Bytes& key) {
     const auto hash = mt::fnv1aHash(key.data(), key.size());
     return partitions_[hash % partitions_.size()].get();
   }
 
-  const internal::MapPartition* getPartition(const Bytes& key) const {
+  const internal::Partition* getPartition(const Bytes& key) const {
     const auto hash = mt::fnv1aHash(key.data(), key.size());
     return partitions_[hash % partitions_.size()].get();
   }
 
-  std::vector<std::unique_ptr<internal::MapPartition> > partitions_;
+  std::vector<std::unique_ptr<internal::Partition> > partitions_;
   mt::DirectoryLockGuard lock_;
 };
 

@@ -37,7 +37,7 @@ Partition::Partition(const boost::filesystem::path& file_prefix)
     : Partition(file_prefix, Options()) {}
 
 Partition::Partition(const boost::filesystem::path& file_prefix,
-                           const Options& options)
+                     const Options& options)
     : prefix_(file_prefix) {
   Store::Options store_options;
   const auto stats_filename = getNameOfStatsFile(prefix_.string());

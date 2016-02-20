@@ -65,11 +65,11 @@ void Map::Id::writeToFile(const boost::filesystem::path& file) const {
 }
 
 uint32_t Map::Limits::maxKeySize() {
-  return internal::MapPartition::Limits::maxKeySize();
+  return internal::Partition::Limits::maxKeySize();
 }
 
 uint32_t Map::Limits::maxValueSize() {
-  return internal::MapPartition::Limits::maxValueSize();
+  return internal::Partition::Limits::maxValueSize();
 }
 
 Map::Map(const boost::filesystem::path& directory)
@@ -78,7 +78,7 @@ Map::Map(const boost::filesystem::path& directory)
 Map::Map(const boost::filesystem::path& directory, const Options& options)
     : lock_(directory, internal::getNameOfLockFile()) {
   checkOptions(options);
-  internal::MapPartition::Options part_options;
+  internal::Partition::Options part_options;
   const auto id_filename = directory / internal::getNameOfIdFile();
   if (boost::filesystem::is_regular_file(id_filename)) {
     mt::Check::isFalse(options.error_if_exists, "Map in '%s' already exists",
@@ -99,7 +99,7 @@ Map::Map(const boost::filesystem::path& directory, const Options& options)
   part_options.create_if_missing = options.create_if_missing;
   for (size_t i = 0; i != partitions_.size(); ++i) {
     const auto prefix = directory / internal::getTablePrefix(i);
-    partitions_[i].reset(new internal::MapPartition(prefix, part_options));
+    partitions_[i].reset(new internal::Partition(prefix, part_options));
   }
 }
 
@@ -226,7 +226,7 @@ void Map::exportToBase64(const boost::filesystem::path& directory,
     forEachTable(directory, [&](const boost::filesystem::path& prefix,
                                 size_t index, size_t npartitions) {
       print_status(index, npartitions);
-      internal::MapPartition::forEachEntry(prefix, [&](const Bytes& key,
+      internal::Partition::forEachEntry(prefix, [&](const Bytes& key,
                                                        Iterator* iter) {
         sorted_values.clear();
         sorted_values.reserve(iter->available());
@@ -249,7 +249,7 @@ void Map::exportToBase64(const boost::filesystem::path& directory,
     forEachTable(directory, [&](const boost::filesystem::path& prefix,
                                 size_t index, size_t npartitions) {
       print_status(index, npartitions);
-      internal::MapPartition::forEachEntry(
+      internal::Partition::forEachEntry(
           prefix, [&](const Bytes& key, Iterator* iter) {
             internal::Base64::encode(key, &base64_key);
             stream << base64_key;
@@ -298,7 +298,7 @@ void Map::optimize(const boost::filesystem::path& directory,
 
     if (options.compare) {
       std::vector<std::string> sorted_values;
-      internal::MapPartition::forEachEntry(prefix, [&](const Bytes& key,
+      internal::Partition::forEachEntry(prefix, [&](const Bytes& key,
                                                        Iterator* iter) {
         sorted_values.clear();
         sorted_values.reserve(iter->available());
@@ -311,7 +311,7 @@ void Map::optimize(const boost::filesystem::path& directory,
         }
       });
     } else {
-      internal::MapPartition::forEachEntry(
+      internal::Partition::forEachEntry(
           prefix, [&](const Bytes& key, Iterator* iter) {
             while (iter->hasNext()) {
               new_map->put(key, iter->next());
@@ -334,15 +334,15 @@ const std::string getTablePrefix(uint32_t index) {
 }
 
 const std::string getNameOfKeysFile(uint32_t index) {
-  return MapPartition::getNameOfKeysFile(getTablePrefix(index));
+  return Partition::getNameOfKeysFile(getTablePrefix(index));
 }
 
 const std::string getNameOfStatsFile(uint32_t index) {
-  return MapPartition::getNameOfStatsFile(getTablePrefix(index));
+  return Partition::getNameOfStatsFile(getTablePrefix(index));
 }
 
 const std::string getNameOfValuesFile(uint32_t index) {
-  return MapPartition::getNameOfValuesFile(getTablePrefix(index));
+  return Partition::getNameOfValuesFile(getTablePrefix(index));
 }
 
 void checkVersion(uint64_t major_version, uint64_t minor_version) {

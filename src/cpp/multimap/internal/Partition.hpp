@@ -50,8 +50,7 @@ class Partition : public mt::Resource {
 
   explicit Partition(const boost::filesystem::path& file_prefix);
 
-  Partition(const boost::filesystem::path& file_prefix,
-               const Options& options);
+  Partition(const boost::filesystem::path& file_prefix, const Options& options);
 
   ~Partition();
 

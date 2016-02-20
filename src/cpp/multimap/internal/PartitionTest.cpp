@@ -29,9 +29,8 @@ using testing::Eq;
 using testing::ElementsAre;
 using testing::UnorderedElementsAre;
 
-std::unique_ptr<Partition> openPartition(
-    const boost::filesystem::path& prefix,
-    const Partition::Options& options) {
+std::unique_ptr<Partition> openPartition(const boost::filesystem::path& prefix,
+                                         const Partition::Options& options) {
   return std::unique_ptr<Partition>(new Partition(prefix, options));
 }
 
@@ -535,8 +534,7 @@ TEST_F(PartitionTestFixture, GetStatsReturnsCorrectValuesAfterRemovingKeys) {
   ASSERT_THAT(stats.num_values_valid, Eq(12));
 }
 
-TEST_F(PartitionTestFixture,
-       GetStatsReturnsCorrectValuesAfterRemovingValues) {
+TEST_F(PartitionTestFixture, GetStatsReturnsCorrectValuesAfterRemovingValues) {
   {
     auto partition = openOrCreatePartition(prefix);
     partition->put("k", "vvvvv");
@@ -630,8 +628,7 @@ TEST_F(PartitionTestFixture, ReplaceValuesThrowsIfOpenedAsReadOnly) {
 
 TEST_F(PartitionTestFixture, GetBlockSizeReturnsCorrectValue) {
   auto partition = openOrCreatePartition(prefix);
-  ASSERT_THAT(partition->getBlockSize(),
-              Eq(Partition::Options().block_size));
+  ASSERT_THAT(partition->getBlockSize(), Eq(Partition::Options().block_size));
 }
 
 // -----------------------------------------------------------------------------

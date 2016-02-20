@@ -16,7 +16,7 @@ HEADERS += \
     src/cpp/multimap/internal/Block.hpp \
     src/cpp/multimap/internal/List.hpp \
     src/cpp/multimap/internal/Locks.hpp \
-    src/cpp/multimap/internal/MapPartition.hpp \
+    src/cpp/multimap/internal/Partition.hpp \
     src/cpp/multimap/internal/SharedMutex.hpp \
     src/cpp/multimap/internal/Stats.hpp \
     src/cpp/multimap/internal/Store.hpp \
@@ -35,7 +35,7 @@ SOURCES += \
     src/cpp/multimap/internal/Arena.cpp \
     src/cpp/multimap/internal/Base64.cpp \
     src/cpp/multimap/internal/List.cpp \
-    src/cpp/multimap/internal/MapPartition.cpp \
+    src/cpp/multimap/internal/Partition.cpp \
     src/cpp/multimap/internal/SharedMutex.cpp \
     src/cpp/multimap/internal/Stats.cpp \
     src/cpp/multimap/internal/Store.cpp \
