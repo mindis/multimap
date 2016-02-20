@@ -18,7 +18,7 @@
 #ifndef MULTIMAP_INTERNAL_LOCKS_HPP_INCLUDED
 #define MULTIMAP_INTERNAL_LOCKS_HPP_INCLUDED
 
-#include <mutex>
+#include <boost/thread/lock_guard.hpp>
 #include <boost/thread/lock_types.hpp>
 #include <boost/thread/shared_lock_guard.hpp>
 
@@ -32,10 +32,12 @@ template <typename SharedMutex>
 using ReaderLockGuard = boost::shared_lock_guard<SharedMutex>;
 
 template <typename SharedMutex>
-using WriterLock = std::unique_lock<SharedMutex>;
+using WriterLock = boost::unique_lock<SharedMutex>;
 
 template <typename SharedMutex>
-using WriterLockGuard = std::lock_guard<SharedMutex>;
+using WriterLockGuard = boost::lock_guard<SharedMutex>;
+
+constexpr boost::try_to_lock_t TRY_TO_LOCK{};
 
 }  // namespace internal
 }  // namespace multimap
