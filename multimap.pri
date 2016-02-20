@@ -15,6 +15,7 @@ HEADERS += \
     src/cpp/multimap/internal/Base64.hpp \
     src/cpp/multimap/internal/Block.hpp \
     src/cpp/multimap/internal/List.hpp \
+    src/cpp/multimap/internal/Locks.hpp \
     src/cpp/multimap/internal/MapPartition.hpp \
     src/cpp/multimap/internal/SharedMutex.hpp \
     src/cpp/multimap/internal/Stats.hpp \
