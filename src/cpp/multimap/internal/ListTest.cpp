@@ -326,16 +326,19 @@ TEST(ListTest, WriterBlocksWriter) {
 
   // First writer
   std::thread writer1([&] {
-    list.removeOne([](const Bytes& /* value */) {
+    const auto removed = list.removeOne([](const Bytes& /* value */) {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
       return false;
     }, &store);
+    ASSERT_FALSE(removed);
   });
 
   // Second writer
   bool second_writer_has_finished = false;
   std::thread writer2([&] {
-    list.removeOne([](const Bytes& /* value */) { return false; }, &store);
+    const auto removed =
+        list.removeOne([](const Bytes& /* value */) { return false; }, &store);
+    ASSERT_FALSE(removed);
     second_writer_has_finished = true;
   });
 
