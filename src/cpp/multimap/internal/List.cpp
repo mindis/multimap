@@ -31,6 +31,7 @@ std::unique_ptr<List> List::readFromStream(std::FILE* stream) {
 }
 
 void List::readFromStream(std::FILE* stream, List* list) {
+  WriterLockGuard<SharedMutex> lock(list->mutex_);
   mt::fread(stream, &list->stats_.num_values_total,
             sizeof list->stats_.num_values_total);
   mt::fread(stream, &list->stats_.num_values_removed,
@@ -39,6 +40,7 @@ void List::readFromStream(std::FILE* stream, List* list) {
 }
 
 void List::writeToStream(std::FILE* stream) const {
+  ReaderLockGuard<SharedMutex> lock(mutex_);
   mt::fwrite(stream, &stats_.num_values_total, sizeof stats_.num_values_total);
   mt::fwrite(stream, &stats_.num_values_removed,
              sizeof stats_.num_values_removed);

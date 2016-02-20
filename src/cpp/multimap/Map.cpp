@@ -79,6 +79,10 @@ Map::Map(const boost::filesystem::path& directory, const Options& options)
     : lock_(directory, internal::getNameOfLockFile()) {
   checkOptions(options);
   internal::Partition::Options part_options;
+  part_options.readonly = options.readonly;
+  part_options.block_size = options.block_size;
+  part_options.buffer_size = options.buffer_size;
+  part_options.create_if_missing = options.create_if_missing;
   const auto id_filename = directory / internal::getNameOfIdFile();
   if (boost::filesystem::is_regular_file(id_filename)) {
     mt::Check::isFalse(options.error_if_exists, "Map in '%s' already exists",
@@ -92,11 +96,6 @@ Map::Map(const boost::filesystem::path& directory, const Options& options)
                       boost::filesystem::absolute(directory).c_str());
     partitions_.resize(mt::nextPrime(options.num_partitions));
   }
-
-  part_options.readonly = options.readonly;
-  part_options.block_size = options.block_size;
-  part_options.buffer_size = options.buffer_size;
-  part_options.create_if_missing = options.create_if_missing;
   for (size_t i = 0; i != partitions_.size(); ++i) {
     const auto prefix = directory / internal::getTablePrefix(i);
     partitions_[i].reset(new internal::Partition(prefix, part_options));

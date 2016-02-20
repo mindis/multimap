@@ -153,7 +153,7 @@ class List : public mt::Resource {
   }
 
   bool tryGetStats(Stats* stats) const {
-    ReaderLock<SharedMutex> lock(mutex_, boost::try_to_lock);
+    ReaderLock<SharedMutex> lock(mutex_, TRY_TO_LOCK);
     return lock ? (*stats = getStatsUnlocked(), true) : false;
   }
 
@@ -165,7 +165,7 @@ class List : public mt::Resource {
   }
 
   bool tryFlush(Store* store, Stats* stats = nullptr) {
-    WriterLock<SharedMutex> lock(mutex_, std::try_to_lock);
+    WriterLock<SharedMutex> lock(mutex_, TRY_TO_LOCK);
     return lock ? (flushUnlocked(store, stats), true) : false;
   }
 
