@@ -38,7 +38,7 @@ class List : public mt::Resource {
   // simultaneous instances. The following patterns were applied:
   //
   //   * Dependency injection, e.g. for `List::append()`.
-  //   * `List::mutex_` is allocated only on demand.
+  //   * Mutex allocation only on demand using class SharedMutex.
 
  public:
   struct Limits {
@@ -420,20 +420,7 @@ class List : public mt::Resource {
     return std::unique_ptr<SharedIterator>(new SharedIterator(*this, store));
   }
 
-  // ---------------------------------------------------------------------------
-  // Not thread-safe interface
-
   void appendUnlocked(const Bytes& value, Store* store, Arena* arena);
-
-  /*
-  struct MutexPoolConfig {
-    static uint32_t getDefaultSize();
-    static uint32_t getCurrentSize();
-    static uint32_t getMaximumSize();
-    static void setMaximumSize(uint32_t size);
-    MutexPoolConfig() = delete;
-  };
-  */
 
   Stats stats_;
   UintVector block_ids_;
@@ -461,174 +448,6 @@ inline List::Iter<false>::~Iter() {
   list_->mutex_.unlock_shared();
 }
 
-/*
-class SharedList : public mt::Resource {
- public:
-  typedef List::Iterator Iterator;
-
-  SharedList() = default;
-
-  SharedList(const List& list, const Store& store)
-      : list_(&list), store_(&store) {
-    list_->lock_shared();
-  }
-
-  SharedList(const List& list, const Store& store, std::try_to_lock_t) {
-    if (list.try_lock_shared()) {
-      list_ = &list;
-      store_ = &store;
-    }
-  }
-
-  ~SharedList() {
-    if (list_) {
-      list_->unlock_shared();
-    }
-  }
-
-  operator bool() const { return list_ != nullptr; }
-
-  const List::Head& head() const { return list_->head(); }
-
-  Iterator iterator() const {
-    return list_ ? list_->iterator(*store_) : Iterator();
-  }
-
-  uint32_t size() const { return list_->size(); }
-
-  bool empty() const { return list_->empty(); }
-
- private:
-  const List* release() {
-    auto list = list_;
-    list_ = nullptr;
-    return list;
-  }
-
-  const List* list_ = nullptr;
-  const Store* store_ = nullptr;
-
-  friend class SharedListIterator;
-};
-
-class SharedListIterator : public Iterator {
- public:
-  SharedListIterator() = default;
-
-  SharedListIterator(const List& list, const Store& store)
-    : shared_list_(list, store) {
-    iter_ = shared_list_.iterator();
-  }
-
-  SharedListIterator(const List& list, const Store& store, std::try_to_lock_t)
-    : shared_list_(list, store, std::try_to_lock) {
-    if (shared_list_) {
-      iter_ = shared_list_.iterator();
-    }
-  }
-
-  virtual ~SharedListIterator() = default;
-
-  virtual uint32_t available() const override { return iter_.available(); }
-
-  virtual bool hasNext() const override { return iter_.hasNext(); }
-
-  virtual Bytes next() override { return iter_.next(); }
-
-  virtual Bytes peekNext() override { return iter_.peekNext(); }
-
- private:
-  SharedList shared_list_;
-  List::Iterator iter_;
-};
-
-class ExclusiveList : public mt::Resource {
- public:
-  typedef List::MutableIterator Iterator;
-
-  ExclusiveList() = default;
-
-  ExclusiveList(List* list, Store* store, Arena* arena)
-      : list_(list), store_(store), arena_(arena) {
-    list_->lock();
-  }
-
-  ExclusiveList(List* list, Store* store, Arena* arena, std::try_to_lock_t) {
-    if (list->try_lock()) {
-      list_ = list;
-      store_ = store;
-      arena_ = arena;
-    }
-  }
-
-  ~ExclusiveList() {
-    if (list_) {
-      list_->unlock();
-    }
-  }
-
-  operator bool() const { return list_ != nullptr; }
-
-  const List::Head& head() const { return list_->head(); }
-
-  Iterator iterator() { return list_ ? list_->iterator(store_) : Iterator(); }
-
-  uint32_t size() const { return list_->size(); }
-
-  bool empty() const { return list_->empty(); }
-
-  void add(const Bytes& value) { list_->add(value, store_, arena_); }
-
-  void clear() { list_->clear(); }
-
- private:
-  List* release() {
-    auto list = list_;
-    list_ = nullptr;
-    return list;
-  }
-
-  List* list_ = nullptr;
-  Store* store_ = nullptr;
-  Arena* arena_ = nullptr;
-
-  friend class ExclusiveListIterator;
-};
-
-class ExclusiveListIterator : public Iterator {
- public:
-  ExclusiveListIterator() = default;
-
-  ExclusiveListIterator(List* list, Store* store, Arena* arena)
-    : exclusive_list_(list, store, arena) {
-    iter_ = exclusive_list_.iterator();
-  }
-
-  ExclusiveListIterator(List* list, Store* store, Arena* arena,
-std::try_to_lock_t)
-    : exclusive_list_(list, store, arena, std::try_to_lock) {
-    if (exclusive_list_) {
-      iter_ = exclusive_list_.iterator();
-    }
-  }
-
-  virtual ~ExclusiveListIterator() = default;
-
-  virtual uint32_t available() const override { return iter_.available(); }
-
-  virtual bool hasNext() const override { return iter_.hasNext(); }
-
-  virtual Bytes next() override { return iter_.next(); }
-
-  virtual Bytes peekNext() override { return iter_.peekNext(); }
-
-  void remove() { iter_.remove(); }
-
- private:
-  ExclusiveList exclusive_list_;
-  List::MutableIterator iter_;
-};
-*/
 }  // namespace internal
 }  // namespace multimap
 
