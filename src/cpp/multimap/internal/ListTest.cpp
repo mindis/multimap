@@ -206,7 +206,7 @@ INSTANTIATE_TEST_CASE_P(Parameterized, ListTestIteration,
 // class List / Concurrency
 // -----------------------------------------------------------------------------
 
-TEST(ListTest, ReadOperationsDoNotBlockEachOther) {
+TEST(ListTest, ReaderDoesNotBlockReader) {
   List list;
   Store store;
 
@@ -218,119 +218,135 @@ TEST(ListTest, ReadOperationsDoNotBlockEachOther) {
   std::thread([&] {
     auto iter = list.newIterator(store);
     second_reader_has_finished = true;
-  }).detach();
+  }).join();
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(10));
   ASSERT_TRUE(second_reader_has_finished);
 }
 
-TEST(ListTest, ReadOperationBlocksWriteOperation) {
-  List list;
-  bool writer_has_finished = false;
-  {
-    Arena arena;
-    Store store;
-
-    // Reader
-    auto iter = list.newIterator(store);
-
-    // Writer
-    std::thread([&] {
-      list.append("value", &store, &arena);
-      writer_has_finished = true;
-    }).detach();
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    ASSERT_FALSE(writer_has_finished);
-  }
-
-  // iter is destroyed, list gets unlocked
-  std::this_thread::sleep_for(std::chrono::milliseconds(10));
-  ASSERT_TRUE(writer_has_finished);
-}
-
-TEST(ListTest, WriteOperationBlocksReadOperation) {
-  List list;  // TODO Add values to list
-  Store store;
-
-  // Writer
-  std::thread([&] {
-    list.removeOne([](const Bytes& /* value */) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(10));
-      return false;
-    }, &store);
-  }).detach();
-
-  // Reader
-  bool reader_has_finished = false;
-  std::thread([&] {
-    auto iter = list.newIterator(store);
-    reader_has_finished = true;
-  }).detach();
-
-  ASSERT_FALSE(reader_has_finished);
-  std::this_thread::sleep_for(std::chrono::milliseconds(15));
-  // Writer has finished and iter could be created.
-  ASSERT_TRUE(reader_has_finished);
-}
-
-TEST(ListTest, WriteOperationBlocksWriteOperation) {
-  List list;  // TODO Add values to list
-  Store store;
-
-  // First writer
-  std::thread([&] {
-    list.removeOne([](const Bytes& /* value */) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(10));
-      return false;
-    }, &store);
-  }).detach();
-
-  // Second writer
-  bool writer_has_finished = false;
-  std::thread([&] {
-    list.removeOne([](const Bytes& /* value */) { return false; }, &store);
-    writer_has_finished = true;
-  }).detach();
-
-  ASSERT_FALSE(writer_has_finished);
-  std::this_thread::sleep_for(std::chrono::milliseconds(15));
-  // Both writers have finished.
-  ASSERT_TRUE(writer_has_finished);
-}
-
-TEST(ListTest, TryGetStatsSucceedsForOngoingReadOperation) {
+TEST(ListTest, ReaderDoesNotBlockReader2) {
   List list;
   Store store;
 
   // First reader
   auto iter = list.newIterator(store);
 
-  // Second reader
+  // Second readers
   List::Stats stats;
   ASSERT_TRUE(list.tryGetStats(&stats));
+  ASSERT_THAT(list.size(), Eq(0));
+  ASSERT_TRUE(list.empty());
 }
 
-TEST(ListTest, TryGetStatsFailsForOngoingWriteOperation) {
+TEST(ListTest, ReaderBlocksWriter) {
+  List list;
+  Store store;
+
+  // Reader
+  auto iter = list.newIterator(store);
+
+  // Writer
+  bool writer_has_finished = false;
+  std::thread writer([&] {
+    Arena arena;
+    list.append("value", &store, &arena);
+    writer_has_finished = true;
+  });
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  ASSERT_FALSE(writer_has_finished);
+
+  iter.reset();  // Releases reader lock
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  ASSERT_TRUE(writer_has_finished);
+  writer.join();
+}
+
+TEST(ListTest, WriterBlocksReader) {
   List list;
   Arena arena;
   Store store;
   list.append("value", &store, &arena);
 
   // Writer
-  std::thread([&] {
+  std::thread writer([&] {
     list.removeOne([](const Bytes& /* value */) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
       return false;
     }, &store);
-  }).detach();
+  });
+
+  // Reader
+  bool reader_has_finished = false;
+  std::thread reader([&] {
+    auto iter = list.newIterator(store);
+    reader_has_finished = true;
+  });
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  ASSERT_FALSE(reader_has_finished);
+
+  writer.join();  // Wait for release of writer lock
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  ASSERT_TRUE(reader_has_finished);
+  reader.join();
+}
+
+TEST(ListTest, WriterBlocksReader2) {
+  List list;
+  Arena arena;
+  Store store;
+  list.append("value", &store, &arena);
+
+  // Writer
+  std::thread writer([&] {
+    list.removeOne([](const Bytes& /* value */) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      return false;
+    }, &store);
+  });
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
   // Reader
   List::Stats stats;
-  std::this_thread::sleep_for(std::chrono::milliseconds(5));
   ASSERT_FALSE(list.tryGetStats(&stats));
-  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+  writer.join();  // Wait for release of writer lock
+
   ASSERT_TRUE(list.tryGetStats(&stats));
+}
+
+TEST(ListTest, WriterBlocksWriter) {
+  List list;
+  Arena arena;
+  Store store;
+  list.append("value", &store, &arena);
+
+  // First writer
+  std::thread writer1([&] {
+    list.removeOne([](const Bytes& /* value */) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      return false;
+    }, &store);
+  });
+
+  // Second writer
+  bool second_writer_has_finished = false;
+  std::thread writer2([&] {
+    list.removeOne([](const Bytes& /* value */) { return false; }, &store);
+    second_writer_has_finished = true;
+  });
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  ASSERT_FALSE(second_writer_has_finished);
+
+  writer1.join();  // Wait for release of first writer lock
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  ASSERT_TRUE(second_writer_has_finished);
+  writer2.join();
 }
 
 struct ListIteratorTestWithParam : testing::TestWithParam<uint32_t> {
