@@ -21,10 +21,9 @@
 #include <cstdio>
 #include <functional>
 #include <memory>
-#include <mutex>
 #include <vector>
-#include <boost/thread/shared_lock_guard.hpp>
 #include "multimap/internal/Arena.hpp"
+#include "multimap/internal/Locks.hpp"
 #include "multimap/internal/SharedMutex.hpp"
 #include "multimap/internal/Store.hpp"
 #include "multimap/internal/UintVector.hpp"
@@ -69,13 +68,13 @@ class List : public mt::Resource {
   void writeToStream(std::FILE* stream) const;
 
   void append(const Bytes& value, Store* store, Arena* arena) {
-    WriterLockGuard lock(mutex_);
+    WriterLockGuard<SharedMutex> lock(mutex_);
     appendUnlocked(value, store, arena);
   }
 
   template <typename InputIter>
   void append(InputIter first, InputIter last, Store* store, Arena* arena) {
-    WriterLockGuard lock(mutex_);
+    WriterLockGuard<SharedMutex> lock(mutex_);
     while (first != last) {
       appendUnlocked(*first, store, arena);
       ++first;
@@ -149,24 +148,24 @@ class List : public mt::Resource {
   }
 
   Stats getStats() const {
-    ReaderLockGuard lock(mutex_);
+    ReaderLockGuard<SharedMutex> lock(mutex_);
     return getStatsUnlocked();
   }
 
   bool tryGetStats(Stats* stats) const {
-    ReaderLock lock(mutex_, boost::try_to_lock);
+    ReaderLock<SharedMutex> lock(mutex_, boost::try_to_lock);
     return lock ? (*stats = getStatsUnlocked(), true) : false;
   }
 
   Stats getStatsUnlocked() const { return stats_; }
 
   void flush(Store* store, Stats* stats = nullptr) {
-    WriterLockGuard lock(mutex_);
+    WriterLockGuard<SharedMutex> lock(mutex_);
     flushUnlocked(store, stats);
   }
 
   bool tryFlush(Store* store, Stats* stats = nullptr) {
-    WriterLock lock(mutex_, std::try_to_lock);
+    WriterLock<SharedMutex> lock(mutex_, std::try_to_lock);
     return lock ? (flushUnlocked(store, stats), true) : false;
   }
 
@@ -180,7 +179,7 @@ class List : public mt::Resource {
   }
 
   uint32_t clear() {
-    WriterLockGuard lock(mutex_);
+    WriterLockGuard<SharedMutex> lock(mutex_);
     const auto num_removed = stats_.num_values_valid();
     stats_.num_values_removed = stats_.num_values_total;
     block_ids_.clear();
@@ -188,18 +187,13 @@ class List : public mt::Resource {
   }
 
   uint32_t size() const {
-    ReaderLockGuard lock(mutex_);
+    ReaderLockGuard<SharedMutex> lock(mutex_);
     return stats_.num_values_valid();
   }
 
   bool empty() const { return size() == 0; }
 
  private:
-  typedef boost::shared_lock<SharedMutex> ReaderLock;
-  typedef boost::shared_lock_guard<SharedMutex> ReaderLockGuard;
-  typedef std::unique_lock<SharedMutex> WriterLock;
-  typedef std::lock_guard<SharedMutex> WriterLockGuard;
-
   template <bool IsMutable>
   class Iter : public Iterator {
     class Stream : public mt::Resource {
