@@ -15,11 +15,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTIMAP_INTERNAL_MAP_PARTITION_HPP_INCLUDED
-#define MULTIMAP_INTERNAL_MAP_PARTITION_HPP_INCLUDED
+#ifndef MULTIMAP_INTERNAL_PARTITION_HPP_INCLUDED
+#define MULTIMAP_INTERNAL_PARTITION_HPP_INCLUDED
 
 #include <memory>
-#include <type_traits>
 #include <unordered_map>
 #include <vector>
 #include <boost/filesystem/path.hpp>
@@ -33,7 +32,7 @@
 namespace multimap {
 namespace internal {
 
-class MapPartition : public mt::Resource {
+class Partition : public mt::Resource {
   static const char* ATTEMPT_TO_MODIFY_READ_ONLY_PARTITION;
 
  public:
@@ -49,12 +48,12 @@ class MapPartition : public mt::Resource {
     bool readonly = false;
   };
 
-  explicit MapPartition(const boost::filesystem::path& file_prefix);
+  explicit Partition(const boost::filesystem::path& file_prefix);
 
-  MapPartition(const boost::filesystem::path& file_prefix,
+  Partition(const boost::filesystem::path& file_prefix,
                const Options& options);
 
-  ~MapPartition();
+  ~Partition();
 
   void put(const Bytes& key, const Bytes& value) {
     mt::Check::isFalse(isReadOnly(), ATTEMPT_TO_MODIFY_READ_ONLY_PARTITION);
@@ -276,4 +275,4 @@ class MapPartition : public mt::Resource {
 }  // namespace internal
 }  // namespace multimap
 
-#endif  // MULTIMAP_INTERNAL_MAP_PARTITION_HPP_INCLUDED
+#endif  // MULTIMAP_INTERNAL_PARTITION_HPP_INCLUDED

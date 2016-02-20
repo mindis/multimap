@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "multimap/internal/MapPartition.hpp"
+#include "multimap/internal/Partition.hpp"
 
 #include <cmath>
 #include <boost/filesystem/operations.hpp>
@@ -24,19 +24,19 @@
 namespace multimap {
 namespace internal {
 
-const char* MapPartition::ATTEMPT_TO_MODIFY_READ_ONLY_PARTITION =
+const char* Partition::ATTEMPT_TO_MODIFY_READ_ONLY_PARTITION =
     "Attempt to modify read-only partition";
 
-uint32_t MapPartition::Limits::maxKeySize() { return Varint::Limits::MAX_N4; }
+uint32_t Partition::Limits::maxKeySize() { return Varint::Limits::MAX_N4; }
 
-uint32_t MapPartition::Limits::maxValueSize() {
+uint32_t Partition::Limits::maxValueSize() {
   return List::Limits::maxValueSize();
 }
 
-MapPartition::MapPartition(const boost::filesystem::path& file_prefix)
-    : MapPartition(file_prefix, Options()) {}
+Partition::Partition(const boost::filesystem::path& file_prefix)
+    : Partition(file_prefix, Options()) {}
 
-MapPartition::MapPartition(const boost::filesystem::path& file_prefix,
+Partition::Partition(const boost::filesystem::path& file_prefix,
                            const Options& options)
     : prefix_(file_prefix) {
   Store::Options store_options;
@@ -72,7 +72,7 @@ MapPartition::MapPartition(const boost::filesystem::path& file_prefix,
   store_.reset(new Store(getNameOfValuesFile(prefix_.string()), store_options));
 }
 
-MapPartition::~MapPartition() {
+Partition::~Partition() {
   if (!prefix_.empty() && !isReadOnly()) {
     const auto keys_file = getNameOfKeysFile(prefix_.string());
     const auto old_keys_file = keys_file + ".old";
@@ -131,7 +131,7 @@ MapPartition::~MapPartition() {
   }
 }
 
-Stats MapPartition::getStats() const {
+Stats Partition::getStats() const {
   boost::shared_lock<boost::shared_mutex> lock(mutex_);
   Stats stats = stats_;
   List::Stats list_stats;
@@ -166,84 +166,17 @@ Stats MapPartition::getStats() const {
   return stats;
 }
 
-std::string MapPartition::getNameOfKeysFile(const std::string& prefix) {
+std::string Partition::getNameOfKeysFile(const std::string& prefix) {
   return prefix + ".keys";
 }
 
-std::string MapPartition::getNameOfStatsFile(const std::string& prefix) {
+std::string Partition::getNameOfStatsFile(const std::string& prefix) {
   return prefix + ".stats";
 }
 
-std::string MapPartition::getNameOfValuesFile(const std::string& prefix) {
+std::string Partition::getNameOfValuesFile(const std::string& prefix) {
   return prefix + ".values";
 }
 
-/*
-MapPartition::Entry MapPartition::Entry::readFromStream(std::FILE* stream,
-                                                        Arena* arena) {
-  uint32_t key_size;
-  mt::fread(stream, &key_size, sizeof key_size);
-  const auto key_data = arena->allocate(key_size);
-  mt::fread(stream, key_data, key_size);
-  auto head = List::Stats::readFromStream(stream);
-  return Entry(Bytes(key_data, key_size), std::move(head));
-}
-
-void MapPartition::Entry::writeToStream(std::FILE* stream) const {
-  MT_REQUIRE_LE(key().size(), MapPartition::Limits::maxKeySize());
-  const uint32_t key_size = key().size();
-  mt::fwrite(stream, &key_size, sizeof key_size);
-  mt::fwrite(stream, key().data(), key().size());
-  head().writeToStream(stream);
-}
-*/
-/*
-SharedList MapPartition::getSharedList(const Bytes& key) const {
-  List* list = nullptr;
-  {
-    boost::shared_lock<boost::shared_mutex> lock(mutex_);
-    const auto iter = map_.find(key);
-    if (iter != map_.end()) {
-      list = iter->second.get();
-    }
-  }
-  // `mutex_` is unlocked now.
-  return list ? SharedList(*list, *store_) : SharedList();
-}
-
-ExclusiveList MapPartition::getUniqueList(const Bytes& key) {
-  List* list = nullptr;
-  {
-    boost::shared_lock<boost::shared_mutex> lock(mutex_);
-    const auto iter = map_.find(key);
-    if (iter != map_.end()) {
-      list = iter->second.get();
-    }
-  }
-  // `mutex_` is unlocked now.
-  return list ? ExclusiveList(list, store_.get(), &arena_) : ExclusiveList();
-}
-
-ExclusiveList MapPartition::getOrCreateUniqueList(const Bytes& key) {
-  MT_REQUIRE_LE(key.size(), Limits::maxKeySize());
-  List* list = nullptr;
-  {
-    std::lock_guard<boost::shared_mutex> lock(mutex_);
-    const auto emplace_result = map_.emplace(key, std::unique_ptr<List>());
-    if (emplace_result.second) {
-      // Overrides the inserted key with a new deep copy.
-      const auto new_key_data = arena_.allocate(key.size());
-      std::memcpy(new_key_data, key.data(), key.size());
-      const auto old_key_ptr = const_cast<Bytes*>(&emplace_result.first->first);
-      *old_key_ptr = Bytes(new_key_data, key.size());
-      emplace_result.first->second.reset(new List());
-    }
-    const auto iter = emplace_result.first;
-    list = iter->second.get();
-  }
-  // `mutex_` is unlocked now.
-  return ExclusiveList(list, store_.get(), &arena_);
-}
-*/
 }  // namespace internal
 }  // namespace multimap

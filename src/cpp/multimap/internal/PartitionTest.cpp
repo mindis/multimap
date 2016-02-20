@@ -19,7 +19,7 @@
 #include <type_traits>
 #include <boost/filesystem/operations.hpp>
 #include "gmock/gmock.h"
-#include "multimap/internal/MapPartition.hpp"
+#include "multimap/internal/Partition.hpp"
 #include "multimap/callables.hpp"
 
 namespace multimap {
@@ -29,42 +29,42 @@ using testing::Eq;
 using testing::ElementsAre;
 using testing::UnorderedElementsAre;
 
-std::unique_ptr<MapPartition> openMapPartition(
+std::unique_ptr<Partition> openPartition(
     const boost::filesystem::path& prefix,
-    const MapPartition::Options& options) {
-  return std::unique_ptr<MapPartition>(new MapPartition(prefix, options));
+    const Partition::Options& options) {
+  return std::unique_ptr<Partition>(new Partition(prefix, options));
 }
 
-std::unique_ptr<MapPartition> openOrCreateMapPartition(
+std::unique_ptr<Partition> openOrCreatePartition(
     const boost::filesystem::path& prefix) {
-  MapPartition::Options options;
+  Partition::Options options;
   options.create_if_missing = true;
-  return std::unique_ptr<MapPartition>(new MapPartition(prefix, options));
+  return std::unique_ptr<Partition>(new Partition(prefix, options));
 }
 
-std::unique_ptr<MapPartition> openOrCreateMapPartitionAsReadOnly(
+std::unique_ptr<Partition> openOrCreatePartitionAsReadOnly(
     const boost::filesystem::path& prefix) {
-  MapPartition::Options options;
+  Partition::Options options;
   options.readonly = true;
   options.create_if_missing = true;
-  return std::unique_ptr<MapPartition>(new MapPartition(prefix, options));
+  return std::unique_ptr<Partition>(new Partition(prefix, options));
 }
 
-TEST(MapPartitionTest, IsNotDefaultConstructible) {
-  ASSERT_FALSE(std::is_default_constructible<MapPartition>::value);
+TEST(PartitionTest, IsNotDefaultConstructible) {
+  ASSERT_FALSE(std::is_default_constructible<Partition>::value);
 }
 
-TEST(MapPartitionTest, IsNotCopyConstructibleOrAssignable) {
-  ASSERT_FALSE(std::is_copy_constructible<MapPartition>::value);
-  ASSERT_FALSE(std::is_copy_assignable<MapPartition>::value);
+TEST(PartitionTest, IsNotCopyConstructibleOrAssignable) {
+  ASSERT_FALSE(std::is_copy_constructible<Partition>::value);
+  ASSERT_FALSE(std::is_copy_assignable<Partition>::value);
 }
 
-TEST(MapPartitionTest, IsNotMoveConstructibleOrAssignable) {
-  ASSERT_FALSE(std::is_move_constructible<MapPartition>::value);
-  ASSERT_FALSE(std::is_move_assignable<MapPartition>::value);
+TEST(PartitionTest, IsNotMoveConstructibleOrAssignable) {
+  ASSERT_FALSE(std::is_move_constructible<Partition>::value);
+  ASSERT_FALSE(std::is_move_assignable<Partition>::value);
 }
 
-struct MapPartitionTestFixture : public testing::Test {
+struct PartitionTestFixture : public testing::Test {
   void SetUp() override {
     boost::filesystem::remove_all(directory);
     boost::filesystem::create_directory(directory);
@@ -73,7 +73,7 @@ struct MapPartitionTestFixture : public testing::Test {
   void TearDown() override { boost::filesystem::remove_all(directory); }
 
   const boost::filesystem::path directory =
-      "/tmp/multimap.MapPartitionTestFixture";
+      "/tmp/multimap.PartitionTestFixture";
   const boost::filesystem::path prefix = directory / "partition";
   const std::string k1 = "k1";
   const std::string k2 = "k2";
@@ -85,24 +85,24 @@ struct MapPartitionTestFixture : public testing::Test {
   const std::vector<std::string> values = {v1, v2, v3};
 };
 
-TEST_F(MapPartitionTestFixture, ConstructorThrowsIfNotExist) {
-  ASSERT_THROW(MapPartition(this->prefix), std::runtime_error);
+TEST_F(PartitionTestFixture, ConstructorThrowsIfNotExist) {
+  ASSERT_THROW(Partition(this->prefix), std::runtime_error);
   // GCC complains when not using 'this' pointer.
 }
 
-TEST_F(MapPartitionTestFixture, ConstructorWithDefaultOptionsThrowsIfNotExist) {
-  MapPartition::Options options;
-  ASSERT_THROW(MapPartition(prefix, options), std::runtime_error);
+TEST_F(PartitionTestFixture, ConstructorWithDefaultOptionsThrowsIfNotExist) {
+  Partition::Options options;
+  ASSERT_THROW(Partition(prefix, options), std::runtime_error);
 }
 
-TEST_F(MapPartitionTestFixture, ConstructorWithCreateIfMissingDoesNotThrow) {
-  MapPartition::Options options;
+TEST_F(PartitionTestFixture, ConstructorWithCreateIfMissingDoesNotThrow) {
+  Partition::Options options;
   options.create_if_missing = true;
-  ASSERT_NO_THROW(MapPartition(prefix, options));
+  ASSERT_NO_THROW(Partition(prefix, options));
 }
 
-TEST_F(MapPartitionTestFixture, PutAppendsValuesToList) {
-  auto partition = openOrCreateMapPartition(prefix);
+TEST_F(PartitionTestFixture, PutAppendsValuesToList) {
+  auto partition = openOrCreatePartition(prefix);
   partition->put(k1, v1);
   partition->put(k1, v2);
   partition->put(k1, v3);
@@ -113,69 +113,69 @@ TEST_F(MapPartitionTestFixture, PutAppendsValuesToList) {
   ASSERT_FALSE(iter->hasNext());
 }
 
-TEST_F(MapPartitionTestFixture, PutMaxKeyDoesNotThrow) {
-  auto partition = openOrCreateMapPartition(prefix);
+TEST_F(PartitionTestFixture, PutMaxKeyDoesNotThrow) {
+  auto partition = openOrCreatePartition(prefix);
   try {
-    std::string key(MapPartition::Limits::maxKeySize(), 'k');
+    std::string key(Partition::Limits::maxKeySize(), 'k');
     ASSERT_NO_THROW(partition->put(key, v1));
   } catch (...) {
     // Allocating key itself may fail.
   }
 }
 
-TEST_F(MapPartitionTestFixture, PutTooBigKeyThrows) {
-  auto partition = openOrCreateMapPartition(prefix);
+TEST_F(PartitionTestFixture, PutTooBigKeyThrows) {
+  auto partition = openOrCreatePartition(prefix);
   try {
-    std::string key(MapPartition::Limits::maxKeySize() + 1, 'k');
+    std::string key(Partition::Limits::maxKeySize() + 1, 'k');
     ASSERT_THROW(partition->put(key, v1), mt::AssertionError);
   } catch (...) {
     // Allocating key itself may fail.
   }
 }
 
-TEST_F(MapPartitionTestFixture, PutMaxValueDoesNotThrow) {
-  auto partition = openOrCreateMapPartition(prefix);
+TEST_F(PartitionTestFixture, PutMaxValueDoesNotThrow) {
+  auto partition = openOrCreatePartition(prefix);
   try {
-    std::string value(MapPartition::Limits::maxValueSize(), 'v');
+    std::string value(Partition::Limits::maxValueSize(), 'v');
     ASSERT_NO_THROW(partition->put(k1, value));
   } catch (...) {
     // Allocating value itself may fail.
   }
 }
 
-TEST_F(MapPartitionTestFixture, PutTooBigValueThrows) {
-  auto partition = openOrCreateMapPartition(prefix);
+TEST_F(PartitionTestFixture, PutTooBigValueThrows) {
+  auto partition = openOrCreatePartition(prefix);
   try {
-    std::string value(MapPartition::Limits::maxValueSize() + 1, 'v');
+    std::string value(Partition::Limits::maxValueSize() + 1, 'v');
     ASSERT_THROW(partition->put(k1, value), mt::AssertionError);
   } catch (...) {
     // Allocating value itself may fail.
   }
 }
 
-TEST_F(MapPartitionTestFixture, PutValuesAndReopenInBetween) {
+TEST_F(PartitionTestFixture, PutValuesAndReopenInBetween) {
   {
-    MapPartition::Options options;
+    Partition::Options options;
     options.block_size = 128;
     options.create_if_missing = true;
-    auto partition = openMapPartition(prefix, options);
+    auto partition = openPartition(prefix, options);
     partition->put(k1, v1);
     partition->put(k2, v1);
     partition->put(k3, v1);
   }
   {
-    auto partition = openOrCreateMapPartition(prefix);
+    auto partition = openOrCreatePartition(prefix);
     partition->put(k1, v2);
     partition->put(k2, v2);
     partition->put(k3, v2);
   }
   {
-    auto partition = openOrCreateMapPartition(prefix);
+    auto partition = openOrCreatePartition(prefix);
     partition->put(k1, v3);
     partition->put(k2, v3);
     partition->put(k3, v3);
   }
-  auto partition = openOrCreateMapPartition(prefix);
+  auto partition = openOrCreatePartition(prefix);
   auto iter1 = partition->get(k1);
   ASSERT_THAT(iter1->next(), Eq(v1));
   ASSERT_THAT(iter1->next(), Eq(v2));
@@ -195,13 +195,13 @@ TEST_F(MapPartitionTestFixture, PutValuesAndReopenInBetween) {
   ASSERT_FALSE(iter3->hasNext());
 }
 
-TEST_F(MapPartitionTestFixture, GetReturnsNullForNonExistingKey) {
-  auto partition = openOrCreateMapPartition(prefix);
+TEST_F(PartitionTestFixture, GetReturnsNullForNonExistingKey) {
+  auto partition = openOrCreatePartition(prefix);
   ASSERT_FALSE(partition->get(k1));
 }
 
-TEST_F(MapPartitionTestFixture, RemoveKeyRemovesMappedValues) {
-  auto partition = openOrCreateMapPartition(prefix);
+TEST_F(PartitionTestFixture, RemoveKeyRemovesMappedValues) {
+  auto partition = openOrCreatePartition(prefix);
   partition->put(k1, v1);
   partition->put(k2, v1);
   partition->put(k3, v1);
@@ -212,8 +212,8 @@ TEST_F(MapPartitionTestFixture, RemoveKeyRemovesMappedValues) {
   ASSERT_TRUE(partition->get(k3)->hasNext());
 }
 
-TEST_F(MapPartitionTestFixture, RemoveOneKeyRemovesFirstMatch) {
-  auto partition = openOrCreateMapPartition(prefix);
+TEST_F(PartitionTestFixture, RemoveOneKeyRemovesFirstMatch) {
+  auto partition = openOrCreatePartition(prefix);
   for (const auto& key : keys) {
     partition->put(key, values.begin(), values.end());
   }
@@ -230,8 +230,8 @@ TEST_F(MapPartitionTestFixture, RemoveOneKeyRemovesFirstMatch) {
   ASSERT_THAT(partition->get(k3)->available(), Eq(values.size()));
 }
 
-TEST_F(MapPartitionTestFixture, RemoveAllKeysRemovesAllMatches) {
-  auto partition = openOrCreateMapPartition(prefix);
+TEST_F(PartitionTestFixture, RemoveAllKeysRemovesAllMatches) {
+  auto partition = openOrCreatePartition(prefix);
   partition->put(k1, v1);
   partition->put(k2, v1);
   partition->put(k3, v1);
@@ -244,8 +244,8 @@ TEST_F(MapPartitionTestFixture, RemoveAllKeysRemovesAllMatches) {
   ASSERT_TRUE(partition->get(k3)->hasNext());
 }
 
-TEST_F(MapPartitionTestFixture, RemoveOneValueRemovesFirstMatch) {
-  auto partition = openOrCreateMapPartition(prefix);
+TEST_F(PartitionTestFixture, RemoveOneValueRemovesFirstMatch) {
+  auto partition = openOrCreatePartition(prefix);
   partition->put(k1, v1);
   partition->put(k1, v2);
   partition->put(k1, v3);
@@ -268,8 +268,8 @@ TEST_F(MapPartitionTestFixture, RemoveOneValueRemovesFirstMatch) {
   ASSERT_FALSE(iter->hasNext());
 }
 
-TEST_F(MapPartitionTestFixture, RemoveAllValuesRemovesAllMatches) {
-  auto partition = openOrCreateMapPartition(prefix);
+TEST_F(PartitionTestFixture, RemoveAllValuesRemovesAllMatches) {
+  auto partition = openOrCreatePartition(prefix);
   partition->put(k1, v1);
   partition->put(k1, v2);
   partition->put(k1, v3);
@@ -289,8 +289,8 @@ TEST_F(MapPartitionTestFixture, RemoveAllValuesRemovesAllMatches) {
   ASSERT_FALSE(iter->hasNext());
 }
 
-TEST_F(MapPartitionTestFixture, ReplaceOneValueReplacesFirstMatch) {
-  auto partition = openOrCreateMapPartition(prefix);
+TEST_F(PartitionTestFixture, ReplaceOneValueReplacesFirstMatch) {
+  auto partition = openOrCreatePartition(prefix);
   partition->put(k1, v1);
   partition->put(k1, v2);
   partition->put(k1, v3);
@@ -323,8 +323,8 @@ TEST_F(MapPartitionTestFixture, ReplaceOneValueReplacesFirstMatch) {
   ASSERT_FALSE(iter->hasNext());
 }
 
-TEST_F(MapPartitionTestFixture, ReplaceAllValuesReplacesAllMatches) {
-  auto partition = openOrCreateMapPartition(prefix);
+TEST_F(PartitionTestFixture, ReplaceAllValuesReplacesAllMatches) {
+  auto partition = openOrCreatePartition(prefix);
   for (const auto& key : keys) {
     partition->put(key, values.begin(), values.end());
   }
@@ -354,8 +354,8 @@ TEST_F(MapPartitionTestFixture, ReplaceAllValuesReplacesAllMatches) {
   ASSERT_FALSE(iter->hasNext());
 }
 
-TEST_F(MapPartitionTestFixture, ForEachKeyIgnoresEmptyLists) {
-  auto partition = openOrCreateMapPartition(prefix);
+TEST_F(PartitionTestFixture, ForEachKeyIgnoresEmptyLists) {
+  auto partition = openOrCreatePartition(prefix);
   partition->put(k1, v1);
   partition->put(k2, v1);
   partition->put(k3, v1);
@@ -403,8 +403,8 @@ TEST_F(MapPartitionTestFixture, ForEachKeyIgnoresEmptyLists) {
   ASSERT_TRUE(keys.empty());
 }
 
-TEST_F(MapPartitionTestFixture, ForEachValueVisitsAllValues) {
-  auto partition = openOrCreateMapPartition(prefix);
+TEST_F(PartitionTestFixture, ForEachValueVisitsAllValues) {
+  auto partition = openOrCreatePartition(prefix);
   partition->put(k1, v1);
   partition->put(k2, v1);
   partition->put(k2, v2);
@@ -422,8 +422,8 @@ TEST_F(MapPartitionTestFixture, ForEachValueVisitsAllValues) {
   ASSERT_TRUE(values.empty());
 }
 
-TEST_F(MapPartitionTestFixture, ForEachEntryIgnoresEmptyLists) {
-  auto partition = openOrCreateMapPartition(prefix);
+TEST_F(PartitionTestFixture, ForEachEntryIgnoresEmptyLists) {
+  auto partition = openOrCreatePartition(prefix);
   partition->put(k1, v1);
   partition->put(k2, v1);
   partition->put(k2, v2);
@@ -450,8 +450,8 @@ TEST_F(MapPartitionTestFixture, ForEachEntryIgnoresEmptyLists) {
   ASSERT_THAT(mapping.at(k3), ElementsAre(v1, v2, v3));
 }
 
-TEST_F(MapPartitionTestFixture, GetStatsReturnsCorrectValues) {
-  auto partition = openOrCreateMapPartition(prefix);
+TEST_F(PartitionTestFixture, GetStatsReturnsCorrectValues) {
+  auto partition = openOrCreatePartition(prefix);
   partition->put("k", "vvvvv");
   partition->put("kk", "vvvv");
   partition->put("kk", "vvvv");
@@ -469,7 +469,7 @@ TEST_F(MapPartitionTestFixture, GetStatsReturnsCorrectValues) {
   partition->put("kkkkk", "v");
 
   auto stats = partition->getStats();
-  ASSERT_THAT(stats.block_size, Eq(MapPartition::Options().block_size));
+  ASSERT_THAT(stats.block_size, Eq(Partition::Options().block_size));
   ASSERT_THAT(stats.key_size_avg, Eq(3));
   ASSERT_THAT(stats.key_size_max, Eq(5));
   ASSERT_THAT(stats.key_size_min, Eq(1));
@@ -484,7 +484,7 @@ TEST_F(MapPartitionTestFixture, GetStatsReturnsCorrectValues) {
 
   partition->remove("kkkkk");
   stats = partition->getStats();
-  ASSERT_THAT(stats.block_size, Eq(MapPartition::Options().block_size));
+  ASSERT_THAT(stats.block_size, Eq(Partition::Options().block_size));
   ASSERT_THAT(stats.key_size_avg, Eq(2));
   ASSERT_THAT(stats.key_size_max, Eq(4));
   ASSERT_THAT(stats.key_size_min, Eq(1));
@@ -498,9 +498,9 @@ TEST_F(MapPartitionTestFixture, GetStatsReturnsCorrectValues) {
   ASSERT_THAT(stats.num_values_valid, Eq(10));
 }
 
-TEST_F(MapPartitionTestFixture, GetStatsReturnsCorrectValuesAfterRemovingKeys) {
+TEST_F(PartitionTestFixture, GetStatsReturnsCorrectValuesAfterRemovingKeys) {
   {
-    auto partition = openOrCreateMapPartition(prefix);
+    auto partition = openOrCreatePartition(prefix);
     partition->put("k", "vvvvv");
     partition->put("kk", "vvvv");
     partition->put("kk", "vvvv");
@@ -527,7 +527,7 @@ TEST_F(MapPartitionTestFixture, GetStatsReturnsCorrectValuesAfterRemovingKeys) {
     ASSERT_THAT(stats.num_values_valid, Eq(12));
   }
 
-  auto partition = openOrCreateMapPartition(prefix);
+  auto partition = openOrCreatePartition(prefix);
   const auto stats = partition->getStats();
   ASSERT_THAT(stats.num_keys_total, Eq(3));
   ASSERT_THAT(stats.num_keys_valid, Eq(3));
@@ -535,10 +535,10 @@ TEST_F(MapPartitionTestFixture, GetStatsReturnsCorrectValuesAfterRemovingKeys) {
   ASSERT_THAT(stats.num_values_valid, Eq(12));
 }
 
-TEST_F(MapPartitionTestFixture,
+TEST_F(PartitionTestFixture,
        GetStatsReturnsCorrectValuesAfterRemovingValues) {
   {
-    auto partition = openOrCreateMapPartition(prefix);
+    auto partition = openOrCreatePartition(prefix);
     partition->put("k", "vvvvv");
     partition->put("kk", "vvvv");
     partition->put("kk", "vvvv");
@@ -565,7 +565,7 @@ TEST_F(MapPartitionTestFixture,
     ASSERT_THAT(stats.num_values_valid, Eq(12));
   }
 
-  auto partition = openOrCreateMapPartition(prefix);
+  auto partition = openOrCreatePartition(prefix);
   const auto stats = partition->getStats();
   ASSERT_THAT(stats.num_keys_total, Eq(3));
   ASSERT_THAT(stats.num_keys_valid, Eq(3));
@@ -573,72 +573,72 @@ TEST_F(MapPartitionTestFixture,
   ASSERT_THAT(stats.num_values_valid, Eq(12));
 }
 
-TEST_F(MapPartitionTestFixture, IsReadOnlyReturnsCorrectValue) {
+TEST_F(PartitionTestFixture, IsReadOnlyReturnsCorrectValue) {
   {
-    auto partition = openOrCreateMapPartition(prefix);
+    auto partition = openOrCreatePartition(prefix);
     ASSERT_FALSE(partition->isReadOnly());
   }
   {
-    auto partition = openOrCreateMapPartitionAsReadOnly(prefix);
+    auto partition = openOrCreatePartitionAsReadOnly(prefix);
     ASSERT_TRUE(partition->isReadOnly());
   }
 }
 
-TEST_F(MapPartitionTestFixture, PutThrowsIfOpenedAsReadOnly) {
-  auto partition = openOrCreateMapPartitionAsReadOnly(prefix);
+TEST_F(PartitionTestFixture, PutThrowsIfOpenedAsReadOnly) {
+  auto partition = openOrCreatePartitionAsReadOnly(prefix);
   ASSERT_THROW(partition->put(k1, v1), std::runtime_error);
 }
 
-TEST_F(MapPartitionTestFixture, RemoveKeyThrowsIfOpenedAsReadOnly) {
-  auto partition = openOrCreateMapPartitionAsReadOnly(prefix);
+TEST_F(PartitionTestFixture, RemoveKeyThrowsIfOpenedAsReadOnly) {
+  auto partition = openOrCreatePartitionAsReadOnly(prefix);
   ASSERT_THROW(partition->remove(k1), std::runtime_error);
 }
 
-TEST_F(MapPartitionTestFixture, RemoveOneKeyThrowsIfOpenedAsReadOnly) {
-  auto partition = openOrCreateMapPartitionAsReadOnly(prefix);
+TEST_F(PartitionTestFixture, RemoveOneKeyThrowsIfOpenedAsReadOnly) {
+  auto partition = openOrCreatePartitionAsReadOnly(prefix);
   ASSERT_THROW(
       partition->removeOne([](const Bytes& /* key */) { return true; }),
       std::runtime_error);
 }
 
-TEST_F(MapPartitionTestFixture, RemoveAllKeysThrowsIfOpenedAsReadOnly) {
-  auto partition = openOrCreateMapPartitionAsReadOnly(prefix);
+TEST_F(PartitionTestFixture, RemoveAllKeysThrowsIfOpenedAsReadOnly) {
+  auto partition = openOrCreatePartitionAsReadOnly(prefix);
   ASSERT_THROW(
       partition->removeAll([](const Bytes& /* key */) { return true; }),
       std::runtime_error);
 }
 
-TEST_F(MapPartitionTestFixture, RemoveValueThrowsIfOpenedAsReadOnly) {
-  auto partition = openOrCreateMapPartitionAsReadOnly(prefix);
+TEST_F(PartitionTestFixture, RemoveValueThrowsIfOpenedAsReadOnly) {
+  auto partition = openOrCreatePartitionAsReadOnly(prefix);
   ASSERT_THROW(partition->removeOne(k1, Equal(v1)), std::runtime_error);
 }
 
-TEST_F(MapPartitionTestFixture, RemoveValuesThrowsIfOpenedAsReadOnly) {
-  auto partition = openOrCreateMapPartitionAsReadOnly(prefix);
+TEST_F(PartitionTestFixture, RemoveValuesThrowsIfOpenedAsReadOnly) {
+  auto partition = openOrCreatePartitionAsReadOnly(prefix);
   ASSERT_THROW(partition->removeAll(k1, Equal(v1)), std::runtime_error);
 }
 
-TEST_F(MapPartitionTestFixture, ReplaceValueThrowsIfOpenedAsReadOnly) {
-  auto partition = openOrCreateMapPartitionAsReadOnly(prefix);
+TEST_F(PartitionTestFixture, ReplaceValueThrowsIfOpenedAsReadOnly) {
+  auto partition = openOrCreatePartitionAsReadOnly(prefix);
   ASSERT_THROW(partition->replaceOne(k1, v1, v2), std::runtime_error);
 }
 
-TEST_F(MapPartitionTestFixture, ReplaceValuesThrowsIfOpenedAsReadOnly) {
-  auto partition = openOrCreateMapPartitionAsReadOnly(prefix);
+TEST_F(PartitionTestFixture, ReplaceValuesThrowsIfOpenedAsReadOnly) {
+  auto partition = openOrCreatePartitionAsReadOnly(prefix);
   ASSERT_THROW(partition->replaceAll(k1, v1, v2), std::runtime_error);
 }
 
-TEST_F(MapPartitionTestFixture, GetBlockSizeReturnsCorrectValue) {
-  auto partition = openOrCreateMapPartition(prefix);
+TEST_F(PartitionTestFixture, GetBlockSizeReturnsCorrectValue) {
+  auto partition = openOrCreatePartition(prefix);
   ASSERT_THAT(partition->getBlockSize(),
-              Eq(MapPartition::Options().block_size));
+              Eq(Partition::Options().block_size));
 }
 
 // -----------------------------------------------------------------------------
-// class MapPartition / Mutability
+// class Partition / Mutability
 // -----------------------------------------------------------------------------
 
-struct MapPartitionTestWithParam : public testing::TestWithParam<int> {
+struct PartitionTestWithParam : public testing::TestWithParam<int> {
   void SetUp() override {
     boost::filesystem::remove_all(directory);
     boost::filesystem::create_directory(directory);
@@ -647,13 +647,13 @@ struct MapPartitionTestWithParam : public testing::TestWithParam<int> {
   void TearDown() override { boost::filesystem::remove_all(directory); }
 
   const boost::filesystem::path directory =
-      "/tmp/multimap.MapPartitionTestWithParam";
+      "/tmp/multimap.PartitionTestWithParam";
   const boost::filesystem::path prefix = directory / "partition";
 };
 
-TEST_P(MapPartitionTestWithParam, PutDataThenReadAll) {
+TEST_P(PartitionTestWithParam, PutDataThenReadAll) {
   {
-    auto partition = openOrCreateMapPartition(prefix);
+    auto partition = openOrCreatePartition(prefix);
     for (auto k = 0; k != GetParam(); ++k) {
       for (auto v = 0; v != GetParam(); ++v) {
         partition->put(std::to_string(k), std::to_string(v));
@@ -670,7 +670,7 @@ TEST_P(MapPartitionTestWithParam, PutDataThenReadAll) {
     }
   }
 
-  auto partition = openOrCreateMapPartition(prefix);
+  auto partition = openOrCreatePartition(prefix);
   for (auto k = 0; k != GetParam(); ++k) {
     auto iter = partition->get(std::to_string(k));
     for (auto v = 0; v != GetParam(); ++v) {
@@ -681,10 +681,10 @@ TEST_P(MapPartitionTestWithParam, PutDataThenReadAll) {
   }
 }
 
-TEST_P(MapPartitionTestWithParam, PutDataThenRemoveSomeThenReadAll) {
+TEST_P(PartitionTestWithParam, PutDataThenRemoveSomeThenReadAll) {
   auto is_odd = [](const Bytes& b) { return std::stoul(b.toString()) % 2; };
   {
-    auto partition = openOrCreateMapPartition(prefix);
+    auto partition = openOrCreatePartition(prefix);
     for (auto k = 0; k != GetParam(); ++k) {
       for (auto v = 0; v != GetParam(); ++v) {
         partition->put(std::to_string(k), std::to_string(v));
@@ -722,7 +722,7 @@ TEST_P(MapPartitionTestWithParam, PutDataThenRemoveSomeThenReadAll) {
     }
   }
 
-  auto partition = openOrCreateMapPartition(prefix);
+  auto partition = openOrCreatePartition(prefix);
   for (auto k = 0; k != GetParam(); ++k) {
     const auto key = std::to_string(k);
     auto iter = partition->get(key);
@@ -747,22 +747,22 @@ TEST_P(MapPartitionTestWithParam, PutDataThenRemoveSomeThenReadAll) {
   }
 }
 
-INSTANTIATE_TEST_CASE_P(Parameterized, MapPartitionTestWithParam,
+INSTANTIATE_TEST_CASE_P(Parameterized, PartitionTestWithParam,
                         testing::Values(0, 1, 2, 10, 100, 1000));
 
-// INSTANTIATE_TEST_CASE_P(ParameterizedLongRunning, MapPartitionTestWithParam,
+// INSTANTIATE_TEST_CASE_P(ParameterizedLongRunning, PartitionTestWithParam,
 //                         testing::Values(10000, 100000));
 
 // -----------------------------------------------------------------------------
-// class MapPartition / Concurrency
+// class Partition / Concurrency
 // -----------------------------------------------------------------------------
 
 const auto NULL_PROCEDURE = [](const Bytes&) {};
 const auto TRUE_PREDICATE = [](const Bytes&) { return true; };
 const auto EMPTY_FUNCTION = [](const Bytes&) { return std::string(); };
 
-TEST_F(MapPartitionTestFixture, GetDifferentListsDoesNotBlock) {
-  auto partition = openOrCreateMapPartition(prefix);
+TEST_F(PartitionTestFixture, GetDifferentListsDoesNotBlock) {
+  auto partition = openOrCreatePartition(prefix);
   partition->put(k1, v1);
   partition->put(k2, v1);
   auto iter1 = partition->get(k1);
@@ -771,8 +771,8 @@ TEST_F(MapPartitionTestFixture, GetDifferentListsDoesNotBlock) {
   ASSERT_TRUE(iter2->hasNext());
 }
 
-TEST_F(MapPartitionTestFixture, GetSameListTwiceDoesNotBlock) {
-  auto partition = openOrCreateMapPartition(prefix);
+TEST_F(PartitionTestFixture, GetSameListTwiceDoesNotBlock) {
+  auto partition = openOrCreatePartition(prefix);
   partition->put(k1, v1);
   auto iter1 = partition->get(k1);
   ASSERT_TRUE(iter1->hasNext());
@@ -780,8 +780,8 @@ TEST_F(MapPartitionTestFixture, GetSameListTwiceDoesNotBlock) {
   ASSERT_TRUE(iter2->hasNext());
 }
 
-TEST_F(MapPartitionTestFixture, RemoveKeyBlocksIfListIsLocked) {
-  auto partition = openOrCreateMapPartition(prefix);
+TEST_F(PartitionTestFixture, RemoveKeyBlocksIfListIsLocked) {
+  auto partition = openOrCreatePartition(prefix);
   partition->put(k1, v1);
   auto thread_is_running = true;
   {
@@ -799,8 +799,8 @@ TEST_F(MapPartitionTestFixture, RemoveKeyBlocksIfListIsLocked) {
   ASSERT_FALSE(thread_is_running);
 }
 
-TEST_F(MapPartitionTestFixture, RemoveOneKeyBlocksIfListIsLocked) {
-  auto partition = openOrCreateMapPartition(prefix);
+TEST_F(PartitionTestFixture, RemoveOneKeyBlocksIfListIsLocked) {
+  auto partition = openOrCreatePartition(prefix);
   partition->put(k1, v1);
   auto thread_is_running = true;
   {
@@ -818,8 +818,8 @@ TEST_F(MapPartitionTestFixture, RemoveOneKeyBlocksIfListIsLocked) {
   ASSERT_FALSE(thread_is_running);
 }
 
-TEST_F(MapPartitionTestFixture, RemoveAllKeysBlocksIfListIsLocked) {
-  auto partition = openOrCreateMapPartition(prefix);
+TEST_F(PartitionTestFixture, RemoveAllKeysBlocksIfListIsLocked) {
+  auto partition = openOrCreatePartition(prefix);
   partition->put(k1, v1);
   auto thread_is_running = true;
   {
@@ -837,8 +837,8 @@ TEST_F(MapPartitionTestFixture, RemoveAllKeysBlocksIfListIsLocked) {
   ASSERT_FALSE(thread_is_running);
 }
 
-TEST_F(MapPartitionTestFixture, RemoveValueBlocksIfListIsLocked) {
-  auto partition = openOrCreateMapPartition(prefix);
+TEST_F(PartitionTestFixture, RemoveValueBlocksIfListIsLocked) {
+  auto partition = openOrCreatePartition(prefix);
   partition->put(k1, v1);
   auto thread_is_running = true;
   {
@@ -856,8 +856,8 @@ TEST_F(MapPartitionTestFixture, RemoveValueBlocksIfListIsLocked) {
   ASSERT_FALSE(thread_is_running);
 }
 
-TEST_F(MapPartitionTestFixture, RemoveValuesBlocksIfListIsLocked) {
-  auto partition = openOrCreateMapPartition(prefix);
+TEST_F(PartitionTestFixture, RemoveValuesBlocksIfListIsLocked) {
+  auto partition = openOrCreatePartition(prefix);
   partition->put(k1, v1);
   auto thread_is_running = true;
   {
@@ -875,8 +875,8 @@ TEST_F(MapPartitionTestFixture, RemoveValuesBlocksIfListIsLocked) {
   ASSERT_FALSE(thread_is_running);
 }
 
-TEST_F(MapPartitionTestFixture, ReplaceValueBlocksIfListIsLocked) {
-  auto partition = openOrCreateMapPartition(prefix);
+TEST_F(PartitionTestFixture, ReplaceValueBlocksIfListIsLocked) {
+  auto partition = openOrCreatePartition(prefix);
   partition->put(k1, v1);
   auto thread_is_running = true;
   {
@@ -894,8 +894,8 @@ TEST_F(MapPartitionTestFixture, ReplaceValueBlocksIfListIsLocked) {
   ASSERT_FALSE(thread_is_running);
 }
 
-TEST_F(MapPartitionTestFixture, ReplaceValuesBlocksIfListIsLocked) {
-  auto partition = openOrCreateMapPartition(prefix);
+TEST_F(PartitionTestFixture, ReplaceValuesBlocksIfListIsLocked) {
+  auto partition = openOrCreatePartition(prefix);
   partition->put(k1, v1);
   auto thread_is_running = true;
   {
@@ -913,8 +913,8 @@ TEST_F(MapPartitionTestFixture, ReplaceValuesBlocksIfListIsLocked) {
   ASSERT_FALSE(thread_is_running);
 }
 
-TEST_F(MapPartitionTestFixture, ForEachKeyDoesNotBlockIfListIsLocked) {
-  auto partition = openOrCreateMapPartition(prefix);
+TEST_F(PartitionTestFixture, ForEachKeyDoesNotBlockIfListIsLocked) {
+  auto partition = openOrCreatePartition(prefix);
   partition->put(k1, v1);
   auto thread_is_running = true;
   std::thread thread([&] {
@@ -926,8 +926,8 @@ TEST_F(MapPartitionTestFixture, ForEachKeyDoesNotBlockIfListIsLocked) {
   ASSERT_FALSE(thread_is_running);
 }
 
-TEST_F(MapPartitionTestFixture, ForEachValueDoesNotBlockIfListIsLocked) {
-  auto partition = openOrCreateMapPartition(prefix);
+TEST_F(PartitionTestFixture, ForEachValueDoesNotBlockIfListIsLocked) {
+  auto partition = openOrCreatePartition(prefix);
   partition->put(k1, v1);
   auto thread_is_running = true;
   std::thread thread([&] {
@@ -939,8 +939,8 @@ TEST_F(MapPartitionTestFixture, ForEachValueDoesNotBlockIfListIsLocked) {
   ASSERT_FALSE(thread_is_running);
 }
 
-TEST_F(MapPartitionTestFixture, ForEachEntryDoesNotBlockIfListIsLocked) {
-  auto partition = openOrCreateMapPartition(prefix);
+TEST_F(PartitionTestFixture, ForEachEntryDoesNotBlockIfListIsLocked) {
+  auto partition = openOrCreatePartition(prefix);
   partition->put(k1, v1);
   auto thread_is_running = true;
   std::thread thread([&] {
@@ -953,10 +953,10 @@ TEST_F(MapPartitionTestFixture, ForEachEntryDoesNotBlockIfListIsLocked) {
 }
 
 // -----------------------------------------------------------------------------
-// class MapPartition::Stats
+// class Partition::Stats
 // -----------------------------------------------------------------------------
 
-TEST(MapPartitionStatsTest, NamesAndToVectorHaveSameDimension) {
+TEST(PartitionStatsTest, NamesAndToVectorHaveSameDimension) {
   ASSERT_THAT(Stats::names().size(), Eq(Stats().toVector().size()));
 }
 
