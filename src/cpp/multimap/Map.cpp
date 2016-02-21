@@ -83,7 +83,6 @@ Map::Map(const boost::filesystem::path& directory, const Options& options)
   part_options.readonly = options.readonly;
   part_options.block_size = options.block_size;
   part_options.buffer_size = options.buffer_size;
-  part_options.create_if_missing = options.create_if_missing;
   const auto id_filename = directory / internal::getNameOfIdFile();
   if (boost::filesystem::is_regular_file(id_filename)) {
     mt::Check::isFalse(options.error_if_exists, "Map in '%s' already exists",
@@ -249,7 +248,7 @@ void Map::exportToBase64(const boost::filesystem::path& directory,
     forEachPartition(
         directory, [&](const boost::filesystem::path& prefix,
                        size_t partition_index, size_t num_partitions) {
-          print_status(index, npartitions);
+          print_status(partition_index, num_partitions);
           internal::Partition::forEachEntry(
               prefix, [&](const Bytes& key, Iterator* iter) {
                 internal::Base64::encode(key, &base64_key);
@@ -279,7 +278,7 @@ void Map::optimize(const boost::filesystem::path& directory,
   forEachPartition(directory, [&](const boost::filesystem::path& prefix,
                                   size_t partition_index,
                                   size_t num_partitions) {
-    if (index == 0) {
+    if (partition_index == 0) {
       const auto old_id = Id::readFromDirectory(directory);
       Options new_map_options = options;
       new_map_options.error_if_exists = true;
