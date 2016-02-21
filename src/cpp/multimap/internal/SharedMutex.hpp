@@ -26,8 +26,8 @@ namespace multimap {
 namespace internal {
 
 class SharedMutex : public mt::Resource {
-  // This class serves the same purpose as boost::shared_mutex or
-  // std::shared_mutex, but is designed for minimal memory footprint in order
+  // This class serves the same purpose as std::shared_mutex (C++17) a.k.a.
+  // boost::shared_mutex, but is designed for minimal memory footprint in order
   // to allow many simultaneous instances. In contrast to the mentioned mutexes
   // it allocates the actual mutex only on demand from a mutex pool or the free
   // store, and deallocates it when all locks have been released.
