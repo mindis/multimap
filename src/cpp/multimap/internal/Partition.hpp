@@ -45,7 +45,6 @@ class Partition : public mt::Resource {
   struct Options {
     uint32_t block_size = 512;
     uint32_t buffer_size = mt::MiB(1);
-    bool create_if_missing = false;
     bool readonly = false;
   };
 

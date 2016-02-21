@@ -37,7 +37,6 @@ std::unique_ptr<Partition> openPartition(const boost::filesystem::path& prefix,
 std::unique_ptr<Partition> openOrCreatePartition(
     const boost::filesystem::path& prefix) {
   Partition::Options options;
-  options.create_if_missing = true;
   return std::unique_ptr<Partition>(new Partition(prefix, options));
 }
 
@@ -45,7 +44,6 @@ std::unique_ptr<Partition> openOrCreatePartitionAsReadOnly(
     const boost::filesystem::path& prefix) {
   Partition::Options options;
   options.readonly = true;
-  options.create_if_missing = true;
   return std::unique_ptr<Partition>(new Partition(prefix, options));
 }
 
@@ -83,22 +81,6 @@ struct PartitionTestFixture : public testing::Test {
   const std::vector<std::string> keys = {k1, k2, k3};
   const std::vector<std::string> values = {v1, v2, v3};
 };
-
-TEST_F(PartitionTestFixture, ConstructorThrowsIfNotExist) {
-  ASSERT_THROW(Partition(this->prefix), std::runtime_error);
-  // GCC complains when not using 'this' pointer.
-}
-
-TEST_F(PartitionTestFixture, ConstructorWithDefaultOptionsThrowsIfNotExist) {
-  Partition::Options options;
-  ASSERT_THROW(Partition(prefix, options), std::runtime_error);
-}
-
-TEST_F(PartitionTestFixture, ConstructorWithCreateIfMissingDoesNotThrow) {
-  Partition::Options options;
-  options.create_if_missing = true;
-  ASSERT_NO_THROW(Partition(prefix, options));
-}
 
 TEST_F(PartitionTestFixture, PutAppendsValuesToList) {
   auto partition = openOrCreatePartition(prefix);
@@ -156,7 +138,6 @@ TEST_F(PartitionTestFixture, PutValuesAndReopenInBetween) {
   {
     Partition::Options options;
     options.block_size = 128;
-    options.create_if_missing = true;
     auto partition = openPartition(prefix, options);
     partition->put(k1, v1);
     partition->put(k2, v1);

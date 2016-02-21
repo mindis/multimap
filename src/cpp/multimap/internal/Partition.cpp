@@ -64,10 +64,6 @@ Partition::Partition(const boost::filesystem::path& file_prefix,
     stats.num_values_valid = stats_.num_values_valid;
     stats_ = stats;
 
-  } else {
-    mt::Check::isTrue(options.create_if_missing,
-                      "MapPartition with prefix '%s' does not exist",
-                      boost::filesystem::absolute(file_prefix).c_str());
   }
   store_.reset(new Store(getNameOfValuesFile(prefix_.string()), store_options));
 }
