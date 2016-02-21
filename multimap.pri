@@ -45,7 +45,7 @@ SOURCES += \
     src/cpp/multimap/thirdparty/xxhash/xxhash.c \
     src/cpp/multimap/Map.cpp
 
-unix:!macx: LIBS += -lboost_filesystem -lboost_system -lboost_thread
+unix:!macx: LIBS += -lboost_filesystem -lboost_system -lboost_thread -lpthread
 
 macx {
     INCLUDEPATH += /usr/local/include
