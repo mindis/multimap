@@ -202,10 +202,10 @@ namespace internal {
 const std::string getFilePrefix();
 const std::string getNameOfIdFile();
 const std::string getNameOfLockFile();
-const std::string getTablePrefix(uint32_t index);
 const std::string getNameOfKeysFile(uint32_t index);
 const std::string getNameOfStatsFile(uint32_t index);
 const std::string getNameOfValuesFile(uint32_t index);
+const std::string getPartitionPrefix(uint32_t index);
 void checkVersion(uint64_t major_version, uint64_t minor_version);
 
 }  // namespace internal
