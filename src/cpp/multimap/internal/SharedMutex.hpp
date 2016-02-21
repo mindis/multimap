@@ -47,9 +47,27 @@ class SharedMutex : public mt::Resource {
 
   void unlock_shared();
 
+  static size_t getCurrentPoolSize();
+  static size_t getMaximumPoolSize();
+  static void setMaximumPoolSize(size_t size);
+
  private:
   struct RefCountedMutex : public boost::shared_mutex {
     uint32_t refcount = 0;
+  };
+
+  struct Pool {
+    static Pool& instance();
+    size_t getCurrentSize() const;
+    size_t getMaximumSize() const;
+    void setMaximumSize(size_t size);
+    void push(std::unique_ptr<RefCountedMutex> mutex);
+    std::unique_ptr<RefCountedMutex> pop();
+
+   private:
+    Pool() = default;
+    size_t max_size_ = 1000;
+    std::vector<std::unique_ptr<RefCountedMutex>> mutexes_;
   };
 
   static std::unique_ptr<RefCountedMutex> allocate();
