@@ -21,9 +21,13 @@
 namespace multimap {
 
 struct Version {
-  static const uint32_t MAJOR = 0;
-  static const uint32_t MINOR = 5;
-  static const uint32_t PATCH = 0;
+  static const int MAJOR = 0;
+  static const int MINOR = 5;
+  static const int PATCH = 0;
+
+  static void checkCompatibility(int major, int minor);
+
+  Version() = delete;
 };
 
 }  // namespace multimap
