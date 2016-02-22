@@ -43,7 +43,7 @@
 
 namespace mt {
 
-static const uint32_t VERSION = 20160210;
+static const uint32_t VERSION = 20160219;
 
 // -----------------------------------------------------------------------------
 // COMMON
@@ -511,7 +511,7 @@ inline uint64_t ftell(std::FILE* stream) {
   return result;
 }
 
-class DirectoryLockGuard : Resource {
+class DirectoryLockGuard : public Resource {
 public:
   static const char* DEFAULT_FILENAME;
 
