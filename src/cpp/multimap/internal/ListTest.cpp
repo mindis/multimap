@@ -252,12 +252,12 @@ TEST(ListTest, ReaderBlocksWriter) {
     writer_has_finished = true;
   });
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
   ASSERT_FALSE(writer_has_finished);
 
   iter.reset();  // Releases reader lock
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
   ASSERT_TRUE(writer_has_finished);
   writer.join();
 }
@@ -271,7 +271,7 @@ TEST(ListTest, WriterBlocksReader) {
   // Writer
   std::thread writer([&] {
     list.removeOne([](const Bytes& /* value */) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      std::this_thread::sleep_for(std::chrono::milliseconds(1000));
       return false;
     }, &store);
   });
@@ -283,12 +283,12 @@ TEST(ListTest, WriterBlocksReader) {
     reader_has_finished = true;
   });
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
   ASSERT_FALSE(reader_has_finished);
 
   writer.join();  // Wait for release of writer lock
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
   ASSERT_TRUE(reader_has_finished);
   reader.join();
 }
@@ -302,12 +302,12 @@ TEST(ListTest, WriterBlocksReader2) {
   // Writer
   std::thread writer([&] {
     list.removeOne([](const Bytes& /* value */) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      std::this_thread::sleep_for(std::chrono::milliseconds(1000));
       return false;
     }, &store);
   });
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
   // Reader
   List::Stats stats;
@@ -327,7 +327,7 @@ TEST(ListTest, WriterBlocksWriter) {
   // First writer
   std::thread writer1([&] {
     const auto removed = list.removeOne([](const Bytes& /* value */) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      std::this_thread::sleep_for(std::chrono::milliseconds(1000));
       return false;
     }, &store);
     ASSERT_FALSE(removed);
@@ -342,12 +342,12 @@ TEST(ListTest, WriterBlocksWriter) {
     second_writer_has_finished = true;
   });
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
   ASSERT_FALSE(second_writer_has_finished);
 
   writer1.join();  // Wait for release of first writer lock
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
   ASSERT_TRUE(second_writer_has_finished);
   writer2.join();
 }
