@@ -237,14 +237,7 @@ public class MapTest {
     int numValuesPerKeys = 1000;
     Map map = createAndFillMap(DIRECTORY, numKeys, numValuesPerKeys);
     
-    map.removeOne(IS_EVEN);  // TODO Check return value
-    for (int i = 0; i < numKeys; ++i) {
-      if (i % 2 == 0) {
-        Assert.assertFalse(map.contains(makeKey(i)));
-      } else {
-        Assert.assertTrue(map.contains(makeKey(i)));
-      }
-    }
+    Assert.assertEquals(numValuesPerKeys, map.removeOne(IS_EVEN));
     map.close();
   }
   
@@ -254,7 +247,9 @@ public class MapTest {
     int numValuesPerKeys = 1000;
     Map map = createAndFillMap(DIRECTORY, numKeys, numValuesPerKeys);
     
-    map.removeAll(IS_EVEN);  // TODO Check return value
+    Utils.Pair<Integer, Long> result = map.removeAll(IS_EVEN);
+    Assert.assertEquals(numKeys / 2, result.a().intValue());
+    Assert.assertEquals(numKeys / 2 * numValuesPerKeys, result.b().longValue());
     for (int i = 0; i < numKeys; ++i) {
       if (i % 2 == 0) {
         Assert.assertFalse(map.contains(makeKey(i)));
@@ -705,12 +700,14 @@ public class MapTest {
     // Clear the map.
     Map map = new Map(DIRECTORY);
     // TODO Check return value, which is a pair now.
-    Assert.assertEquals(numKeys, map.removeAll(new Predicate() {
+    Utils.Pair<Integer, Long> result = map.removeAll(new Predicate() {
       @Override
       public boolean call(ByteBuffer bytes) {
         return true;
       }
-    }));
+    });
+    Assert.assertEquals(numKeys, result.a().intValue());
+    Assert.assertEquals(numKeys * numValuesPerKeys, result.b().longValue());
     map.close();
 
     // Import and check content.

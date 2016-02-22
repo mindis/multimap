@@ -456,6 +456,7 @@ public class Map implements AutoCloseable {
    */
   public Utils.Pair<Integer, Long> removeAll(Predicate predicate) {
     ByteBuffer buffer = ByteBuffer.wrap(Native.removeAll(self, predicate));
+    buffer.order(ByteOrder.LITTLE_ENDIAN);
     return new Utils.Pair<Integer, Long>(buffer.getInt(), buffer.getLong());
   }
 
