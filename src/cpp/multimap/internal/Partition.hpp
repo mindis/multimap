@@ -29,7 +29,6 @@
 #include "multimap/internal/Stats.hpp"
 #include "multimap/thirdparty/mt/mt.hpp"
 #include "multimap/Iterator.hpp"
-#include "multimap/Options.hpp"
 
 namespace multimap {
 namespace internal {
