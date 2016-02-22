@@ -70,6 +70,11 @@ class Partition : public mt::Resource {
     return list ? list->newIterator(*store_) : std::unique_ptr<Iterator>();
   }
 
+  bool contains(const Bytes& key) const {
+    const auto list = getList(key);
+    return list ? !list->empty() : false;
+  }
+
   uint32_t remove(const Bytes& key) {
     mt::Check::isFalse(isReadOnly(), ATTEMPT_TO_MODIFY_READ_ONLY_PARTITION);
     const auto list = getList(key);
@@ -119,6 +124,13 @@ class Partition : public mt::Resource {
     return list ? list->removeAll(predicate, store_.get()) : 0;
   }
 
+  bool replaceOne(const Bytes& key, const Bytes& old_value,
+                  const Bytes& new_value) {
+    return replaceOne(key, [&old_value, &new_value](const Bytes& value) {
+      return (value == old_value) ? new_value.toString() : std::string();
+    });
+  }
+
   template <typename Function>
   bool replaceOne(const Bytes& key, Function map) {
     mt::Check::isFalse(isReadOnly(), ATTEMPT_TO_MODIFY_READ_ONLY_PARTITION);
@@ -126,9 +138,9 @@ class Partition : public mt::Resource {
     return list ? list->replaceOne(map, store_.get(), &arena_) : false;
   }
 
-  bool replaceOne(const Bytes& key, const Bytes& old_value,
-                  const Bytes& new_value) {
-    return replaceOne(key, [&old_value, &new_value](const Bytes& value) {
+  uint32_t replaceAll(const Bytes& key, const Bytes& old_value,
+                      const Bytes& new_value) {
+    return replaceAll(key, [&old_value, &new_value](const Bytes& value) {
       return (value == old_value) ? new_value.toString() : std::string();
     });
   }
@@ -138,13 +150,6 @@ class Partition : public mt::Resource {
     mt::Check::isFalse(isReadOnly(), ATTEMPT_TO_MODIFY_READ_ONLY_PARTITION);
     const auto list = getList(key);
     return list ? list->replaceAll(map, store_.get(), &arena_) : 0;
-  }
-
-  uint32_t replaceAll(const Bytes& key, const Bytes& old_value,
-                      const Bytes& new_value) {
-    return replaceAll(key, [&old_value, &new_value](const Bytes& value) {
-      return (value == old_value) ? new_value.toString() : std::string();
-    });
   }
 
   template <typename Procedure>

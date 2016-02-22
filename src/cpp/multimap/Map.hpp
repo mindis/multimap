@@ -76,6 +76,10 @@ class Map : public mt::Resource {
     return getPartition(key)->get(key);
   }
 
+  bool contains(const Bytes& key) const {
+    return getPartition(key)->contains(key);
+  }
+
   uint32_t remove(const Bytes& key) { return getPartition(key)->remove(key); }
 
   template <typename Predicate>
@@ -110,24 +114,24 @@ class Map : public mt::Resource {
     return getPartition(key)->removeAll(key, predicate);
   }
 
-  template <typename Function>
-  bool replaceOne(const Bytes& key, Function map) {
-    return getPartition(key)->replaceOne(key, map);
-  }
-
   bool replaceOne(const Bytes& key, const Bytes& old_value,
                   const Bytes& new_value) {
     return getPartition(key)->replaceOne(key, old_value, new_value);
   }
 
   template <typename Function>
-  uint32_t replaceAll(const Bytes& key, Function map) {
-    return getPartition(key)->replaceAll(key, map);
+  bool replaceOne(const Bytes& key, Function map) {
+    return getPartition(key)->replaceOne(key, map);
   }
 
   uint32_t replaceAll(const Bytes& key, const Bytes& old_value,
                       const Bytes& new_value) {
     return getPartition(key)->replaceAll(key, old_value, new_value);
+  }
+
+  template <typename Function>
+  uint32_t replaceAll(const Bytes& key, Function map) {
+    return getPartition(key)->replaceAll(key, map);
   }
 
   template <typename Procedure>
