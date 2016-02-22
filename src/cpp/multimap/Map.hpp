@@ -89,9 +89,9 @@ class Map : public mt::Resource {
   }
 
   template <typename Predicate>
-  std::pair<uint32_t, uint32_t> removeAll(Predicate predicate) {
+  std::pair<uint32_t, uint64_t> removeAll(Predicate predicate) {
     uint32_t num_keys_removed = 0;
-    uint32_t num_values_removed = 0;
+    uint64_t num_values_removed = 0;
     for (const auto& partition : partitions_) {
       const auto result = partition->removeAll(predicate);
       num_keys_removed += result.first;

@@ -91,11 +91,11 @@ class Partition : public mt::Resource {
   }
 
   template <typename Predicate>
-  std::pair<uint32_t, uint32_t> removeAll(Predicate predicate) {
+  std::pair<uint32_t, uint64_t> removeAll(Predicate predicate) {
     mt::Check::isFalse(isReadOnly(), ATTEMPT_TO_MODIFY_READ_ONLY_PARTITION);
     WriterLockGuard<boost::shared_mutex> lock(mutex_);
     uint32_t num_keys_removed = 0;
-    uint32_t num_values_removed = 0;
+    uint64_t num_values_removed = 0;
     for (const auto& entry : map_) {
       if (predicate(entry.first)) {
         num_values_removed += entry.second->clear();
