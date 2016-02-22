@@ -346,17 +346,6 @@ public class Map implements AutoCloseable {
   }
   
   /**
-   * Same as before, but taking both {@code key} and {@code value} as string instead of byte array.
-   * Internally the key and the value are converted into byte arrays via
-   * {@link Utils#toByteArray(String)}.
-   * 
-   * @since 0.4.0
-   */
-  public void put(String key, String value) throws Exception {
-    Native.put(self, Utils.toByteArray(key), Utils.toByteArray(value));
-  }
-
-  /**
    * Returns a read-only iterator for the list associated with {@code key}. If the key does not
    * exist, an empty iterator that has no values is returned. A non-empty iterator owns a reader
    * lock on the underlying list and therefore must be closed via {@link Iterator#close()} when it
@@ -413,7 +402,7 @@ public class Map implements AutoCloseable {
    * <li>a writer lock on the list associated with {@code key}.</li>
    * </ul>
    * 
-   * @return the number values removed.
+   * @return the number values that have been removed.
    * @since 0.5.0
    */
   public int remove(byte[] key) {
@@ -466,8 +455,8 @@ public class Map implements AutoCloseable {
    * @since 0.5.0
    */
   public Utils.Pair<Integer, Long> removeAll(Predicate predicate) {
-    ByteBuffer result = Native.removeAll(self, predicate);
-    return new Utils.Pair<Integer, Long>(result.getInt(), result.getLong());
+    ByteBuffer buffer = ByteBuffer.wrap(Native.removeAll(self, predicate));
+    return new Utils.Pair<Integer, Long>(buffer.getInt(), buffer.getLong());
   }
 
   /**
@@ -499,17 +488,6 @@ public class Map implements AutoCloseable {
     return removeOne(Utils.toByteArray(key), value);
   }
   
-  /**
-   * Same as before, but taking both {@code key} and {@code value} as string instead of byte array.
-   * Internally the key and the value are converted into byte arrays via
-   * {@link Utils#toByteArray(String)}.
-   * 
-   * @since 0.5.0
-   */
-  public boolean removeOne(String key, String value) {
-    return removeOne(Utils.toByteArray(key), Utils.toByteArray(value));
-  }
-
   /**
    * Removes the <i>first</i> value from the list associated with {@code key} for which
    * {@code predicate} yields {@code true}. The predicate can be any callable that implements the
@@ -569,17 +547,6 @@ public class Map implements AutoCloseable {
     return removeAll(Utils.toByteArray(key), value);
   }
   
-  /**
-   * Same as before, but taking both {@code key} and {@code value} as string instead of byte array.
-   * Internally the key and the value are converted into byte arrays via
-   * {@link Utils#toByteArray(String)}.
-   * 
-   * @since 0.5.0
-   */
-  public int removeAll(String key, String value) {
-    return removeAll(Utils.toByteArray(key), Utils.toByteArray(value));
-  }
-
   /**
    * Removes <i>all</i> values from the list associated with {@code key} for which {@code predicate}
    * yields {@code true}. The predicate can be any callable that implements the {@link Predicate}
@@ -644,17 +611,6 @@ public class Map implements AutoCloseable {
     return replaceOne(Utils.toByteArray(key), oldValue, newValue);
   }
   
-  /**
-   * Same as before, but taking all arguments as strings instead of byte arrays. Internally the
-   * arguments are converted into byte arrays via {@link Utils#toByteArray(String)}.
-   * 
-   * @since 0.5.0
-   */
-  public boolean replaceOne(String key, String oldValue, String newValue) {
-    return replaceOne(Utils.toByteArray(key), Utils.toByteArray(oldValue),
-        Utils.toByteArray(newValue));
-  }
-
   /**
    * Replaces the <i>first</i> value in the list associated with {@code key} by the result of
    * invoking {@code map}. Values for which {@code map} returns {@code null} are not replaced. The
@@ -721,17 +677,6 @@ public class Map implements AutoCloseable {
    */
   public int replaceAll(String key, byte[] oldValue, byte[] newValue) {
     return replaceAll(Utils.toByteArray(key), oldValue, newValue);
-  }
-  
-  /**
-   * Same as before, but taking all arguments as strings instead of byte arrays. Internally the
-   * arguments are converted into byte arrays via {@link Utils#toByteArray(String)}.
-   * 
-   * @since 0.5.0
-   */
-  public int replaceAll(String key, String oldValue, String newValue) {
-    return replaceAll(Utils.toByteArray(key), Utils.toByteArray(oldValue),
-        Utils.toByteArray(newValue));
   }
   
   /**
@@ -983,7 +928,7 @@ public class Map implements AutoCloseable {
     static native boolean contains(ByteBuffer self, byte[] key);
     static native int remove(ByteBuffer self, byte[] key);
     static native int removeOne(ByteBuffer self, Predicate predicate);
-    static native ByteBuffer removeAll(ByteBuffer self, Predicate predicate);
+    static native byte[] removeAll(ByteBuffer self, Predicate predicate);
     static native boolean removeOne(ByteBuffer self, byte[] key, byte[] value);
     static native boolean removeOne(ByteBuffer self, byte[] key, Predicate predicate);
     static native int removeAll(ByteBuffer self, byte[] key, byte[] value);
