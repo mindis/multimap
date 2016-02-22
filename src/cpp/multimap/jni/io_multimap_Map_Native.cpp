@@ -57,7 +57,7 @@ JNIEXPORT jobject JNICALL
 Java_io_multimap_Map_00024Native_newMap(JNIEnv* env, jclass, jstring jdirectory,
                                         jobject joptions) {
   const auto directory = multimap::jni::makeString(env, jdirectory);
-  const auto options = multimap::jni::makeOptions(env, joptions);
+  const auto options = multimap::jni::makeMapOptions(env, joptions);
   try {
     const auto map = new multimap::Map(directory, options);
     return multimap::jni::newByteBufferFromPtr(env, map);
@@ -401,7 +401,7 @@ JNIEXPORT void JNICALL Java_io_multimap_Map_00024Native_importFromBase64(
     JNIEnv* env, jclass, jstring jdirectory, jstring jinput, jobject joptions) {
   const auto directory = multimap::jni::makeString(env, jdirectory);
   const auto input = multimap::jni::makeString(env, jinput);
-  const auto options = multimap::jni::makeOptions(env, joptions);
+  const auto options = multimap::jni::makeMapOptions(env, joptions);
   try {
     multimap::Map::importFromBase64(directory, input, options);
   } catch (std::exception& error) {
@@ -421,7 +421,7 @@ Java_io_multimap_Map_00024Native_exportToBase64(JNIEnv* env, jclass,
                                                 jobject joptions) {
   const auto directory = multimap::jni::makeString(env, jdirectory);
   const auto output = multimap::jni::makeString(env, joutput);
-  const auto options = multimap::jni::makeOptions(env, joptions);
+  const auto options = multimap::jni::makeMapOptions(env, joptions);
   try {
     multimap::Map::exportToBase64(directory, output, options);
   } catch (std::exception& error) {
@@ -440,7 +440,7 @@ Java_io_multimap_Map_00024Native_optimize(JNIEnv* env, jclass,
                                           jobject joptions) {
   const auto directory = multimap::jni::makeString(env, jdirectory);
   const auto output = multimap::jni::makeString(env, joutput);
-  const auto options = multimap::jni::makeOptions(env, joptions);
+  const auto options = multimap::jni::makeMapOptions(env, joptions);
   try {
     multimap::Map::optimize(directory, output, options);
   } catch (std::exception& error) {

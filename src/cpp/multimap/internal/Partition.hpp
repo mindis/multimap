@@ -38,6 +38,10 @@ class Partition : public mt::Resource {
   static const char* ATTEMPT_TO_MODIFY_READ_ONLY_PARTITION;
 
  public:
+  // ---------------------------------------------------------------------------
+  // Member types
+  // ---------------------------------------------------------------------------
+
   struct Limits {
     static uint32_t maxKeySize();
     static uint32_t maxValueSize();
@@ -48,6 +52,10 @@ class Partition : public mt::Resource {
     uint32_t buffer_size = mt::MiB(1);
     bool readonly = false;
   };
+
+  // ---------------------------------------------------------------------------
+  // Member functions
+  // ---------------------------------------------------------------------------
 
   explicit Partition(const boost::filesystem::path& prefix);
 
@@ -195,7 +203,7 @@ class Partition : public mt::Resource {
   uint32_t getBlockSize() const { return store_->getBlockSize(); }
 
   // ---------------------------------------------------------------------------
-  // Static methods
+  // Static member functions
   // ---------------------------------------------------------------------------
 
   template <typename BinaryProcedure>

@@ -45,12 +45,12 @@ std::string makeString(JNIEnv* env, jstring string) {
   return result;
 }
 
-Options makeOptions(JNIEnv* env, jobject options) {
+Map::Options makeMapOptions(JNIEnv* env, jobject options) {
   MT_REQUIRE_NOT_NULL(options);
   const auto cls = env->GetObjectClass(options);
   mt::Check::notNull(cls, "GetObjectClass(options) failed");
 
-  Options opts;
+  Map::Options opts;
   const auto fid_numPartitions = env->GetFieldID(cls, "numPartitions", "I");
   mt::Check::notNull(fid_numPartitions, "GetFieldID(numPartitions) failed");
   opts.num_partitions = env->GetIntField(options, fid_numPartitions);

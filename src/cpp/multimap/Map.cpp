@@ -26,10 +26,32 @@ namespace multimap {
 
 namespace {
 
-void checkOptions(const Options& options) {
+void checkOptions(const Map::Options& options) {
   mt::Check::notZero(options.block_size, "Map's block size must be positive");
   mt::Check::isTrue(mt::isPowerOfTwo(options.block_size),
                     "Map's block size must be a power of two");
+}
+
+std::string getPrefix() { return "multimap.map"; }
+
+std::string getNameOfIdFile() { return getPrefix() + ".id"; }
+
+std::string getNameOfLockFile() { return getPrefix() + ".lock"; }
+
+std::string getPartitionPrefix(size_t index) {
+  return getPrefix() + '.' + std::to_string(index);
+}
+
+std::string getNameOfKeysFile(size_t index) {
+  return internal::Partition::getNameOfKeysFile(getPartitionPrefix(index));
+}
+
+std::string getNameOfStatsFile(size_t index) {
+  return internal::Partition::getNameOfStatsFile(getPartitionPrefix(index));
+}
+
+std::string getNameOfValuesFile(size_t index) {
+  return internal::Partition::getNameOfValuesFile(getPartitionPrefix(index));
 }
 
 template <typename Procedure>
@@ -39,16 +61,16 @@ template <typename Procedure>
 //              size_t partition_index, size_t num_partitions);
 void forEachPartition(const boost::filesystem::path& directory,
                       Procedure process) {
-  mt::DirectoryLockGuard lock(directory, internal::getNameOfLockFile());
+  mt::DirectoryLockGuard lock(directory, getNameOfLockFile());
   const auto id = Map::Id::readFromDirectory(directory);
-  internal::checkVersion(id.major_version, id.minor_version);
+  Version::checkCompatibility(id.major_version, id.minor_version);
 
   internal::Partition::Options partition_options;
   partition_options.block_size = id.block_size;
   partition_options.readonly = true;
 
   for (size_t i = 0; i != id.num_partitions; ++i) {
-    const auto partition_prefix = directory / internal::getPartitionPrefix(i);
+    const auto partition_prefix = directory / getPartitionPrefix(i);
     process(partition_prefix, partition_options, i, id.num_partitions);
   }
 }
@@ -56,18 +78,18 @@ void forEachPartition(const boost::filesystem::path& directory,
 }  // namespace
 
 Map::Id Map::Id::readFromDirectory(const boost::filesystem::path& directory) {
-  return readFromFile(directory / internal::getNameOfIdFile());
+  return readFromFile(directory / getNameOfIdFile());
 }
 
-Map::Id Map::Id::readFromFile(const boost::filesystem::path& file) {
+Map::Id Map::Id::readFromFile(const boost::filesystem::path& filename) {
   Id id;
-  const auto stream = mt::fopen(file, "r");
+  const auto stream = mt::fopen(filename, "r");
   mt::fread(stream.get(), &id, sizeof id);
   return id;
 }
 
-void Map::Id::writeToFile(const boost::filesystem::path& file) const {
-  const auto stream = mt::fopen(file, "w");
+void Map::Id::writeToFile(const boost::filesystem::path& filename) const {
+  const auto stream = mt::fopen(filename, "w");
   mt::fwrite(stream.get(), this, sizeof *this);
 }
 
@@ -83,18 +105,18 @@ Map::Map(const boost::filesystem::path& directory)
     : Map(directory, Options()) {}
 
 Map::Map(const boost::filesystem::path& directory, const Options& options)
-    : lock_(directory, internal::getNameOfLockFile()) {
+    : lock_(directory, getNameOfLockFile()) {
   checkOptions(options);
   internal::Partition::Options part_options;
   part_options.readonly = options.readonly;
   part_options.block_size = options.block_size;
   part_options.buffer_size = options.buffer_size;
-  const auto id_filename = directory / internal::getNameOfIdFile();
+  const auto id_filename = directory / getNameOfIdFile();
   if (boost::filesystem::is_regular_file(id_filename)) {
     mt::Check::isFalse(options.error_if_exists, "Map in '%s' already exists",
                        boost::filesystem::absolute(directory).c_str());
     const auto id = Id::readFromFile(id_filename);
-    internal::checkVersion(id.major_version, id.minor_version);
+    Version::checkCompatibility(id.major_version, id.minor_version);
     partitions_.resize(id.num_partitions);
 
   } else {
@@ -103,7 +125,7 @@ Map::Map(const boost::filesystem::path& directory, const Options& options)
     partitions_.resize(mt::nextPrime(options.num_partitions));
   }
   for (size_t i = 0; i != partitions_.size(); ++i) {
-    const auto prefix = directory / internal::getPartitionPrefix(i);
+    const auto prefix = directory / getPartitionPrefix(i);
     partitions_[i].reset(new internal::Partition(prefix, part_options));
   }
 }
@@ -113,7 +135,7 @@ Map::~Map() {
     Id id;
     id.num_partitions = partitions_.size();
     id.block_size = partitions_.front()->getBlockSize();
-    id.writeToFile(lock_.directory() / internal::getNameOfIdFile());
+    id.writeToFile(lock_.directory() / getNameOfIdFile());
   }
 }
 
@@ -130,12 +152,12 @@ Map::Stats Map::getTotalStats() const { return Stats::total(getStats()); }
 bool Map::isReadOnly() const { return partitions_.front()->isReadOnly(); }
 
 std::vector<Map::Stats> Map::stats(const boost::filesystem::path& directory) {
-  mt::DirectoryLockGuard lock(directory, internal::getNameOfLockFile());
+  mt::DirectoryLockGuard lock(directory, getNameOfLockFile());
   const auto id = Id::readFromDirectory(directory);
-  internal::checkVersion(id.major_version, id.minor_version);
+  Version::checkCompatibility(id.major_version, id.minor_version);
   std::vector<Stats> stats;
   for (size_t i = 0; i != id.num_partitions; ++i) {
-    const auto stats_file = directory / internal::getNameOfStatsFile(i);
+    const auto stats_file = directory / getNameOfStatsFile(i);
     stats.push_back(Stats::readFromFile(stats_file));
   }
   return stats;
@@ -326,37 +348,4 @@ void Map::optimize(const boost::filesystem::path& directory,
       });
 }
 
-namespace internal {
-
-const std::string getFilePrefix() { return "multimap.map"; }
-
-const std::string getNameOfIdFile() { return getFilePrefix() + ".id"; }
-
-const std::string getNameOfLockFile() { return getFilePrefix() + ".lock"; }
-
-const std::string getPartitionPrefix(uint32_t index) {
-  return getFilePrefix() + '.' + std::to_string(index);
-}
-
-const std::string getNameOfKeysFile(uint32_t index) {
-  return Partition::getNameOfKeysFile(getPartitionPrefix(index));
-}
-
-const std::string getNameOfStatsFile(uint32_t index) {
-  return Partition::getNameOfStatsFile(getPartitionPrefix(index));
-}
-
-const std::string getNameOfValuesFile(uint32_t index) {
-  return Partition::getNameOfValuesFile(getPartitionPrefix(index));
-}
-
-void checkVersion(uint64_t major_version, uint64_t minor_version) {
-  mt::check(major_version == Version::MAJOR,
-            "Version check failed. The Multimap you are trying to open "
-            "was created with version %u.%u of the library. Your "
-            "installed version is %u.%u which is not compatible.",
-            major_version, minor_version, Version::MAJOR, Version::MINOR);
-}
-
-}  // namespace internal
 }  // namespace multimap

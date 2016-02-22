@@ -20,10 +20,7 @@
 
 #include <jni.h>
 #include <exception>
-#include "multimap/thirdparty/mt/mt.hpp"
-#include "multimap/Bytes.hpp"
-#include "multimap/Iterator.hpp"
-#include "multimap/Options.hpp"
+#include "multimap/Map.hpp"
 
 namespace multimap {
 namespace jni {
@@ -181,7 +178,7 @@ void throwJavaException(JNIEnv* env, const char* message);
 
 std::string makeString(JNIEnv* env, jstring string);
 
-Options makeOptions(JNIEnv* env, jobject options);
+Map::Options makeMapOptions(JNIEnv* env, jobject options);
 
 }  // namespace jni
 }  // namespace multimap

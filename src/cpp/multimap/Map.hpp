@@ -24,18 +24,17 @@
 
 #include <memory>
 #include <vector>
-#include <boost/filesystem/path.hpp>
-#include "multimap/thirdparty/mt/mt.hpp"
 #include "multimap/internal/Partition.hpp"
-#include "multimap/internal/Stats.hpp"
-#include "multimap/Iterator.hpp"
-#include "multimap/Options.hpp"
 #include "multimap/Version.hpp"
 
 namespace multimap {
 
 class Map : public mt::Resource {
  public:
+  // ---------------------------------------------------------------------------
+  // Member types
+  // ---------------------------------------------------------------------------
+
   struct Id {
     uint64_t block_size = 0;
     uint64_t num_partitions = 0;
@@ -55,7 +54,27 @@ class Map : public mt::Resource {
     static uint32_t maxValueSize();
   };
 
+  struct Options {
+    uint32_t block_size = 512;
+    uint32_t num_partitions = 23;
+    uint32_t buffer_size = mt::MiB(1);
+
+    bool create_if_missing = false;
+    bool error_if_exists = false;
+    bool readonly = false;
+    bool quiet = false;
+
+    std::function<bool(const Bytes&, const Bytes&)> compare;
+
+    void keepNumPartitions() { num_partitions = 0; }
+    void keepBlockSize() { block_size = 0; }
+  };
+
   typedef internal::Stats Stats;
+
+  // ---------------------------------------------------------------------------
+  // Member functions
+  // ---------------------------------------------------------------------------
 
   explicit Map(const boost::filesystem::path& directory);
 
@@ -201,18 +220,6 @@ class Map : public mt::Resource {
   mt::DirectoryLockGuard lock_;
 };
 
-namespace internal {
-
-const std::string getFilePrefix();
-const std::string getNameOfIdFile();
-const std::string getNameOfLockFile();
-const std::string getNameOfKeysFile(uint32_t index);
-const std::string getNameOfStatsFile(uint32_t index);
-const std::string getNameOfValuesFile(uint32_t index);
-const std::string getPartitionPrefix(uint32_t index);
-void checkVersion(uint64_t major_version, uint64_t minor_version);
-
-}  // namespace internal
 }  // namespace multimap
 
 #endif  // MULTIMAP_MAP_HPP_INCLUDED
