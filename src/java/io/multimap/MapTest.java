@@ -210,12 +210,12 @@ public class MapTest {
   }
 
   @Test
-  public void testRemoveKey() throws Exception {
+  public void testRemove() throws Exception {
     int numKeys = 1000;
     int numValuesPerKeys = 1000;
     Map map = createAndFillMap(DIRECTORY, numKeys, numValuesPerKeys);
     for (int i = 0; i < numKeys; i += 2) {
-      Assert.assertTrue(map.removeKey(makeKey(i)));
+      Assert.assertEquals(numValuesPerKeys, map.remove(makeKey(i)));
     }
     for (int i = 0; i < numKeys; ++i) {
       Iterator iter = map.get(makeKey(i));
@@ -232,30 +232,47 @@ public class MapTest {
   }
 
   @Test
-  public void testRemoveKeys() throws Exception {
+  public void testRemoveOneKey() throws Exception {
     int numKeys = 1000;
     int numValuesPerKeys = 1000;
     Map map = createAndFillMap(DIRECTORY, numKeys, numValuesPerKeys);
     
-    map.removeKeys(IS_EVEN);
+    map.removeOne(IS_EVEN);  // TODO Check return value
     for (int i = 0; i < numKeys; ++i) {
       if (i % 2 == 0) {
-        Assert.assertFalse(map.containsKey(makeKey(i)));
+        Assert.assertFalse(map.contains(makeKey(i)));
       } else {
-        Assert.assertTrue(map.containsKey(makeKey(i)));
+        Assert.assertTrue(map.contains(makeKey(i)));
+      }
+    }
+    map.close();
+  }
+  
+  @Test
+  public void testRemoveAllKeys() throws Exception {
+    int numKeys = 1000;
+    int numValuesPerKeys = 1000;
+    Map map = createAndFillMap(DIRECTORY, numKeys, numValuesPerKeys);
+    
+    map.removeAll(IS_EVEN);  // TODO Check return value
+    for (int i = 0; i < numKeys; ++i) {
+      if (i % 2 == 0) {
+        Assert.assertFalse(map.contains(makeKey(i)));
+      } else {
+        Assert.assertTrue(map.contains(makeKey(i)));
       }
     }
     map.close();
   }
 
   @Test
-  public void testRemoveValue() throws Exception {
+  public void testRemoveOneValue() throws Exception {
     int numKeys = 1000;
     int numValuesPerKeys = 1000;
     Map map = createAndFillMap(DIRECTORY, numKeys, numValuesPerKeys);
     
     for (int i = 0; i < numKeys; ++i) {
-      boolean removed = map.removeValue(makeKey(i), makeValue(123));
+      boolean removed = map.removeOne(makeKey(i), makeValue(123));
       Assert.assertTrue(removed);
     }
     
@@ -283,13 +300,13 @@ public class MapTest {
   }
 
   @Test
-  public void testRemoveValueViaPredicate() throws Exception {
+  public void testRemoveOneValueViaPredicate() throws Exception {
     int numKeys = 1000;
     int numValuesPerKeys = 1000;
     Map map = createAndFillMap(DIRECTORY, numKeys, numValuesPerKeys);
     
     for (int i = 0; i < numKeys; ++i) {
-      boolean removed = map.removeValue(makeKey(i), IS_EVEN);
+      boolean removed = map.removeOne(makeKey(i), IS_EVEN);
       Assert.assertTrue(removed);
     }
     
@@ -318,14 +335,14 @@ public class MapTest {
   }
 
   @Test
-  public void testRemoveValues() throws Exception {
+  public void testRemoveAllValues() throws Exception {
     int numKeys = 1000;
     int numValuesPerKeys = 1000;
     Map map = createAndFillMap(DIRECTORY, numKeys, numValuesPerKeys);
     
     for (int i = 0; i < numKeys; ++i) {
       long expectedNumRemoved = 1;
-      long actualNumRemoved = map.removeValues(makeKey(i), makeValue(123));
+      long actualNumRemoved = map.removeAll(makeKey(i), makeValue(123));
       Assert.assertEquals(expectedNumRemoved, actualNumRemoved);
     }
     
@@ -347,14 +364,14 @@ public class MapTest {
   }
 
   @Test
-  public void testRemoveValuesViaPredicate() throws Exception {
+  public void testRemoveAllValuesViaPredicate() throws Exception {
     int numKeys = 1000;
     int numValuesPerKeys = 1000;
     Map map = createAndFillMap(DIRECTORY, numKeys, numValuesPerKeys);
 
     for (int i = 0; i < numKeys; ++i) {
       long expectedNumRemoved = numValuesPerKeys / 2;
-      long actualNumRemoved = map.removeValues(makeKey(i), IS_EVEN);
+      long actualNumRemoved = map.removeAll(makeKey(i), IS_EVEN);
       Assert.assertEquals(expectedNumRemoved, actualNumRemoved);
     }
 
@@ -377,13 +394,13 @@ public class MapTest {
   }
 
   @Test
-  public void testReplaceValue() throws Exception {
+  public void testReplaceOneValue() throws Exception {
     int numKeys = 1000;
     int numValuesPerKeys = 1000;
     Map map = createAndFillMap(DIRECTORY, numKeys, numValuesPerKeys);
     
     for (int i = 0; i < numKeys; ++i) {
-      boolean replaced = map.replaceValue(makeKey(i), makeValue(123), makeValue(124));
+      boolean replaced = map.replaceOne(makeKey(i), makeValue(123), makeValue(124));
       Assert.assertTrue(replaced);
     }
     
@@ -408,13 +425,13 @@ public class MapTest {
   }
 
   @Test
-  public void testReplaceValueViaFunction() throws Exception {
+  public void testReplaceOneValueViaFunction() throws Exception {
     int numKeys = 1000;
     int numValuesPerKeys = 1000;
     Map map = createAndFillMap(DIRECTORY, numKeys, numValuesPerKeys);
 
     for (int i = 0; i < numKeys; ++i) {
-      boolean replaced = map.replaceValue(makeKey(i), NEXT_IF_EVEN);
+      boolean replaced = map.replaceOne(makeKey(i), NEXT_IF_EVEN);
       Assert.assertTrue(replaced);
     }
 
@@ -435,14 +452,14 @@ public class MapTest {
   }
 
   @Test
-  public void testReplaceValues() throws Exception {
+  public void testReplaceAllValues() throws Exception {
     int numKeys = 1000;
     int numValuesPerKeys = 1000;
     Map map = createAndFillMap(DIRECTORY, numKeys, numValuesPerKeys);
     
     for (int i = 0; i < numKeys; ++i) {
       long expectedNumReplaced = 1;
-      long actualNumRemoved = map.replaceValues(makeKey(i), makeValue(123), makeValue(124));
+      long actualNumRemoved = map.replaceAll(makeKey(i), makeValue(123), makeValue(124));
       Assert.assertEquals(expectedNumReplaced, actualNumRemoved);
     }
     
@@ -467,14 +484,14 @@ public class MapTest {
   }
 
   @Test
-  public void testReplaceValuesViaFunction() throws Exception {
+  public void testReplaceAllValuesViaFunction() throws Exception {
     int numKeys = 1000;
     int numValuesPerKeys = 1000;
     Map map = createAndFillMap(DIRECTORY, numKeys, numValuesPerKeys);
 
     for (int i = 0; i < numKeys; ++i) {
       long expectedNumReplaced = numValuesPerKeys / 2;
-      long actualNumReplaced = map.replaceValues(makeKey(i), NEXT_IF_EVEN);
+      long actualNumReplaced = map.replaceAll(makeKey(i), NEXT_IF_EVEN);
       Assert.assertEquals(expectedNumReplaced, actualNumReplaced);
     }
 
@@ -517,7 +534,7 @@ public class MapTest {
     
     // Remove every second key and collect keys again.
     for (int i = 0; i < numKeys; i += 2) {
-      Assert.assertTrue(map.removeKey(makeKey(i)));
+      Assert.assertEquals(numValuesPerKeys, map.remove(makeKey(i)));
     }
     keys.clear();
     map.forEachKey(new Procedure() {
@@ -554,7 +571,7 @@ public class MapTest {
     }
     
     // Remove every second value and collect values again.
-    map.removeValues(key, IS_EVEN);
+    map.removeAll(key, IS_EVEN);  // TODO Check return value
     values.clear();
     map.forEachValue(key, new Procedure() {
       @Override
@@ -687,7 +704,8 @@ public class MapTest {
 
     // Clear the map.
     Map map = new Map(DIRECTORY);
-    Assert.assertEquals(numKeys, map.removeKeys(new Predicate() {
+    // TODO Check return value, which is a pair now.
+    Assert.assertEquals(numKeys, map.removeAll(new Predicate() {
       @Override
       public boolean call(ByteBuffer bytes) {
         return true;

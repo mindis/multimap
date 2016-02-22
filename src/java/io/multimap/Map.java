@@ -25,7 +25,6 @@ import io.multimap.Callables.Procedure;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -338,8 +337,7 @@ public class Map implements AutoCloseable {
   
   /**
    * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
-   * converted to a byte array by calling {@link String#getBytes(Charset)} using UTF-8 as the
-   * character set.
+   * converted into a byte array via {@link Utils#toByteArray(String)}.
    * 
    * @since 0.4.0
    */
@@ -349,8 +347,8 @@ public class Map implements AutoCloseable {
   
   /**
    * Same as before, but taking both {@code key} and {@code value} as string instead of byte array.
-   * Internally the key and the value are converted to byte arrays by calling
-   * {@link String#getBytes(Charset)} using UTF-8 as the character set.
+   * Internally the key and the value are converted into byte arrays via
+   * {@link Utils#toByteArray(String)}.
    * 
    * @since 0.4.0
    */
@@ -379,8 +377,7 @@ public class Map implements AutoCloseable {
   
   /**
    * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
-   * converted to a byte array by calling {@link String#getBytes(Charset)} using UTF-8 as the
-   * character set.
+   * converted into a byte array via {@link Utils#toByteArray(String)}.
    * 
    * @since 0.4.0
    */
@@ -392,20 +389,19 @@ public class Map implements AutoCloseable {
    * Returns {@code true} if {@code key} is associated with at least one value, {@code false}
    * otherwise.
    */
-  public boolean containsKey(byte[] key) {
+  public boolean contains(byte[] key) {
     Check.notNull(key);
-    return Native.containsKey(self, key);
+    return Native.contains(self, key);
   }
   
   /**
    * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
-   * converted to a byte array by calling {@link String#getBytes(Charset)} using UTF-8 as the
-   * character set.
+   * converted into a byte array via {@link Utils#toByteArray(String)}.
    * 
    * @since 0.4.0
    */
-  public boolean containsKey(String key) {
-    return containsKey(Utils.toByteArray(key));
+  public boolean contains(String key) {
+    return contains(Utils.toByteArray(key));
   }
 
   /**
@@ -417,27 +413,29 @@ public class Map implements AutoCloseable {
    * <li>a writer lock on the list associated with {@code key}.</li>
    * </ul>
    * 
-   * @return {@code true} if any values have been removed, {@code false} otherwise.
+   * @return the number values removed.
+   * @since 0.5.0
    */
-  public boolean removeKey(byte[] key) {
+  public int remove(byte[] key) {
     Check.notNull(key);
-    return Native.removeKey(self, key);
+    return Native.remove(self, key);
   }
   
   /**
    * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
-   * converted to a byte array by calling {@link String#getBytes(Charset)} using UTF-8 as the
-   * character set.
+   * converted into a byte array via {@link Utils#toByteArray(String)}.
    * 
-   * @since 0.4.0
+   * @since 0.5.0
    */
-  public boolean removeKey(String key) {
-    return removeKey(Utils.toByteArray(key));
+  public int remove(String key) {
+    return remove(Utils.toByteArray(key));
   }
 
   /**
-   * Removes all values associated with keys for which {@code predicate} yields {@code true}. The
-   * predicate can be any callable that implements the {@link Predicate} interface.
+   * Removes the <i>first</i> key (and all its associated values) for which {@code predicate}
+   * yields {@code true}. The predicate can be any callable that implements the {@link Predicate}
+   * interface. Note that since the order of keys is undefined, this method should only be used if
+   * either one or no key at all will match.
    * 
    * <p><b>Acquires:</b></p>
    * <ul>
@@ -445,15 +443,36 @@ public class Map implements AutoCloseable {
    * <li>a writer lock on lists associated with matching keys.</li>
    * </ul>
    * 
-   * @return the number of keys for which any values have been removed.
+   * @return the number of values that have been removed.
+   * @since 0.5.0
    */
-  public long removeKeys(Predicate predicate) {
-    return Native.removeKeys(self, predicate);
+  public int removeOne(Predicate predicate) {
+    return Native.removeOne(self, predicate);
+  }
+  
+  /**
+   * Removes <i>all</i> keys (and all its associated values) for which {@code predicate} yields
+   * {@code true}. The predicate can be any callable that implements the {@link Predicate}
+   * interface.
+   * 
+   * <p><b>Acquires:</b></p>
+   * <ul>
+   * <li>a reader lock on the map object.</li>
+   * <li>a writer lock on lists associated with matching keys.</li>
+   * </ul>
+   * 
+   * @return a pair whose first element tells the number of keys and the second element the total
+   *         number of values that have been removed.
+   * @since 0.5.0
+   */
+  public Utils.Pair<Integer, Long> removeAll(Predicate predicate) {
+    ByteBuffer result = Native.removeAll(self, predicate);
+    return new Utils.Pair<Integer, Long>(result.getInt(), result.getLong());
   }
 
   /**
-   * Removes the first value from the list associated with {@code key} that is equal to
-   * {@code value} after to byte-wise comparison.
+   * Removes the <i>first</i> value from the list associated with {@code key} that is equal to
+   * {@code value} after byte-wise comparison.
    * 
    * <p><b>Acquires:</b></p>
    * <ul>
@@ -462,37 +481,107 @@ public class Map implements AutoCloseable {
    * </ul>
    * 
    * @return {@code true} if any value has been removed, {@code false} otherwise.
+   * @since 0.5.0
    */
-  public boolean removeValue(byte[] key, byte[] value) {
+  public boolean removeOne(byte[] key, byte[] value) {
     Check.notNull(key);
     Check.notNull(value);
-    return Native.removeValue(self, key, value);
+    return Native.removeOne(self, key, value);
   }
   
   /**
    * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
-   * converted to a byte array by calling {@link String#getBytes(Charset)} using UTF-8 as the
-   * character set.
+   * converted into a byte array via {@link Utils#toByteArray(String)}.
    * 
-   * @since 0.4.0
+   * @since 0.5.0
    */
-  public boolean removeValue(String key, byte[] value) {
-    return removeValue(Utils.toByteArray(key), value);
+  public boolean removeOne(String key, byte[] value) {
+    return removeOne(Utils.toByteArray(key), value);
   }
   
   /**
    * Same as before, but taking both {@code key} and {@code value} as string instead of byte array.
-   * Internally the key and the value are converted to byte arrays by calling
-   * {@link String#getBytes(Charset)} using UTF-8 as the character set.
+   * Internally the key and the value are converted into byte arrays via
+   * {@link Utils#toByteArray(String)}.
    * 
-   * @since 0.4.0
+   * @since 0.5.0
    */
-  public boolean removeValue(String key, String value) {
-    return removeValue(Utils.toByteArray(key), Utils.toByteArray(value));
+  public boolean removeOne(String key, String value) {
+    return removeOne(Utils.toByteArray(key), Utils.toByteArray(value));
   }
 
   /**
-   * Removes the first value from the list associated with {@code key} for which {@code predicate}
+   * Removes the <i>first</i> value from the list associated with {@code key} for which
+   * {@code predicate} yields {@code true}. The predicate can be any callable that implements the
+   * {@link Predicate} interface.
+   * 
+   * <p><b>Acquires:</b></p>
+   * <ul>
+   * <li>a reader lock on the map object.</li>
+   * <li>a writer lock on the list associated with {@code key}.</li>
+   * </ul>
+   * 
+   * @return {@code true} if any value has been removed, {@code false} otherwise.
+   * @since 0.5.0
+   */
+  public boolean removeOne(byte[] key, Predicate predicate) {
+    Check.notNull(key);
+    Check.notNull(predicate);
+    return Native.removeOne(self, key, predicate);
+  }
+  
+  /**
+   * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
+   * converted into a byte array via {@link Utils#toByteArray(String)}.
+   * 
+   * @since 0.5.0
+   */
+  public boolean removeOne(String key, Predicate predicate) {
+    return removeOne(Utils.toByteArray(key), predicate);
+  }
+
+  /**
+   * Removes <i>all</i> values from the list associated with {@code key} that are equal to
+   * {@code value} after byte-wise comparison.
+   * 
+   * <p><b>Acquires:</b></p>
+   * <ul>
+   * <li>a reader lock on the map object.</li>
+   * <li>a writer lock on the list associated with {@code key}.</li>
+   * </ul>
+   * 
+   * @return the number of values that have been removed.
+   * @since 0.5.0
+   */
+  public int removeAll(byte[] key, byte[] value) {
+    Check.notNull(key);
+    Check.notNull(value);
+    return Native.removeAll(self, key, value);
+  }
+  
+  /**
+   * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
+   * converted into a byte array via {@link Utils#toByteArray(String)}.
+   * 
+   * @since 0.5.0
+   */
+  public int removeAll(String key, byte[] value) {
+    return removeAll(Utils.toByteArray(key), value);
+  }
+  
+  /**
+   * Same as before, but taking both {@code key} and {@code value} as string instead of byte array.
+   * Internally the key and the value are converted into byte arrays via
+   * {@link Utils#toByteArray(String)}.
+   * 
+   * @since 0.5.0
+   */
+  public int removeAll(String key, String value) {
+    return removeAll(Utils.toByteArray(key), Utils.toByteArray(value));
+  }
+
+  /**
+   * Removes <i>all</i> values from the list associated with {@code key} for which {@code predicate}
    * yields {@code true}. The predicate can be any callable that implements the {@link Predicate}
    * interface.
    * 
@@ -502,101 +591,31 @@ public class Map implements AutoCloseable {
    * <li>a writer lock on the list associated with {@code key}.</li>
    * </ul>
    * 
-   * @return {@code true} if any value has been removed, {@code false} otherwise.
+   * @return the number of values that have been removed.
+   * @since 0.5.0
    */
-  public boolean removeValue(byte[] key, Predicate predicate) {
+  public int removeAll(byte[] key, Predicate predicate) {
     Check.notNull(key);
     Check.notNull(predicate);
-    return Native.removeValue(self, key, predicate);
+    return Native.removeAll(self, key, predicate);
   }
   
   /**
    * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
-   * converted to a byte array by calling {@link String#getBytes(Charset)} using UTF-8 as the
-   * character set.
+   * converted into a byte array via {@link Utils#toByteArray(String)}.
    * 
-   * @since 0.4.0
+   * @since 0.5.0
    */
-  public boolean removeValue(String key, Predicate predicate) {
-    return removeValue(Utils.toByteArray(key), predicate);
+  public int removeAll(String key, Predicate predicate) {
+    return removeAll(Utils.toByteArray(key), predicate);
   }
 
   /**
-   * Removes all values from the list associated with {@code key} that are equal to {@code value}
-   * after to byte-wise comparison.
-   * 
-   * <p><b>Acquires:</b></p>
-   * <ul>
-   * <li>a reader lock on the map object.</li>
-   * <li>a writer lock on the list associated with {@code key}.</li>
-   * </ul>
-   * 
-   * @return the number of values removed.
-   */
-  public long removeValues(byte[] key, byte[] value) {
-    Check.notNull(key);
-    Check.notNull(value);
-    return Native.removeValues(self, key, value);
-  }
-  
-  /**
-   * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
-   * converted to a byte array by calling {@link String#getBytes(Charset)} using UTF-8 as the
-   * character set.
-   * 
-   * @since 0.4.0
-   */
-  public long removeValues(String key, byte[] value) {
-    return removeValues(Utils.toByteArray(key), value);
-  }
-  
-  /**
-   * Same as before, but taking both {@code key} and {@code value} as string instead of byte array.
-   * Internally the key and the value are converted to byte arrays by calling
-   * {@link String#getBytes(Charset)} using UTF-8 as the character set.
-   * 
-   * @since 0.4.0
-   */
-  public long removeValues(String key, String value) {
-    return removeValues(Utils.toByteArray(key), Utils.toByteArray(value));
-  }
-
-  /**
-   * Removes all values from the list associated with {@code key} for which {@code predicate}
-   * yields {@code true}. The predicate can be any callable that implements the {@link Predicate}
-   * interface.
-   * 
-   * <p><b>Acquires:</b></p>
-   * <ul>
-   * <li>a reader lock on the map object.</li>
-   * <li>a writer lock on the list associated with {@code key}.</li>
-   * </ul>
-   * 
-   * @return the number of values removed.
-   */
-  public long removeValues(byte[] key, Predicate predicate) {
-    Check.notNull(key);
-    Check.notNull(predicate);
-    return Native.removeValues(self, key, predicate);
-  }
-  
-  /**
-   * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
-   * converted to a byte array by calling {@link String#getBytes(Charset)} using UTF-8 as the
-   * character set.
-   * 
-   * @since 0.4.0
-   */
-  public long removeValues(String key, Predicate predicate) {
-    return removeValues(Utils.toByteArray(key), predicate);
-  }
-
-  /**
-   * Replaces the first value in the list associated with {@code key} that is equal to
+   * Replaces the <i>first</i> value in the list associated with {@code key} that is equal to
    * {@code oldValue} by {@code newValue}.
    *
    * <p>Note that a replace operation is actually implemented in terms of a remove of the old value
-   * followed by an insert/put of the new value. Thus, the new value is always the last value in
+   * followed by an insert/put of the new value. Hence, the new value is always the last value in
    * the list. In other words, the replacement is not in-place.</p>
    * 
    * <p><b>Acquires:</b></p>
@@ -606,44 +625,43 @@ public class Map implements AutoCloseable {
    * </ul>
    * 
    * @return {@code true} if any value has been replaced, {@code false} otherwise.
+   * @since 0.5.0
    */
-  public boolean replaceValue(byte[] key, byte[] oldValue, byte[] newValue) {
+  public boolean replaceOne(byte[] key, byte[] oldValue, byte[] newValue) {
     Check.notNull(key);
     Check.notNull(oldValue);
     Check.notNull(newValue);
-    return Native.replaceValue(self, key, oldValue, newValue);
+    return Native.replaceOne(self, key, oldValue, newValue);
   }
   
   /**
    * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
-   * converted to a byte array by calling {@link String#getBytes(Charset)} using UTF-8 as the
-   * character set.
+   * converted into a byte array via {@link Utils#toByteArray(String)}.
    * 
-   * @since 0.4.0
+   * @since 0.5.0
    */
-  public boolean replaceValue(String key, byte[] oldValue, byte[] newValue) {
-    return replaceValue(Utils.toByteArray(key), oldValue, newValue);
+  public boolean replaceOne(String key, byte[] oldValue, byte[] newValue) {
+    return replaceOne(Utils.toByteArray(key), oldValue, newValue);
   }
   
   /**
    * Same as before, but taking all arguments as strings instead of byte arrays. Internally the
-   * arguments are converted to byte arrays by calling {@link String#getBytes(Charset)} using UTF-8
-   * as the character set.
+   * arguments are converted into byte arrays via {@link Utils#toByteArray(String)}.
    * 
-   * @since 0.4.0
+   * @since 0.5.0
    */
-  public boolean replaceValue(String key, String oldValue, String newValue) {
-    return replaceValue(Utils.toByteArray(key), Utils.toByteArray(oldValue),
+  public boolean replaceOne(String key, String oldValue, String newValue) {
+    return replaceOne(Utils.toByteArray(key), Utils.toByteArray(oldValue),
         Utils.toByteArray(newValue));
   }
 
   /**
-   * Replaces the first value in the list associated with {@code key} by the result of invoking
-   * {@code map}. Values for which {@code map} returns {@code null} are not replaced. The map
-   * function can be any callable that implements the {@link Function} interface.
+   * Replaces the <i>first</i> value in the list associated with {@code key} by the result of
+   * invoking {@code map}. Values for which {@code map} returns {@code null} are not replaced. The
+   * map function can be any callable that implements the {@link Function} interface.
    * 
    * <p>Note that a replace operation is actually implemented in terms of a remove of the old value
-   * followed by an insert/put of the new value. Thus, the new value is always the last value in
+   * followed by an insert/put of the new value. Hence, the new value is always the last value in
    * the list. In other words, the replacement is not in-place.</p>
    * 
    * <p><b>Acquires:</b></p>
@@ -653,30 +671,30 @@ public class Map implements AutoCloseable {
    * </ul>
    * 
    * @return {@code true} if any value has been replaced, {@code false} otherwise.
+   * @since 0.5.0
    */
-  public boolean replaceValue(byte[] key, Function map) {
+  public boolean replaceOne(byte[] key, Function map) {
     Check.notNull(key);
     Check.notNull(map);
-    return Native.replaceValue(self, key, map);
+    return Native.replaceOne(self, key, map);
   }
   
   /**
    * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
-   * converted to a byte array by calling {@link String#getBytes(Charset)} using UTF-8 as the
-   * character set.
+   * converted into a byte array via {@link Utils#toByteArray(String)}.
    * 
-   * @since 0.4.0
+   * @since 0.5.0
    */
-  public boolean replaceValue(String key, Function map) {
-    return replaceValue(Utils.toByteArray(key), map);
+  public boolean replaceOne(String key, Function map) {
+    return replaceOne(Utils.toByteArray(key), map);
   }
 
   /**
-   * Replaces each value in the list associated with {@code key} that is equal to {@code oldValue}
-   * by {@code newValue}.
+   * Replaces <i>all</i> values in the list associated with {@code key} that are equal to
+   * {@code oldValue} by {@code newValue}.
    * 
    * <p>Note that a replace operation is actually implemented in terms of a remove of the old value
-   * followed by an insert/put of the new value. Thus, the new value is always the last value in
+   * followed by an insert/put of the new value. Hence, the new value is always the last value in
    * the list. In other words, the replacement is not in-place.</p>
    * 
    * <p><b>Acquires:</b></p>
@@ -685,45 +703,44 @@ public class Map implements AutoCloseable {
    * <li>a writer lock on the list associated with {@code key}.</li>
    * </ul>
    * 
-   * @return the number of values replaced.
+   * @return the number of values that have been replaced.
+   * @since 0.5.0
    */
-  public long replaceValues(byte[] key, byte[] oldValue, byte[] newValue) {
+  public int replaceAll(byte[] key, byte[] oldValue, byte[] newValue) {
     Check.notNull(key);
     Check.notNull(oldValue);
     Check.notNull(newValue);
-    return Native.replaceValues(self, key, oldValue, newValue);
+    return Native.replaceAll(self, key, oldValue, newValue);
   }
   
   /**
    * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
-   * converted to a byte array by calling {@link String#getBytes(Charset)} using UTF-8 as the
-   * character set.
+   * converted into a byte array via {@link Utils#toByteArray(String)}.
    * 
-   * @since 0.4.0
+   * @since 0.5.0
    */
-  public long replaceValues(String key, byte[] oldValue, byte[] newValue) {
-    return replaceValues(Utils.toByteArray(key), oldValue, newValue);
+  public int replaceAll(String key, byte[] oldValue, byte[] newValue) {
+    return replaceAll(Utils.toByteArray(key), oldValue, newValue);
   }
   
   /**
    * Same as before, but taking all arguments as strings instead of byte arrays. Internally the
-   * arguments are converted to byte arrays by calling {@link String#getBytes(Charset)} using UTF-8
-   * as the character set.
+   * arguments are converted into byte arrays via {@link Utils#toByteArray(String)}.
    * 
-   * @since 0.4.0
+   * @since 0.5.0
    */
-  public long replaceValues(String key, String oldValue, String newValue) {
-    return replaceValues(Utils.toByteArray(key), Utils.toByteArray(oldValue),
+  public int replaceAll(String key, String oldValue, String newValue) {
+    return replaceAll(Utils.toByteArray(key), Utils.toByteArray(oldValue),
         Utils.toByteArray(newValue));
   }
   
   /**
-   * Replaces each value in the list associated with {@code key} by the result of invoking
+   * Replaces <i>all</i> values in the list associated with {@code key} by the result of invoking
    * {@code map}. Values for which {@code map} returns {@code null} are not replaced. The map
    * function can be any callable that implements the {@link Function} interface.
    * 
    * <p>Note that a replace operation is actually implemented in terms of a remove of the old value
-   * followed by an insert/put of the new value. Thus, the new value is always the last value in
+   * followed by an insert/put of the new value. Hence, the new value is always the last value in
    * the list. In other words, the replacement is not in-place.</p>
    * 
    * <p><b>Acquires:</b></p>
@@ -732,28 +749,28 @@ public class Map implements AutoCloseable {
    * <li>a writer lock on the list associated with {@code key}.</li>
    * </ul>
    * 
-   * @return the number of values replaced.
+   * @return the number of values that have been replaced.
+   * @since 0.5.0
    */
-  public long replaceValues(byte[] key, Function map) {
+  public int replaceAll(byte[] key, Function map) {
     Check.notNull(key);
     Check.notNull(map);
-    return Native.replaceValues(self, key, map);
+    return Native.replaceAll(self, key, map);
   }
   
   /**
    * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
-   * converted to a byte array by calling {@link String#getBytes(Charset)} using UTF-8 as the
-   * character set.
+   * converted into a byte array via {@link Utils#toByteArray(String)}.
    * 
-   * @since 0.4.0
+   * @since 0.5.0
    */
-  public long replaceValues(String key, Function map) {
-    return replaceValues(Utils.toByteArray(key), map);
+  public int replaceAll(String key, Function map) {
+    return replaceAll(Utils.toByteArray(key), map);
   }
 
   /**
-   * Applies {@code process} to each key whose list is not empty. The process argument can be any
-   * callable that implements the {@link Procedure} interface. 
+   * Applies {@code process} to each key in the map. The process argument can be any callable that
+   * implements the {@link Procedure} interface. 
    * 
    * <p><b>Acquires</b> a reader lock on the map object.</p>
    */
@@ -779,8 +796,7 @@ public class Map implements AutoCloseable {
   
   /**
    * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
-   * converted to a byte array by calling {@link String#getBytes(Charset)} using UTF-8 as the
-   * character set.
+   * converted into a byte array via {@link Utils#toByteArray(String)}.
    * 
    * @since 0.4.0
    */
@@ -964,19 +980,20 @@ public class Map implements AutoCloseable {
     static native ByteBuffer newMap(String directory, Options options) throws Exception;
     static native void put(ByteBuffer self, byte[] key, byte[] value) throws Exception;
     static native ByteBuffer get(ByteBuffer self, byte[] key);
-    static native boolean containsKey(ByteBuffer self, byte[] key);
-    static native boolean removeKey(ByteBuffer self, byte[] key);
-    static native long removeKeys(ByteBuffer self, Predicate predicate);
-    static native boolean removeValue(ByteBuffer self, byte[] key, byte[] value);
-    static native boolean removeValue(ByteBuffer self, byte[] key, Predicate predicate);
-    static native long removeValues(ByteBuffer self, byte[] key, byte[] value);
-    static native long removeValues(ByteBuffer self, byte[] key, Predicate predicate);
-    static native boolean replaceValue(ByteBuffer self, byte[] key, byte[] oldValue, byte[] newValue);
-    static native boolean replaceValue(ByteBuffer self, byte[] key, Function function);
-    static native long replaceValues(ByteBuffer self, byte[] key, byte[] oldValue, byte[] newValue);
-    static native long replaceValues(ByteBuffer self, byte[] key, Function function);
-    static native void forEachKey(ByteBuffer self, Procedure action);
-    static native void forEachValue(ByteBuffer self, byte[] key, Procedure action);
+    static native boolean contains(ByteBuffer self, byte[] key);
+    static native int remove(ByteBuffer self, byte[] key);
+    static native int removeOne(ByteBuffer self, Predicate predicate);
+    static native ByteBuffer removeAll(ByteBuffer self, Predicate predicate);
+    static native boolean removeOne(ByteBuffer self, byte[] key, byte[] value);
+    static native boolean removeOne(ByteBuffer self, byte[] key, Predicate predicate);
+    static native int removeAll(ByteBuffer self, byte[] key, byte[] value);
+    static native int removeAll(ByteBuffer self, byte[] key, Predicate predicate);
+    static native boolean replaceOne(ByteBuffer self, byte[] key, byte[] oldValue, byte[] newValue);
+    static native boolean replaceOne(ByteBuffer self, byte[] key, Function function);
+    static native int replaceAll(ByteBuffer self, byte[] key, byte[] oldValue, byte[] newValue);
+    static native int replaceAll(ByteBuffer self, byte[] key, Function function);
+    static native void forEachKey(ByteBuffer self, Procedure process);
+    static native void forEachValue(ByteBuffer self, byte[] key, Procedure process);
     static native void getStats(ByteBuffer self, Stats stats);
     static native boolean isReadOnly(ByteBuffer self);
     static native void close(ByteBuffer self);
