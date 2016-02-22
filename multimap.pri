@@ -28,7 +28,6 @@ HEADERS += \
     src/cpp/multimap/callables.hpp \
     src/cpp/multimap/Iterator.hpp \
     src/cpp/multimap/Map.hpp \
-    src/cpp/multimap/Options.hpp \
     src/cpp/multimap/Version.hpp
 
 SOURCES += \
