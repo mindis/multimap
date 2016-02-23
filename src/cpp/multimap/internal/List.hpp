@@ -54,8 +54,8 @@ class List : public mt::Resource {
       return num_values_total - num_values_removed;
     }
 
-    static Stats readFromStream(std::FILE* file);
-    void writeToStream(std::FILE* file) const;
+    static Stats readFromStream(std::FILE* stream);
+    void writeToStream(std::FILE* stream) const;
   };
 
   static_assert(mt::hasExpectedSize<Stats>(8, 8),
@@ -404,7 +404,7 @@ class List : public mt::Resource {
     };
 
     typename std::conditional<IsMutable, List, const List>::type* list_;
-    std::unique_ptr<Stream> stream_;  // Make stack object
+    std::unique_ptr<Stream> stream_;
     std::vector<char> value_;
     Stats stats_;
   };

@@ -74,14 +74,8 @@ class Partition : public mt::Resource {
   }
 
   std::unique_ptr<Iterator> get(const Bytes& key) const {
-    std::unique_ptr<Iterator> iter;
-    if (const auto list = getList(key)) {
-      iter = list->newIterator(*store_);
-      if (iter->available() == 0) {
-        iter.reset();
-      }
-    }
-    return iter;
+    const auto list = getList(key);
+    return list ? list->newIterator(*store_) : std::unique_ptr<Iterator>();
   }
 
   bool contains(const Bytes& key) const {

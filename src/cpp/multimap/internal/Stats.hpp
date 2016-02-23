@@ -53,9 +53,9 @@ struct Stats {
 
   static Stats max(const std::vector<Stats>& stats);
 
-  static Stats readFromFile(const boost::filesystem::path& file);
+  static Stats readFromFile(const boost::filesystem::path& filename);
 
-  void writeToFile(const boost::filesystem::path& file) const;
+  void writeToFile(const boost::filesystem::path& filename) const;
 
   std::vector<uint64_t> toVector() const;
 };

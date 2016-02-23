@@ -23,11 +23,8 @@
 #define MULTIMAP_BYTES_HPP_INCLUDED
 
 #include <algorithm>
-#include <cstdio>
-#include <cstring>
 #include <functional>
 #include <string>
-#include <vector>
 #include "multimap/thirdparty/mt/mt.hpp"
 #include "multimap/thirdparty/xxhash/xxhash.h"
 

@@ -42,8 +42,8 @@ class Map : public mt::Resource {
     uint64_t minor_version = Version::MINOR;
 
     static Id readFromDirectory(const boost::filesystem::path& directory);
-    static Id readFromFile(const boost::filesystem::path& file);
-    void writeToFile(const boost::filesystem::path& file) const;
+    static Id readFromFile(const boost::filesystem::path& filename);
+    void writeToFile(const boost::filesystem::path& filename) const;
   };
 
   static_assert(mt::hasExpectedSize<Id>(32, 32),
