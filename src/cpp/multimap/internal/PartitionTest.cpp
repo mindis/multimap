@@ -175,9 +175,9 @@ TEST_F(PartitionTestFixture, PutValuesAndReopenInBetween) {
   ASSERT_FALSE(iter3->hasNext());
 }
 
-TEST_F(PartitionTestFixture, GetReturnsNullForNonExistingKey) {
+TEST_F(PartitionTestFixture, GetReturnsEmptyIteratorForNonExistingKey) {
   auto partition = openOrCreatePartition(prefix);
-  ASSERT_FALSE(partition->get(k1));
+  ASSERT_FALSE(partition->get(k1)->hasNext());
 }
 
 TEST_F(PartitionTestFixture, RemoveKeyRemovesMappedValues) {
