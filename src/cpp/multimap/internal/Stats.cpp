@@ -17,6 +17,8 @@
 
 #include "multimap/internal/Stats.hpp"
 
+#include <cmath>
+
 namespace multimap {
 namespace internal {
 

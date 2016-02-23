@@ -101,8 +101,8 @@ CommandLine parseCommandLine(int argc, const char** argv) {
   return cmd;
 }
 
-multimap::Options initOptions(const CommandLine& cmd) {
-  multimap::Options options;
+multimap::Map::Options initOptions(const CommandLine& cmd) {
+  multimap::Map::Options options;
   options.create_if_missing = cmd.options.count(CREATE);
   options.quiet = cmd.options.count(QUIET);
   if (cmd.options.count(BS)) {
@@ -116,7 +116,7 @@ multimap::Options initOptions(const CommandLine& cmd) {
 
 void runHelpCommand(const char* toolname) {
   // clang-format off
-  const multimap::Options default_options{};
+  const multimap::Map::Options default_options{};
   std::printf(
       "USAGE\n"
       "\n  %s COMMAND path/to/map [PATH] [OPTIONS]"
