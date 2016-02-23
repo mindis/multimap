@@ -42,8 +42,9 @@ SOURCES += \
     src/cpp/multimap/internal/Varint.cpp \
     src/cpp/multimap/thirdparty/mt/mt.cpp \
     src/cpp/multimap/thirdparty/xxhash/xxhash.c \
+    src/cpp/multimap/Iterator.cpp \
     src/cpp/multimap/Map.cpp \
-    src/cpp/multimap/Version.cpp \
+    src/cpp/multimap/Version.cpp
 
 unix:!macx: LIBS += -lboost_filesystem -lboost_system -lboost_thread -lpthread
 
