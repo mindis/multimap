@@ -25,6 +25,12 @@ namespace multimap {
 
 class Iterator : public mt::Resource {
  public:
+  static Iterator* const EMPTY;
+  // This instance is for modeling an empty result in situations where a
+  // nullptr is not desirable, most often to avoid an additional null-check.
+  // It is safe to put this pointer into a std::unique_ptr or std::shared_ptr
+  // as the delete operator of the underlying derived type has been disabled.
+
   virtual ~Iterator() = default;
 
   virtual uint32_t available() const = 0;
