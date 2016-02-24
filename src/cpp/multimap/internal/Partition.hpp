@@ -108,13 +108,15 @@ class Partition : public mt::Resource {
   std::pair<uint32_t, uint64_t> removeAll(Predicate predicate) {
     mt::Check::isFalse(isReadOnly(), ATTEMPT_TO_MODIFY_READ_ONLY_PARTITION);
     ReaderLockGuard<boost::shared_mutex> lock(mutex_);
-    // map_ is only accessed read-only.
     uint32_t num_keys_removed = 0;
     uint64_t num_values_removed = 0;
     for (const auto& entry : map_) {
       if (predicate(entry.first)) {
-        num_values_removed += entry.second->clear();
-        num_keys_removed++;
+        const auto old_size = entry.second->clear();
+        if (old_size != 0) {
+          num_values_removed += old_size;
+          num_keys_removed++;
+        }
       }
     }
     return std::make_pair(num_keys_removed, num_values_removed);
