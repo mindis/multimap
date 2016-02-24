@@ -215,10 +215,10 @@ class Partition : public mt::Resource {
     store_options.readonly = true;
     store_options.block_size = options.block_size;
     store_options.buffer_size = options.buffer_size;
-    Store store(getNameOfValuesFile(prefix), store_options);
+    Store store(getNameOfStoreFile(prefix), store_options);
     store.adviseAccessPattern(Store::AccessPattern::WILLNEED);
     const auto stats = Stats::readFromFile(getNameOfStatsFile(prefix));
-    const auto keys_file = mt::fopen(getNameOfKeysFile(prefix), "r");
+    const auto keys_file = mt::fopen(getNameOfMapFile(prefix), "r");
     for (size_t i = 0; i != stats.num_keys_valid; ++i) {
       readBytesFromStream(keys_file.get(), &key);
       List::readFromStream(keys_file.get(), &list);
@@ -227,9 +227,9 @@ class Partition : public mt::Resource {
     }
   }
 
-  static std::string getNameOfKeysFile(const std::string& prefix);
+  static std::string getNameOfMapFile(const std::string& prefix);
   static std::string getNameOfStatsFile(const std::string& prefix);
-  static std::string getNameOfValuesFile(const std::string& prefix);
+  static std::string getNameOfStoreFile(const std::string& prefix);
 
  private:
   static void readBytesFromStream(std::FILE* stream, std::vector<char>* bytes) {

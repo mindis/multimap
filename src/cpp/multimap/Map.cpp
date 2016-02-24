@@ -43,7 +43,7 @@ std::string getPartitionPrefix(size_t index) {
 }
 
 std::string getNameOfKeysFile(size_t index) {
-  return internal::Partition::getNameOfKeysFile(getPartitionPrefix(index));
+  return internal::Partition::getNameOfMapFile(getPartitionPrefix(index));
 }
 
 std::string getNameOfStatsFile(size_t index) {
@@ -51,7 +51,7 @@ std::string getNameOfStatsFile(size_t index) {
 }
 
 std::string getNameOfValuesFile(size_t index) {
-  return internal::Partition::getNameOfValuesFile(getPartitionPrefix(index));
+  return internal::Partition::getNameOfStoreFile(getPartitionPrefix(index));
 }
 
 template <typename Procedure>

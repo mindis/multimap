@@ -46,7 +46,7 @@ Partition::Partition(const std::string& prefix, const Options& options)
   if (boost::filesystem::is_regular_file(stats_filename)) {
     stats_ = Stats::readFromFile(stats_filename);
     store_options.block_size = stats_.block_size;
-    const auto keys_filename = getNameOfKeysFile(prefix);
+    const auto keys_filename = getNameOfMapFile(prefix);
     const auto keys_input = mt::fopen(keys_filename, "r");
     for (size_t i = 0; i != stats_.num_keys_valid; ++i) {
       auto key = readBytesFromStream(
@@ -63,12 +63,12 @@ Partition::Partition(const std::string& prefix, const Options& options)
     stats.num_values_valid = stats_.num_values_valid;
     stats_ = stats;
   }
-  store_.reset(new Store(getNameOfValuesFile(prefix), store_options));
+  store_.reset(new Store(getNameOfStoreFile(prefix), store_options));
 }
 
 Partition::~Partition() {
   if (!prefix_.empty() && !isReadOnly()) {
-    const auto keys_file = getNameOfKeysFile(prefix_);
+    const auto keys_file = getNameOfMapFile(prefix_);
     const auto old_keys_file = keys_file + ".old";
     if (boost::filesystem::is_regular_file(keys_file)) {
       boost::filesystem::rename(keys_file, old_keys_file);
@@ -160,16 +160,16 @@ Stats Partition::getStats() const {
   return stats;
 }
 
-std::string Partition::getNameOfKeysFile(const std::string& prefix) {
-  return prefix + ".keys";
+std::string Partition::getNameOfMapFile(const std::string& prefix) {
+  return prefix + ".map";
 }
 
 std::string Partition::getNameOfStatsFile(const std::string& prefix) {
   return prefix + ".stats";
 }
 
-std::string Partition::getNameOfValuesFile(const std::string& prefix) {
-  return prefix + ".values";
+std::string Partition::getNameOfStoreFile(const std::string& prefix) {
+  return prefix + ".store";
 }
 
 }  // namespace internal
