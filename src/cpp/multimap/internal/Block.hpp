@@ -27,22 +27,20 @@ namespace multimap {
 namespace internal {
 
 template <bool IsReadOnly>
-class BasicBlock {
+class Block {
   // This class wraps raw memory that is either writable or read-only.
   // The memory is neither owned nor deleted by objects of this class,
   // so ownership management must be implemented externally.
   // Objects of this class are copyable.
 
  public:
-  BasicBlock() = default;
+  Block() = default;
 
-  BasicBlock(char* data, size_t size) : data_(data), size_(size) {
+  Block(char* data, size_t size) : data_(data), size_(size) {
     MT_REQUIRE_NOT_NULL(data_);
   }
 
-  BasicBlock getView() const {
-    return hasData() ? BasicBlock(data_, size_) : BasicBlock();
-  }
+  Block getView() const { return hasData() ? Block(data_, size_) : Block(); }
   // Returns a shallow copy of the block whose offset is set to zero.
 
   bool hasData() const { return data_ != nullptr; }
@@ -84,7 +82,7 @@ class BasicBlock {
   // ---------------------------------------------------------------------------
 
   MT_ENABLE_IF(IsReadOnly)
-  BasicBlock(const char* data, size_t size) : data_(data), size_(size) {
+  Block(const char* data, size_t size) : data_(data), size_(size) {
     MT_REQUIRE_NOT_NULL(data_);
   }
 
@@ -133,26 +131,26 @@ class BasicBlock {
 };
 
 template <bool IsReadOnly>
-struct ExtendedBasicBlock : public BasicBlock<IsReadOnly> {
-  // This type extends `BasicBlock` with an `id` and `ignore` field.
+struct ExtendedBlock : public Block<IsReadOnly> {
+  // This type extends `Block` with an `id` and `ignore` field.
   // As with the base class, objects of this type are copyable.
 
-  typedef BasicBlock<IsReadOnly> Base;
+  typedef Block<IsReadOnly> Base;
 
-  ExtendedBasicBlock() = default;
+  ExtendedBlock() = default;
 
-  ExtendedBasicBlock(const BasicBlock<IsReadOnly>& base) : Base(base) {}
+  ExtendedBlock(const Block<IsReadOnly>& base) : Base(base) {}
 
-  ExtendedBasicBlock(char* data, size_t size) : Base(data, size) {}
+  ExtendedBlock(char* data, size_t size) : Base(data, size) {}
 
-  ExtendedBasicBlock(char* data, size_t size, uint32_t id)
+  ExtendedBlock(char* data, size_t size, uint32_t id)
       : Base(data, size), id(id) {}
 
   MT_ENABLE_IF(IsReadOnly)
-  ExtendedBasicBlock(const char* data, size_t size) : Base(data, size) {}
+  ExtendedBlock(const char* data, size_t size) : Base(data, size) {}
 
   MT_ENABLE_IF(IsReadOnly)
-  ExtendedBasicBlock(const char* data, size_t size, uint32_t id)
+  ExtendedBlock(const char* data, size_t size, uint32_t id)
       : Base(data, size), id(id) {}
 
   uint32_t id = -1;
@@ -163,17 +161,17 @@ struct ExtendedBasicBlock : public BasicBlock<IsReadOnly> {
 // Typedefs
 // -----------------------------------------------------------------------------
 
-typedef BasicBlock<true> ReadOnlyBlock;
-typedef BasicBlock<false> ReadWriteBlock;
+typedef Block<true> ReadOnlyBlock;
+typedef Block<false> ReadWriteBlock;
 
-typedef ExtendedBasicBlock<true> ExtendedReadOnlyBlock;
-typedef ExtendedBasicBlock<false> ExtendedReadWriteBlock;
+typedef ExtendedBlock<true> ExtendedReadOnlyBlock;
+typedef ExtendedBlock<false> ExtendedReadWriteBlock;
 
 static_assert(mt::hasExpectedSize<ReadOnlyBlock>(12, 16),
               "class ReadOnlyBlock does not have expected size");
 
 static_assert(mt::hasExpectedSize<ExtendedReadOnlyBlock>(20, 24),
-              "class ReadOnlyBlock does not have expected size");
+              "class ExtendedReadOnlyBlock does not have expected size");
 
 }  // namespace internal
 }  // namespace multimap
