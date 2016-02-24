@@ -22,25 +22,24 @@ package io.multimap;
 import java.nio.ByteBuffer;
 
 /**
- * This abstract class represents an iterator to read a list of values, possibly by streaming them
- * from an external device. In contrast to the standard {@link java.util.Iterator} interface this
- * class has the following properties:
+ * An iterator that reads a list of values, possibly by streaming them from an external device.
+ * Objects of this class hold a reader lock on the associated list so that multiple threads can
+ * iterate the same list at the same time, but no thread can modify it. If an instance is not
+ * needed anymore {@link #close()} must be called in order to release the reader lock. Not closing
+ * an iterator leaves the underlying list in locked state which leads to deadlocks sooner or later.
+ * 
+ * <p>In contrast to the standard {@link java.util.Iterator} interface, this class has the
+ * following properties:</p>
  * 
  * <ul>
  * <li>Lazy initialization. The iterator does not perform any I/O operation until a value is
  * actually requested via {@link #next()}, {@link #nextAsByteArray()}, {@link #peekNext()}, or
  * {@link #peekNextAsByteArray()}. This might be useful in cases where multiple iterators have to
- * be collected first to determine in which order they have to be processed.</li>
+ * be collected first in order to decide in which order they need to be processed.</li>
  * <li>The iterator can tell the number of remaining values via {@link #available()}.</li>
- * <li>The iterator can emit the next value without moving forward via {@link #peekNext()}.</li>
- * <li>The iterator must be closed if no longer needed to release native resources such as locks.
- * Not closing an iterator that implements a locking mechanism leaves the underlying list in locked
- * state which leads to deadlocks sooner or later.</li>
+ * <li>The iterator can emit the next value without moving forward via {@link #peekNext()} or
+ * {@link #peekNextAsByteArray()}.</li>
  * </ul>
- * 
- * Objects of this class hold a reader lock on the associated list so that multiple threads can
- * iterate the same list at the same time, but no thread can modify it. If the iterator is not
- * needed anymore {@link #close()} must be called in order to release the reader lock.
  * 
  * @author Martin Trenkmann
  */
