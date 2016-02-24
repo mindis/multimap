@@ -52,32 +52,41 @@ class Store : public mt::Resource {
     return putUnlocked(block.data());
   }
 
-  template <bool IsMutable>
-  void put(std::vector<ExtendedBasicBlock<IsMutable> >& blocks) {
-    std::lock_guard<std::mutex> lock(mutex_);
-    for (auto& block : blocks) {
-      if (!block.ignore) {
-        MT_REQUIRE_EQ(block.size(), getBlockSize());
-        block.id = putUnlocked(block.data());
+  template <typename InputIter>
+  // InputIter must point to non-const ExtendedBasicBlock<IsMutable>
+  void put(InputIter first, InputIter last) {
+    if (first != last) {
+      std::lock_guard<std::mutex> lock(mutex_);
+      while (first != last) {
+        if (!first->ignore) {
+          MT_REQUIRE_EQ(first->size(), getBlockSize());
+          first->id = putUnlocked(first->data());
+        }
+        ++first;
       }
     }
   }
 
-  void get(uint32_t id, ReadWriteBlock& block) const {
+  void get(uint32_t id, ReadWriteBlock* block) const {
     std::lock_guard<std::mutex> lock(mutex_);
-    getUnlocked(id, block.data());
+    getUnlocked(id, block->data());
   }
 
-  void get(ExtendedReadWriteBlock& block) const {
+  void get(ExtendedReadWriteBlock* block) const {
     std::lock_guard<std::mutex> lock(mutex_);
-    getUnlocked(block.id, block.data());
+    getUnlocked(block->id, block->data());
   }
 
-  void get(std::vector<ExtendedReadWriteBlock>& blocks) const {
-    std::lock_guard<std::mutex> lock(mutex_);
-    for (auto& block : blocks) {
-      if (!block.ignore) {
-        getUnlocked(block.id, block.data());
+  template <typename InputIter>
+  // InputIter must point to non-const ExtendedReadWriteBlock
+  void get(InputIter first, InputIter last) const {
+    if (first != last) {
+      std::lock_guard<std::mutex> lock(mutex_);
+      while (first != last) {
+        if (!first->ignore) {
+          getUnlocked(first->id, first->data());
+        }
+        ++first;
       }
     }
   }
@@ -96,13 +105,17 @@ class Store : public mt::Resource {
     replaceUnlocked(block.id, block.data());
   }
 
-  template <bool IsMutable>
-  void replace(const std::vector<ExtendedBasicBlock<IsMutable> >& blocks) {
-    std::lock_guard<std::mutex> lock(mutex_);
-    for (const auto& block : blocks) {
-      if (!block.ignore) {
-        MT_REQUIRE_EQ(block.size(), getBlockSize());
-        replaceUnlocked(block.id, block.data());
+  template <typename InputIter>
+  // InputIter must point to ExtendedBasicBlock<IsMutable>
+  void replace(InputIter first, InputIter last) {
+    if (first != last) {
+      std::lock_guard<std::mutex> lock(mutex_);
+      while (first != last) {
+        if (!first->ignore) {
+          MT_REQUIRE_EQ(first->size(), getBlockSize());
+          replaceUnlocked(first->id, first->data());
+        }
+        ++first;
       }
     }
   }

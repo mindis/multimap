@@ -301,7 +301,7 @@ class List : public mt::Resource {
             blocks_.emplace_back(block_data, block_size, block_ids_.back());
             block_ids_.pop_back();
           }
-          store_->get(blocks_);
+          store_->get(blocks_.begin(), blocks_.end());
           for (auto& block : blocks_) {
             block.ignore = true;
             // Triggers that the block is not written back to the
@@ -317,7 +317,7 @@ class List : public mt::Resource {
             blocks.emplace_back(block_data, block_size, block_ids_.back());
             block_ids_.pop_back();
           }
-          store_->get(blocks);
+          store_->get(blocks.begin(), blocks.end());
           for (auto& block : blocks) {
             blocks_.push_back(block);
             blocks_.back().ignore = true;
@@ -434,7 +434,7 @@ static_assert(mt::hasExpectedSize<List>(36, 48),
 template <>
 inline void List::Iter<true>::Stream::writeBackMutatedBlocks() {
   if (store_) {
-    store_->replace(blocks_);
+    store_->replace(blocks_.begin(), blocks_.end());
   }
 }
 

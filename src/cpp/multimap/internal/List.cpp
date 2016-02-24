@@ -83,11 +83,9 @@ void List::appendUnlocked(const Bytes& value, Store* store, Arena* arena) {
       tail_data += block_size;
       remaining -= block_size;
     }
-    if (!blocks.empty()) {
-      store->put(blocks);
-      for (const auto& block : blocks) {
-        block_ids_.add(block.id);
-      }
+    store->put(blocks.begin(), blocks.end());
+    for (const auto& block : blocks) {
+      block_ids_.add(block.id);
     }
     if (remaining != 0) {
       nbytes = block_.writeData(tail_data, remaining);
