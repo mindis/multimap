@@ -82,15 +82,15 @@ class List : public mt::Resource {
   }
 
   std::unique_ptr<Iterator> newIterator(const Store& store) const {
-    return newReaderIterator(store);
+    return std::unique_ptr<Iterator>(new ReadIterator(*this, store));
   }
 
   template <typename Predicate>
   bool removeOne(Predicate predicate, Store* store) {
-    auto iter = newWriterIterator(store);
-    while (iter->hasNext()) {
-      if (predicate(iter->next())) {
-        iter->remove();
+    WriteIterator iter(this, store);
+    while (iter.hasNext()) {
+      if (predicate(iter.next())) {
+        iter.remove();
         return true;
       }
     }
@@ -100,11 +100,11 @@ class List : public mt::Resource {
   template <typename Predicate>
   uint32_t removeAll(Predicate predicate, Store* store) {
     uint32_t num_removed = 0;
-    auto iter = newWriterIterator(store);
-    while (iter->hasNext()) {
-      if (predicate(iter->next())) {
-        iter->remove();
-        ++num_removed;
+    WriteIterator iter(this, store);
+    while (iter.hasNext()) {
+      if (predicate(iter.next())) {
+        iter.remove();
+        num_removed++;
       }
     }
     return num_removed;
@@ -113,12 +113,12 @@ class List : public mt::Resource {
   template <typename Function>
   bool replaceOne(Function map, Store* store, Arena* arena) {
     std::vector<std::string> replaced_values;
-    auto iter = newWriterIterator(store);
-    while (iter->hasNext()) {
-      auto replaced_value = map(iter->next());
+    WriteIterator iter(this, store);
+    while (iter.hasNext()) {
+      auto replaced_value = map(iter.next());
       if (!replaced_value.empty()) {
         replaced_values.push_back(std::move(replaced_value));
-        iter->remove();
+        iter.remove();
         break;
       }
     }
@@ -132,12 +132,12 @@ class List : public mt::Resource {
   template <typename Function>
   uint32_t replaceAll(Function map, Store* store, Arena* arena) {
     std::vector<std::string> replaced_values;
-    auto iter = newWriterIterator(store);
-    while (iter->hasNext()) {
-      auto replaced_value = map(iter->next());
+    WriteIterator iter(this, store);
+    while (iter.hasNext()) {
+      auto replaced_value = map(iter.next());
       if (!replaced_value.empty()) {
         replaced_values.push_back(std::move(replaced_value));
-        iter->remove();
+        iter.remove();
       }
     }
     // `iter` keeps the list in locked state.
@@ -409,16 +409,8 @@ class List : public mt::Resource {
     Stats stats_;
   };
 
-  typedef Iter<true> WriterIterator;
-  typedef Iter<false> ReaderIterator;
-
-  std::unique_ptr<WriterIterator> newWriterIterator(Store* store) {
-    return std::unique_ptr<WriterIterator>(new WriterIterator(this, store));
-  }
-
-  std::unique_ptr<ReaderIterator> newReaderIterator(const Store& store) const {
-    return std::unique_ptr<ReaderIterator>(new ReaderIterator(*this, store));
-  }
+  typedef Iter<true> WriteIterator;
+  typedef Iter<false> ReadIterator;
 
   void appendUnlocked(const Bytes& value, Store* store, Arena* arena);
 
