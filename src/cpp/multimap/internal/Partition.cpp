@@ -38,6 +38,7 @@ Partition::Partition(const std::string& prefix)
 
 Partition::Partition(const std::string& prefix, const Options& options)
     : prefix_(prefix) {
+  MT_REQUIRE_FALSE(prefix.empty());
   Store::Options store_options;
   store_options.readonly = options.readonly;
   store_options.block_size = options.block_size;
@@ -67,61 +68,61 @@ Partition::Partition(const std::string& prefix, const Options& options)
 }
 
 Partition::~Partition() {
-  if (!prefix_.empty() && !isReadOnly()) {
-    const auto map_filename = getNameOfMapFile(prefix_);
-    const auto map_filename_old = map_filename + ".old";
-    if (boost::filesystem::is_regular_file(map_filename)) {
-      boost::filesystem::rename(map_filename, map_filename_old);
-    }
+  if (isReadOnly()) return;
 
-    List::Stats list_stats;
-    const auto map_stream = mt::fopen(map_filename, "w");
-    for (const auto& entry : map_) {
-      auto& key = entry.first;
-      auto& list = *entry.second;
-      if (list.tryFlush(store_.get(), &list_stats)) {
-        // Ok, everything is fine.
-      } else {
-        const auto key_as_base64 = Base64::encode(key);
-        mt::log() << "The list with the key " << key_as_base64
-                  << " (Base64) was still locked when shutting down.\n"
-                  << " The last known state of the list has been safed,"
-                  << " but ongoing updates, if any, may be lost.\n";
-        list.flushUnlocked(store_.get(), &list_stats);
-      }
-      stats_.num_values_total += list_stats.num_values_total;
-      stats_.num_values_valid += list_stats.num_values_valid();
-      const auto list_size = list_stats.num_values_valid();
-      if (list_size != 0) {
-        ++stats_.num_keys_valid;
-        stats_.key_size_avg += key.size();
-        stats_.key_size_max = mt::max(stats_.key_size_max, key.size());
-        stats_.key_size_min = stats_.key_size_min
-                                  ? mt::min(stats_.key_size_min, key.size())
-                                  : key.size();
-        stats_.list_size_avg += list_size;
-        stats_.list_size_max = mt::max(stats_.list_size_max, list_size);
-        stats_.list_size_min = stats_.list_size_min
-                                   ? mt::min(stats_.list_size_min, list_size)
-                                   : list_size;
-        writeBytesToStream(key, map_stream.get());
-        list.writeToStream(map_stream.get());
-      }
-    }
-    if (stats_.num_keys_valid) {
-      stats_.key_size_avg /= stats_.num_keys_valid;
-      stats_.list_size_avg /= stats_.num_keys_valid;
-    }
-    stats_.block_size = store_->getBlockSize();
-    stats_.num_blocks = store_->getNumBlocks();
-    stats_.num_keys_total = map_.size();
+  const auto map_filename = getNameOfMapFile(prefix_);
+  const auto map_filename_old = map_filename + ".old";
+  if (boost::filesystem::is_regular_file(map_filename)) {
+    boost::filesystem::rename(map_filename, map_filename_old);
+  }
 
-    stats_.writeToFile(getNameOfStatsFile(prefix_));
-
-    if (boost::filesystem::is_regular_file(map_filename_old)) {
-      const auto status = boost::filesystem::remove(map_filename_old);
-      MT_ASSERT_TRUE(status);
+  List::Stats list_stats;
+  const auto map_stream = mt::fopen(map_filename, "w");
+  for (const auto& entry : map_) {
+    auto& key = entry.first;
+    auto& list = *entry.second;
+    if (list.tryFlush(store_.get(), &list_stats)) {
+      // Ok, everything is fine.
+    } else {
+      const auto key_as_base64 = Base64::encode(key);
+      mt::log() << "The list with the key " << key_as_base64
+                << " (Base64) was still locked when shutting down.\n"
+                << " The last known state of the list has been safed,"
+                << " but ongoing updates, if any, may be lost.\n";
+      list.flushUnlocked(store_.get(), &list_stats);
     }
+    stats_.num_values_total += list_stats.num_values_total;
+    stats_.num_values_valid += list_stats.num_values_valid();
+    const auto list_size = list_stats.num_values_valid();
+    if (list_size != 0) {
+      ++stats_.num_keys_valid;
+      stats_.key_size_avg += key.size();
+      stats_.key_size_max = mt::max(stats_.key_size_max, key.size());
+      stats_.key_size_min = stats_.key_size_min
+                                ? mt::min(stats_.key_size_min, key.size())
+                                : key.size();
+      stats_.list_size_avg += list_size;
+      stats_.list_size_max = mt::max(stats_.list_size_max, list_size);
+      stats_.list_size_min = stats_.list_size_min
+                                 ? mt::min(stats_.list_size_min, list_size)
+                                 : list_size;
+      writeBytesToStream(key, map_stream.get());
+      list.writeToStream(map_stream.get());
+    }
+  }
+  if (stats_.num_keys_valid) {
+    stats_.key_size_avg /= stats_.num_keys_valid;
+    stats_.list_size_avg /= stats_.num_keys_valid;
+  }
+  stats_.block_size = store_->getBlockSize();
+  stats_.num_blocks = store_->getNumBlocks();
+  stats_.num_keys_total = map_.size();
+
+  stats_.writeToFile(getNameOfStatsFile(prefix_));
+
+  if (boost::filesystem::is_regular_file(map_filename_old)) {
+    const auto status = boost::filesystem::remove(map_filename_old);
+    MT_ASSERT_TRUE(status);
   }
 }
 
