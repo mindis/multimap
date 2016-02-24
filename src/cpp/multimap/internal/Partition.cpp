@@ -42,16 +42,16 @@ Partition::Partition(const std::string& prefix, const Options& options)
   store_options.readonly = options.readonly;
   store_options.block_size = options.block_size;
   store_options.buffer_size = options.buffer_size;
-  const auto stats_filename = getNameOfStatsFile(prefix);
-  if (boost::filesystem::is_regular_file(stats_filename)) {
+  const auto map_filename = getNameOfMapFile(prefix);
+  if (boost::filesystem::is_regular_file(map_filename)) {
+    const auto map_stream = mt::fopen(map_filename, "r");
+    const auto stats_filename = getNameOfStatsFile(prefix);
     stats_ = Stats::readFromFile(stats_filename);
     store_options.block_size = stats_.block_size;
-    const auto keys_filename = getNameOfMapFile(prefix);
-    const auto keys_input = mt::fopen(keys_filename, "r");
     for (size_t i = 0; i != stats_.num_keys_valid; ++i) {
       auto key = readBytesFromStream(
-          keys_input.get(), [this](int size) { return arena_.allocate(size); });
-      auto list = List::readFromStream(keys_input.get());
+          map_stream.get(), [this](int size) { return arena_.allocate(size); });
+      auto list = List::readFromStream(map_stream.get());
       stats_.num_values_total -= list->getStatsUnlocked().num_values_total;
       stats_.num_values_valid -= list->getStatsUnlocked().num_values_valid();
       map_.emplace(key, std::move(list));
@@ -68,14 +68,14 @@ Partition::Partition(const std::string& prefix, const Options& options)
 
 Partition::~Partition() {
   if (!prefix_.empty() && !isReadOnly()) {
-    const auto keys_file = getNameOfMapFile(prefix_);
-    const auto old_keys_file = keys_file + ".old";
-    if (boost::filesystem::is_regular_file(keys_file)) {
-      boost::filesystem::rename(keys_file, old_keys_file);
+    const auto map_filename = getNameOfMapFile(prefix_);
+    const auto map_filename_old = map_filename + ".old";
+    if (boost::filesystem::is_regular_file(map_filename)) {
+      boost::filesystem::rename(map_filename, map_filename_old);
     }
 
     List::Stats list_stats;
-    const auto stream = mt::fopen(keys_file, "w");
+    const auto map_stream = mt::fopen(map_filename, "w");
     for (const auto& entry : map_) {
       auto& key = entry.first;
       auto& list = *entry.second;
@@ -104,8 +104,8 @@ Partition::~Partition() {
         stats_.list_size_min = stats_.list_size_min
                                    ? mt::min(stats_.list_size_min, list_size)
                                    : list_size;
-        writeBytesToStream(key, stream.get());
-        list.writeToStream(stream.get());
+        writeBytesToStream(key, map_stream.get());
+        list.writeToStream(map_stream.get());
       }
     }
     if (stats_.num_keys_valid) {
@@ -118,8 +118,8 @@ Partition::~Partition() {
 
     stats_.writeToFile(getNameOfStatsFile(prefix_));
 
-    if (boost::filesystem::is_regular_file(old_keys_file)) {
-      const auto status = boost::filesystem::remove(old_keys_file);
+    if (boost::filesystem::is_regular_file(map_filename_old)) {
+      const auto status = boost::filesystem::remove(map_filename_old);
       MT_ASSERT_TRUE(status);
     }
   }
