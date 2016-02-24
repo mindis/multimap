@@ -56,9 +56,9 @@ class Partition : public mt::Resource {
   // Member functions
   // ---------------------------------------------------------------------------
 
-  explicit Partition(const boost::filesystem::path& prefix);
+  explicit Partition(const std::string& prefix);
 
-  Partition(const boost::filesystem::path& prefix, const Options& options);
+  Partition(const std::string& prefix, const Options& options);
 
   ~Partition();
 
@@ -278,9 +278,9 @@ class Partition : public mt::Resource {
   mutable boost::shared_mutex mutex_;
   std::unordered_map<Bytes, std::unique_ptr<List> > map_;
   std::unique_ptr<Store> store_;
+  std::string prefix_;
   Arena arena_;
   Stats stats_;
-  boost::filesystem::path prefix_;
 };
 
 }  // namespace internal

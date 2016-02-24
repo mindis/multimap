@@ -29,19 +29,18 @@ using testing::Eq;
 using testing::ElementsAre;
 using testing::UnorderedElementsAre;
 
-std::unique_ptr<Partition> openPartition(const boost::filesystem::path& prefix,
+std::unique_ptr<Partition> openPartition(const std::string& prefix,
                                          const Partition::Options& options) {
   return std::unique_ptr<Partition>(new Partition(prefix, options));
 }
 
-std::unique_ptr<Partition> openOrCreatePartition(
-    const boost::filesystem::path& prefix) {
+std::unique_ptr<Partition> openOrCreatePartition(const std::string& prefix) {
   Partition::Options options;
   return std::unique_ptr<Partition>(new Partition(prefix, options));
 }
 
 std::unique_ptr<Partition> openOrCreatePartitionAsReadOnly(
-    const boost::filesystem::path& prefix) {
+    const std::string& prefix) {
   Partition::Options options;
   options.readonly = true;
   return std::unique_ptr<Partition>(new Partition(prefix, options));
@@ -69,9 +68,8 @@ struct PartitionTestFixture : public testing::Test {
 
   void TearDown() override { boost::filesystem::remove_all(directory); }
 
-  const boost::filesystem::path directory =
-      "/tmp/multimap.PartitionTestFixture";
-  const boost::filesystem::path prefix = directory / "partition";
+  const std::string directory = "/tmp/multimap.PartitionTestFixture";
+  const std::string prefix = directory + "/partition";
   const std::string k1 = "k1";
   const std::string k2 = "k2";
   const std::string k3 = "k3";
@@ -624,9 +622,8 @@ struct PartitionTestWithParam : public testing::TestWithParam<int> {
 
   void TearDown() override { boost::filesystem::remove_all(directory); }
 
-  const boost::filesystem::path directory =
-      "/tmp/multimap.PartitionTestWithParam";
-  const boost::filesystem::path prefix = directory / "partition";
+  const std::string directory = "/tmp/multimap.PartitionTestWithParam";
+  const std::string prefix = directory + "/partition";
 };
 
 TEST_P(PartitionTestWithParam, PutDataThenReadAll) {

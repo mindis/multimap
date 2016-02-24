@@ -33,21 +33,20 @@ uint32_t Partition::Limits::maxValueSize() {
   return List::Limits::maxValueSize();
 }
 
-Partition::Partition(const boost::filesystem::path& prefix)
+Partition::Partition(const std::string& prefix)
     : Partition(prefix, Options()) {}
 
-Partition::Partition(const boost::filesystem::path& prefix,
-                     const Options& options)
+Partition::Partition(const std::string& prefix, const Options& options)
     : prefix_(prefix) {
   Store::Options store_options;
   store_options.readonly = options.readonly;
   store_options.block_size = options.block_size;
   store_options.buffer_size = options.buffer_size;
-  const auto stats_filename = getNameOfStatsFile(prefix.string());
+  const auto stats_filename = getNameOfStatsFile(prefix);
   if (boost::filesystem::is_regular_file(stats_filename)) {
     stats_ = Stats::readFromFile(stats_filename);
     store_options.block_size = stats_.block_size;
-    const auto keys_filename = getNameOfKeysFile(prefix.string());
+    const auto keys_filename = getNameOfKeysFile(prefix);
     const auto keys_input = mt::fopen(keys_filename, "r");
     for (size_t i = 0; i != stats_.num_keys_valid; ++i) {
       auto key = readBytesFromStream(
@@ -64,12 +63,12 @@ Partition::Partition(const boost::filesystem::path& prefix,
     stats.num_values_valid = stats_.num_values_valid;
     stats_ = stats;
   }
-  store_.reset(new Store(getNameOfValuesFile(prefix.string()), store_options));
+  store_.reset(new Store(getNameOfValuesFile(prefix), store_options));
 }
 
 Partition::~Partition() {
   if (!prefix_.empty() && !isReadOnly()) {
-    const auto keys_file = getNameOfKeysFile(prefix_.string());
+    const auto keys_file = getNameOfKeysFile(prefix_);
     const auto old_keys_file = keys_file + ".old";
     if (boost::filesystem::is_regular_file(keys_file)) {
       boost::filesystem::rename(keys_file, old_keys_file);
@@ -117,7 +116,7 @@ Partition::~Partition() {
     stats_.num_blocks = store_->getNumBlocks();
     stats_.num_keys_total = map_.size();
 
-    stats_.writeToFile(getNameOfStatsFile(prefix_.string()));
+    stats_.writeToFile(getNameOfStatsFile(prefix_));
 
     if (boost::filesystem::is_regular_file(old_keys_file)) {
       const auto status = boost::filesystem::remove(old_keys_file);

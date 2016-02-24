@@ -125,7 +125,7 @@ Map::Map(const boost::filesystem::path& directory, const Options& options)
     partitions_.resize(mt::nextPrime(options.num_partitions));
   }
   for (size_t i = 0; i != partitions_.size(); ++i) {
-    const auto prefix = directory / getPartitionPrefix(i);
+    const auto prefix = (directory / getPartitionPrefix(i)).string();
     partitions_[i].reset(new internal::Partition(prefix, part_options));
   }
 }
