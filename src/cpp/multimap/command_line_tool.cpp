@@ -29,10 +29,10 @@ const auto IMPORT   = "import";
 const auto EXPORT   = "export";
 const auto OPTIMIZE = "optimize";
 
-const auto BS     = "--bs";
-const auto CREATE = "--create";
-const auto NPARTS = "--nparts";
-const auto QUIET  = "--quiet";
+const auto BS     = "-bs";
+const auto CREATE = "-create";
+const auto NPARTS = "-nparts";
+const auto QUIET  = "-quiet";
 // clang-format on
 
 const auto COMMANDS = {HELP, STATS, IMPORT, EXPORT, OPTIMIZE};
@@ -133,7 +133,7 @@ void runHelpCommand(const char* toolname) {
       "\n  %-9s NUM  Block size to use for a new instance. Default is %u."
       "\n  %-9s NUM  Number of partitions to use for a new instance."
       " Default is %u."
-      "\n  %-9s      Don't print out any status messages."
+      "\n  %-9s      Don't output any status messages."
       "\n\nEXAMPLES\n"
       "\n  %s %-8s path/to/map"
       "\n  %s %-8s path/to/map path/to/input"
