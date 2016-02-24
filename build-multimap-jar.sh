@@ -12,7 +12,6 @@ SOURCE_FILES=($PACKAGE/Callables.java \
               $PACKAGE/Check.java \
               $PACKAGE/Iterator.java \
               $PACKAGE/Map.java \
-              $PACKAGE/Options.java \
               $PACKAGE/Utils.java)
 
 MAJOR_VERSION=$(grep MAJOR src/cpp/multimap/Version.hpp | grep -Po '[0-9]+(?=;)')
