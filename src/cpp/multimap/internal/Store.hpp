@@ -46,14 +46,14 @@ class Store : public mt::Resource {
   // ---------------------------------------------------------------------------
 
   template <bool IsMutable>
-  uint32_t put(const BasicBlock<IsMutable>& block) {
+  uint32_t put(const Block<IsMutable>& block) {
     MT_REQUIRE_EQ(block.size(), getBlockSize());
     std::lock_guard<std::mutex> lock(mutex_);
     return putUnlocked(block.data());
   }
 
   template <typename InputIter>
-  // InputIter must point to non-const ExtendedBasicBlock<IsMutable>
+  // InputIter must point to non-const ExtendedBlock<IsMutable>
   void put(InputIter first, InputIter last) {
     if (first != last) {
       std::lock_guard<std::mutex> lock(mutex_);
@@ -92,21 +92,21 @@ class Store : public mt::Resource {
   }
 
   template <bool IsMutable>
-  void replace(uint32_t id, const BasicBlock<IsMutable>& block) {
+  void replace(uint32_t id, const Block<IsMutable>& block) {
     MT_REQUIRE_EQ(block.size(), getBlockSize());
     std::lock_guard<std::mutex> lock(mutex_);
     replaceUnlocked(id, block.data());
   }
 
   template <bool IsMutable>
-  void replace(const ExtendedBasicBlock<IsMutable>& block) {
+  void replace(const ExtendedBlock<IsMutable>& block) {
     MT_REQUIRE_EQ(block.size(), getBlockSize());
     std::lock_guard<std::mutex> lock(mutex_);
     replaceUnlocked(block.id, block.data());
   }
 
   template <typename InputIter>
-  // InputIter must point to ExtendedBasicBlock<IsMutable>
+  // InputIter must point to ExtendedBlock<IsMutable>
   void replace(InputIter first, InputIter last) {
     if (first != last) {
       std::lock_guard<std::mutex> lock(mutex_);
