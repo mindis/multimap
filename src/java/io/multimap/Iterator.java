@@ -95,17 +95,6 @@ public class Iterator implements AutoCloseable {
   }
   
   /**
-   * Same as before, but returns the next value as string. Internally calls
-   * {@link #nextAsByteArray()} and passes the outcome to the constructor of
-   * {@link String#String(byte[], java.nio.charset.Charset)} using UTF-8 as the character set.
-   * 
-   * @since 0.4.0
-   */
-  public String nextAsString() {
-    return Utils.toString(next());
-  }
-  
-  /**
    * Same as {@link #next()}, but does not move the iterator once forward.
    */
   public ByteBuffer peekNext() {
@@ -117,15 +106,6 @@ public class Iterator implements AutoCloseable {
    */
   public byte[] peekNextAsByteArray() {
     return Utils.toByteArray(peekNext());
-  }
-  
-  /**
-   * Same as {@link #nextAsString()}, but does not move the iterator once forward.
-   * 
-   * @since 0.4.0
-   */
-  public String peekNextAsString() {
-    return Utils.toString(peekNext());
   }
 
   /**
