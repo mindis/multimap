@@ -22,6 +22,7 @@ package io.multimap;
 import io.multimap.Callables.Function;
 import io.multimap.Callables.Predicate;
 import io.multimap.Callables.Procedure;
+import io.multimap.Map.Options;
 import io.multimap.Map.Stats;
 
 import java.io.BufferedWriter;
