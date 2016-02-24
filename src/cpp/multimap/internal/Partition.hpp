@@ -177,10 +177,7 @@ class Partition : public mt::Resource {
   template <typename Procedure>
   void forEachValue(const Bytes& key, Procedure process) const {
     if (auto list = getList(key)) {
-      auto iter = list->newIterator(*store_);
-      while (iter->hasNext()) {
-        process(iter->next());
-      }
+      list->forEachValue(process, *store_);
     }
   }
 
