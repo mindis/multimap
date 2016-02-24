@@ -81,6 +81,14 @@ class List : public mt::Resource {
     }
   }
 
+  template <typename Procedure>
+  void forEachValue(Procedure process, const Store& store) {
+    ReadIterator iter(*this, store);
+    while (iter.hasNext()) {
+      process(iter.next());
+    }
+  }
+
   std::unique_ptr<Iterator> newIterator(const Store& store) const {
     return std::unique_ptr<Iterator>(new ReadIterator(*this, store));
   }
