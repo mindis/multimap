@@ -38,6 +38,8 @@ const auto QUIET  = "--quiet";
 const auto COMMANDS = {HELP, STATS, IMPORT, EXPORT, OPTIMIZE};
 const auto OPTIONS = {BS, CREATE, NPARTS, QUIET};
 
+namespace multimap {
+
 struct CommandLine {
   struct Error : public std::runtime_error {
     Error(const std::string& what) : std::runtime_error(what) {}
@@ -101,8 +103,8 @@ CommandLine parseCommandLine(int argc, const char** argv) {
   return cmd;
 }
 
-multimap::Map::Options initOptions(const CommandLine& cmd) {
-  multimap::Map::Options options;
+Map::Options initOptions(const CommandLine& cmd) {
+  Map::Options options;
   options.create_if_missing = cmd.options.count(CREATE);
   options.quiet = cmd.options.count(QUIET);
   if (cmd.options.count(BS)) {
@@ -116,69 +118,70 @@ multimap::Map::Options initOptions(const CommandLine& cmd) {
 
 void runHelpCommand(const char* toolname) {
   // clang-format off
-  const multimap::Map::Options default_options{};
-  std::printf(
-      "USAGE\n"
-      "\n  %s COMMAND path/to/map [PATH] [OPTIONS]"
-      "\n\nCOMMANDS\n"
-      "\n  %-10s     Print this help message and exit."
-      "\n  %-10s     Print statistics about an instance."
-      "\n  %-10s     Import key-value pairs in Base64 encoding from text files."
-      "\n  %-10s     Export key-value pairs in Base64 encoding to a text file."
-      "\n  %-10s     Rewrite an instance performing various optimizations."
-      "\n\nOPTIONS\n"
-      "\n  %-9s      Create a new instance if missing when importing data."
-      "\n  %-9s NUM  Block size to use for a new instance. Default is %u."
-      "\n  %-9s NUM  Number of partitions to use for a new instance."
-      " Default is %u."
-      "\n  %-9s      Don't print out any status messages."
-      "\n\nEXAMPLES\n"
-      "\n  %s %-8s path/to/map"
-      "\n  %s %-8s path/to/map path/to/input"
-      "\n  %s %-8s path/to/map path/to/input.csv"
-      "\n  %s %-8s path/to/map path/to/input.csv %s"
-      "\n  %s %-8s path/to/map path/to/output.csv"
-      "\n  %s %-8s path/to/map path/to/output"
-      "\n  %s %-8s path/to/map path/to/output %s 128"
-      "\n  %s %-8s path/to/map path/to/output %s 42"
-      "\n  %s %-8s path/to/map path/to/output %s 42 %s 128"
-      "\n\n"
-      "\nCopyright (C) 2015-2016 Martin Trenkmann"
-      "\n<http://multimap.io>\n",
-      toolname,
-      HELP,
-      STATS,
-      IMPORT,
-      EXPORT,
-      OPTIMIZE,
-      CREATE,
-      BS, default_options.block_size,
-      NPARTS, default_options.num_partitions,
-      QUIET,
-      toolname, STATS,
-      toolname, IMPORT,
-      toolname, IMPORT,
-      toolname, IMPORT, CREATE,
-      toolname, EXPORT,
-      toolname, OPTIMIZE,
-      toolname, OPTIMIZE, BS,
-      toolname, OPTIMIZE, NPARTS,
-      toolname, OPTIMIZE, NPARTS, BS);
+    const Map::Options default_options{};
+    std::printf(
+        "USAGE\n"
+        "\n  %s COMMAND path/to/map [PATH] [OPTIONS]"
+        "\n\nCOMMANDS\n"
+        "\n  %-10s     Print this help message and exit."
+        "\n  %-10s     Print statistics about an instance."
+        "\n  %-10s     Import key-value pairs in Base64 encoding from text files."
+        "\n  %-10s     Export key-value pairs in Base64 encoding to a text file."
+        "\n  %-10s     Rewrite an instance performing various optimizations."
+        "\n\nOPTIONS\n"
+        "\n  %-9s      Create a new instance if missing when importing data."
+        "\n  %-9s NUM  Block size to use for a new instance. Default is %u."
+        "\n  %-9s NUM  Number of partitions to use for a new instance."
+        " Default is %u."
+        "\n  %-9s      Don't print out any status messages."
+        "\n\nEXAMPLES\n"
+        "\n  %s %-8s path/to/map"
+        "\n  %s %-8s path/to/map path/to/input"
+        "\n  %s %-8s path/to/map path/to/input.csv"
+        "\n  %s %-8s path/to/map path/to/input.csv %s"
+        "\n  %s %-8s path/to/map path/to/output.csv"
+        "\n  %s %-8s path/to/map path/to/output"
+        "\n  %s %-8s path/to/map path/to/output %s 128"
+        "\n  %s %-8s path/to/map path/to/output %s 42"
+        "\n  %s %-8s path/to/map path/to/output %s 42 %s 128"
+        "\n\n"
+        "\nCopyright (C) 2015-2016 Martin Trenkmann"
+        "\n<http://multimap.io> version %i.%i.%i\n",
+        toolname,
+        HELP,
+        STATS,
+        IMPORT,
+        EXPORT,
+        OPTIMIZE,
+        CREATE,
+        BS, default_options.block_size,
+        NPARTS, default_options.num_partitions,
+        QUIET,
+        toolname, STATS,
+        toolname, IMPORT,
+        toolname, IMPORT,
+        toolname, IMPORT, CREATE,
+        toolname, EXPORT,
+        toolname, OPTIMIZE,
+        toolname, OPTIMIZE, BS,
+        toolname, OPTIMIZE, NPARTS,
+        toolname, OPTIMIZE, NPARTS, BS,
+        Version::MAJOR, Version::MINOR, Version::PATCH);
   // clang-format on
 }
 
 void runStatsCommand(const CommandLine& cmd) {
-  const auto stats = multimap::Map::stats(cmd.map);
+  const auto stats = Map::stats(cmd.map);
   const int first_column_width = std::to_string(stats.size()).size();
 
-  const auto names = multimap::internal::Stats::names();
+  const auto names = internal::Stats::names();
   const int second_column_width =
       std::max_element(names.begin(), names.end(),
                        [](const std::string& a, const std::string& b) {
                          return a.size() < b.size();
                        })->size();
 
-  const auto totals = multimap::internal::Stats::total(stats).toVector();
+  const auto totals = internal::Stats::total(stats).toVector();
   const int third_column_width =
       std::to_string(*std::max_element(totals.begin(), totals.end())).size();
 
@@ -187,7 +190,7 @@ void runStatsCommand(const CommandLine& cmd) {
     return value != 0 ? std::string(std::ceil(30 * value / max), '*') : "";
   };
 
-  const auto max = multimap::internal::Stats::max(stats).toVector();
+  const auto max = internal::Stats::max(stats).toVector();
   for (uint32_t i = 0; i != stats.size(); ++i) {
     const auto stat = stats[i].toVector();
     for (size_t j = 0; j != stat.size(); ++j) {
@@ -208,11 +211,11 @@ void runStatsCommand(const CommandLine& cmd) {
 
 void runImportCommand(const CommandLine& cmd) {
   const auto options = initOptions(cmd);
-  multimap::Map::importFromBase64(cmd.map, cmd.path, options);
+  Map::importFromBase64(cmd.map, cmd.path, options);
 }
 
 void runExportCommand(const CommandLine& cmd) {
-  multimap::Map::exportToBase64(cmd.map, cmd.path);
+  Map::exportToBase64(cmd.map, cmd.path);
 }
 
 void runOptimizeCommand(const CommandLine& cmd) {
@@ -223,44 +226,46 @@ void runOptimizeCommand(const CommandLine& cmd) {
   if (cmd.options.count(NPARTS) == 0) {
     options.keepNumPartitions();
   }
-  multimap::Map::optimize(cmd.map, cmd.path, options);
+  Map::optimize(cmd.map, cmd.path, options);
 }
+
+}  // namespace multimap
 
 int main(int argc, const char** argv) {
   if (argc < 2) {
-    runHelpCommand(*argv);
+    multimap::runHelpCommand(*argv);
     return EXIT_FAILURE;
   }
 
   try {
-    const auto cmd = parseCommandLine(argc, argv);
+    const auto cmd = multimap::parseCommandLine(argc, argv);
 
     if (cmd.command == HELP) {
-      runHelpCommand(*argv);
+      multimap::runHelpCommand(*argv);
       return EXIT_SUCCESS;
     }
 
     if (cmd.command == STATS) {
-      runStatsCommand(cmd);
+      multimap::runStatsCommand(cmd);
       return EXIT_SUCCESS;
     }
 
     if (cmd.command == IMPORT) {
-      runImportCommand(cmd);
+      multimap::runImportCommand(cmd);
       return EXIT_SUCCESS;
     }
 
     if (cmd.command == EXPORT) {
-      runExportCommand(cmd);
+      multimap::runExportCommand(cmd);
       return EXIT_SUCCESS;
     }
 
     if (cmd.command == OPTIMIZE) {
-      runOptimizeCommand(cmd);
+      multimap::runOptimizeCommand(cmd);
       return EXIT_SUCCESS;
     }
 
-  } catch (CommandLine::Error& error) {
+  } catch (multimap::CommandLine::Error& error) {
     std::cerr << "Invalid command line: " << error.what() << '.' << "\nTry '"
               << *argv << ' ' << HELP << "'." << std::endl;
 
