@@ -82,12 +82,12 @@ class List : public mt::Resource {
   }
 
   std::unique_ptr<Iterator> newIterator(const Store& store) const {
-    return newSharedIterator(store);
+    return newReaderIterator(store);
   }
 
   template <typename Predicate>
   bool removeOne(Predicate predicate, Store* store) {
-    auto iter = newUniqueIterator(store);
+    auto iter = newWriterIterator(store);
     while (iter->hasNext()) {
       if (predicate(iter->next())) {
         iter->remove();
@@ -100,7 +100,7 @@ class List : public mt::Resource {
   template <typename Predicate>
   uint32_t removeAll(Predicate predicate, Store* store) {
     uint32_t num_removed = 0;
-    auto iter = newUniqueIterator(store);
+    auto iter = newWriterIterator(store);
     while (iter->hasNext()) {
       if (predicate(iter->next())) {
         iter->remove();
@@ -113,7 +113,7 @@ class List : public mt::Resource {
   template <typename Function>
   bool replaceOne(Function map, Store* store, Arena* arena) {
     std::vector<std::string> replaced_values;
-    auto iter = newUniqueIterator(store);
+    auto iter = newWriterIterator(store);
     while (iter->hasNext()) {
       auto replaced_value = map(iter->next());
       if (!replaced_value.empty()) {
@@ -132,7 +132,7 @@ class List : public mt::Resource {
   template <typename Function>
   uint32_t replaceAll(Function map, Store* store, Arena* arena) {
     std::vector<std::string> replaced_values;
-    auto iter = newUniqueIterator(store);
+    auto iter = newWriterIterator(store);
     while (iter->hasNext()) {
       auto replaced_value = map(iter->next());
       if (!replaced_value.empty()) {
@@ -409,15 +409,15 @@ class List : public mt::Resource {
     Stats stats_;
   };
 
-  typedef Iter<true> UniqueIterator;
-  typedef Iter<false> SharedIterator;
+  typedef Iter<true> WriterIterator;
+  typedef Iter<false> ReaderIterator;
 
-  std::unique_ptr<UniqueIterator> newUniqueIterator(Store* store) {
-    return std::unique_ptr<UniqueIterator>(new UniqueIterator(this, store));
+  std::unique_ptr<WriterIterator> newWriterIterator(Store* store) {
+    return std::unique_ptr<WriterIterator>(new WriterIterator(this, store));
   }
 
-  std::unique_ptr<SharedIterator> newSharedIterator(const Store& store) const {
-    return std::unique_ptr<SharedIterator>(new SharedIterator(*this, store));
+  std::unique_ptr<ReaderIterator> newReaderIterator(const Store& store) const {
+    return std::unique_ptr<ReaderIterator>(new ReaderIterator(*this, store));
   }
 
   void appendUnlocked(const Bytes& value, Store* store, Arena* arena);
