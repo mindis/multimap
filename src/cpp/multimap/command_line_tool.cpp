@@ -118,55 +118,55 @@ Map::Options initOptions(const CommandLine& cmd) {
 
 void runHelpCommand(const char* toolname) {
   // clang-format off
-    const Map::Options default_options{};
-    std::printf(
-        "USAGE\n"
-        "\n  %s COMMAND path/to/map [PATH] [OPTIONS]"
-        "\n\nCOMMANDS\n"
-        "\n  %-10s     Print this help message and exit."
-        "\n  %-10s     Print statistics about an instance."
-        "\n  %-10s     Import key-value pairs in Base64 encoding from text files."
-        "\n  %-10s     Export key-value pairs in Base64 encoding to a text file."
-        "\n  %-10s     Rewrite an instance performing various optimizations."
-        "\n\nOPTIONS\n"
-        "\n  %-9s      Create a new instance if missing when importing data."
-        "\n  %-9s NUM  Block size to use for a new instance. Default is %u."
-        "\n  %-9s NUM  Number of partitions to use for a new instance."
-        " Default is %u."
-        "\n  %-9s      Don't print out any status messages."
-        "\n\nEXAMPLES\n"
-        "\n  %s %-8s path/to/map"
-        "\n  %s %-8s path/to/map path/to/input"
-        "\n  %s %-8s path/to/map path/to/input.csv"
-        "\n  %s %-8s path/to/map path/to/input.csv %s"
-        "\n  %s %-8s path/to/map path/to/output.csv"
-        "\n  %s %-8s path/to/map path/to/output"
-        "\n  %s %-8s path/to/map path/to/output %s 128"
-        "\n  %s %-8s path/to/map path/to/output %s 42"
-        "\n  %s %-8s path/to/map path/to/output %s 42 %s 128"
-        "\n\n"
-        "\nCopyright (C) 2015-2016 Martin Trenkmann"
-        "\n<http://multimap.io> version %i.%i.%i\n",
-        toolname,
-        HELP,
-        STATS,
-        IMPORT,
-        EXPORT,
-        OPTIMIZE,
-        CREATE,
-        BS, default_options.block_size,
-        NPARTS, default_options.num_partitions,
-        QUIET,
-        toolname, STATS,
-        toolname, IMPORT,
-        toolname, IMPORT,
-        toolname, IMPORT, CREATE,
-        toolname, EXPORT,
-        toolname, OPTIMIZE,
-        toolname, OPTIMIZE, BS,
-        toolname, OPTIMIZE, NPARTS,
-        toolname, OPTIMIZE, NPARTS, BS,
-        Version::MAJOR, Version::MINOR, Version::PATCH);
+  const Map::Options default_options{};
+  std::printf(
+      "USAGE\n"
+      "\n  %s COMMAND path/to/map [PATH] [OPTIONS]"
+      "\n\nCOMMANDS\n"
+      "\n  %-10s     Print this help message and exit."
+      "\n  %-10s     Print statistics about an instance."
+      "\n  %-10s     Import key-value pairs in Base64 encoding from text files."
+      "\n  %-10s     Export key-value pairs in Base64 encoding to a text file."
+      "\n  %-10s     Rewrite an instance performing various optimizations."
+      "\n\nOPTIONS\n"
+      "\n  %-9s      Create a new instance if missing when importing data."
+      "\n  %-9s NUM  Block size to use for a new instance. Default is %u."
+      "\n  %-9s NUM  Number of partitions to use for a new instance."
+      " Default is %u."
+      "\n  %-9s      Don't print out any status messages."
+      "\n\nEXAMPLES\n"
+      "\n  %s %-8s path/to/map"
+      "\n  %s %-8s path/to/map path/to/input"
+      "\n  %s %-8s path/to/map path/to/input.csv"
+      "\n  %s %-8s path/to/map path/to/input.csv %s"
+      "\n  %s %-8s path/to/map path/to/output.csv"
+      "\n  %s %-8s path/to/map path/to/output"
+      "\n  %s %-8s path/to/map path/to/output %s 128"
+      "\n  %s %-8s path/to/map path/to/output %s 42"
+      "\n  %s %-8s path/to/map path/to/output %s 42 %s 128"
+      "\n\n"
+      "\nCopyright (C) 2015-2016 Martin Trenkmann"
+      "\n<http://multimap.io> version %i.%i.%i\n",
+      toolname,
+      HELP,
+      STATS,
+      IMPORT,
+      EXPORT,
+      OPTIMIZE,
+      CREATE,
+      BS, default_options.block_size,
+      NPARTS, default_options.num_partitions,
+      QUIET,
+      toolname, STATS,
+      toolname, IMPORT,
+      toolname, IMPORT,
+      toolname, IMPORT, CREATE,
+      toolname, EXPORT,
+      toolname, OPTIMIZE,
+      toolname, OPTIMIZE, BS,
+      toolname, OPTIMIZE, NPARTS,
+      toolname, OPTIMIZE, NPARTS, BS,
+      Version::MAJOR, Version::MINOR, Version::PATCH);
   // clang-format on
 }
 
