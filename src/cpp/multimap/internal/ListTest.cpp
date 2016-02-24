@@ -276,6 +276,8 @@ TEST(ListTest, WriterBlocksReader) {
     }, &store);
   });
 
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
   // Reader
   bool reader_has_finished = false;
   std::thread reader([&] {
