@@ -207,18 +207,18 @@ class Partition : public mt::Resource {
   // ---------------------------------------------------------------------------
 
   template <typename BinaryProcedure>
-  static void forEachEntry(const boost::filesystem::path& prefix,
-                           const Options& options, BinaryProcedure process) {
+  static void forEachEntry(const std::string& prefix, const Options& options,
+                           BinaryProcedure process) {
     List list;
     std::vector<char> key;
     Store::Options store_options;
     store_options.readonly = true;
     store_options.block_size = options.block_size;
     store_options.buffer_size = options.buffer_size;
-    Store store(getNameOfValuesFile(prefix.string()), store_options);
+    Store store(getNameOfValuesFile(prefix), store_options);
     store.adviseAccessPattern(Store::AccessPattern::WILLNEED);
-    const auto stats = Stats::readFromFile(getNameOfStatsFile(prefix.string()));
-    const auto keys_file = mt::fopen(getNameOfKeysFile(prefix.string()), "r");
+    const auto stats = Stats::readFromFile(getNameOfStatsFile(prefix));
+    const auto keys_file = mt::fopen(getNameOfKeysFile(prefix), "r");
     for (size_t i = 0; i != stats.num_keys_valid; ++i) {
       readBytesFromStream(keys_file.get(), &key);
       List::readFromStream(keys_file.get(), &list);

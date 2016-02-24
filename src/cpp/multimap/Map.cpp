@@ -56,7 +56,7 @@ std::string getNameOfValuesFile(size_t index) {
 
 template <typename Procedure>
 // Required interface:
-// void process(const boost::filesystem::path& partition_prefix,
+// void process(const std::string& partition_prefix,
 //              const internal::Partition::Options& partition_options,
 //              size_t partition_index, size_t num_partitions);
 void forEachPartition(const boost::filesystem::path& directory,
@@ -70,7 +70,7 @@ void forEachPartition(const boost::filesystem::path& directory,
   partition_options.readonly = true;
 
   for (size_t i = 0; i != id.num_partitions; ++i) {
-    const auto partition_prefix = directory / getPartitionPrefix(i);
+    const auto partition_prefix = (directory / getPartitionPrefix(i)).string();
     process(partition_prefix, partition_options, i, id.num_partitions);
   }
 }
@@ -240,7 +240,7 @@ void Map::exportToBase64(const boost::filesystem::path& directory,
   mt::check(output_stream.is_open(), "Could not create '%s'", output.c_str());
 
   const auto process =
-      [&](const boost::filesystem::path& partition_prefix,
+      [&](const std::string& partition_prefix,
           const internal::Partition::Options& partition_options,
           size_t partition_index, size_t num_partitions) {
 
@@ -313,7 +313,7 @@ void Map::optimize(const boost::filesystem::path& directory,
   Map new_map(output, new_options);
 
   forEachPartition(
-      directory, [&](const boost::filesystem::path& partition_prefix,
+      directory, [&](const std::string& partition_prefix,
                      const internal::Partition::Options& partition_options,
                      size_t partition_index, size_t num_partitions) {
         if (!options.quiet) {
