@@ -72,8 +72,8 @@ struct ListTestIteration : testing::TestWithParam<uint32_t> {
     MT_ASSERT_TRUE(boost::filesystem::remove_all(directory));
   }
 
-  Store* getStore() { return store.get(); }
-  Arena* getArena() { return &arena; }
+  Store *getStore() { return store.get(); }
+  Arena *getArena() { return &arena; }
 
  private:
   boost::filesystem::path directory;
@@ -270,7 +270,7 @@ TEST(ListTest, WriterBlocksReader) {
 
   // Writer
   std::thread writer([&] {
-    list.removeOne([](const Bytes& /* value */) {
+    list.removeFirstMatch([](const Bytes & /* value */) {
       std::this_thread::sleep_for(std::chrono::milliseconds(1000));
       return false;
     }, &store);
@@ -303,7 +303,7 @@ TEST(ListTest, WriterBlocksReader2) {
 
   // Writer
   std::thread writer([&] {
-    list.removeOne([](const Bytes& /* value */) {
+    list.removeFirstMatch([](const Bytes & /* value */) {
       std::this_thread::sleep_for(std::chrono::milliseconds(1000));
       return false;
     }, &store);
@@ -328,7 +328,7 @@ TEST(ListTest, WriterBlocksWriter) {
 
   // First writer
   std::thread writer1([&] {
-    const auto removed = list.removeOne([](const Bytes& /* value */) {
+    const auto removed = list.removeFirstMatch([](const Bytes & /* value */) {
       std::this_thread::sleep_for(std::chrono::milliseconds(1000));
       return false;
     }, &store);
@@ -338,8 +338,8 @@ TEST(ListTest, WriterBlocksWriter) {
   // Second writer
   bool second_writer_has_finished = false;
   std::thread writer2([&] {
-    const auto removed =
-        list.removeOne([](const Bytes& /* value */) { return false; }, &store);
+    const auto removed = list.removeFirstMatch(
+        [](const Bytes & /* value */) { return false; }, &store);
     ASSERT_FALSE(removed);
     second_writer_has_finished = true;
   });

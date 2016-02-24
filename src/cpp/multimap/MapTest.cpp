@@ -25,14 +25,14 @@ namespace multimap {
 
 using testing::Eq;
 
-const auto NULL_PROCEDURE = [](const Bytes&) {};
-const auto TRUE_PREDICATE = [](const Bytes&) { return true; };
-const auto FALSE_PREDICATE = [](const Bytes&) { return false; };
-const auto EMPTY_FUNCTION = [](const Bytes&) { return std::string(); };
-const auto NULL_BINARY_PROCEDURE = [](const Bytes&, Iterator*) {};
-const auto IS_ODD = [](const Bytes& b) { return std::stoul(b.toString()) % 2; };
+const auto NULL_PROCEDURE = [](const Bytes &) {};
+const auto TRUE_PREDICATE = [](const Bytes &) { return true; };
+const auto FALSE_PREDICATE = [](const Bytes &) { return false; };
+const auto EMPTY_FUNCTION = [](const Bytes &) { return std::string(); };
+const auto NULL_BINARY_PROCEDURE = [](const Bytes &, Iterator *) {};
+const auto IS_ODD = [](const Bytes &b) { return std::stoul(b.toString()) % 2; };
 
-std::unique_ptr<Map> openOrCreateMap(const boost::filesystem::path& directory) {
+std::unique_ptr<Map> openOrCreateMap(const boost::filesystem::path &directory) {
   Map::Options options;
   options.create_if_missing = true;
   return std::unique_ptr<Map>(new Map(directory, options));
@@ -188,7 +188,7 @@ TEST_P(MapTestWithParam, GetTotalStatsReturnsCorrectValuesAfterRemovingKeys) {
     uint32_t num_values_removed = 0;
     num_values_removed += map->remove(std::to_string(0));
     if (num_values_removed != 0) num_keys_removed++;
-    auto result = map->removeAll(IS_ODD);
+    auto result = map->removeAllMatches(IS_ODD);
     num_keys_removed += result.first;
     num_values_removed += result.second;
 
@@ -222,8 +222,8 @@ TEST_P(MapTestWithParam, GetTotalStatsReturnsCorrectValuesAfterRemovingValues) {
 
     const auto key = std::to_string(0);
     const auto val = std::to_string(0);
-    const auto num_values_removed =
-        map->removeOne(key, Equal(val)) + map->removeAll(key, IS_ODD);
+    const auto num_values_removed = map->removeFirstMatch(key, Equal(val)) +
+                                    map->removeAllMatches(key, IS_ODD);
 
     stats_backup = map->getTotalStats();
     const auto exp_num_values_total = GetParam() * GetParam();

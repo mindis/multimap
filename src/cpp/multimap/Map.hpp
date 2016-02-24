@@ -102,21 +102,21 @@ class Map : public mt::Resource {
   uint32_t remove(const Bytes& key) { return getPartition(key)->remove(key); }
 
   template <typename Predicate>
-  uint32_t removeOne(Predicate predicate) {
+  uint32_t removeFirstMatch(Predicate predicate) {
     uint32_t num_values_removed = 0;
     for (const auto& partition : partitions_) {
-      num_values_removed = partition->removeOne(predicate);
+      num_values_removed = partition->removeFirstMatch(predicate);
       if (num_values_removed != 0) break;
     }
     return num_values_removed;
   }
 
   template <typename Predicate>
-  std::pair<uint32_t, uint64_t> removeAll(Predicate predicate) {
+  std::pair<uint32_t, uint64_t> removeAllMatches(Predicate predicate) {
     uint32_t num_keys_removed = 0;
     uint64_t num_values_removed = 0;
     for (const auto& partition : partitions_) {
-      const auto result = partition->removeAll(predicate);
+      const auto result = partition->removeAllMatches(predicate);
       num_keys_removed += result.first;
       num_values_removed += result.second;
     }
@@ -124,33 +124,33 @@ class Map : public mt::Resource {
   }
 
   template <typename Predicate>
-  bool removeOne(const Bytes& key, Predicate predicate) {
-    return getPartition(key)->removeOne(key, predicate);
+  bool removeFirstMatch(const Bytes& key, Predicate predicate) {
+    return getPartition(key)->removeFirstMatch(key, predicate);
   }
 
   template <typename Predicate>
-  uint32_t removeAll(const Bytes& key, Predicate predicate) {
-    return getPartition(key)->removeAll(key, predicate);
+  uint32_t removeAllMatches(const Bytes& key, Predicate predicate) {
+    return getPartition(key)->removeAllMatches(key, predicate);
   }
 
-  bool replaceOne(const Bytes& key, const Bytes& old_value,
-                  const Bytes& new_value) {
-    return getPartition(key)->replaceOne(key, old_value, new_value);
-  }
-
-  template <typename Function>
-  bool replaceOne(const Bytes& key, Function map) {
-    return getPartition(key)->replaceOne(key, map);
-  }
-
-  uint32_t replaceAll(const Bytes& key, const Bytes& old_value,
-                      const Bytes& new_value) {
-    return getPartition(key)->replaceAll(key, old_value, new_value);
+  bool replaceFirstEqual(const Bytes& key, const Bytes& old_value,
+                         const Bytes& new_value) {
+    return getPartition(key)->replaceFirstEqual(key, old_value, new_value);
   }
 
   template <typename Function>
-  uint32_t replaceAll(const Bytes& key, Function map) {
-    return getPartition(key)->replaceAll(key, map);
+  bool replaceFirstMatch(const Bytes& key, Function map) {
+    return getPartition(key)->replaceFirstMatch(key, map);
+  }
+
+  uint32_t replaceAllEqual(const Bytes& key, const Bytes& old_value,
+                           const Bytes& new_value) {
+    return getPartition(key)->replaceAllEqual(key, old_value, new_value);
+  }
+
+  template <typename Function>
+  uint32_t replaceAllMatches(const Bytes& key, Function map) {
+    return getPartition(key)->replaceAllMatches(key, map);
   }
 
   template <typename Procedure>
