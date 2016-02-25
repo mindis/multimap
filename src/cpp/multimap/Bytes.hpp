@@ -32,7 +32,7 @@ namespace multimap {
 
 class Bytes {
  public:
-  Bytes() : data_(""), size_(0) {}
+  Bytes() = default;
 
   Bytes(const char* cstr) : Bytes(cstr, std::strlen(cstr)) {}
 
@@ -59,8 +59,8 @@ class Bytes {
   std::string toString() const { return std::string(data_, size_); }
 
  private:
-  const char* data_;
-  size_t size_;
+  const char* data_ = "";
+  size_t size_ = 0;
 };
 
 inline bool operator==(const Bytes& lhs, const Bytes& rhs) {
