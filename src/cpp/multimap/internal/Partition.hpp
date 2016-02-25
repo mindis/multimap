@@ -90,6 +90,21 @@ class Partition : public mt::Resource {
     return list ? list->clear() : 0;
   }
 
+  bool removeFirstEqual(const Bytes& key, const Bytes& value) {
+    return removeFirstMatch(key, Equal(value));
+  }
+
+  uint32_t removeAllEqual(const Bytes& key, const Bytes& value) {
+    return removeAllMatches(key, Equal(value));
+  }
+
+  template <typename Predicate>
+  bool removeFirstMatch(const Bytes& key, Predicate predicate) {
+    mt::Check::isFalse(isReadOnly(), ATTEMPT_TO_MODIFY_READ_ONLY_PARTITION);
+    const auto list = getList(key);
+    return list ? list->removeFirstMatch(predicate, store_.get()) : false;
+  }
+
   template <typename Predicate>
   uint32_t removeFirstMatch(Predicate predicate) {
     mt::Check::isFalse(isReadOnly(), ATTEMPT_TO_MODIFY_READ_ONLY_PARTITION);
@@ -105,14 +120,10 @@ class Partition : public mt::Resource {
   }
 
   template <typename Predicate>
-  bool removeFirstMatch(const Bytes& key, Predicate predicate) {
+  uint32_t removeAllMatches(const Bytes& key, Predicate predicate) {
     mt::Check::isFalse(isReadOnly(), ATTEMPT_TO_MODIFY_READ_ONLY_PARTITION);
     const auto list = getList(key);
-    return list ? list->removeFirstMatch(predicate, store_.get()) : false;
-  }
-
-  bool removeFirstEqual(const Bytes& key, const Bytes& value) {
-    return removeFirstMatch(key, Equal(value));
+    return list ? list->removeAllMatches(predicate, store_.get()) : 0;
   }
 
   template <typename Predicate>
@@ -133,15 +144,18 @@ class Partition : public mt::Resource {
     return std::make_pair(num_keys_removed, num_values_removed);
   }
 
-  template <typename Predicate>
-  uint32_t removeAllMatches(const Bytes& key, Predicate predicate) {
-    mt::Check::isFalse(isReadOnly(), ATTEMPT_TO_MODIFY_READ_ONLY_PARTITION);
-    const auto list = getList(key);
-    return list ? list->removeAllMatches(predicate, store_.get()) : 0;
+  bool replaceFirstEqual(const Bytes& key, const Bytes& old_value,
+                         const Bytes& new_value) {
+    return replaceFirstMatch(key, [&old_value, &new_value](const Bytes& value) {
+      return (value == old_value) ? new_value.toString() : std::string();
+    });
   }
 
-  uint32_t removeAllEqual(const Bytes& key, const Bytes& value) {
-    return removeAllMatches(key, Equal(value));
+  uint32_t replaceAllEqual(const Bytes& key, const Bytes& old_value,
+                           const Bytes& new_value) {
+    return replaceAllMatches(key, [&old_value, &new_value](const Bytes& value) {
+      return (value == old_value) ? new_value.toString() : std::string();
+    });
   }
 
   template <typename Function>
@@ -151,25 +165,11 @@ class Partition : public mt::Resource {
     return list ? list->replaceFirstMatch(map, store_.get(), &arena_) : false;
   }
 
-  bool replaceFirstEqual(const Bytes& key, const Bytes& old_value,
-                         const Bytes& new_value) {
-    return replaceFirstMatch(key, [&old_value, &new_value](const Bytes& value) {
-      return (value == old_value) ? new_value.toString() : std::string();
-    });
-  }
-
   template <typename Function>
   uint32_t replaceAllMatches(const Bytes& key, Function map) {
     mt::Check::isFalse(isReadOnly(), ATTEMPT_TO_MODIFY_READ_ONLY_PARTITION);
     const auto list = getList(key);
     return list ? list->replaceAllMatches(map, store_.get(), &arena_) : 0;
-  }
-
-  uint32_t replaceAllEqual(const Bytes& key, const Bytes& old_value,
-                           const Bytes& new_value) {
-    return replaceAllMatches(key, [&old_value, &new_value](const Bytes& value) {
-      return (value == old_value) ? new_value.toString() : std::string();
-    });
   }
 
   template <typename Procedure>
