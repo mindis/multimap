@@ -603,26 +603,65 @@ public class Map implements AutoCloseable {
   public int remove(String key) {
     return remove(Utils.toByteArray(key));
   }
-
+  
   /**
-   * Removes the <i>first</i> key (and all its associated values) for which {@code predicate}
-   * yields {@code true}. The predicate can be any callable that implements the {@link Predicate}
-   * interface. Note that since the order of keys is undefined, this method should only be used if
-   * either one or no key at all will match.
+   * Removes the <i>first</i> value from the list associated with {@code key} that is equal to
+   * {@code value} after byte-wise comparison.
    *
    * <p><b>Acquires:</b></p>
    * <ul>
    * <li>a reader lock on the map object.</li>
-   * <li>a writer lock on lists associated with matching keys.</li>
+   * <li>a writer lock on the list associated with {@code key}.</li>
+   * </ul>
+   *
+   * @return {@code true} if any value has been removed, {@code false} otherwise.
+   * @since 0.5.0
+   */
+  public boolean removeFirstEqual(byte[] key, byte[] value) {
+    Check.notNull(key);
+    Check.notNull(value);
+    return Native.removeFirstEqual(self, key, value);
+  }
+
+  /**
+   * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
+   * converted into a byte array via {@link Utils#toByteArray(String)}.
+   *
+   * @since 0.5.0
+   */
+  public boolean removeFirstEqual(String key, byte[] value) {
+    return removeFirstEqual(Utils.toByteArray(key), value);
+  }
+  
+  /**
+   * Removes <i>all</i> values from the list associated with {@code key} that are equal to
+   * {@code value} after byte-wise comparison.
+   *
+   * <p><b>Acquires:</b></p>
+   * <ul>
+   * <li>a reader lock on the map object.</li>
+   * <li>a writer lock on the list associated with {@code key}.</li>
    * </ul>
    *
    * @return the number of values that have been removed.
    * @since 0.5.0
    */
-  public int removeFirstMatch(Predicate predicate) {
-    return Native.removeFirstMatch(self, predicate);
+  public int removeAllEqual(byte[] key, byte[] value) {
+    Check.notNull(key);
+    Check.notNull(value);
+    return Native.removeAllEqual(self, key, value);
   }
 
+  /**
+   * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
+   * converted into a byte array via {@link Utils#toByteArray(String)}.
+   *
+   * @since 0.5.0
+   */
+  public int removeAllEqual(String key, byte[] value) {
+    return removeAllEqual(Utils.toByteArray(key), value);
+  }
+  
   /**
    * Removes the <i>first</i> value from the list associated with {@code key} for which
    * {@code predicate} yields {@code true}. The predicate can be any callable that implements the
@@ -652,40 +691,12 @@ public class Map implements AutoCloseable {
   public boolean removeFirstMatch(String key, Predicate predicate) {
     return removeFirstMatch(Utils.toByteArray(key), predicate);
   }
-
+  
   /**
-   * Removes the <i>first</i> value from the list associated with {@code key} that is equal to
-   * {@code value} after byte-wise comparison.
-   *
-   * <p><b>Acquires:</b></p>
-   * <ul>
-   * <li>a reader lock on the map object.</li>
-   * <li>a writer lock on the list associated with {@code key}.</li>
-   * </ul>
-   *
-   * @return {@code true} if any value has been removed, {@code false} otherwise.
-   * @since 0.5.0
-   */
-  public boolean removeFirstEqual(byte[] key, byte[] value) {
-    Check.notNull(key);
-    Check.notNull(value);
-    return Native.removeFirstEqual(self, key, value);
-  }
-
-  /**
-   * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
-   * converted into a byte array via {@link Utils#toByteArray(String)}.
-   *
-   * @since 0.5.0
-   */
-  public boolean removeFirstEqual(String key, byte[] value) {
-    return removeFirstEqual(Utils.toByteArray(key), value);
-  }
-
-  /**
-   * Removes <i>all</i> keys (and all its associated values) for which {@code predicate} yields
-   * {@code true}. The predicate can be any callable that implements the {@link Predicate}
-   * interface.
+   * Removes the <i>first</i> key (and all its associated values) for which {@code predicate}
+   * yields {@code true}. The predicate can be any callable that implements the {@link Predicate}
+   * interface. Note that since the order of keys is undefined, this method should only be used if
+   * either one or no key at all will match.
    *
    * <p><b>Acquires:</b></p>
    * <ul>
@@ -693,16 +704,13 @@ public class Map implements AutoCloseable {
    * <li>a writer lock on lists associated with matching keys.</li>
    * </ul>
    *
-   * @return a pair whose first element tells the number of keys and the second element the total
-   *         number of values that have been removed.
+   * @return the number of values that have been removed.
    * @since 0.5.0
    */
-  public Utils.Pair<Integer, Long> removeAllMatches(Predicate predicate) {
-    ByteBuffer buffer = ByteBuffer.wrap(Native.removeAllMatches(self, predicate));
-    buffer.order(ByteOrder.LITTLE_ENDIAN);
-    return new Utils.Pair<Integer, Long>(buffer.getInt(), buffer.getLong());
+  public int removeFirstMatch(Predicate predicate) {
+    return Native.removeFirstMatch(self, predicate);
   }
-
+  
   /**
    * Removes <i>all</i> values from the list associated with {@code key} for which {@code predicate}
    * yields {@code true}. The predicate can be any callable that implements the {@link Predicate}
@@ -732,70 +740,28 @@ public class Map implements AutoCloseable {
   public int removeAllMatches(String key, Predicate predicate) {
     return removeAllMatches(Utils.toByteArray(key), predicate);
   }
-
+  
   /**
-   * Removes <i>all</i> values from the list associated with {@code key} that are equal to
-   * {@code value} after byte-wise comparison.
+   * Removes <i>all</i> keys (and all its associated values) for which {@code predicate} yields
+   * {@code true}. The predicate can be any callable that implements the {@link Predicate}
+   * interface.
    *
    * <p><b>Acquires:</b></p>
    * <ul>
    * <li>a reader lock on the map object.</li>
-   * <li>a writer lock on the list associated with {@code key}.</li>
+   * <li>a writer lock on lists associated with matching keys.</li>
    * </ul>
    *
-   * @return the number of values that have been removed.
+   * @return a pair whose first element tells the number of keys and the second element the total
+   *         number of values that have been removed.
    * @since 0.5.0
    */
-  public int removeAllEqual(byte[] key, byte[] value) {
-    Check.notNull(key);
-    Check.notNull(value);
-    return Native.removeAllEqual(self, key, value);
+  public Utils.Pair<Integer, Long> removeAllMatches(Predicate predicate) {
+    ByteBuffer buffer = ByteBuffer.wrap(Native.removeAllMatches(self, predicate));
+    buffer.order(ByteOrder.LITTLE_ENDIAN);
+    return new Utils.Pair<Integer, Long>(buffer.getInt(), buffer.getLong());
   }
-
-  /**
-   * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
-   * converted into a byte array via {@link Utils#toByteArray(String)}.
-   *
-   * @since 0.5.0
-   */
-  public int removeAllEqual(String key, byte[] value) {
-    return removeAllEqual(Utils.toByteArray(key), value);
-  }
-
-  /**
-   * Replaces the <i>first</i> value in the list associated with {@code key} by the result of
-   * invoking {@code map}. Values for which {@code map} returns {@code null} are not replaced. The
-   * map function can be any callable that implements the {@link Function} interface.
-   *
-   * <p>Note that a replace operation is actually implemented in terms of a remove of the old value
-   * followed by an insert/put of the new value. Hence, the new value is always the last value in
-   * the list. In other words, the replacement is not in-place.</p>
-   *
-   * <p><b>Acquires:</b></p>
-   * <ul>
-   * <li>a reader lock on the map object.</li>
-   * <li>a writer lock on the list associated with {@code key}.</li>
-   * </ul>
-   *
-   * @return {@code true} if any value has been replaced, {@code false} otherwise.
-   * @since 0.5.0
-   */
-  public boolean replaceFirstMatch(byte[] key, Function map) {
-    Check.notNull(key);
-    Check.notNull(map);
-    return Native.replaceFirstMatch(self, key, map);
-  }
-
-  /**
-   * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
-   * converted into a byte array via {@link Utils#toByteArray(String)}.
-   *
-   * @since 0.5.0
-   */
-  public boolean replaceFirstMatch(String key, Function map) {
-    return replaceFirstMatch(Utils.toByteArray(key), map);
-  }
-
+  
   /**
    * Replaces the <i>first</i> value in the list associated with {@code key} that is equal to
    * {@code oldValue} by {@code newValue}.
@@ -829,41 +795,7 @@ public class Map implements AutoCloseable {
   public boolean replaceFirstEqual(String key, byte[] oldValue, byte[] newValue) {
     return replaceFirstEqual(Utils.toByteArray(key), oldValue, newValue);
   }
-
-  /**
-   * Replaces <i>all</i> values in the list associated with {@code key} by the result of invoking
-   * {@code map}. Values for which {@code map} returns {@code null} are not replaced. The map
-   * function can be any callable that implements the {@link Function} interface.
-   *
-   * <p>Note that a replace operation is actually implemented in terms of a remove of the old value
-   * followed by an insert/put of the new value. Hence, the new value is always the last value in
-   * the list. In other words, the replacement is not in-place.</p>
-   *
-   * <p><b>Acquires:</b></p>
-   * <ul>
-   * <li>a reader lock on the map object.</li>
-   * <li>a writer lock on the list associated with {@code key}.</li>
-   * </ul>
-   *
-   * @return the number of values that have been replaced.
-   * @since 0.5.0
-   */
-  public int replaceAllMatches(byte[] key, Function map) {
-    Check.notNull(key);
-    Check.notNull(map);
-    return Native.replaceAllMatches(self, key, map);
-  }
-
-  /**
-   * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
-   * converted into a byte array via {@link Utils#toByteArray(String)}.
-   *
-   * @since 0.5.0
-   */
-  public int replaceAllMatches(String key, Function map) {
-    return replaceAllMatches(Utils.toByteArray(key), map);
-  }
-
+  
   /**
    * Replaces <i>all</i> values in the list associated with {@code key} that are equal to
    * {@code oldValue} by {@code newValue}.
@@ -896,6 +828,74 @@ public class Map implements AutoCloseable {
    */
   public int replaceAllEqual(String key, byte[] oldValue, byte[] newValue) {
     return replaceAllEqual(Utils.toByteArray(key), oldValue, newValue);
+  }
+  
+  /**
+   * Replaces the <i>first</i> value in the list associated with {@code key} by the result of
+   * invoking {@code map}. Values for which {@code map} returns {@code null} are not replaced. The
+   * map function can be any callable that implements the {@link Function} interface.
+   *
+   * <p>Note that a replace operation is actually implemented in terms of a remove of the old value
+   * followed by an insert/put of the new value. Hence, the new value is always the last value in
+   * the list. In other words, the replacement is not in-place.</p>
+   *
+   * <p><b>Acquires:</b></p>
+   * <ul>
+   * <li>a reader lock on the map object.</li>
+   * <li>a writer lock on the list associated with {@code key}.</li>
+   * </ul>
+   *
+   * @return {@code true} if any value has been replaced, {@code false} otherwise.
+   * @since 0.5.0
+   */
+  public boolean replaceFirstMatch(byte[] key, Function map) {
+    Check.notNull(key);
+    Check.notNull(map);
+    return Native.replaceFirstMatch(self, key, map);
+  }
+
+  /**
+   * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
+   * converted into a byte array via {@link Utils#toByteArray(String)}.
+   *
+   * @since 0.5.0
+   */
+  public boolean replaceFirstMatch(String key, Function map) {
+    return replaceFirstMatch(Utils.toByteArray(key), map);
+  }
+  
+  /**
+   * Replaces <i>all</i> values in the list associated with {@code key} by the result of invoking
+   * {@code map}. Values for which {@code map} returns {@code null} are not replaced. The map
+   * function can be any callable that implements the {@link Function} interface.
+   *
+   * <p>Note that a replace operation is actually implemented in terms of a remove of the old value
+   * followed by an insert/put of the new value. Hence, the new value is always the last value in
+   * the list. In other words, the replacement is not in-place.</p>
+   *
+   * <p><b>Acquires:</b></p>
+   * <ul>
+   * <li>a reader lock on the map object.</li>
+   * <li>a writer lock on the list associated with {@code key}.</li>
+   * </ul>
+   *
+   * @return the number of values that have been replaced.
+   * @since 0.5.0
+   */
+  public int replaceAllMatches(byte[] key, Function map) {
+    Check.notNull(key);
+    Check.notNull(map);
+    return Native.replaceAllMatches(self, key, map);
+  }
+
+  /**
+   * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
+   * converted into a byte array via {@link Utils#toByteArray(String)}.
+   *
+   * @since 0.5.0
+   */
+  public int replaceAllMatches(String key, Function map) {
+    return replaceAllMatches(Utils.toByteArray(key), map);
   }
 
   /**
@@ -1113,28 +1113,24 @@ public class Map implements AutoCloseable {
     static native ByteBuffer get(ByteBuffer self, byte[] key);
     static native boolean contains(ByteBuffer self, byte[] key);
     static native int remove(ByteBuffer self, byte[] key);
-    static native int removeFirstMatch(ByteBuffer self, Predicate predicate);
-    static native boolean removeFirstMatch(ByteBuffer self, byte[] key, Predicate predicate);
     static native boolean removeFirstEqual(ByteBuffer self, byte[] key, byte[] value);
-    static native byte[] removeAllMatches(ByteBuffer self, Predicate predicate);
-    static native int removeAllMatches(ByteBuffer self, byte[] key, Predicate predicate);
     static native int removeAllEqual(ByteBuffer self, byte[] key, byte[] value);
+    static native boolean removeFirstMatch(ByteBuffer self, byte[] key, Predicate predicate);
+    static native int removeFirstMatch(ByteBuffer self, Predicate predicate);
+    static native int removeAllMatches(ByteBuffer self, byte[] key, Predicate predicate);
+    static native byte[] removeAllMatches(ByteBuffer self, Predicate predicate);
+    static native boolean replaceFirstEqual(ByteBuffer self, byte[] key, byte[] oldValue, byte[] newValue);
+    static native int replaceAllEqual(ByteBuffer self, byte[] key, byte[] oldValue, byte[] newValue);
     static native boolean replaceFirstMatch(ByteBuffer self, byte[] key, Function function);
-    static native boolean replaceFirstEqual(
-        ByteBuffer self, byte[] key, byte[] oldValue, byte[] newValue);
     static native int replaceAllMatches(ByteBuffer self, byte[] key, Function function);
-    static native int replaceAllEqual(
-        ByteBuffer self, byte[] key, byte[] oldValue, byte[] newValue);
     static native void forEachKey(ByteBuffer self, Procedure process);
     static native void forEachValue(ByteBuffer self, byte[] key, Procedure process);
     static native void getStats(ByteBuffer self, Stats stats);
     static native boolean isReadOnly(ByteBuffer self);
     static native void close(ByteBuffer self);
     static native void stats(String directory, Stats stats) throws Exception;
-    static native void importFromBase64(String directory, String input, Options options)
-        throws Exception;
-    static native void exportToBase64(String directory, String output, Options options)
-        throws Exception;
+    static native void importFromBase64(String directory, String input, Options options) throws Exception;
+    static native void exportToBase64(String directory, String output, Options options) throws Exception;
     static native void optimize(String directory, String output, Options options) throws Exception;
   }
 }
