@@ -112,6 +112,15 @@ class Map : public mt::Resource {
   }
 
   template <typename Predicate>
+  bool removeFirstMatch(const Bytes& key, Predicate predicate) {
+    return getPartition(key)->removeFirstMatch(key, predicate);
+  }
+
+  bool removeFirstEqual(const Bytes& key, const Bytes& value) {
+    return getPartition(key)->removeFirstEqual(key, value);
+  }
+
+  template <typename Predicate>
   std::pair<uint32_t, uint64_t> removeAllMatches(Predicate predicate) {
     uint32_t num_keys_removed = 0;
     uint64_t num_values_removed = 0;
@@ -124,13 +133,17 @@ class Map : public mt::Resource {
   }
 
   template <typename Predicate>
-  bool removeFirstMatch(const Bytes& key, Predicate predicate) {
-    return getPartition(key)->removeFirstMatch(key, predicate);
-  }
-
-  template <typename Predicate>
   uint32_t removeAllMatches(const Bytes& key, Predicate predicate) {
     return getPartition(key)->removeAllMatches(key, predicate);
+  }
+
+  uint32_t removeAllEqual(const Bytes& key, const Bytes& value) {
+    return getPartition(key)->removeAllEqual(key, value);
+  }
+
+  template <typename Function>
+  bool replaceFirstMatch(const Bytes& key, Function map) {
+    return getPartition(key)->replaceFirstMatch(key, map);
   }
 
   bool replaceFirstEqual(const Bytes& key, const Bytes& old_value,
@@ -139,18 +152,13 @@ class Map : public mt::Resource {
   }
 
   template <typename Function>
-  bool replaceFirstMatch(const Bytes& key, Function map) {
-    return getPartition(key)->replaceFirstMatch(key, map);
+  uint32_t replaceAllMatches(const Bytes& key, Function map) {
+    return getPartition(key)->replaceAllMatches(key, map);
   }
 
   uint32_t replaceAllEqual(const Bytes& key, const Bytes& old_value,
                            const Bytes& new_value) {
     return getPartition(key)->replaceAllEqual(key, old_value, new_value);
-  }
-
-  template <typename Function>
-  uint32_t replaceAllMatches(const Bytes& key, Function map) {
-    return getPartition(key)->replaceAllMatches(key, map);
   }
 
   template <typename Procedure>
