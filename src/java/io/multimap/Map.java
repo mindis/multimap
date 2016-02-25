@@ -498,7 +498,7 @@ public class Map implements AutoCloseable {
   }
 
   /**
-   * Appends {@code value} to the end of the list associated with {@code key}.
+   * Appends {@code value} to the end of the list associated with the specified key.
    *
    * <p><b>Acquires:</b></p>
    * <ul>
@@ -530,9 +530,9 @@ public class Map implements AutoCloseable {
   }
 
   /**
-   * Returns a read-only iterator for the list associated with {@code key}. If the key does not
-   * exist, an empty iterator that has no values is returned. A non-empty iterator owns a reader
-   * lock on the underlying list and therefore must be closed via {@link Iterator#close()} when it
+   * Returns a read-only iterator for the list associated with the specified key. If the key does
+   * not exist, an empty iterator that has no values is returned. A non-empty iterator owns a reader
+   * lock on the associated list and must be closed via {@link Iterator#close()} when it
    * is not needed anymore. Not closing iterators leads to deadlocks sooner or later.
    *
    * <p><b>Acquires:</b></p>
@@ -559,8 +559,8 @@ public class Map implements AutoCloseable {
   }
 
   /**
-   * Returns {@code true} if {@code key} is associated with at least one value, {@code false}
-   * otherwise.
+   * Returns {@code true} if there is at least one value associated with the specified key,
+   * {@code false} otherwise.
    */
   public boolean contains(byte[] key) {
     Check.notNull(key);
@@ -578,7 +578,7 @@ public class Map implements AutoCloseable {
   }
 
   /**
-   * Removes all values associated with {@code key}.
+   * Removes all values from the list associated with the specified key.
    *
    * <p><b>Acquires:</b></p>
    * <ul>
@@ -605,8 +605,8 @@ public class Map implements AutoCloseable {
   }
   
   /**
-   * Removes the <i>first</i> value from the list associated with {@code key} that is equal to
-   * {@code value} after byte-wise comparison.
+   * Removes the first value which is equal to the given one from the list associated with the
+   * specified key.
    *
    * <p><b>Acquires:</b></p>
    * <ul>
@@ -634,8 +634,8 @@ public class Map implements AutoCloseable {
   }
   
   /**
-   * Removes <i>all</i> values from the list associated with {@code key} that are equal to
-   * {@code value} after byte-wise comparison.
+   * Removes all values which are equal to the given one from the list associated with the
+   * specified key.
    *
    * <p><b>Acquires:</b></p>
    * <ul>
@@ -663,8 +663,8 @@ public class Map implements AutoCloseable {
   }
   
   /**
-   * Removes the <i>first</i> value from the list associated with {@code key} for which
-   * {@code predicate} yields {@code true}. The predicate can be any callable that implements the
+   * Removes the first value for which {@code predicate} yields {@code true} from the list
+   * associated with the specified key. The predicate can be any callable that implements the
    * {@link Predicate} interface.
    *
    * <p><b>Acquires:</b></p>
@@ -693,10 +693,9 @@ public class Map implements AutoCloseable {
   }
   
   /**
-   * Removes the <i>first</i> key (and all its associated values) for which {@code predicate}
+   * Removes all values from the list associated with the first key for which {@code predicate}
    * yields {@code true}. The predicate can be any callable that implements the {@link Predicate}
-   * interface. Note that since the order of keys is undefined, this method should only be used if
-   * either one or no key at all will match.
+   * interface.
    *
    * <p><b>Acquires:</b></p>
    * <ul>
@@ -712,9 +711,9 @@ public class Map implements AutoCloseable {
   }
   
   /**
-   * Removes <i>all</i> values from the list associated with {@code key} for which {@code predicate}
-   * yields {@code true}. The predicate can be any callable that implements the {@link Predicate}
-   * interface.
+   * Removes the first value for which {@code predicate} yields {@code true} from the list
+   * associated with the specified key. The predicate can be any callable that implements the
+   * {@link Predicate} interface.
    *
    * <p><b>Acquires:</b></p>
    * <ul>
@@ -742,7 +741,7 @@ public class Map implements AutoCloseable {
   }
   
   /**
-   * Removes <i>all</i> keys (and all its associated values) for which {@code predicate} yields
+   * Removes all values from lists associated with keys for which {@code predicate} yields
    * {@code true}. The predicate can be any callable that implements the {@link Predicate}
    * interface.
    *
@@ -763,8 +762,8 @@ public class Map implements AutoCloseable {
   }
   
   /**
-   * Replaces the <i>first</i> value in the list associated with {@code key} that is equal to
-   * {@code oldValue} by {@code newValue}.
+   * Replaces the first value which is equal to {@code oldValue} with {@code newValue} in the list
+   * associated with the specified key.
    *
    * <p>Note that a replace operation is actually implemented in terms of a remove of the old value
    * followed by an insert/put of the new value. Hence, the new value is always the last value in
@@ -797,8 +796,8 @@ public class Map implements AutoCloseable {
   }
   
   /**
-   * Replaces <i>all</i> values in the list associated with {@code key} that are equal to
-   * {@code oldValue} by {@code newValue}.
+   * Replaces all values which are equal to {@code oldValue} with {@code newValue} in the list
+   * associated with the specified key.
    *
    * <p>Note that a replace operation is actually implemented in terms of a remove of the old value
    * followed by an insert/put of the new value. Hence, the new value is always the last value in
@@ -831,9 +830,10 @@ public class Map implements AutoCloseable {
   }
   
   /**
-   * Replaces the <i>first</i> value in the list associated with {@code key} by the result of
-   * invoking {@code map}. Values for which {@code map} returns {@code null} are not replaced. The
-   * map function can be any callable that implements the {@link Function} interface.
+   * Replaces the first value with the result of invoking {@code map} in the list associated with
+   * the specified key. A match is indicated by returning a byte array, not {@code null}, from
+   * {@code map} for a given value. The map function can be any callable that implements the
+   * {@link Function} interface.
    *
    * <p>Note that a replace operation is actually implemented in terms of a remove of the old value
    * followed by an insert/put of the new value. Hence, the new value is always the last value in
@@ -865,9 +865,10 @@ public class Map implements AutoCloseable {
   }
   
   /**
-   * Replaces <i>all</i> values in the list associated with {@code key} by the result of invoking
-   * {@code map}. Values for which {@code map} returns {@code null} are not replaced. The map
-   * function can be any callable that implements the {@link Function} interface.
+   * Replaces all values with the result of invoking {@code map} in the list associated with the
+   * specified key. A match is indicated by returning a byte array, not {@code null}, from
+   * {@code map} for a given value. The map function can be any callable that implements the
+   * {@link Function} interface.
    *
    * <p>Note that a replace operation is actually implemented in terms of a remove of the old value
    * followed by an insert/put of the new value. Hence, the new value is always the last value in
@@ -899,7 +900,7 @@ public class Map implements AutoCloseable {
   }
 
   /**
-   * Applies {@code process} to each key in the map. The process argument can be any callable that
+   * Applies {@code process} to each key in the map. The process object can be any callable that
    * implements the {@link Procedure} interface.
    *
    * <p><b>Acquires</b> a reader lock on the map object.</p>
@@ -910,8 +911,8 @@ public class Map implements AutoCloseable {
   }
 
   /**
-   * Applies {@code process} to each value associated with {@code key}. The process argument can be
-   * any callable that implements the {@link Procedure} interface.
+   * Applies {@code process} to each value in the list associated with the specified key. The
+   * process object can be any callable that implements the {@link Procedure} interface.
    *
    * <p><b>Acquires:</b></p>
    * <ul>
