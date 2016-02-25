@@ -28,7 +28,6 @@
 #include "multimap/internal/Locks.hpp"
 #include "multimap/internal/Stats.hpp"
 #include "multimap/thirdparty/mt/mt.hpp"
-#include "multimap/callables.hpp"
 #include "multimap/Iterator.hpp"
 
 namespace multimap {
@@ -241,6 +240,15 @@ class Partition : public mt::Resource {
   static std::string getNameOfStoreFile(const std::string& prefix);
 
  private:
+  struct Equal {
+    explicit Equal(const Bytes& value) : value_(value) {}
+
+    bool operator()(const Bytes& value) const { return value == value_; }
+
+   private:
+    const Bytes value_;
+  };
+
   static void readBytesFromStream(std::FILE* stream, std::vector<char>* bytes) {
     uint32_t size;
     mt::fread(stream, &size, sizeof size);

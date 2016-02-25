@@ -25,7 +25,6 @@ HEADERS += \
     src/cpp/multimap/thirdparty/mt/mt.hpp \
     src/cpp/multimap/thirdparty/xxhash/xxhash.h \
     src/cpp/multimap/Bytes.hpp \
-    src/cpp/multimap/callables.hpp \
     src/cpp/multimap/Iterator.hpp \
     src/cpp/multimap/Map.hpp \
     src/cpp/multimap/Version.hpp

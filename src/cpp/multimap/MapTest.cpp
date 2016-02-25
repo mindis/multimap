@@ -18,7 +18,6 @@
 #include <type_traits>
 #include <boost/filesystem/operations.hpp>
 #include "gmock/gmock.h"
-#include "multimap/callables.hpp"
 #include "multimap/Map.hpp"
 
 namespace multimap {
@@ -222,7 +221,7 @@ TEST_P(MapTestWithParam, GetTotalStatsReturnsCorrectValuesAfterRemovingValues) {
 
     const auto key = std::to_string(0);
     const auto val = std::to_string(0);
-    const auto num_values_removed = map->removeFirstMatch(key, Equal(val)) +
+    const auto num_values_removed = map->removeFirstEqual(key, val) +
                                     map->removeAllMatches(key, IS_ODD);
 
     stats_backup = map->getTotalStats();

@@ -20,7 +20,6 @@
 #include <boost/filesystem/operations.hpp>
 #include "gmock/gmock.h"
 #include "multimap/internal/Partition.hpp"
-#include "multimap/callables.hpp"
 
 namespace multimap {
 namespace internal {
@@ -533,9 +532,8 @@ TEST_F(PartitionTestFixture, GetStatsReturnsCorrectValuesAfterRemovingValues) {
     partition->put("kkkkk", "v");
     partition->put("kkkkk", "v");
 
-    partition->removeFirstMatch("k", Equal("vvvvv"));
-    partition->removeAllMatches("kk",
-                                [](const Bytes &val) { return val == "vvvv"; });
+    partition->removeFirstEqual("k", "vvvvv");
+    partition->removeAllEqual("kk", "vvvv");
 
     const auto stats = partition->getStats();
     ASSERT_THAT(stats.num_keys_total, Eq(5));
@@ -589,12 +587,12 @@ TEST_F(PartitionTestFixture, RemoveAllKeysThrowsIfOpenedAsReadOnly) {
 
 TEST_F(PartitionTestFixture, RemoveValueThrowsIfOpenedAsReadOnly) {
   auto partition = openOrCreatePartitionAsReadOnly(prefix);
-  ASSERT_THROW(partition->removeFirstMatch(k1, Equal(v1)), std::runtime_error);
+  ASSERT_THROW(partition->removeFirstEqual(k1, v1), std::runtime_error);
 }
 
 TEST_F(PartitionTestFixture, RemoveValuesThrowsIfOpenedAsReadOnly) {
   auto partition = openOrCreatePartitionAsReadOnly(prefix);
-  ASSERT_THROW(partition->removeAllMatches(k1, Equal(v1)), std::runtime_error);
+  ASSERT_THROW(partition->removeAllEqual(k1, v1), std::runtime_error);
 }
 
 TEST_F(PartitionTestFixture, ReplaceValueThrowsIfOpenedAsReadOnly) {
