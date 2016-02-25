@@ -54,14 +54,14 @@ public class MapTest {
   static final Path DIRECTORY = Paths.get(MapTest.class.getName());
   static final Path DIRECTORY2 = Paths.get(MapTest.class.getName() + 2);
   static final Path DATAFILE = DIRECTORY.resolve("data.csv");
-  
+
   static final Predicate IS_EVEN = new Predicate() {
     @Override
     public boolean call(ByteBuffer bytes) {
       return getSuffix(bytes) % 2 == 0;
     }
   };
-  
+
   static final Function NEXT_IF_EVEN = new Function() {
     @Override
     public byte[] call(ByteBuffer bytes) {
@@ -86,7 +86,7 @@ public class MapTest {
       });
     }
   }
-  
+
   static Map createAndFillMap(Path directory, int numKeys, int numValuesPerKey) throws Exception {
     Options options = new Options();
     options.setCreateIfMissing(true);
@@ -94,7 +94,7 @@ public class MapTest {
     fill(map, numKeys, numValuesPerKey);
     return map;
   }
-  
+
   static void fill(Map map, int numKeys, int numValuesPerKey) throws Exception {
     for (int i = 0; i < numKeys; ++i) {
       for (int j = 0; j < numValuesPerKey; ++j) {
@@ -110,11 +110,11 @@ public class MapTest {
   static byte[] makeValue(int suffix) {
     return makeBytes("value", suffix);
   }
-  
+
   static byte[] makeBytes(String prefix, int suffix) {
     return (prefix + suffix).getBytes();
   }
-  
+
   static int getSuffix(ByteBuffer buffer) {
     String str = new String(toByteArray(buffer));
     String key = "key";
@@ -127,14 +127,15 @@ public class MapTest {
     }
     throw new IllegalArgumentException();
   }
-  
+
   static byte[] toByteArray(ByteBuffer buffer) {
     byte[] bytes = new byte[buffer.capacity()];
     buffer.get(bytes);
     return bytes;
   }
-  
-  static void writeAsBase64ToFile(Path filename, int numKeys, int numValuesPerKeys) throws IOException {
+
+  static void writeAsBase64ToFile(Path filename, int numKeys, int numValuesPerKeys)
+      throws IOException {
     BufferedWriter bw = Files.newBufferedWriter(filename, Charset.defaultCharset());
     for (int i = 0; i < numKeys; ++i) {
       bw.write(DatatypeConverter.printBase64Binary(makeKey(i)));
@@ -145,7 +146,7 @@ public class MapTest {
     }
     bw.close();
   }
-  
+
   @BeforeClass
   public static void setUpBeforeClass() throws Exception {}
 
@@ -168,13 +169,13 @@ public class MapTest {
     Files.deleteIfExists(DATAFILE);
   }
 
-  @Test (expected = Exception.class)
+  @Test(expected = Exception.class)
   public void testMapCtorShouldThrow() throws Exception {
     // The map does not exist and options.createIfMissing is false.
     Map map = new Map(DIRECTORY);
     map.close();
   }
-  
+
   @Test
   public void testMapCtorShouldNotThrow() throws Exception {
     Options options = new Options();
@@ -237,18 +238,18 @@ public class MapTest {
     int numKeys = 1000;
     int numValuesPerKeys = 1000;
     Map map = createAndFillMap(DIRECTORY, numKeys, numValuesPerKeys);
-    
-    Assert.assertEquals(numValuesPerKeys, map.removeOne(IS_EVEN));
+
+    Assert.assertEquals(numValuesPerKeys, map.removeFirstMatch(IS_EVEN));
     map.close();
   }
-  
+
   @Test
   public void testRemoveAllKeys() throws Exception {
     int numKeys = 1000;
     int numValuesPerKeys = 1000;
     Map map = createAndFillMap(DIRECTORY, numKeys, numValuesPerKeys);
-    
-    Utils.Pair<Integer, Long> result = map.removeAll(IS_EVEN);
+
+    Utils.Pair<Integer, Long> result = map.removeAllMatches(IS_EVEN);
     Assert.assertEquals(numKeys / 2, result.a().intValue());
     Assert.assertEquals(numKeys / 2 * numValuesPerKeys, result.b().longValue());
     for (int i = 0; i < numKeys; ++i) {
@@ -266,12 +267,12 @@ public class MapTest {
     int numKeys = 1000;
     int numValuesPerKeys = 1000;
     Map map = createAndFillMap(DIRECTORY, numKeys, numValuesPerKeys);
-    
+
     for (int i = 0; i < numKeys; ++i) {
-      boolean removed = map.removeOne(makeKey(i), makeValue(123));
+      boolean removed = map.removeFirstEqual(makeKey(i), makeValue(123));
       Assert.assertTrue(removed);
     }
-    
+
     for (int i = 0; i < numKeys; ++i) {
       Iterator iter = map.get(makeKey(i));
       int j = 0;
@@ -300,12 +301,12 @@ public class MapTest {
     int numKeys = 1000;
     int numValuesPerKeys = 1000;
     Map map = createAndFillMap(DIRECTORY, numKeys, numValuesPerKeys);
-    
+
     for (int i = 0; i < numKeys; ++i) {
-      boolean removed = map.removeOne(makeKey(i), IS_EVEN);
+      boolean removed = map.removeFirstMatch(makeKey(i), IS_EVEN);
       Assert.assertTrue(removed);
     }
-    
+
     for (int i = 0; i < numKeys; ++i) {
       Iterator iter = map.get(makeKey(i));
       int j = 0;
@@ -335,13 +336,13 @@ public class MapTest {
     int numKeys = 1000;
     int numValuesPerKeys = 1000;
     Map map = createAndFillMap(DIRECTORY, numKeys, numValuesPerKeys);
-    
+
     for (int i = 0; i < numKeys; ++i) {
       long expectedNumRemoved = 1;
-      long actualNumRemoved = map.removeAll(makeKey(i), makeValue(123));
+      long actualNumRemoved = map.removeAllEqual(makeKey(i), makeValue(123));
       Assert.assertEquals(expectedNumRemoved, actualNumRemoved);
     }
-    
+
     for (int i = 0; i < numKeys; ++i) {
       Iterator iter = map.get(makeKey(i));
       for (int j = 0; j < numValuesPerKeys; ++j) {
@@ -367,7 +368,7 @@ public class MapTest {
 
     for (int i = 0; i < numKeys; ++i) {
       long expectedNumRemoved = numValuesPerKeys / 2;
-      long actualNumRemoved = map.removeAll(makeKey(i), IS_EVEN);
+      long actualNumRemoved = map.removeAllMatches(makeKey(i), IS_EVEN);
       Assert.assertEquals(expectedNumRemoved, actualNumRemoved);
     }
 
@@ -394,12 +395,12 @@ public class MapTest {
     int numKeys = 1000;
     int numValuesPerKeys = 1000;
     Map map = createAndFillMap(DIRECTORY, numKeys, numValuesPerKeys);
-    
+
     for (int i = 0; i < numKeys; ++i) {
-      boolean replaced = map.replaceOne(makeKey(i), makeValue(123), makeValue(124));
+      boolean replaced = map.replaceFirstEqual(makeKey(i), makeValue(123), makeValue(124));
       Assert.assertTrue(replaced);
     }
-    
+
     for (int i = 0; i < numKeys; ++i) {
       Iterator iter = map.get(makeKey(i));
       for (int j = 0; j < numValuesPerKeys; ++j) {
@@ -427,7 +428,7 @@ public class MapTest {
     Map map = createAndFillMap(DIRECTORY, numKeys, numValuesPerKeys);
 
     for (int i = 0; i < numKeys; ++i) {
-      boolean replaced = map.replaceOne(makeKey(i), NEXT_IF_EVEN);
+      boolean replaced = map.replaceFirstMatch(makeKey(i), NEXT_IF_EVEN);
       Assert.assertTrue(replaced);
     }
 
@@ -452,13 +453,13 @@ public class MapTest {
     int numKeys = 1000;
     int numValuesPerKeys = 1000;
     Map map = createAndFillMap(DIRECTORY, numKeys, numValuesPerKeys);
-    
+
     for (int i = 0; i < numKeys; ++i) {
       long expectedNumReplaced = 1;
-      long actualNumRemoved = map.replaceAll(makeKey(i), makeValue(123), makeValue(124));
+      long actualNumRemoved = map.replaceAllEqual(makeKey(i), makeValue(123), makeValue(124));
       Assert.assertEquals(expectedNumReplaced, actualNumRemoved);
     }
-    
+
     for (int i = 0; i < numKeys; ++i) {
       Iterator iter = map.get(makeKey(i));
       for (int j = 0; j < numValuesPerKeys; ++j) {
@@ -487,7 +488,7 @@ public class MapTest {
 
     for (int i = 0; i < numKeys; ++i) {
       long expectedNumReplaced = numValuesPerKeys / 2;
-      long actualNumReplaced = map.replaceAll(makeKey(i), NEXT_IF_EVEN);
+      long actualNumReplaced = map.replaceAllMatches(makeKey(i), NEXT_IF_EVEN);
       Assert.assertEquals(expectedNumReplaced, actualNumReplaced);
     }
 
@@ -514,7 +515,7 @@ public class MapTest {
     int numKeys = 1000;
     int numValuesPerKeys = 1000;
     Map map = createAndFillMap(DIRECTORY, numKeys, numValuesPerKeys);
-    
+
     // Collect the whole key set.
     final Set<Integer> keys = new HashSet<>();
     map.forEachKey(new Procedure() {
@@ -527,7 +528,7 @@ public class MapTest {
     for (int i = 0; i < numKeys; ++i) {
       Assert.assertTrue(keys.contains(i));
     }
-    
+
     // Remove every second key and collect keys again.
     for (int i = 0; i < numKeys; i += 2) {
       Assert.assertEquals(numValuesPerKeys, map.remove(makeKey(i)));
@@ -551,7 +552,7 @@ public class MapTest {
     int numKeys = 1000;
     int numValuesPerKeys = 1000;
     Map map = createAndFillMap(DIRECTORY, numKeys, numValuesPerKeys);
-    
+
     // Collect all values associated with "23".
     byte[] key = makeKey(23);
     final Set<Integer> values = new HashSet<>();
@@ -565,9 +566,9 @@ public class MapTest {
     for (int i = 0; i < numValuesPerKeys; ++i) {
       Assert.assertTrue(values.contains(i));
     }
-    
+
     // Remove every second value and collect values again.
-    map.removeAll(key, IS_EVEN);  // TODO Check return value
+    map.removeAllMatches(key, IS_EVEN); // TODO Check return value
     values.clear();
     map.forEachValue(key, new Procedure() {
       @Override
@@ -581,7 +582,7 @@ public class MapTest {
     }
     map.close();
   }
-  
+
   @Test
   public void testGetStats() throws Exception {
     int numKeys = 1000;
@@ -607,7 +608,7 @@ public class MapTest {
     Map map = createAndFillMap(DIRECTORY, numKeys, numValuesPerKeys);
     Assert.assertFalse(map.isReadOnly());
     map.close();
-    
+
     Options options = new Options();
     options.setReadonly(true);
     map = new Map(DIRECTORY, options);
@@ -624,12 +625,12 @@ public class MapTest {
     map.close(); // Double close should have no effect.
   }
 
-  @Test (expected = Exception.class)
+  @Test(expected = Exception.class)
   public void testStatsShouldThrowBecauseDirectoryDoesNotExist() throws Exception {
     Map.stats(DIRECTORY);
   }
-  
-  @Test (expected = Exception.class)
+
+  @Test(expected = Exception.class)
   public void testStatsShouldThrowBecauseDirectoryIsAlreadyLocked() throws Exception {
     int numKeys = 1000;
     int numValuesPerKeys = 1000;
@@ -637,7 +638,7 @@ public class MapTest {
     Map.stats(DIRECTORY);
     map.close();
   }
-  
+
   @Test
   public void testStatsShouldNotThrow() throws Exception {
     int numKeys = 1000;
@@ -655,8 +656,8 @@ public class MapTest {
     Assert.assertEquals(1000 * 1000, stats.getNumValuesValid());
     Assert.assertEquals(Options.DEFAULT.getNumPartitions(), stats.getNumPartitions());
   }
-  
-  @Test (expected = Exception.class)
+
+  @Test(expected = Exception.class)
   public void testImportFromBase64ShouldThrow() throws Exception {
     int numKeys = 1000;
     int numValuesPerKeys = 1000;
@@ -669,11 +670,11 @@ public class MapTest {
     int numKeys = 1000;
     int numValuesPerKeys = 1000;
     writeAsBase64ToFile(DATAFILE, numKeys, numValuesPerKeys);
-    
+
     Options options = new Options();
     options.setCreateIfMissing(true);
     Map.importFromBase64(DIRECTORY, DATAFILE, options);
-    
+
     Map map = new Map(DIRECTORY);
     for (int i = 0; i < numKeys; ++i) {
       Iterator iter = map.get(makeKey(i));
@@ -686,7 +687,7 @@ public class MapTest {
     map.close();
   }
 
-  @Test (expected = Exception.class)
+  @Test(expected = Exception.class)
   public void testExportToBase64ShouldThrow() throws Exception {
     Map.exportToBase64(DIRECTORY, DATAFILE);
   }
@@ -701,7 +702,7 @@ public class MapTest {
     // Clear the map.
     Map map = new Map(DIRECTORY);
     // TODO Check return value, which is a pair now.
-    Utils.Pair<Integer, Long> result = map.removeAll(new Predicate() {
+    Utils.Pair<Integer, Long> result = map.removeAllMatches(new Predicate() {
       @Override
       public boolean call(ByteBuffer bytes) {
         return true;
@@ -731,12 +732,12 @@ public class MapTest {
     Map.exportToBase64(DIRECTORY, DATAFILE);
   }
 
-  @Test (expected = Exception.class)
+  @Test(expected = Exception.class)
   public void testOptimizeShouldThrowIfSourceNotExists() throws Exception {
     Map.optimize(DIRECTORY, DIRECTORY2);
   }
-  
-  @Test (expected = Exception.class)
+
+  @Test(expected = Exception.class)
   public void testOptimizeShouldThrowIfTargetNotExists() throws Exception {
     int numKeys = 1000;
     int numValuesPerKeys = 1000;
@@ -744,8 +745,8 @@ public class MapTest {
     deleteDirectoryIfExists(DIRECTORY2);
     Map.optimize(DIRECTORY, DIRECTORY2);
   }
-  
-  @Test (expected = Exception.class)
+
+  @Test(expected = Exception.class)
   public void testOptimizeShouldThrowIfSourceAndTargetReferSameDirectory() throws Exception {
     int numKeys = 1000;
     int numValuesPerKeys = 1000;
@@ -771,5 +772,4 @@ public class MapTest {
     }
     map.close();
   }
-
 }

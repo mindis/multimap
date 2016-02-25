@@ -31,16 +31,15 @@ import java.nio.file.Paths;
 
 /**
  * This class implements a 1:n key-value store where each key is associated with a list of values.
- * 
+ *
  * <br>
  * For more information please visit the
  * <a href="http://multimap.io/cppreference/#maphpp">C++ Reference for class Map</a>.
- * 
+ *
  * @author Martin Trenkmann
  * @since 0.3.0
  */
 public class Map implements AutoCloseable {
-
   static {
     final String LIBNAME = "multimap-jni";
     try {
@@ -53,11 +52,10 @@ public class Map implements AutoCloseable {
   /**
    * This type provides static methods for obtaining system limitations. Those limits which define
    * constraints on user supplied data also serve as preconditions.
-   * 
+   *
    * @author Martin Trenkmann
    */
   public static class Limits {
-
     /**
      * Returns the maximum size in number of bytes for a key to put.
      */
@@ -77,19 +75,18 @@ public class Map implements AutoCloseable {
       static native int maxValueSize();
     }
   }
-  
+
   /**
    * This class is a pure data holder used for configuring instances of type {@link Map}.
-   * 
+   *
    * @author Martin Trenkmann
    */
   public static class Options {
-    
     /**
      * A static instance useful to obtain the default configuration of the options parameter.
      */
     public static final Options DEFAULT = new Options();
-    
+
     private int blockSize = 512;
     private int numPartitions = 23;
     private boolean createIfMissing = false;
@@ -100,7 +97,7 @@ public class Map implements AutoCloseable {
 
     /**
      * Returns the block size in number of bytes.
-     * 
+     *
      * @see #setBlockSize(int)
      */
     public int getBlockSize() {
@@ -109,7 +106,8 @@ public class Map implements AutoCloseable {
 
     /**
      * Defines the block size in number of bytes for a newly created map. The value must be a power
-     * of two. Typical block sizes are 128, 256, 512 (default), 1024, or even larger. Please refer to
+     * of two. Typical block sizes are 128, 256, 512 (default), 1024, or even larger. Please refer
+     * to
      * the <a href="http://multimap.io/overview#block-organization">overview</a> section on the
      * project's website for more details.
      */
@@ -117,20 +115,21 @@ public class Map implements AutoCloseable {
       Check.isPositive(blockSize);
       this.blockSize = blockSize;
     }
-    
+
     /**
-     * Sets the block size to a special value that indicates to the optimize operation that the block
+     * Sets the block size to a special value that indicates to the optimize operation that the
+     *block
      * size should not be changed.
-     * 
+     *
      * @see Map#optimize(java.nio.file.Path, java.nio.file.Path, Options)
      */
     public void keepBlockSize() {
       blockSize = 0;
     }
-    
+
     /**
      * Returns the number of partitions.
-     * 
+     *
      * @see #setNumPartitions(int)
      */
     public int getNumPartitions() {
@@ -141,10 +140,12 @@ public class Map implements AutoCloseable {
      * Defines the number of partitions for a newly created map. The purpose of partitioning is to
      * increase the performance of the export and optimize operations by applying a divide and
      * conquer method. A suitable number can be estimated like this: "total number of value-bytes to
-     * be put" divided by "the memory allowed to be used running the operation". An underestimate can
-     * lead to long runtimes for the mentioned operations. The default value is 23; other values will
+     * be put" divided by "the memory allowed to be used running the operation". An underestimate
+     *can
+     * lead to long runtimes for the mentioned operations. The default value is 23; other values
+     *will
      * be rounded to the next prime number that is greater or equal to the given value.
-     * 
+     *
      * @see Map#exportToBase64(java.nio.file.Path, java.nio.file.Path)
      * @see Map#exportToBase64(java.nio.file.Path, java.nio.file.Path, Options)
      * @see Map#optimize(java.nio.file.Path, java.nio.file.Path)
@@ -154,21 +155,22 @@ public class Map implements AutoCloseable {
       Check.isPositive(numPartitions);
       this.numPartitions = numPartitions;
     }
-    
+
     /**
-     * Sets the number of partitions to a special value that indicates to the optimize operation that
+     * Sets the number of partitions to a special value that indicates to the optimize operation
+     *that
      * the number of partitions should not be changed.
-     * 
+     *
      * @see Map#optimize(java.nio.file.Path, java.nio.file.Path, Options)
      */
     public void keepNumPartitions() {
       numPartitions = 0;
     }
-    
+
     /**
      * Returns {@code true} if a map should be created if it does not already exist, {@code false}
      * otherwise.
-     * 
+     *
      * @see #setCreateIfMissing(boolean)
      */
     public boolean isCreateIfMissing() {
@@ -186,7 +188,7 @@ public class Map implements AutoCloseable {
     /**
      * Returns {@code true} if an error should be raised in case a map already exists, {@code false}
      * otherwise.
-     * 
+     *
      * @see #setErrorIfExists(boolean)
      */
     public boolean isErrorIfExists() {
@@ -200,10 +202,10 @@ public class Map implements AutoCloseable {
     public void setErrorIfExists(boolean errorIfExists) {
       this.errorIfExists = errorIfExists;
     }
-    
+
     /**
      * Returns {@code true} if a map should be opened in read-only mode, {@code false} otherwise.
-     * 
+     *
      * @see #setReadonly(boolean)
      */
     public boolean isReadonly() {
@@ -213,7 +215,8 @@ public class Map implements AutoCloseable {
     /**
      * If set to {@code true}, opens a map in read-only mode. In this mode all operations that could
      * possibly modify the stored data are not allowed and will throw an exception on an attempt to
-     * do so. This flag is useful to prevent unintentional updates of read-only datasets. The default
+     * do so. This flag is useful to prevent unintentional updates of read-only datasets. The
+     * default
      * value is {@code false}.
      */
     public void setReadonly(boolean readonly) {
@@ -223,7 +226,7 @@ public class Map implements AutoCloseable {
     /**
      * Returns {@code true} if no status information for long running operations are sent to stdout,
      * {@code false} otherwise.
-     * 
+     *
      * @see #setQuiet(boolean)
      */
     public boolean isQuiet() {
@@ -240,7 +243,7 @@ public class Map implements AutoCloseable {
 
     /**
      * Returns the callable used for comparing values. May be {@code null} if no sorting is desired.
-     * 
+     *
      * @see #setLessThanCallable(Callables.LessThan)
      */
     public Callables.LessThan getLessThanCallable() {
@@ -249,9 +252,10 @@ public class Map implements AutoCloseable {
 
     /**
      * Sets a callable that implements the {@link LessThan} interface. It is used to sort lists of
-     * values when running certain operations such as export or optimize. Can be set to {@code null},
+     * values when running certain operations such as export or optimize. Can be set to {@code
+     *null},
      * which is also the default, if no sorting is desired.
-     * 
+     *
      * @see Map#exportToBase64(java.nio.file.Path, java.nio.file.Path, Options)
      * @see Map#optimize(java.nio.file.Path, java.nio.file.Path, Options)
      */
@@ -259,24 +263,23 @@ public class Map implements AutoCloseable {
       this.lessThan = lessThan;
     }
   }
-  
+
   /**
    * This type is a pure data holder for reporting statistical information.
-   * 
+   *
    * @author Martin Trenkmann
    * @since 0.4.0
    */
   public static class Stats {
-    
     private Stats() {}
-    
+
     /**
      * Returns the block size of the map or partition.
      */
     public long getBlockSize() {
       return blockSize;
     }
-    
+
     /**
      * Returns the average size in number of bytes of all keys in a map or partition. Note that
      * keys that are currently not associated with any value are not taken into account.
@@ -284,21 +287,21 @@ public class Map implements AutoCloseable {
     public long getKeySizeAvg() {
       return keySizeAvg;
     }
-    
+
     /**
      * Returns the size in number of bytes of the largest key in a map or partition.
      */
     public long getKeySizeMax() {
       return keySizeMax;
     }
-    
+
     /**
      * Returns the size in number of bytes of the smallest key in a map or partition.
      */
     public long getKeySizeMin() {
       return keySizeMin;
     }
-    
+
     /**
      * Returns the average number of values associated with a key in a map or partition. Note that
      * keys that are currently not associated with any value are not taken into account.
@@ -306,14 +309,14 @@ public class Map implements AutoCloseable {
     public long getListSizeAvg() {
       return listSizeAvg;
     }
-    
+
     /**
      * Returns the largest number of values associated with a key in a map or partition.
      */
     public long getListSizeMax() {
       return listSizeMax;
     }
-    
+
     /**
      * Returns the smallest number of values associated with a key in a map or partition. Note that
      * keys that are currently not associated with any value are not taken into account.
@@ -321,7 +324,7 @@ public class Map implements AutoCloseable {
     public long getListSizeMin() {
       return listSizeMin;
     }
-    
+
     /**
      * Returns the number of blocks currently written to disk. Note that in-memory write buffer
      * blocks that are associated with each keys are not taken into account. For more details
@@ -331,7 +334,7 @@ public class Map implements AutoCloseable {
     public long getNumBlocks() {
       return numBlocks;
     }
-    
+
     /**
      * Returns the total number of keys in a map or partition, including keys that are currently
      * not associated with any value.
@@ -339,7 +342,7 @@ public class Map implements AutoCloseable {
     public long getNumKeysTotal() {
       return numKeysTotal;
     }
-    
+
     /**
      * Returns the number of valid keys in a map or partition. A valid key is associated with at
      * least one value.
@@ -347,7 +350,7 @@ public class Map implements AutoCloseable {
     public long getNumKeysValid() {
       return numKeysValid;
     }
-    
+
     /**
      * Returns the total number of values in a map or partition, including values that are marked
      * as removed. Note that this number can only be decreased by running an optimize operation.
@@ -355,14 +358,14 @@ public class Map implements AutoCloseable {
     public long getNumValuesTotal() {
       return numValuesTotal;
     }
-    
+
     /**
      * Returns the number of values in a map or partition that are not marked as removed.
      */
     public long getNumValuesValid() {
       return numValuesValid;
     }
-    
+
     /**
      * Returns the number of partitions in a map. The value could be different from that specified
      * in options when creating a map due to the fact that the next prime number has been chosen.
@@ -374,20 +377,19 @@ public class Map implements AutoCloseable {
 
     @Override
     public String toString() {
-      return String.format(
-          "block_size        %d\n" +
-          "key_size_avg      %d\n" +
-          "key_size_max      %d\n" +
-          "key_size_min      %d\n" +
-          "list_size_avg     %d\n" +
-          "list_size_max     %d\n" +
-          "list_size_min     %d\n" +
-          "num_blocks        %d\n" +
-          "num_keys_total    %d\n" +
-          "num_keys_valid    %d\n" +
-          "num_values_total  %d\n" +
-          "num_values_valid  %d\n" +
-          "num_partitions    %d\n",
+      return String.format("block_size        %d\n"
+              + "key_size_avg      %d\n"
+              + "key_size_max      %d\n"
+              + "key_size_min      %d\n"
+              + "list_size_avg     %d\n"
+              + "list_size_max     %d\n"
+              + "list_size_min     %d\n"
+              + "num_blocks        %d\n"
+              + "num_keys_total    %d\n"
+              + "num_keys_valid    %d\n"
+              + "num_values_total  %d\n"
+              + "num_values_valid  %d\n"
+              + "num_partitions    %d\n",
           blockSize, keySizeAvg, keySizeMax, keySizeMin, listSizeAvg, listSizeMax, listSizeMin,
           numBlocks, numKeysTotal, numKeysValid, numValuesTotal, numValuesValid, numPartitions);
     }
@@ -435,9 +437,9 @@ public class Map implements AutoCloseable {
 
   /**
    * Opens an already existing map located in {@code directory}.
-   * 
+   *
    * <p><b>Acquires</b> a directory lock on directory.</p>
-   * 
+   *
    * @throws Exception if one of the following is true:
    * <ul>
    * <li>the directory does not exist</li>
@@ -448,23 +450,23 @@ public class Map implements AutoCloseable {
   public Map(Path directory) throws Exception {
     this(directory, new Options());
   }
-  
+
   /**
    * Same as before, but taking {@code directory} as string.
    */
   public Map(String directory) throws Exception {
     this(Paths.get(directory), new Options());
   }
-  
+
   /**
    * Opens or creates a map in {@code directory}. For the latter, you need to set
    * {@code options.createIfMissing(true)}. If an error should be raised in case the map already
    * exists, set {@code options.setErrorIfExists(true)}. When a new map is created other fields in
    * options are used to configure the map's block size and number of partitions. See
    * {@link Options} for more information.
-   * 
+   *
    * <p><b>Acquires</b> a directory lock on directory.</p>
-   * 
+   *
    * @throws Exception if one of the following is true:
    * <ul>
    * <li>the directory does not exist</li>
@@ -487,7 +489,7 @@ public class Map implements AutoCloseable {
   public Map(Path directory, Options options) throws Exception {
     this(Native.newMap(directory.toString(), options));
   }
-  
+
   /**
    * Same as before, but taking {@code directory} as string.
    */
@@ -497,13 +499,13 @@ public class Map implements AutoCloseable {
 
   /**
    * Appends {@code value} to the end of the list associated with {@code key}.
-   * 
+   *
    * <p><b>Acquires:</b></p>
    * <ul>
    * <li>a writer lock on the map object.</li>
    * <li>a writer lock on the list associated with {@code key}.</li>
    * </ul>
-   * 
+   *
    * @throws Exception if one of the following is true:
    * <ul>
    * <li>{@code key.size() > Map.Limits.maxKeySize()}</li>
@@ -516,23 +518,23 @@ public class Map implements AutoCloseable {
     Check.notNull(value);
     Native.put(self, key, value);
   }
-  
+
   /**
    * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
    * converted into a byte array via {@link Utils#toByteArray(String)}.
-   * 
+   *
    * @since 0.4.0
    */
   public void put(String key, byte[] value) throws Exception {
     Native.put(self, Utils.toByteArray(key), value);
   }
-  
+
   /**
    * Returns a read-only iterator for the list associated with {@code key}. If the key does not
    * exist, an empty iterator that has no values is returned. A non-empty iterator owns a reader
    * lock on the underlying list and therefore must be closed via {@link Iterator#close()} when it
    * is not needed anymore. Not closing iterators leads to deadlocks sooner or later.
-   * 
+   *
    * <p><b>Acquires:</b></p>
    * <ul>
    * <li>a reader lock on the map object.</li>
@@ -545,17 +547,17 @@ public class Map implements AutoCloseable {
     ByteBuffer nativePtr = Native.get(self, key);
     return (nativePtr != null) ? new Iterator(nativePtr) : Iterator.EMPTY;
   }
-  
+
   /**
    * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
    * converted into a byte array via {@link Utils#toByteArray(String)}.
-   * 
+   *
    * @since 0.4.0
    */
   public Iterator get(String key) {
     return get(Utils.toByteArray(key));
   }
-  
+
   /**
    * Returns {@code true} if {@code key} is associated with at least one value, {@code false}
    * otherwise.
@@ -564,11 +566,11 @@ public class Map implements AutoCloseable {
     Check.notNull(key);
     return Native.contains(self, key);
   }
-  
+
   /**
    * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
    * converted into a byte array via {@link Utils#toByteArray(String)}.
-   * 
+   *
    * @since 0.4.0
    */
   public boolean contains(String key) {
@@ -577,13 +579,13 @@ public class Map implements AutoCloseable {
 
   /**
    * Removes all values associated with {@code key}.
-   * 
+   *
    * <p><b>Acquires:</b></p>
    * <ul>
    * <li>a reader lock on the map object.</li>
    * <li>a writer lock on the list associated with {@code key}.</li>
    * </ul>
-   * 
+   *
    * @return the number values that have been removed.
    * @since 0.5.0
    */
@@ -591,11 +593,11 @@ public class Map implements AutoCloseable {
     Check.notNull(key);
     return Native.remove(self, key);
   }
-  
+
   /**
    * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
    * converted into a byte array via {@link Utils#toByteArray(String)}.
-   * 
+   *
    * @since 0.5.0
    */
   public int remove(String key) {
@@ -607,157 +609,191 @@ public class Map implements AutoCloseable {
    * yields {@code true}. The predicate can be any callable that implements the {@link Predicate}
    * interface. Note that since the order of keys is undefined, this method should only be used if
    * either one or no key at all will match.
-   * 
+   *
    * <p><b>Acquires:</b></p>
    * <ul>
    * <li>a reader lock on the map object.</li>
    * <li>a writer lock on lists associated with matching keys.</li>
    * </ul>
-   * 
+   *
    * @return the number of values that have been removed.
    * @since 0.5.0
    */
-  public int removeOne(Predicate predicate) {
-    return Native.removeOne(self, predicate);
+  public int removeFirstMatch(Predicate predicate) {
+    return Native.removeFirstMatch(self, predicate);
   }
-  
+
   /**
-   * Removes <i>all</i> keys (and all its associated values) for which {@code predicate} yields
-   * {@code true}. The predicate can be any callable that implements the {@link Predicate}
-   * interface.
-   * 
+   * Removes the <i>first</i> value from the list associated with {@code key} for which
+   * {@code predicate} yields {@code true}. The predicate can be any callable that implements the
+   * {@link Predicate} interface.
+   *
    * <p><b>Acquires:</b></p>
    * <ul>
    * <li>a reader lock on the map object.</li>
-   * <li>a writer lock on lists associated with matching keys.</li>
+   * <li>a writer lock on the list associated with {@code key}.</li>
    * </ul>
-   * 
-   * @return a pair whose first element tells the number of keys and the second element the total
-   *         number of values that have been removed.
+   *
+   * @return {@code true} if any value has been removed, {@code false} otherwise.
    * @since 0.5.0
    */
-  public Utils.Pair<Integer, Long> removeAll(Predicate predicate) {
-    ByteBuffer buffer = ByteBuffer.wrap(Native.removeAll(self, predicate));
-    buffer.order(ByteOrder.LITTLE_ENDIAN);
-    return new Utils.Pair<Integer, Long>(buffer.getInt(), buffer.getLong());
+  public boolean removeFirstMatch(byte[] key, Predicate predicate) {
+    Check.notNull(key);
+    Check.notNull(predicate);
+    return Native.removeFirstMatch(self, key, predicate);
+  }
+
+  /**
+   * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
+   * converted into a byte array via {@link Utils#toByteArray(String)}.
+   *
+   * @since 0.5.0
+   */
+  public boolean removeFirstMatch(String key, Predicate predicate) {
+    return removeFirstMatch(Utils.toByteArray(key), predicate);
   }
 
   /**
    * Removes the <i>first</i> value from the list associated with {@code key} that is equal to
    * {@code value} after byte-wise comparison.
-   * 
+   *
    * <p><b>Acquires:</b></p>
    * <ul>
    * <li>a reader lock on the map object.</li>
    * <li>a writer lock on the list associated with {@code key}.</li>
    * </ul>
-   * 
+   *
    * @return {@code true} if any value has been removed, {@code false} otherwise.
    * @since 0.5.0
    */
-  public boolean removeOne(byte[] key, byte[] value) {
+  public boolean removeFirstEqual(byte[] key, byte[] value) {
     Check.notNull(key);
     Check.notNull(value);
-    return Native.removeOne(self, key, value);
+    return Native.removeFirstEqual(self, key, value);
   }
-  
+
   /**
    * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
    * converted into a byte array via {@link Utils#toByteArray(String)}.
-   * 
+   *
    * @since 0.5.0
    */
-  public boolean removeOne(String key, byte[] value) {
-    return removeOne(Utils.toByteArray(key), value);
+  public boolean removeFirstEqual(String key, byte[] value) {
+    return removeFirstEqual(Utils.toByteArray(key), value);
   }
-  
+
   /**
-   * Removes the <i>first</i> value from the list associated with {@code key} for which
-   * {@code predicate} yields {@code true}. The predicate can be any callable that implements the
-   * {@link Predicate} interface.
-   * 
+   * Removes <i>all</i> keys (and all its associated values) for which {@code predicate} yields
+   * {@code true}. The predicate can be any callable that implements the {@link Predicate}
+   * interface.
+   *
+   * <p><b>Acquires:</b></p>
+   * <ul>
+   * <li>a reader lock on the map object.</li>
+   * <li>a writer lock on lists associated with matching keys.</li>
+   * </ul>
+   *
+   * @return a pair whose first element tells the number of keys and the second element the total
+   *         number of values that have been removed.
+   * @since 0.5.0
+   */
+  public Utils.Pair<Integer, Long> removeAllMatches(Predicate predicate) {
+    ByteBuffer buffer = ByteBuffer.wrap(Native.removeAllMatches(self, predicate));
+    buffer.order(ByteOrder.LITTLE_ENDIAN);
+    return new Utils.Pair<Integer, Long>(buffer.getInt(), buffer.getLong());
+  }
+
+  /**
+   * Removes <i>all</i> values from the list associated with {@code key} for which {@code predicate}
+   * yields {@code true}. The predicate can be any callable that implements the {@link Predicate}
+   * interface.
+   *
    * <p><b>Acquires:</b></p>
    * <ul>
    * <li>a reader lock on the map object.</li>
    * <li>a writer lock on the list associated with {@code key}.</li>
    * </ul>
-   * 
-   * @return {@code true} if any value has been removed, {@code false} otherwise.
+   *
+   * @return the number of values that have been removed.
    * @since 0.5.0
    */
-  public boolean removeOne(byte[] key, Predicate predicate) {
+  public int removeAllMatches(byte[] key, Predicate predicate) {
     Check.notNull(key);
     Check.notNull(predicate);
-    return Native.removeOne(self, key, predicate);
+    return Native.removeAllMatches(self, key, predicate);
   }
-  
+
   /**
    * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
    * converted into a byte array via {@link Utils#toByteArray(String)}.
-   * 
+   *
    * @since 0.5.0
    */
-  public boolean removeOne(String key, Predicate predicate) {
-    return removeOne(Utils.toByteArray(key), predicate);
+  public int removeAllMatches(String key, Predicate predicate) {
+    return removeAllMatches(Utils.toByteArray(key), predicate);
   }
 
   /**
    * Removes <i>all</i> values from the list associated with {@code key} that are equal to
    * {@code value} after byte-wise comparison.
-   * 
+   *
    * <p><b>Acquires:</b></p>
    * <ul>
    * <li>a reader lock on the map object.</li>
    * <li>a writer lock on the list associated with {@code key}.</li>
    * </ul>
-   * 
+   *
    * @return the number of values that have been removed.
    * @since 0.5.0
    */
-  public int removeAll(byte[] key, byte[] value) {
+  public int removeAllEqual(byte[] key, byte[] value) {
     Check.notNull(key);
     Check.notNull(value);
-    return Native.removeAll(self, key, value);
+    return Native.removeAllEqual(self, key, value);
   }
-  
+
   /**
    * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
    * converted into a byte array via {@link Utils#toByteArray(String)}.
-   * 
+   *
    * @since 0.5.0
    */
-  public int removeAll(String key, byte[] value) {
-    return removeAll(Utils.toByteArray(key), value);
+  public int removeAllEqual(String key, byte[] value) {
+    return removeAllEqual(Utils.toByteArray(key), value);
   }
-  
+
   /**
-   * Removes <i>all</i> values from the list associated with {@code key} for which {@code predicate}
-   * yields {@code true}. The predicate can be any callable that implements the {@link Predicate}
-   * interface.
-   * 
+   * Replaces the <i>first</i> value in the list associated with {@code key} by the result of
+   * invoking {@code map}. Values for which {@code map} returns {@code null} are not replaced. The
+   * map function can be any callable that implements the {@link Function} interface.
+   *
+   * <p>Note that a replace operation is actually implemented in terms of a remove of the old value
+   * followed by an insert/put of the new value. Hence, the new value is always the last value in
+   * the list. In other words, the replacement is not in-place.</p>
+   *
    * <p><b>Acquires:</b></p>
    * <ul>
    * <li>a reader lock on the map object.</li>
    * <li>a writer lock on the list associated with {@code key}.</li>
    * </ul>
-   * 
-   * @return the number of values that have been removed.
+   *
+   * @return {@code true} if any value has been replaced, {@code false} otherwise.
    * @since 0.5.0
    */
-  public int removeAll(byte[] key, Predicate predicate) {
+  public boolean replaceFirstMatch(byte[] key, Function map) {
     Check.notNull(key);
-    Check.notNull(predicate);
-    return Native.removeAll(self, key, predicate);
+    Check.notNull(map);
+    return Native.replaceFirstMatch(self, key, map);
   }
-  
+
   /**
    * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
    * converted into a byte array via {@link Utils#toByteArray(String)}.
-   * 
+   *
    * @since 0.5.0
    */
-  public int removeAll(String key, Predicate predicate) {
-    return removeAll(Utils.toByteArray(key), predicate);
+  public boolean replaceFirstMatch(String key, Function map) {
+    return replaceFirstMatch(Utils.toByteArray(key), map);
   }
 
   /**
@@ -767,139 +803,105 @@ public class Map implements AutoCloseable {
    * <p>Note that a replace operation is actually implemented in terms of a remove of the old value
    * followed by an insert/put of the new value. Hence, the new value is always the last value in
    * the list. In other words, the replacement is not in-place.</p>
-   * 
+   *
    * <p><b>Acquires:</b></p>
    * <ul>
    * <li>a reader lock on the map object.</li>
    * <li>a writer lock on the list associated with {@code key}.</li>
    * </ul>
-   * 
+   *
    * @return {@code true} if any value has been replaced, {@code false} otherwise.
    * @since 0.5.0
    */
-  public boolean replaceOne(byte[] key, byte[] oldValue, byte[] newValue) {
+  public boolean replaceFirstEqual(byte[] key, byte[] oldValue, byte[] newValue) {
     Check.notNull(key);
     Check.notNull(oldValue);
     Check.notNull(newValue);
-    return Native.replaceOne(self, key, oldValue, newValue);
+    return Native.replaceFirstEqual(self, key, oldValue, newValue);
   }
-  
+
   /**
    * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
    * converted into a byte array via {@link Utils#toByteArray(String)}.
-   * 
+   *
    * @since 0.5.0
    */
-  public boolean replaceOne(String key, byte[] oldValue, byte[] newValue) {
-    return replaceOne(Utils.toByteArray(key), oldValue, newValue);
+  public boolean replaceFirstEqual(String key, byte[] oldValue, byte[] newValue) {
+    return replaceFirstEqual(Utils.toByteArray(key), oldValue, newValue);
   }
-  
+
   /**
-   * Replaces the <i>first</i> value in the list associated with {@code key} by the result of
-   * invoking {@code map}. Values for which {@code map} returns {@code null} are not replaced. The
-   * map function can be any callable that implements the {@link Function} interface.
-   * 
+   * Replaces <i>all</i> values in the list associated with {@code key} by the result of invoking
+   * {@code map}. Values for which {@code map} returns {@code null} are not replaced. The map
+   * function can be any callable that implements the {@link Function} interface.
+   *
    * <p>Note that a replace operation is actually implemented in terms of a remove of the old value
    * followed by an insert/put of the new value. Hence, the new value is always the last value in
    * the list. In other words, the replacement is not in-place.</p>
-   * 
+   *
    * <p><b>Acquires:</b></p>
    * <ul>
    * <li>a reader lock on the map object.</li>
    * <li>a writer lock on the list associated with {@code key}.</li>
    * </ul>
-   * 
-   * @return {@code true} if any value has been replaced, {@code false} otherwise.
+   *
+   * @return the number of values that have been replaced.
    * @since 0.5.0
    */
-  public boolean replaceOne(byte[] key, Function map) {
+  public int replaceAllMatches(byte[] key, Function map) {
     Check.notNull(key);
     Check.notNull(map);
-    return Native.replaceOne(self, key, map);
+    return Native.replaceAllMatches(self, key, map);
   }
-  
+
   /**
    * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
    * converted into a byte array via {@link Utils#toByteArray(String)}.
-   * 
+   *
    * @since 0.5.0
    */
-  public boolean replaceOne(String key, Function map) {
-    return replaceOne(Utils.toByteArray(key), map);
+  public int replaceAllMatches(String key, Function map) {
+    return replaceAllMatches(Utils.toByteArray(key), map);
   }
 
   /**
    * Replaces <i>all</i> values in the list associated with {@code key} that are equal to
    * {@code oldValue} by {@code newValue}.
-   * 
+   *
    * <p>Note that a replace operation is actually implemented in terms of a remove of the old value
    * followed by an insert/put of the new value. Hence, the new value is always the last value in
    * the list. In other words, the replacement is not in-place.</p>
-   * 
+   *
    * <p><b>Acquires:</b></p>
    * <ul>
    * <li>a reader lock on the map object.</li>
    * <li>a writer lock on the list associated with {@code key}.</li>
    * </ul>
-   * 
+   *
    * @return the number of values that have been replaced.
    * @since 0.5.0
    */
-  public int replaceAll(byte[] key, byte[] oldValue, byte[] newValue) {
+  public int replaceAllEqual(byte[] key, byte[] oldValue, byte[] newValue) {
     Check.notNull(key);
     Check.notNull(oldValue);
     Check.notNull(newValue);
-    return Native.replaceAll(self, key, oldValue, newValue);
+    return Native.replaceAllEqual(self, key, oldValue, newValue);
   }
-  
+
   /**
    * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
    * converted into a byte array via {@link Utils#toByteArray(String)}.
-   * 
+   *
    * @since 0.5.0
    */
-  public int replaceAll(String key, byte[] oldValue, byte[] newValue) {
-    return replaceAll(Utils.toByteArray(key), oldValue, newValue);
-  }
-  
-  /**
-   * Replaces <i>all</i> values in the list associated with {@code key} by the result of invoking
-   * {@code map}. Values for which {@code map} returns {@code null} are not replaced. The map
-   * function can be any callable that implements the {@link Function} interface.
-   * 
-   * <p>Note that a replace operation is actually implemented in terms of a remove of the old value
-   * followed by an insert/put of the new value. Hence, the new value is always the last value in
-   * the list. In other words, the replacement is not in-place.</p>
-   * 
-   * <p><b>Acquires:</b></p>
-   * <ul>
-   * <li>a reader lock on the map object.</li>
-   * <li>a writer lock on the list associated with {@code key}.</li>
-   * </ul>
-   * 
-   * @return the number of values that have been replaced.
-   * @since 0.5.0
-   */
-  public int replaceAll(byte[] key, Function map) {
-    Check.notNull(key);
-    Check.notNull(map);
-    return Native.replaceAll(self, key, map);
-  }
-  
-  /**
-   * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
-   * converted into a byte array via {@link Utils#toByteArray(String)}.
-   * 
-   * @since 0.5.0
-   */
-  public int replaceAll(String key, Function map) {
-    return replaceAll(Utils.toByteArray(key), map);
+  public int replaceAllEqual(String key, byte[] oldValue, byte[] newValue) {
+    return replaceAllEqual(Utils.toByteArray(key), oldValue, newValue);
   }
 
   /**
    * Applies {@code process} to each key in the map. The process argument can be any callable that
-   * implements the {@link Procedure} interface. 
-   * 
+   * implements the {@link Procedure} interface.
+   *
    * <p><b>Acquires</b> a reader lock on the map object.</p>
    */
   public void forEachKey(Procedure process) {
@@ -909,8 +911,8 @@ public class Map implements AutoCloseable {
 
   /**
    * Applies {@code process} to each value associated with {@code key}. The process argument can be
-   * any callable that implements the {@link Procedure} interface. 
-   * 
+   * any callable that implements the {@link Procedure} interface.
+   *
    * <p><b>Acquires:</b></p>
    * <ul>
    * <li>a reader lock on the map object.</li>
@@ -921,11 +923,11 @@ public class Map implements AutoCloseable {
     Check.notNull(process);
     Native.forEachValue(self, key, process);
   }
-  
+
   /**
    * Same as before, but taking {@code key} as string instead of byte array. Internally the key is
    * converted into a byte array via {@link Utils#toByteArray(String)}.
-   * 
+   *
    * @since 0.4.0
    */
   public void forEachValue(String key, Procedure process) {
@@ -940,13 +942,13 @@ public class Map implements AutoCloseable {
   /**
    * Returns statistical information about the map. Be aware that this operation requires to visit
    * each key-list entry of the map. Extensive use will slow down your application.
-   * 
+   *
    * <p><b>Acquires:</b></p>
    * <ul>
    * <li>a reader lock on the map object.</li>
    * <li>a reader lock on the list that is currently visited.</li>
    * </ul>
-   * 
+   *
    * @since 0.4.0
    */
   public Stats getStats() {
@@ -990,16 +992,16 @@ public class Map implements AutoCloseable {
   /**
    * Returns statistical information about each partition of the map located in directory. This
    * method is similar to {@link #getStats()} except that the map does not need to be instantiated.
-   * 
+   *
    * <p><b>Acquires</b> a directory lock on directory.</p>
-   * 
+   *
    * @throws Exception if one of the following is true:
    * <ul>
    * <li>the directory does not exist</li>
    * <li>the directory cannot be locked</li>
    * <li>the directory does not contain a map</li>
    * </ul>
-   * 
+   *
    * @since 0.4.0
    */
   public static Stats stats(Path directory) throws Exception {
@@ -1015,9 +1017,9 @@ public class Map implements AutoCloseable {
    * imported, except hidden files starting with a dot and other sub-directories. A description of
    * the file format can be found in the <a href="http://multimap.io/overview#multimap-import">
    * overview</a> section on the project's website.
-   * 
+   *
    * <p><b>Acquires</b> a directory lock on directory.</p>
-   * 
+   *
    * @throws Exception if the constructor of {@link Map} fails or if the input file or directory
    * cannot be read.
    */
@@ -1030,7 +1032,8 @@ public class Map implements AutoCloseable {
    * which is passed to the constructor of Map when opening. This way a map can be created if it
    * does not already exist.
    */
-  public static void importFromBase64(Path directory, Path input, Options options) throws Exception {
+  public static void importFromBase64(Path directory, Path input, Options options)
+      throws Exception {
     Check.notNull(directory);
     Check.notNull(input);
     Check.notNull(options);
@@ -1043,9 +1046,9 @@ public class Map implements AutoCloseable {
    * file is in canonical form as described in the
    * <a href="http://multimap.io/overview#multimap-import">overview</a> section on the project's
    * website.
-   * 
+   *
    * <p><b>Acquires</b> a directory lock on directory.</p>
-   * 
+   *
    * @throws Exception if one of the following is true:
    * <ul>
    * <li>the directory does not exist</li>
@@ -1057,7 +1060,7 @@ public class Map implements AutoCloseable {
   public static void exportToBase64(Path directory, Path output) throws Exception {
     exportToBase64(directory, output, new Options());
   }
-  
+
   /**
    * Same as before, but gives the user more control by providing an {@link Options} parameter.
    * Most users will use this to pass a compare function that triggers a sorting of all lists
@@ -1075,9 +1078,9 @@ public class Map implements AutoCloseable {
    * performing various optimizations. For more details please refer to the
    * <a href="http://multimap.io/overview#multimap-optimize">overview</a> section on the project's
    * website.
-   * 
+   *
    * <p><b>Acquires</b> a directory lock on directory.</p>
-   * 
+   *
    * @throws Exception if one of the following is true:
    * <ul>
    * <li>the directory does not exist</li>
@@ -1092,7 +1095,7 @@ public class Map implements AutoCloseable {
     options.keepNumPartitions();
     optimize(directory, output, options);
   }
-  
+
   /**
    * Same as before, but gives the user more control by providing an {@link Options} parameter.
    * Most users will use this to pass a compare function that triggers a sorting of all lists.
@@ -1110,24 +1113,28 @@ public class Map implements AutoCloseable {
     static native ByteBuffer get(ByteBuffer self, byte[] key);
     static native boolean contains(ByteBuffer self, byte[] key);
     static native int remove(ByteBuffer self, byte[] key);
-    static native int removeOne(ByteBuffer self, Predicate predicate);
-    static native byte[] removeAll(ByteBuffer self, Predicate predicate);
-    static native boolean removeOne(ByteBuffer self, byte[] key, byte[] value);
-    static native boolean removeOne(ByteBuffer self, byte[] key, Predicate predicate);
-    static native int removeAll(ByteBuffer self, byte[] key, byte[] value);
-    static native int removeAll(ByteBuffer self, byte[] key, Predicate predicate);
-    static native boolean replaceOne(ByteBuffer self, byte[] key, byte[] oldValue, byte[] newValue);
-    static native boolean replaceOne(ByteBuffer self, byte[] key, Function function);
-    static native int replaceAll(ByteBuffer self, byte[] key, byte[] oldValue, byte[] newValue);
-    static native int replaceAll(ByteBuffer self, byte[] key, Function function);
+    static native int removeFirstMatch(ByteBuffer self, Predicate predicate);
+    static native boolean removeFirstMatch(ByteBuffer self, byte[] key, Predicate predicate);
+    static native boolean removeFirstEqual(ByteBuffer self, byte[] key, byte[] value);
+    static native byte[] removeAllMatches(ByteBuffer self, Predicate predicate);
+    static native int removeAllMatches(ByteBuffer self, byte[] key, Predicate predicate);
+    static native int removeAllEqual(ByteBuffer self, byte[] key, byte[] value);
+    static native boolean replaceFirstMatch(ByteBuffer self, byte[] key, Function function);
+    static native boolean replaceFirstEqual(
+        ByteBuffer self, byte[] key, byte[] oldValue, byte[] newValue);
+    static native int replaceAllMatches(ByteBuffer self, byte[] key, Function function);
+    static native int replaceAllEqual(
+        ByteBuffer self, byte[] key, byte[] oldValue, byte[] newValue);
     static native void forEachKey(ByteBuffer self, Procedure process);
     static native void forEachValue(ByteBuffer self, byte[] key, Procedure process);
     static native void getStats(ByteBuffer self, Stats stats);
     static native boolean isReadOnly(ByteBuffer self);
     static native void close(ByteBuffer self);
     static native void stats(String directory, Stats stats) throws Exception;
-    static native void importFromBase64(String directory, String input, Options options) throws Exception;
-    static native void exportToBase64(String directory, String output, Options options) throws Exception;
+    static native void importFromBase64(String directory, String input, Options options)
+        throws Exception;
+    static native void exportToBase64(String directory, String output, Options options)
+        throws Exception;
     static native void optimize(String directory, String output, Options options) throws Exception;
   }
 }
