@@ -18,7 +18,6 @@
 #include "multimap/jni/generated/io_multimap_Map_Native.h"
 
 #include "multimap/jni/common.hpp"
-#include "multimap/callables.hpp"
 #include "multimap/Map.hpp"
 
 // Bug in javah.
@@ -126,15 +125,15 @@ Java_io_multimap_Map_00024Native_remove(JNIEnv* env, jclass, jobject self,
 
 /*
  * Class:     io_multimap_Map_Native
- * Method:    removeOne
+ * Method:    removeFirstMatch
  * Signature: (Ljava/nio/ByteBuffer;Lio/multimap/Callables/Predicate;)I
  */
 JNIEXPORT jint JNICALL
-Java_io_multimap_Map_00024Native_removeOne__Ljava_nio_ByteBuffer_2Lio_multimap_Callables_00024Predicate_2(
+Java_io_multimap_Map_00024Native_removeFirstMatch__Ljava_nio_ByteBuffer_2Lio_multimap_Callables_00024Predicate_2(
     JNIEnv* env, jclass, jobject self, jobject jpredicate) {
   try {
     return getMapPtrFromByteBuffer(env, self)
-        ->removeOne(multimap::jni::JavaPredicate(env, jpredicate));
+        ->removeFirstMatch(multimap::jni::JavaPredicate(env, jpredicate));
   } catch (std::exception& error) {
     multimap::jni::propagateOrRethrow(env, error);
     return 0;
@@ -143,14 +142,47 @@ Java_io_multimap_Map_00024Native_removeOne__Ljava_nio_ByteBuffer_2Lio_multimap_C
 
 /*
  * Class:     io_multimap_Map_Native
- * Method:    removeAll
+ * Method:    removeFirstMatch
+ * Signature: (Ljava/nio/ByteBuffer;[BLio/multimap/Callables/Predicate;)Z
+ */
+JNIEXPORT jboolean JNICALL
+Java_io_multimap_Map_00024Native_removeFirstMatch__Ljava_nio_ByteBuffer_2_3BLio_multimap_Callables_00024Predicate_2(
+    JNIEnv* env, jclass, jobject self, jbyteArray jkey, jobject jpredicate) {
+  multimap::jni::BytesRaiiHelper key(env, jkey);
+  try {
+    return getMapPtrFromByteBuffer(env, self)->removeFirstMatch(
+        key.get(), multimap::jni::JavaPredicate(env, jpredicate));
+  } catch (std::exception& error) {
+    multimap::jni::propagateOrRethrow(env, error);
+    return false;
+  }
+}
+
+/*
+ * Class:     io_multimap_Map_Native
+ * Method:    removeFirstEqual
+ * Signature: (Ljava/nio/ByteBuffer;[B[B)Z
+ */
+JNIEXPORT jboolean JNICALL
+Java_io_multimap_Map_00024Native_removeFirstEqual(JNIEnv* env, jclass,
+                                                  jobject self, jbyteArray jkey,
+                                                  jbyteArray jvalue) {
+  multimap::jni::BytesRaiiHelper key(env, jkey);
+  multimap::jni::BytesRaiiHelper value(env, jvalue);
+  return getMapPtrFromByteBuffer(env, self)
+      ->removeFirstEqual(key.get(), value.get());
+}
+
+/*
+ * Class:     io_multimap_Map_Native
+ * Method:    removeAllMatches
  * Signature: (Ljava/nio/ByteBuffer;Lio/multimap/Callables/Predicate;)[B
  */
 JNIEXPORT jbyteArray JNICALL
-Java_io_multimap_Map_00024Native_removeAll__Ljava_nio_ByteBuffer_2Lio_multimap_Callables_00024Predicate_2(
+Java_io_multimap_Map_00024Native_removeAllMatches__Ljava_nio_ByteBuffer_2Lio_multimap_Callables_00024Predicate_2(
     JNIEnv* env, jclass, jobject self, jobject jpredicate) {
   try {
-    const auto pair = getMapPtrFromByteBuffer(env, self)->removeAll(
+    const auto pair = getMapPtrFromByteBuffer(env, self)->removeAllMatches(
         multimap::jni::JavaPredicate(env, jpredicate));
     const auto sizeof_first = sizeof pair.first;
     const auto sizeof_second = sizeof pair.second;
@@ -169,62 +201,16 @@ Java_io_multimap_Map_00024Native_removeAll__Ljava_nio_ByteBuffer_2Lio_multimap_C
 
 /*
  * Class:     io_multimap_Map_Native
- * Method:    removeOne
- * Signature: (Ljava/nio/ByteBuffer;[B[B)Z
- */
-JNIEXPORT jboolean JNICALL
-Java_io_multimap_Map_00024Native_removeOne__Ljava_nio_ByteBuffer_2_3B_3B(
-    JNIEnv* env, jclass, jobject self, jbyteArray jkey, jbyteArray jvalue) {
-  multimap::jni::BytesRaiiHelper key(env, jkey);
-  multimap::jni::BytesRaiiHelper value(env, jvalue);
-  return getMapPtrFromByteBuffer(env, self)
-      ->removeOne(key.get(), multimap::Equal(value.get()));
-}
-
-/*
- * Class:     io_multimap_Map_Native
- * Method:    removeOne
- * Signature: (Ljava/nio/ByteBuffer;[BLio/multimap/Callables/Predicate;)Z
- */
-JNIEXPORT jboolean JNICALL
-Java_io_multimap_Map_00024Native_removeOne__Ljava_nio_ByteBuffer_2_3BLio_multimap_Callables_00024Predicate_2(
-    JNIEnv* env, jclass, jobject self, jbyteArray jkey, jobject jpredicate) {
-  multimap::jni::BytesRaiiHelper key(env, jkey);
-  try {
-    return getMapPtrFromByteBuffer(env, self)
-        ->removeOne(key.get(), multimap::jni::JavaPredicate(env, jpredicate));
-  } catch (std::exception& error) {
-    multimap::jni::propagateOrRethrow(env, error);
-    return false;
-  }
-}
-
-/*
- * Class:     io_multimap_Map_Native
- * Method:    removeAll
- * Signature: (Ljava/nio/ByteBuffer;[B[B)I
- */
-JNIEXPORT jint JNICALL
-Java_io_multimap_Map_00024Native_removeAll__Ljava_nio_ByteBuffer_2_3B_3B(
-    JNIEnv* env, jclass, jobject self, jbyteArray jkey, jbyteArray jvalue) {
-  multimap::jni::BytesRaiiHelper key(env, jkey);
-  multimap::jni::BytesRaiiHelper value(env, jvalue);
-  return getMapPtrFromByteBuffer(env, self)
-      ->removeAll(key.get(), multimap::Equal(value.get()));
-}
-
-/*
- * Class:     io_multimap_Map_Native
- * Method:    removeAll
+ * Method:    removeAllMatches
  * Signature: (Ljava/nio/ByteBuffer;[BLio/multimap/Callables/Predicate;)I
  */
 JNIEXPORT jint JNICALL
-Java_io_multimap_Map_00024Native_removeAll__Ljava_nio_ByteBuffer_2_3BLio_multimap_Callables_00024Predicate_2(
+Java_io_multimap_Map_00024Native_removeAllMatches__Ljava_nio_ByteBuffer_2_3BLio_multimap_Callables_00024Predicate_2(
     JNIEnv* env, jclass, jobject self, jbyteArray jkey, jobject jpredicate) {
   multimap::jni::BytesRaiiHelper key(env, jkey);
   try {
-    return getMapPtrFromByteBuffer(env, self)
-        ->removeAll(key.get(), multimap::jni::JavaPredicate(env, jpredicate));
+    return getMapPtrFromByteBuffer(env, self)->removeAllMatches(
+        key.get(), multimap::jni::JavaPredicate(env, jpredicate));
   } catch (std::exception& error) {
     multimap::jni::propagateOrRethrow(env, error);
     return 0;
@@ -233,32 +219,30 @@ Java_io_multimap_Map_00024Native_removeAll__Ljava_nio_ByteBuffer_2_3BLio_multima
 
 /*
  * Class:     io_multimap_Map_Native
- * Method:    replaceOne
- * Signature: (Ljava/nio/ByteBuffer;[B[B[B)Z
+ * Method:    removeAllEqual
+ * Signature: (Ljava/nio/ByteBuffer;[B[B)I
  */
-JNIEXPORT jboolean JNICALL
-Java_io_multimap_Map_00024Native_replaceOne__Ljava_nio_ByteBuffer_2_3B_3B_3B(
-    JNIEnv* env, jclass, jobject self, jbyteArray jkey, jbyteArray jold_value,
-    jbyteArray jnew_value) {
+JNIEXPORT jint JNICALL
+Java_io_multimap_Map_00024Native_removeAllEqual(JNIEnv* env, jclass,
+                                                jobject self, jbyteArray jkey,
+                                                jbyteArray jvalue) {
   multimap::jni::BytesRaiiHelper key(env, jkey);
-  multimap::jni::BytesRaiiHelper old_value(env, jold_value);
-  multimap::jni::BytesRaiiHelper new_value(env, jnew_value);
+  multimap::jni::BytesRaiiHelper value(env, jvalue);
   return getMapPtrFromByteBuffer(env, self)
-      ->replaceOne(key.get(), old_value.get(), new_value.get());
+      ->removeAllEqual(key.get(), value.get());
 }
 
 /*
  * Class:     io_multimap_Map_Native
- * Method:    replaceOne
+ * Method:    replaceFirstMatch
  * Signature: (Ljava/nio/ByteBuffer;[BLio/multimap/Callables/Function;)Z
  */
-JNIEXPORT jboolean JNICALL
-Java_io_multimap_Map_00024Native_replaceOne__Ljava_nio_ByteBuffer_2_3BLio_multimap_Callables_00024Function_2(
+JNIEXPORT jboolean JNICALL Java_io_multimap_Map_00024Native_replaceFirstMatch(
     JNIEnv* env, jclass, jobject self, jbyteArray jkey, jobject jfunction) {
   multimap::jni::BytesRaiiHelper key(env, jkey);
   try {
-    return getMapPtrFromByteBuffer(env, self)
-        ->replaceOne(key.get(), multimap::jni::JavaFunction(env, jfunction));
+    return getMapPtrFromByteBuffer(env, self)->replaceFirstMatch(
+        key.get(), multimap::jni::JavaFunction(env, jfunction));
   } catch (std::exception& error) {
     multimap::jni::propagateOrRethrow(env, error);
     return false;
@@ -267,36 +251,51 @@ Java_io_multimap_Map_00024Native_replaceOne__Ljava_nio_ByteBuffer_2_3BLio_multim
 
 /*
  * Class:     io_multimap_Map_Native
- * Method:    replaceAll
- * Signature: (Ljava/nio/ByteBuffer;[B[B[B)I
+ * Method:    replaceFirstEqual
+ * Signature: (Ljava/nio/ByteBuffer;[B[B[B)Z
  */
-JNIEXPORT jint JNICALL
-Java_io_multimap_Map_00024Native_replaceAll__Ljava_nio_ByteBuffer_2_3B_3B_3B(
+JNIEXPORT jboolean JNICALL Java_io_multimap_Map_00024Native_replaceFirstEqual(
     JNIEnv* env, jclass, jobject self, jbyteArray jkey, jbyteArray jold_value,
     jbyteArray jnew_value) {
   multimap::jni::BytesRaiiHelper key(env, jkey);
   multimap::jni::BytesRaiiHelper old_value(env, jold_value);
   multimap::jni::BytesRaiiHelper new_value(env, jnew_value);
   return getMapPtrFromByteBuffer(env, self)
-      ->replaceAll(key.get(), old_value.get(), new_value.get());
+      ->replaceFirstEqual(key.get(), old_value.get(), new_value.get());
 }
 
 /*
  * Class:     io_multimap_Map_Native
- * Method:    replaceAll
+ * Method:    replaceAllMatches
  * Signature: (Ljava/nio/ByteBuffer;[BLio/multimap/Callables/Function;)I
  */
-JNIEXPORT jint JNICALL
-Java_io_multimap_Map_00024Native_replaceAll__Ljava_nio_ByteBuffer_2_3BLio_multimap_Callables_00024Function_2(
+JNIEXPORT jint JNICALL Java_io_multimap_Map_00024Native_replaceAllMatches(
     JNIEnv* env, jclass, jobject self, jbyteArray jkey, jobject jfunction) {
   multimap::jni::BytesRaiiHelper key(env, jkey);
   try {
-    return getMapPtrFromByteBuffer(env, self)
-        ->replaceAll(key.get(), multimap::jni::JavaFunction(env, jfunction));
+    return getMapPtrFromByteBuffer(env, self)->replaceAllMatches(
+        key.get(), multimap::jni::JavaFunction(env, jfunction));
   } catch (std::exception& error) {
     multimap::jni::propagateOrRethrow(env, error);
     return 0;
   }
+}
+
+/*
+ * Class:     io_multimap_Map_Native
+ * Method:    replaceAllEqual
+ * Signature: (Ljava/nio/ByteBuffer;[B[B[B)I
+ */
+JNIEXPORT jint JNICALL
+Java_io_multimap_Map_00024Native_replaceAllEqual(JNIEnv* env, jclass,
+                                                 jobject self, jbyteArray jkey,
+                                                 jbyteArray jold_value,
+                                                 jbyteArray jnew_value) {
+  multimap::jni::BytesRaiiHelper key(env, jkey);
+  multimap::jni::BytesRaiiHelper old_value(env, jold_value);
+  multimap::jni::BytesRaiiHelper new_value(env, jnew_value);
+  return getMapPtrFromByteBuffer(env, self)
+      ->replaceAllEqual(key.get(), old_value.get(), new_value.get());
 }
 
 /*
