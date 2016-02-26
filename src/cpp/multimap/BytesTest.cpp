@@ -25,12 +25,12 @@ TEST(BytesTest, IsDefaultConstructible) {
   ASSERT_TRUE(std::is_default_constructible<Bytes>::value);
 }
 
-TEST(BytesTest, IsCopyConstructibleOrAssignable) {
+TEST(BytesTest, IsCopyConstructibleAndAssignable) {
   ASSERT_TRUE(std::is_copy_constructible<Bytes>::value);
   ASSERT_TRUE(std::is_copy_assignable<Bytes>::value);
 }
 
-TEST(BytesTest, IsMoveConstructibleOrAssignable) {
+TEST(BytesTest, IsMoveConstructibleAndAssignable) {
   ASSERT_TRUE(std::is_move_constructible<Bytes>::value);
   ASSERT_TRUE(std::is_move_assignable<Bytes>::value);
 }
