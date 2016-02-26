@@ -23,7 +23,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 
 /**
- * This class provides a collection of utility functions.
+ * This class provides utility classes and functions.
  * 
  * @author Martin Trenkmann
  * @since 0.4.0
@@ -67,6 +67,12 @@ public class Utils {
     return new String(bytes, UTF8);
   }
   
+  /**
+   * A class that can hold two values of different type. Instances are immutable.
+   * 
+   * @author Martin Trenkmann
+   * @since 0.5.0
+   */
   public static class Pair<A, B> {
     
     private final A a;
@@ -77,7 +83,14 @@ public class Utils {
       this.b = b;
     }
     
+    /**
+     * Returns the first element.
+     */
     public A a() { return a; }
+    
+    /**
+     * Returns the second element.
+     */
     public B b() { return b; }
   }
   
