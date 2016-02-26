@@ -21,10 +21,19 @@
 
 namespace multimap {
 
-void Version::checkCompatibility(int major, int minor) {
-  mt::check(major == MAJOR && minor <= MINOR,
-            "Version check failed. Please install Multimap version %u.%u.",
-            major, minor);
+void Version::checkCompatibility(int extern_major, int extern_minor) {
+  mt::Check::isTrue(
+      isCompatible(extern_major, extern_minor),
+      "Version check failed. "
+      "Please install Multimap version %i.x where x is at least %i.",
+      extern_major, extern_minor);
+}
+
+bool Version::isCompatible(int extern_major, int extern_minor,
+                           int library_major, int library_minor) {
+  if (extern_major != library_major) return false;
+  if (extern_minor > library_minor) return false;
+  return true;
 }
 
 }  // namespace multimap

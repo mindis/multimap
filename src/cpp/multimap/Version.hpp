@@ -25,7 +25,11 @@ struct Version {
   static const int MINOR = 5;
   static const int PATCH = 0;
 
-  static void checkCompatibility(int major, int minor);
+  static void checkCompatibility(int extern_major, int extern_minor);
+
+  static bool isCompatible(int extern_major, int extern_minor,
+                           int library_major = MAJOR,
+                           int library_minor = MINOR);
 
   Version() = delete;
 };
