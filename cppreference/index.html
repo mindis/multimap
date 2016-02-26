@@ -367,16 +367,6 @@ namespace multimap
 <table class="reference-table">
 <tbody>
  <tr>
-  <th colspan="2">Constants</th>
- </tr>
- <tr>
-  <td><code>Iterator* const</code></td>
-  <td>
-   <code>EMPTY</code>
-   <div>A constant that represents an iterator that has no values to deliver. Its purpose is to model an empty result in situations where a nullptr is not desirable, most often to avoid an extra null-check. It is safe to put this pointer into a <a href="http://en.cppreference.com/w/cpp/memory/unique_ptr">std::unique_ptr</a> or <a href="http://en.cppreference.com/w/cpp/memory/shared_ptr">std::shared_ptr</a> as the delete operator of the underlying derived type has been disabled.<div>
-  </td>
- </tr>
- <tr>
   <th colspan="2">Member functions</th>
  </tr>
  <tr>
@@ -405,6 +395,16 @@ namespace multimap
   <td>
    <code>peekNext() = 0</code>
    <div>Same as before, but does not move the iterator once forward.<div>
+  </td>
+ </tr>
+ <tr>
+  <th colspan="2">Static member functions</th>
+ </tr>
+ <tr>
+  <td><code>std::unique_ptr&lt;Iterator&gt;</code></td>
+  <td>
+   <code>newEmptyInstance()</code>
+   <div>Creates a new iterator that has no values to deliver. Its purpose is to model an empty result in situations where a nullptr is not desirable, usually to avoid an extra null-check.<div>
   </td>
  </tr>
 </tbody>
