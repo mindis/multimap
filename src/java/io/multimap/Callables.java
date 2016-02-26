@@ -35,8 +35,8 @@ public final class Callables {
    * Objects implementing this interface are typically used for mapping input values to output
    * values in replace operations.
    * 
-   * @see Map#replaceValues(byte[], Callables.Function)
-   * @see Map#replaceValue(byte[], Callables.Function)
+   * @see Map#replaceFirstMatch(byte[], Callables.Function)
+   * @see Map#replaceAllMatches(byte[], Callables.Function)
    */
   public static abstract class Function {
 
@@ -74,9 +74,8 @@ public final class Callables {
    * implementing this interface are typically used to qualify keys or values for some further
    * operation.
    * 
-   * @see Map#removeKeys(Callables.Predicate)
-   * @see Map#removeValue(byte[], Callables.Predicate)
-   * @see Map#removeValues(byte[], Callables.Predicate)
+   * @see Map#removeFirstMatch(byte[], Callables.Predicate)
+   * @see Map#removeAllMatches(byte[], Callables.Predicate)
    */
   public static abstract class Predicate {
 
