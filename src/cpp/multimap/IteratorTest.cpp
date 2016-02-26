@@ -23,7 +23,7 @@ namespace multimap {
 
 using testing::Eq;
 
-TEST(IteratorTest, IsDefaultConstructible) {
+TEST(IteratorTest, IsNotDefaultConstructible) {
   ASSERT_FALSE(std::is_default_constructible<Iterator>::value);
 }
 
@@ -37,7 +37,7 @@ TEST(IteratorTest, IsNotMoveConstructibleOrAssignable) {
   ASSERT_FALSE(std::is_move_assignable<Iterator>::value);
 }
 
-TEST(IteratorTest, EmptyConstantHasNoValues) {
+TEST(IteratorTest, EmptyInstanceHasNoValues) {
   ASSERT_THAT(Iterator::newEmptyInstance()->available(), Eq(0));
   ASSERT_FALSE(Iterator::newEmptyInstance()->hasNext());
 }
