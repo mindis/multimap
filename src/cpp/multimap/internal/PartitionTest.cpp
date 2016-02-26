@@ -79,7 +79,7 @@ struct PartitionTestFixture : public testing::Test {
   const std::vector<std::string> values = {v1, v2, v3};
 };
 
-TEST_F(PartitionTestFixture, PutAppendsValuesToList) {
+TEST_F(PartitionTestFixture, PutAppendsValueToList) {
   auto partition = openOrCreatePartition(prefix);
   partition->put(k1, v1);
   partition->put(k1, v2);
@@ -177,7 +177,7 @@ TEST_F(PartitionTestFixture, GetReturnsEmptyIteratorForNonExistingKey) {
   ASSERT_FALSE(partition->get(k1)->hasNext());
 }
 
-TEST_F(PartitionTestFixture, RemoveKeyRemovesMappedValues) {
+TEST_F(PartitionTestFixture, RemoveRemovesMatchingKeyAndItsValues) {
   auto partition = openOrCreatePartition(prefix);
   partition->put(k1, v1);
   partition->put(k2, v1);
@@ -189,7 +189,7 @@ TEST_F(PartitionTestFixture, RemoveKeyRemovesMappedValues) {
   ASSERT_TRUE(partition->get(k3)->hasNext());
 }
 
-TEST_F(PartitionTestFixture, RemoveOneKeyRemovesFirstMatch) {
+TEST_F(PartitionTestFixture, RemoveFirstMatchRemovesFirstMatchingKey) {
   auto partition = openOrCreatePartition(prefix);
   for (const auto &key : keys) {
     partition->put(key, values.begin(), values.end());
@@ -207,7 +207,7 @@ TEST_F(PartitionTestFixture, RemoveOneKeyRemovesFirstMatch) {
   ASSERT_THAT(partition->get(k3)->available(), Eq(values.size()));
 }
 
-TEST_F(PartitionTestFixture, RemoveAllKeysRemovesAllMatches) {
+TEST_F(PartitionTestFixture, RemoveAllMatchesRemovesAllMatchingKeys) {
   auto partition = openOrCreatePartition(prefix);
   partition->put(k1, v1);
   partition->put(k2, v1);
@@ -221,7 +221,7 @@ TEST_F(PartitionTestFixture, RemoveAllKeysRemovesAllMatches) {
   ASSERT_TRUE(partition->get(k3)->hasNext());
 }
 
-TEST_F(PartitionTestFixture, RemoveOneValueRemovesFirstMatch) {
+TEST_F(PartitionTestFixture, RemoveFirstMatchInListRemovesFirstMatchingValue) {
   auto partition = openOrCreatePartition(prefix);
   partition->put(k1, v1);
   partition->put(k1, v2);
@@ -245,7 +245,7 @@ TEST_F(PartitionTestFixture, RemoveOneValueRemovesFirstMatch) {
   ASSERT_FALSE(iter->hasNext());
 }
 
-TEST_F(PartitionTestFixture, RemoveAllValuesRemovesAllMatches) {
+TEST_F(PartitionTestFixture, RemoveAllMatchesInListRemovesAllMatchingValues) {
   auto partition = openOrCreatePartition(prefix);
   partition->put(k1, v1);
   partition->put(k1, v2);
@@ -266,7 +266,7 @@ TEST_F(PartitionTestFixture, RemoveAllValuesRemovesAllMatches) {
   ASSERT_FALSE(iter->hasNext());
 }
 
-TEST_F(PartitionTestFixture, ReplaceOneValueReplacesFirstMatch) {
+TEST_F(PartitionTestFixture, ReplaceFirstMatchReplacesFirstMatchingValue) {
   auto partition = openOrCreatePartition(prefix);
   partition->put(k1, v1);
   partition->put(k1, v2);
@@ -300,7 +300,7 @@ TEST_F(PartitionTestFixture, ReplaceOneValueReplacesFirstMatch) {
   ASSERT_FALSE(iter->hasNext());
 }
 
-TEST_F(PartitionTestFixture, ReplaceAllValuesReplacesAllMatches) {
+TEST_F(PartitionTestFixture, ReplaceAllMatchesReplacesAllMatchingValues) {
   auto partition = openOrCreatePartition(prefix);
   for (const auto &key : keys) {
     partition->put(key, values.begin(), values.end());
@@ -566,41 +566,41 @@ TEST_F(PartitionTestFixture, PutThrowsIfOpenedAsReadOnly) {
   ASSERT_THROW(partition->put(k1, v1), std::runtime_error);
 }
 
-TEST_F(PartitionTestFixture, RemoveKeyThrowsIfOpenedAsReadOnly) {
+TEST_F(PartitionTestFixture, RemoveThrowsIfOpenedAsReadOnly) {
   auto partition = openOrCreatePartitionAsReadOnly(prefix);
   ASSERT_THROW(partition->remove(k1), std::runtime_error);
 }
 
-TEST_F(PartitionTestFixture, RemoveOneKeyThrowsIfOpenedAsReadOnly) {
+TEST_F(PartitionTestFixture, RemoveFirstMatchThrowsIfOpenedAsReadOnly) {
   auto partition = openOrCreatePartitionAsReadOnly(prefix);
   ASSERT_THROW(
       partition->removeFirstMatch([](const Bytes & /* key */) { return true; }),
       std::runtime_error);
 }
 
-TEST_F(PartitionTestFixture, RemoveAllKeysThrowsIfOpenedAsReadOnly) {
+TEST_F(PartitionTestFixture, RemoveAllMatchesThrowsIfOpenedAsReadOnly) {
   auto partition = openOrCreatePartitionAsReadOnly(prefix);
   ASSERT_THROW(
       partition->removeAllMatches([](const Bytes & /* key */) { return true; }),
       std::runtime_error);
 }
 
-TEST_F(PartitionTestFixture, RemoveValueThrowsIfOpenedAsReadOnly) {
+TEST_F(PartitionTestFixture, RemoveFirstEqualInListThrowsIfOpenedAsReadOnly) {
   auto partition = openOrCreatePartitionAsReadOnly(prefix);
   ASSERT_THROW(partition->removeFirstEqual(k1, v1), std::runtime_error);
 }
 
-TEST_F(PartitionTestFixture, RemoveValuesThrowsIfOpenedAsReadOnly) {
+TEST_F(PartitionTestFixture, RemoveAllEqualInListThrowsIfOpenedAsReadOnly) {
   auto partition = openOrCreatePartitionAsReadOnly(prefix);
   ASSERT_THROW(partition->removeAllEqual(k1, v1), std::runtime_error);
 }
 
-TEST_F(PartitionTestFixture, ReplaceValueThrowsIfOpenedAsReadOnly) {
+TEST_F(PartitionTestFixture, ReplaceFirstEqualThrowsIfOpenedAsReadOnly) {
   auto partition = openOrCreatePartitionAsReadOnly(prefix);
   ASSERT_THROW(partition->replaceFirstEqual(k1, v1, v2), std::runtime_error);
 }
 
-TEST_F(PartitionTestFixture, ReplaceValuesThrowsIfOpenedAsReadOnly) {
+TEST_F(PartitionTestFixture, ReplaceAllEqualThrowsIfOpenedAsReadOnly) {
   auto partition = openOrCreatePartitionAsReadOnly(prefix);
   ASSERT_THROW(partition->replaceAllEqual(k1, v1, v2), std::runtime_error);
 }
@@ -755,7 +755,7 @@ TEST_F(PartitionTestFixture, GetSameListTwiceDoesNotBlock) {
   ASSERT_TRUE(iter2->hasNext());
 }
 
-TEST_F(PartitionTestFixture, RemoveKeyBlocksIfListIsLocked) {
+TEST_F(PartitionTestFixture, RemoveBlocksIfListIsLocked) {
   auto partition = openOrCreatePartition(prefix);
   partition->put(k1, v1);
   auto thread_is_running = true;
@@ -774,7 +774,7 @@ TEST_F(PartitionTestFixture, RemoveKeyBlocksIfListIsLocked) {
   ASSERT_FALSE(thread_is_running);
 }
 
-TEST_F(PartitionTestFixture, RemoveOneKeyBlocksIfListIsLocked) {
+TEST_F(PartitionTestFixture, RemoveFirstMatchBlocksIfListIsLocked) {
   auto partition = openOrCreatePartition(prefix);
   partition->put(k1, v1);
   auto thread_is_running = true;
@@ -793,7 +793,7 @@ TEST_F(PartitionTestFixture, RemoveOneKeyBlocksIfListIsLocked) {
   ASSERT_FALSE(thread_is_running);
 }
 
-TEST_F(PartitionTestFixture, RemoveAllKeysBlocksIfListIsLocked) {
+TEST_F(PartitionTestFixture, RemoveAllMatchesBlocksIfListIsLocked) {
   auto partition = openOrCreatePartition(prefix);
   partition->put(k1, v1);
   auto thread_is_running = true;
@@ -812,7 +812,7 @@ TEST_F(PartitionTestFixture, RemoveAllKeysBlocksIfListIsLocked) {
   ASSERT_FALSE(thread_is_running);
 }
 
-TEST_F(PartitionTestFixture, RemoveValueBlocksIfListIsLocked) {
+TEST_F(PartitionTestFixture, RemoveFirstMatchInListBlocksIfListIsLocked) {
   auto partition = openOrCreatePartition(prefix);
   partition->put(k1, v1);
   auto thread_is_running = true;
@@ -831,7 +831,7 @@ TEST_F(PartitionTestFixture, RemoveValueBlocksIfListIsLocked) {
   ASSERT_FALSE(thread_is_running);
 }
 
-TEST_F(PartitionTestFixture, RemoveValuesBlocksIfListIsLocked) {
+TEST_F(PartitionTestFixture, RemoveAllMatchesInListBlocksIfListIsLocked) {
   auto partition = openOrCreatePartition(prefix);
   partition->put(k1, v1);
   auto thread_is_running = true;
@@ -850,7 +850,7 @@ TEST_F(PartitionTestFixture, RemoveValuesBlocksIfListIsLocked) {
   ASSERT_FALSE(thread_is_running);
 }
 
-TEST_F(PartitionTestFixture, ReplaceValueBlocksIfListIsLocked) {
+TEST_F(PartitionTestFixture, ReplaceFirstMatchBlocksIfListIsLocked) {
   auto partition = openOrCreatePartition(prefix);
   partition->put(k1, v1);
   auto thread_is_running = true;
@@ -869,7 +869,7 @@ TEST_F(PartitionTestFixture, ReplaceValueBlocksIfListIsLocked) {
   ASSERT_FALSE(thread_is_running);
 }
 
-TEST_F(PartitionTestFixture, ReplaceValuesBlocksIfListIsLocked) {
+TEST_F(PartitionTestFixture, ReplaceAllMatchesBlocksIfListIsLocked) {
   auto partition = openOrCreatePartition(prefix);
   partition->put(k1, v1);
   auto thread_is_running = true;

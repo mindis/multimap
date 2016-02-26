@@ -55,154 +55,6 @@ TEST(ListTest, DefaultConstructedHasProperState) {
 }
 
 // -----------------------------------------------------------------------------
-// class List / Iteration
-// -----------------------------------------------------------------------------
-
-struct ListTestIteration : testing::TestWithParam<uint32_t> {
-  void SetUp() override {
-    directory = "/tmp/multimap.ListTestIteration";
-    boost::filesystem::remove_all(directory);
-    MT_ASSERT_TRUE(boost::filesystem::create_directory(directory));
-
-    store.reset(new Store(directory / "store", Store::Options()));
-  }
-
-  void TearDown() override {
-    store.reset();  // Destructor flushes all data to disk.
-    MT_ASSERT_TRUE(boost::filesystem::remove_all(directory));
-  }
-
-  Store *getStore() { return store.get(); }
-  Arena *getArena() { return &arena; }
-
- private:
-  boost::filesystem::path directory;
-  std::unique_ptr<Store> store;
-  Arena arena;
-};
-
-TEST_P(ListTestIteration, AddSmallValuesAndIterateOnce) {
-  List list;
-  for (size_t i = 0; i != GetParam(); ++i) {
-    list.append(std::to_string(i), getStore(), getArena());
-    ASSERT_EQ(list.getStatsUnlocked().num_values_removed, 0);
-    ASSERT_EQ(list.getStatsUnlocked().num_values_total, i + 1);
-  }
-  ASSERT_EQ(list.getStatsUnlocked().num_values_valid(), GetParam());
-
-  auto iter = list.newIterator(*getStore());
-  for (size_t i = 0; i != GetParam(); ++i) {
-    ASSERT_TRUE(iter->hasNext());
-    ASSERT_EQ(iter->available(), GetParam() - i);
-    ASSERT_EQ(iter->next(), std::to_string(i));
-  }
-  ASSERT_FALSE(iter->hasNext());
-  ASSERT_EQ(iter->available(), 0);
-}
-
-TEST_P(ListTestIteration, AddSmallValuesAndIterateTwice) {
-  List list;
-  for (size_t i = 0; i != GetParam(); ++i) {
-    list.append(std::to_string(i), getStore(), getArena());
-    ASSERT_EQ(list.getStatsUnlocked().num_values_removed, 0);
-    ASSERT_EQ(list.getStatsUnlocked().num_values_total, i + 1);
-  }
-  ASSERT_EQ(list.getStatsUnlocked().num_values_valid(), GetParam());
-
-  auto iter = list.newIterator(*getStore());
-  for (size_t i = 0; i != GetParam(); ++i) {
-    ASSERT_TRUE(iter->hasNext());
-    ASSERT_EQ(iter->available(), GetParam() - i);
-    ASSERT_EQ(iter->next(), std::to_string(i));
-  }
-  ASSERT_FALSE(iter->hasNext());
-  ASSERT_EQ(iter->available(), 0);
-
-  iter = list.newIterator(*getStore());
-  for (size_t i = 0; i != GetParam(); ++i) {
-    ASSERT_TRUE(iter->hasNext());
-    ASSERT_EQ(iter->available(), GetParam() - i);
-    ASSERT_EQ(iter->next(), std::to_string(i));
-  }
-  ASSERT_FALSE(iter->hasNext());
-  ASSERT_EQ(iter->available(), 0);
-}
-
-TEST_P(ListTestIteration, AddLargeValuesAndIterateOnce) {
-  List list;
-  SequenceGenerator generator;
-  const size_t size = getStore()->getBlockSize() * 2.5;
-  for (size_t i = 0; i != GetParam(); ++i) {
-    list.append(generator.generate(size), getStore(), getArena());
-    ASSERT_EQ(list.getStatsUnlocked().num_values_removed, 0);
-    ASSERT_EQ(list.getStatsUnlocked().num_values_total, i + 1);
-  }
-  ASSERT_EQ(list.getStatsUnlocked().num_values_valid(), GetParam());
-
-  generator.reset();
-  auto iter = list.newIterator(*getStore());
-  for (size_t i = 0; i != GetParam(); ++i) {
-    ASSERT_TRUE(iter->hasNext());
-    ASSERT_EQ(iter->available(), GetParam() - i);
-    ASSERT_EQ(iter->next(), generator.generate(size));
-  }
-  ASSERT_FALSE(iter->hasNext());
-  ASSERT_EQ(iter->available(), 0);
-}
-
-TEST_P(ListTestIteration, AddLargeValuesAndIterateTwice) {
-  List list;
-  SequenceGenerator generator;
-  const size_t size = getStore()->getBlockSize() * 2.5;
-  for (size_t i = 0; i != GetParam(); ++i) {
-    list.append(generator.generate(size), getStore(), getArena());
-    ASSERT_EQ(list.getStatsUnlocked().num_values_removed, 0);
-    ASSERT_EQ(list.getStatsUnlocked().num_values_total, i + 1);
-  }
-  ASSERT_EQ(list.getStatsUnlocked().num_values_valid(), GetParam());
-
-  generator.reset();
-  auto iter = list.newIterator(*getStore());
-  for (size_t i = 0; i != GetParam(); ++i) {
-    ASSERT_TRUE(iter->hasNext());
-    ASSERT_EQ(iter->available(), GetParam() - i);
-    ASSERT_EQ(iter->next(), generator.generate(size));
-  }
-  ASSERT_FALSE(iter->hasNext());
-  ASSERT_EQ(iter->available(), 0);
-
-  generator.reset();
-  iter = list.newIterator(*getStore());
-  for (size_t i = 0; i != GetParam(); ++i) {
-    ASSERT_TRUE(iter->hasNext());
-    ASSERT_EQ(iter->available(), GetParam() - i);
-    ASSERT_EQ(iter->next(), generator.generate(size));
-  }
-  ASSERT_FALSE(iter->hasNext());
-  ASSERT_EQ(iter->available(), 0);
-}
-
-TEST_P(ListTestIteration, FlushValuesBetweenAddingThemAndIterate) {
-  List list;
-  const auto part_size = 1 + GetParam() / 5;
-  for (size_t i = 0; i != GetParam(); ++i) {
-    list.append(std::to_string(i), getStore(), getArena());
-    if (list.size() % part_size == 0) {
-      list.flush(getStore());
-    }
-  }
-
-  auto iter = list.newIterator(*getStore());
-  for (size_t i = 0; i != GetParam(); ++i) {
-    ASSERT_TRUE(iter->hasNext());
-    ASSERT_THAT(iter->next(), Eq(std::to_string(i)));
-  }
-}
-
-INSTANTIATE_TEST_CASE_P(Parameterized, ListTestIteration,
-                        testing::Values(0, 1, 2, 10, 100, 1000, 1000000));
-
-// -----------------------------------------------------------------------------
 // class List / Concurrency
 // -----------------------------------------------------------------------------
 
@@ -354,91 +206,174 @@ TEST(ListTest, WriterBlocksWriter) {
   writer2.join();
 }
 
-struct ListIteratorTestWithParam : testing::TestWithParam<uint32_t> {
+// -----------------------------------------------------------------------------
+// class List / Appending & Iteration
+// -----------------------------------------------------------------------------
+
+struct ListTestWithParam : testing::TestWithParam<uint32_t> {
   void SetUp() override {
-    boost::filesystem::remove_all(dir);
-    MT_ASSERT_TRUE(boost::filesystem::create_directory(dir));
+    directory = "/tmp/multimap.ListTestIteration";
+    boost::filesystem::remove_all(directory);
+    MT_ASSERT_TRUE(boost::filesystem::create_directory(directory));
 
-    Store::Options options;
-    store.reset(new Store(boost::filesystem::path(dir) / "store", options));
-
-    for (size_t i = 0; i != GetParam(); ++i) {
-      list.append(std::to_string(i), store.get(), &arena);
-    }
+    store.reset(new Store(directory / "store", Store::Options()));
   }
 
-  void TearDown() override { boost::filesystem::remove_all(dir); }
+  void TearDown() override {
+    store.reset();  // Destructor flushes all data to disk.
+    MT_ASSERT_TRUE(boost::filesystem::remove_all(directory));
+  }
 
-  std::unique_ptr<Iterator> newIterator() { return list.newIterator(*store); }
+  Store *getStore() { return store.get(); }
+  Arena *getArena() { return &arena; }
 
-  const std::string dir = "/tmp/multimap.ListIteratorTestWithParam";
-  const std::string key = "key";
+ private:
+  boost::filesystem::path directory;
   std::unique_ptr<Store> store;
   Arena arena;
-  List list;
 };
 
-TEST_P(ListIteratorTestWithParam, Iterate) {
-  auto iter = newIterator();
-  ASSERT_EQ(iter->available(), GetParam());
-  for (size_t i = 0; iter->hasNext(); ++i) {
+TEST_P(ListTestWithParam, AppendSmallValuesAndIterateOnce) {
+  List list;
+  for (size_t i = 0; i != GetParam(); ++i) {
+    list.append(std::to_string(i), getStore(), getArena());
+    ASSERT_EQ(list.getStatsUnlocked().num_values_removed, 0);
+    ASSERT_EQ(list.getStatsUnlocked().num_values_total, i + 1);
+  }
+  ASSERT_EQ(list.getStatsUnlocked().num_values_valid(), GetParam());
+
+  auto iter = list.newIterator(*getStore());
+  for (size_t i = 0; i != GetParam(); ++i) {
+    ASSERT_TRUE(iter->hasNext());
     ASSERT_EQ(iter->available(), GetParam() - i);
     ASSERT_EQ(iter->next(), std::to_string(i));
   }
-  ASSERT_EQ(iter->available(), 0);
   ASSERT_FALSE(iter->hasNext());
+  ASSERT_EQ(iter->available(), 0);
 }
 
-INSTANTIATE_TEST_CASE_P(Parameterized, ListIteratorTestWithParam,
-                        testing::Values(0, 1, 2, 10, 100, 1000, 1000000));
+TEST_P(ListTestWithParam, AppendSmallValuesAndIterateTwice) {
+  List list;
+  for (size_t i = 0; i != GetParam(); ++i) {
+    list.append(std::to_string(i), getStore(), getArena());
+    ASSERT_EQ(list.getStatsUnlocked().num_values_removed, 0);
+    ASSERT_EQ(list.getStatsUnlocked().num_values_total, i + 1);
+  }
+  ASSERT_EQ(list.getStatsUnlocked().num_values_valid(), GetParam());
 
-// TODO Move that into List::remove() unit tests
-/*
-TEST_P(ExclusiveListIteratorTestWithParam, IterateOnceAndRemoveEvery23thValue) {
-  auto iter = getIterator();
-  size_t num_removed = 0;
-  for (size_t i = 0; iter->hasNext(); ++i) {
+  auto iter = list.newIterator(*getStore());
+  for (size_t i = 0; i != GetParam(); ++i) {
+    ASSERT_TRUE(iter->hasNext());
+    ASSERT_EQ(iter->available(), GetParam() - i);
     ASSERT_EQ(iter->next(), std::to_string(i));
-    if (i % 23 == 0) {
-      iter->remove();
-      ++num_removed;
+  }
+  ASSERT_FALSE(iter->hasNext());
+  ASSERT_EQ(iter->available(), 0);
+
+  iter = list.newIterator(*getStore());
+  for (size_t i = 0; i != GetParam(); ++i) {
+    ASSERT_TRUE(iter->hasNext());
+    ASSERT_EQ(iter->available(), GetParam() - i);
+    ASSERT_EQ(iter->next(), std::to_string(i));
+  }
+  ASSERT_FALSE(iter->hasNext());
+  ASSERT_EQ(iter->available(), 0);
+}
+
+TEST_P(ListTestWithParam, AppendLargeValuesAndIterateOnce) {
+  List list;
+  SequenceGenerator generator;
+  const size_t size = getStore()->getBlockSize() * 2.5;
+  for (size_t i = 0; i != GetParam(); ++i) {
+    list.append(generator.generate(size), getStore(), getArena());
+    ASSERT_EQ(list.getStatsUnlocked().num_values_removed, 0);
+    ASSERT_EQ(list.getStatsUnlocked().num_values_total, i + 1);
+  }
+  ASSERT_EQ(list.getStatsUnlocked().num_values_valid(), GetParam());
+
+  generator.reset();
+  auto iter = list.newIterator(*getStore());
+  for (size_t i = 0; i != GetParam(); ++i) {
+    ASSERT_TRUE(iter->hasNext());
+    ASSERT_EQ(iter->available(), GetParam() - i);
+    ASSERT_EQ(iter->next(), generator.generate(size));
+  }
+  ASSERT_FALSE(iter->hasNext());
+  ASSERT_EQ(iter->available(), 0);
+}
+
+TEST_P(ListTestWithParam, AppendLargeValuesAndIterateTwice) {
+  List list;
+  SequenceGenerator generator;
+  const size_t size = getStore()->getBlockSize() * 2.5;
+  for (size_t i = 0; i != GetParam(); ++i) {
+    list.append(generator.generate(size), getStore(), getArena());
+    ASSERT_EQ(list.getStatsUnlocked().num_values_removed, 0);
+    ASSERT_EQ(list.getStatsUnlocked().num_values_total, i + 1);
+  }
+  ASSERT_EQ(list.getStatsUnlocked().num_values_valid(), GetParam());
+
+  generator.reset();
+  auto iter = list.newIterator(*getStore());
+  for (size_t i = 0; i != GetParam(); ++i) {
+    ASSERT_TRUE(iter->hasNext());
+    ASSERT_EQ(iter->available(), GetParam() - i);
+    ASSERT_EQ(iter->next(), generator.generate(size));
+  }
+  ASSERT_FALSE(iter->hasNext());
+  ASSERT_EQ(iter->available(), 0);
+
+  generator.reset();
+  iter = list.newIterator(*getStore());
+  for (size_t i = 0; i != GetParam(); ++i) {
+    ASSERT_TRUE(iter->hasNext());
+    ASSERT_EQ(iter->available(), GetParam() - i);
+    ASSERT_EQ(iter->next(), generator.generate(size));
+  }
+  ASSERT_FALSE(iter->hasNext());
+  ASSERT_EQ(iter->available(), 0);
+}
+
+TEST_P(ListTestWithParam, FlushValuesBetweenAppendingAndIterate) {
+  List list;
+  const auto part_size = 1 + GetParam() / 5;
+  for (size_t i = 0; i != GetParam(); ++i) {
+    list.append(std::to_string(i), getStore(), getArena());
+    if (list.size() % part_size == 0) {
+      list.flush(getStore());
+    }
+  }
+
+  auto iter = list.newIterator(*getStore());
+  for (size_t i = 0; i != GetParam(); ++i) {
+    ASSERT_TRUE(iter->hasNext());
+    ASSERT_THAT(iter->next(), Eq(std::to_string(i)));
+  }
+}
+
+TEST_P(ListTestWithParam, RemoveEvery23thValue) {
+  List list;
+  for (size_t i = 0; i != GetParam(); ++i) {
+    list.append(std::to_string(i), getStore(), getArena());
+  }
+
+  const auto num_removed = list.removeAllMatches([](const Bytes &value) {
+    return std::stoi(value.toString()) % 23 == 0;
+  }, getStore());
+
+  auto iter = list.newIterator(*getStore());
+  ASSERT_EQ(iter->available(), GetParam() - num_removed);
+  for (size_t i = 0; iter->hasNext(); ++i) {
+    if (i % 23 != 0) {
+      ASSERT_NE(std::stoi(iter->next().toString()) % 23, 0);
     }
   }
   ASSERT_EQ(iter->available(), 0);
   ASSERT_FALSE(iter->hasNext());
 }
 
-TEST_P(ExclusiveListIteratorTestWithParam,
-       IterateTwiceAndRemoveEvery23thValueIn1stRun) {
-  size_t num_removed = 0;
-  {
-    auto iter = getIterator();
-    for (size_t i = 0; iter->hasNext(); ++i) {
-      iter->next();
-      if (i % 23 == 0) {
-        iter->remove();
-        ++num_removed;
-      }
-    }
-    ASSERT_EQ(iter->available(), 0);
-    ASSERT_FALSE(iter->hasNext());
-  }
-  {
-    auto iter = getIterator();
-    ASSERT_EQ(iter->available(), GetParam() - num_removed);
-    for (size_t i = 0; iter->hasNext(); ++i) {
-      if (i % 23 != 0) {
-        ASSERT_NE(std::stoi(iter->next().toString()) % 23, 0);
-      }
-    }
-    ASSERT_EQ(iter->available(), 0);
-    ASSERT_FALSE(iter->hasNext());
-  }
-}
-
-INSTANTIATE_TEST_CASE_P(Parameterized, ExclusiveListIteratorTestWithParam,
+INSTANTIATE_TEST_CASE_P(Parameterized, ListTestWithParam,
                         testing::Values(0, 1, 2, 10, 100, 1000, 1000000));
-*/
 
 }  // namespace internal
 }  // namespace multimap
