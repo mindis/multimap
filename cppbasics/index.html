@@ -46,6 +46,9 @@
           document.write("&nbsp;");
         }
       }
+      function year() {
+        document.write(new Date().getFullYear());
+      }
     </script>
   </head>
   
@@ -126,8 +129,23 @@
                 
               
                 
-                  <li >
-                    <a href="../installation/">Installation</a>
+                  <li class="dropdown ">
+                    <a href="#">Installation <span class="caret"></span></a>
+                    <ul class="dropdown-menu">
+                      
+                        
+                          <li >
+                            <a href="../installation-linux/">GNU/Linux</a>
+                          </li>
+                        
+                      
+                        
+                          <li >
+                            <a href="../installation-osx/">OS X</a>
+                          </li>
+                        
+                      
+                    </ul>
                   </li>
                 
               
@@ -135,9 +153,9 @@
               <li class="dropdown">
                 <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">GitHub <span class="caret"></span></a>
                 <ul class="dropdown-menu">
-                  <li><a href="https://github.com/mtrenkmann/multimap" target="_blank">View on GitHub</a></li>
-                  <li><a href="https://github.com/mtrenkmann/multimap/issues" target="_blank">Create an Issue</a></li>
-                  <li><a href="https://github.com/mtrenkmann/multimap/subscription" target="_blank">Watch this Project</a></li>
+                  <li><a href="https://github.com/mtrenkmann/multimap">View on GitHub</a></li>
+                  <li><a href="https://github.com/mtrenkmann/multimap/issues">Create an Issue</a></li>
+                  <li><a href="https://github.com/mtrenkmann/multimap/subscription">Watch this Project</a></li>
                 </ul>
               </li>
             </ul>
@@ -156,7 +174,7 @@
 
 <h2 id="creating-a-map">Creating a Map</h2>
 <p>The minimal code to create a map is</p>
-<pre><code class="cpp">multimap::Options options;
+<pre><code class="cpp">multimap::Map::Options options;
 options.create_if_missing = true;
 multimap::Map map(&quot;path/to/directory&quot;, options);
 </code></pre>
@@ -164,9 +182,9 @@ multimap::Map map(&quot;path/to/directory&quot;, options);
 <p>However, since a Map object is neither copyable nor moveable you might allocate it on the heap to be able to transfer ownership. In case of an error the constructor of Map also throws an exception that should be caught. So you would better write code like this:</p>
 <pre><code class="cpp">std::unique_ptr&lt;multimap::Map&gt; map;
 try {
-  multimap::Options options;
+  multimap::Map::Options options;
   options.create_if_missing = true;
-  map.reset(new Map(&quot;path/to/directory&quot;, options));
+  map.reset(new multimap::Map(&quot;path/to/directory&quot;, options));
 } catch (std::runtime_error&amp; error) {
   handleError(error);
 }
@@ -176,7 +194,7 @@ try {
 <p>To open an already existing map with default options you can simply omit the options parameter.</p>
 <pre><code class="cpp">std::unique_ptr&lt;multimap::Map&gt; map;
 try {
-  map.reset(new Map(&quot;path/to/directory&quot;));
+  map.reset(new multimap::Map(&quot;path/to/directory&quot;));
 } catch (std::runtime_error&amp; error) {
   handleError(error);
 }
@@ -189,12 +207,12 @@ try {
 </code></pre>
 
 <h2 id="putting-values">Putting Values</h2>
-<p>Putting a value means to append a value to the end of the list that is associated with a key. Both the key and the value are of type <a href="../cppreference#class-bytes">Bytes</a> which can be constructed implicitly from</p>
+<p>Putting a value means to append a value to the end of the list that is associated with a key. Both the key and the value are of type <a href="../cppreference#class-bytes">Bytes</a>. A Bytes object can be constructed implicitly from</p>
 <ul>
 <li>a null-terminated <code>const char*</code>,</li>
 <li>a <code>std::string</code>,</li>
 </ul>
-<p>or explicitly by a <code>const void*</code> to raw data and its size.</p>
+<p>or explicitly from arbitrary data given a raw pointer and a size.</p>
 <pre><code class="cpp">const multimap::Bytes key = &quot;key&quot;;
 
 map-&gt;put(key, &quot;value&quot;);
@@ -208,15 +226,15 @@ map-&gt;put(key, multimap::Bytes(&amp;some_pod, sizeof some_pod));
 // Note that PODs might cover more bytes than expected due to alignment.
 </code></pre>
 
-<p>It is important to mention that a Bytes object is always just a pointer/size wrapper without any ownership semantics. The actual lifetime of the wrapped data must be managed by the user and must outlive the lifetime of the Bytes object.</p>
+<p>It's important to mention that a Bytes object is always just a pointer/size wrapper without any ownership semantics. The actual lifetime of the wrapped data must be managed by the user and must outlive the lifetime of the Bytes object.</p>
 <h2 id="getting-values">Getting Values</h2>
-<p>Getting values means to request a read-only <a href="../cppreference#type-mapiterator">Iterator</a> to the list associated with a key. If no such list exists the returned iterator points to an empty list. An iterator that points to a non-empty list holds a <a href="../cppreference#reader-lock">reader lock</a> on this list to synchronize concurrent access. A list can be read by multiple iterators from different threads at the same time. The lock is released automatically when the iterator's lifetime ends.</p>
+<p>Getting values means to request a read-only <a href="../cppreference#class-iterator">Iterator</a> to the list associated with a key. If no such list exists the returned iterator points to an empty list. An iterator that points to a non-empty list holds a <a href="../overview#reader-lock">reader lock</a> on this list to synchronize concurrent access. A list can be read by multiple iterators from different threads at the same time. The lock is released automatically when the iterator's lifetime ends.</p>
 <pre><code class="cpp">{
-  multimap::Map::Iterator iter = map-&gt;get(key);
+  std::unique_ptr&lt;multimap::Iterator&gt; iter = map-&gt;get(key);
   // You could also have used 'auto' here.
 
-  while (iter.hasNext()) {
-    const multimap::Bytes value = iter.next();
+  while (iter-&gt;hasNext()) {
+    const multimap::Bytes value = iter-&gt;next();
     // You could also have used 'auto' here.
     // `value` points to data managed by the iterator,
     // and which is valid until the next call to `next`.
@@ -230,83 +248,81 @@ map-&gt;put(key, multimap::Bytes(&amp;some_pod, sizeof some_pod));
 } // iter gets destroyed and the internal reader lock is released.
 </code></pre>
 
-<p>Things about iterators that are also worth noting:</p>
+<p>Things about iterators that are worth noting:</p>
 <ul>
-<li>Iterators are movable and thus can be put into containers or the like. When doing so you have to take special care not to run into deadlocks, because</li>
-<li>there is another type of iterator which holds a writer lock on a list for exclusive access. This type of iterator is only used internally for implementing remove and replace operations.</li>
-<li>Iterators support lazy initialization which means that no I/O operation is performed until its <code>next()</code> method has been called. This feature is useful in cases where multiple iterators must be requested first in order to determine in which order they have to be processed.</li>
+<li>Iterators can tell the number of remaining values via <code>available()</code>.</li>
+<li>Iterators can emit the next value without moving forward via <code>peekNext()</code>.</li>
 <li>Calling <code>next()</code> followed by <code>toString()</code> is a simple way to get a deep copy of the current value.</li>
-<li>Iterators can tell the number of values left to iterate by invoking <code>available()</code>.</li>
+<li>Iterators support lazy initialization which means that no I/O operation is performed until a value is actually requested via <code>next()</code> or <code>peekNext()</code>. This feature might be useful in cases where multiple iterators have to be collected first in order to decide in which order they need to be processed.</li>
+<li>The lifetime of an iterator should be as short as possible to hold the internal reader lock on the underlying list no longer as needed. There are operations, such as remove and replace, which require exclusive access to lists, and which will block if the list in question is already locked.</li>
 </ul>
 <h2 id="removing-values">Removing Values</h2>
-<p>Values can be removed from a list by injecting a <a href="../cppreference#predicate">Predicate</a> which yields true for values to be removed. There are methods to remove only the first or all matches from a list. Since this is a mutating operation the methods require exclusive access to the list and therefore try to acquire a <a href="../cppreference#writer-lock">writer lock</a> for that list.</p>
-<pre><code class="cpp">#include &lt;multimap/callables.hpp&gt;
-
-map-&gt;put(key, &quot;1&quot;);
+<p>Values can be removed from a list by injecting a <a href="../cppreference#predicate">Predicate</a> which yields true for values to be removed. There are methods to remove only the first or all matches from a list. Since this is a mutating operation these methods require exclusive access to the list and therefore try to acquire a <a href="../overview#writer-lock">writer lock</a> for that list.</p>
+<pre><code class="cpp">map-&gt;put(key, &quot;1&quot;);
 map-&gt;put(key, &quot;2&quot;);
+map-&gt;put(key, &quot;3&quot;);
 map-&gt;put(key, &quot;3&quot;);
 map-&gt;put(key, &quot;4&quot;);
 map-&gt;put(key, &quot;5&quot;);
 map-&gt;put(key, &quot;6&quot;);
 
-map-&gt;removeValue(key, multimap::Equal(&quot;3&quot;));
+map-&gt;removeFirstEqual(key, &quot;3&quot;);
 // Removes the first value equal to &quot;3&quot;.
-// key -&gt; {&quot;1&quot;, &quot;2&quot;, &quot;4&quot;, &quot;5&quot;, &quot;6&quot;}
+// key -&gt; {&quot;1&quot;, &quot;2&quot;, &quot;3&quot;, &quot;4&quot;, &quot;5&quot;, &quot;6&quot;}
 
 const auto is_even = [](const multimap::Bytes&amp; value) {
   return std::stoi(value.toString()) % 2 == 0;
 }
 
-map-&gt;removeValue(key, is_even);
+map-&gt;removeFirstMatch(key, is_even);
 // Removes the first value that is even.
-// key -&gt; {&quot;1&quot;, &quot;4&quot;, &quot;5&quot;, &quot;6&quot;}
+// key -&gt; {&quot;1&quot;, &quot;3&quot;, &quot;4&quot;, &quot;5&quot;, &quot;6&quot;}
 
-map-&gt;removeValues(key, is_even);
+map-&gt;removeAllMatches(key, is_even);
 // Removes all values that are even.
-// key -&gt; {&quot;1&quot;, &quot;5&quot;}
+// key -&gt; {&quot;1&quot;, &quot;3&quot;, &quot;5&quot;}
 
-map-&gt;removeKey(key);
-// Removes all values.
+map-&gt;remove(key);
+// Remove all values associated with key.
 // key -&gt; {}
 </code></pre>
 
 <p>When a value is removed it will only be marked as removed for the moment so that subsequent iterations will ignore it. Only an optimize operation triggered either via <a href="../cppreference#map-optimize">API call</a> or the <a href="../overview#multimap-optimize">command line tool</a> will remove the data physically.</p>
-<p>Note that if the list is already locked either by a <a href="../cppreference#reader-lock">reader</a> or <a href="../cppreference#writer-lock">writer lock</a> any remove operation on that list will block until the lock is released. A thread should never try to remove values while holding iterators to the same list to avoid deadlocks.</p>
+<p>Note that if the list is already locked either by a <a href="../overview#reader-lock">reader</a> or <a href="../overview#writer-lock">writer lock</a> any remove operation on that list will block until the lock is released. A thread should never try to remove values while owning an iterator to the same list to avoid deadlocks.</p>
 <h2 id="replacing-values">Replacing Values</h2>
-<p>Values can be replaced by injecting a <a href="../cppreference#procedure">Procedure</a> that represents a map function which yields a non-empty string for values to be replaced. There are methods to replace only the first or all matches in a list. Since this is a mutating operation the methods require exclusive access to the list and therefore try to acquire a <a href="../cppreference#writer-lock">writer lock</a> for that list.</p>
+<p>Values can be replaced by injecting a <a href="../cppreference#procedure">Procedure</a> that represents a map function which yields a non-empty string for values to be replaced. There are methods to replace only the first or all matches in a list. Since this is a mutating operation these methods require exclusive access to a list and therefore try to acquire a <a href="../overview#writer-lock">writer lock</a> for the list in question.</p>
 <p>When a value is replaced the old value is marked as removed and the new value is appended to the end of the list. Hence, replace operations will not preserve the order of values. If a certain order needs to be restored an <a href="../cppreference#map-optimize">optimize</a> operation has to be run parameterized with an appropriate <a href="../cppreference#compare">Compare</a> function.</p>
-<pre><code class="cpp">#include &lt;multimap/callables.hpp&gt;
-
-map-&gt;put(key, &quot;1&quot;);
+<pre><code class="cpp">map-&gt;put(key, &quot;1&quot;);
 map-&gt;put(key, &quot;2&quot;);
+map-&gt;put(key, &quot;3&quot;);
 map-&gt;put(key, &quot;3&quot;);
 map-&gt;put(key, &quot;4&quot;);
 map-&gt;put(key, &quot;5&quot;);
 map-&gt;put(key, &quot;6&quot;);
 
-map-&gt;replaceValue(key, &quot;3&quot;, &quot;4&quot;);
+map-&gt;replaceFirstEqual(key, &quot;3&quot;, &quot;4&quot;);
 // Replaces the first value equal to &quot;3&quot; by &quot;4&quot;.
-// key -&gt; {&quot;1&quot;, &quot;2&quot;, &quot;4&quot;, &quot;5&quot;, &quot;6&quot;, &quot;4&quot;}
+// key -&gt; {&quot;1&quot;, &quot;2&quot;, &quot;3&quot;, &quot;4&quot;, &quot;5&quot;, &quot;6&quot;, &quot;4&quot;}
 
 const auto increment_if_even = [](const multimap::Bytes&amp; value) {
   const auto number = std::stoi(value.toString());
   return (number % 2 == 0) ? std::to_string(number + 1) : &quot;&quot;;
 };
 
-map-&gt;replaceValue(key, increment_if_even);
+map-&gt;replaceFirstMatch(key, increment_if_even);
 // Replaces the first value that is even by its successor.
-// key -&gt; {&quot;1&quot;, &quot;4&quot;, &quot;5&quot;, &quot;6&quot;, &quot;4&quot;, &quot;3&quot;}
+// key -&gt; {&quot;1&quot;, &quot;3&quot;, &quot;4&quot;, &quot;5&quot;, &quot;6&quot;, &quot;4&quot;, &quot;3&quot;}
 
-map-&gt;replaceValues(key, &quot;4&quot;, &quot;8&quot;);
+map-&gt;replaceAllEqual(key, &quot;4&quot;, &quot;8&quot;);
 // Replaces all values equal to &quot;4&quot; by &quot;8&quot;.
-// key -&gt; {&quot;1&quot;, &quot;5&quot;, &quot;6&quot;, &quot;3&quot;, &quot;8&quot;, &quot;8&quot;}
+// key -&gt; {&quot;1&quot;, &quot;3&quot;, &quot;5&quot;, &quot;6&quot;, &quot;3&quot;, &quot;8&quot;, &quot;8&quot;}
 
-map-&gt;replaceValues(key, increment_if_even);
+map-&gt;replaceAllMatches(key, increment_if_even);
 // Replaces all values that are even by its successor.
-// key -&gt; {&quot;1&quot;, &quot;5&quot;, &quot;3&quot;, &quot;7&quot;, &quot;9&quot;, &quot;9&quot;}
+// key -&gt; {&quot;1&quot;, &quot;3&quot;, &quot;5&quot;, &quot;3&quot;, &quot;7&quot;, &quot;9&quot;, &quot;9&quot;}
 </code></pre>
 
-<p>Note that if the list is already locked either by a <a href="../cppreference#reader-lock">reader</a> or <a href="../cppreference#writer-lock">writer lock</a> any replace method will block until the lock is released. A thread should never try to replace values while holding iterators to the same list to avoid deadlocks.</p>
+<p>Note that if the list is already locked either by a <a href="../overview#reader-lock">reader</a> or <a href="../overview#writer-lock">writer lock</a> any replace method will block until the lock is released. A thread should never try to replace values while owning an iterator to the same list to avoid deadlocks.</p>
               </div>
               <div class="col-md-3" role="complementary">
                 <nav id="multimap-sidebar"
@@ -377,15 +393,15 @@ map-&gt;replaceValues(key, increment_if_even);
           <img style="float:right" src="../img/agpl-v3-logo-white-on-gray.png" />
         </a>
         <p>
-          <i class="fa fa-copyright"></i> 2015-2016 by <a href="https://github.com/mtrenkmann" target="_blank">Martin Trenkmann</a>
+          <i class="fa fa-copyright"></i> 2015-<script>year()</script> by <a href="https://github.com/mtrenkmann">Martin Trenkmann</a>
         </p>
-        <p>Documentation built with <a href="http://getbootstrap.com/" target="_blank">Bootstrap</a>
-          &middot; <a href="http://www.tipo.net.ar/" target="_blank">Faster One</a>
-          &middot; <a href="http://www.carrois.com/fira-4-1/" target="_blank">Fira</a>
-          &middot; <a href="http://fontawesome.io/" target="_blank">Font Awesome</a>
-          &middot; <a href="https://highlightjs.org/" target="_blank">highlight.js</a>
-          &middot; <a href="https://daringfireball.net/projects/markdown/" target="_blank">Markdown</a>
-          &middot; <a href="http://www.mkdocs.org/" target="_blank">MkDocs</a></p>
+        <p>Documentation built with <a href="http://getbootstrap.com/">Bootstrap</a>
+          &middot; <a href="http://www.tipo.net.ar/">Faster One</a>
+          &middot; <a href="http://www.carrois.com/fira-4-1/">Fira</a>
+          &middot; <a href="http://fontawesome.io/">Font Awesome</a>
+          &middot; <a href="https://highlightjs.org/">highlight.js</a>
+          &middot; <a href="https://daringfireball.net/projects/markdown/">Markdown</a>
+          &middot; <a href="http://www.mkdocs.org/">MkDocs</a></p>
       </div>
     </footer>
   </body>

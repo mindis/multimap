@@ -46,6 +46,9 @@
           document.write("&nbsp;");
         }
       }
+      function year() {
+        document.write(new Date().getFullYear());
+      }
     </script>
   </head>
   
@@ -126,8 +129,23 @@
                 
               
                 
-                  <li >
-                    <a href="../installation/">Installation</a>
+                  <li class="dropdown ">
+                    <a href="#">Installation <span class="caret"></span></a>
+                    <ul class="dropdown-menu">
+                      
+                        
+                          <li >
+                            <a href="../installation-linux/">GNU/Linux</a>
+                          </li>
+                        
+                      
+                        
+                          <li >
+                            <a href="../installation-osx/">OS X</a>
+                          </li>
+                        
+                      
+                    </ul>
                   </li>
                 
               
@@ -135,9 +153,9 @@
               <li class="dropdown">
                 <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">GitHub <span class="caret"></span></a>
                 <ul class="dropdown-menu">
-                  <li><a href="https://github.com/mtrenkmann/multimap" target="_blank">View on GitHub</a></li>
-                  <li><a href="https://github.com/mtrenkmann/multimap/issues" target="_blank">Create an Issue</a></li>
-                  <li><a href="https://github.com/mtrenkmann/multimap/subscription" target="_blank">Watch this Project</a></li>
+                  <li><a href="https://github.com/mtrenkmann/multimap">View on GitHub</a></li>
+                  <li><a href="https://github.com/mtrenkmann/multimap/issues">Create an Issue</a></li>
+                  <li><a href="https://github.com/mtrenkmann/multimap/subscription">Watch this Project</a></li>
                 </ul>
               </li>
             </ul>
@@ -339,104 +357,66 @@ namespace multimap
  <p>Compares two byte arrays for equality. Two byte arrays are equal, if they wrap the same number of bytes, and which are equal after byte-wise comparison.</p>
 </div>
 
-<h2 id="callableshpp">callables.hpp</h2>
-<pre><code class="cpp">#include &lt;multimap/callables.hpp&gt;
+<h2 id="iteratorhpp">Iterator.hpp</h2>
+<pre><code class="cpp">#include &lt;multimap/Iterator.hpp&gt;
 namespace multimap
 </code></pre>
 
-<p>This file contains some convenient function objects implementing the <a href="#predicate">Predicate</a> interface.</p>
-<h3 id="struct-contains">struct Contains</h3>
-<p>A function object that checks if a byte array contains another one in terms of a substring. Note that the empty byte array is a substring of any other byte array.</p>
+<h3 id="class-iterator">class Iterator</h3>
+<p>This is an abstract base class or interface that represents an iterator for reading a list of values.</p>
 <table class="reference-table">
 <tbody>
+ <tr>
+  <th colspan="2">Constants</th>
+ </tr>
+ <tr>
+  <td><code>Iterator* const</code></td>
+  <td>
+   <code>EMPTY</code>
+   <div>A constant that represents an iterator that has no values to deliver. Its purpose is to model an empty result in situations where a nullptr is not desirable, most often to avoid an extra null-check. It is safe to put this pointer into a <a href="http://en.cppreference.com/w/cpp/memory/unique_ptr">std::unique_ptr</a> or <a href="http://en.cppreference.com/w/cpp/memory/shared_ptr">std::shared_ptr</a> as the delete operator of the underlying derived type has been disabled.<div>
+  </td>
+ </tr>
  <tr>
   <th colspan="2">Member functions</th>
  </tr>
  <tr>
-  <td><code>explicit</code></td>
+  <td><code>virtual uint32_t</code></td>
   <td>
-   <code>Contains(const Bytes & bytes)</code>
-   <div>Creates a functor that checks for containment of bytes when called.<div>
+   <code>available() const = 0</code>
+   <div>Returns the remaining number of values to be iterated.<div>
   </td>
  </tr>
  <tr>
-  <td><code>const Bytes &</code></td>
+  <td><code>virtual bool</code></td>
   <td>
-   <code>bytes() const</code>
-   <div>Returns a read-only reference to the wrapped byte array.<div>
+   <code>hasNext() const = 0</code>
+   <div>Returns true if the iterator has more values, false otherwise.<div>
   </td>
  </tr>
  <tr>
-  <td><code>bool</code></td>
+  <td><code>virtual Bytes</code></td>
   <td>
-   <code>operator()(const Bytes & bytes) const</code>
-   <div>Returns true if bytes contains the wrapped byte array, false otherwise.<div>
+   <code>next() = 0</code>
+   <div>Returns the next value from the underlying list and moves the iterator once forward. <a href="#iterator-next">more...</a><div>
+  </td>
+ </tr>
+ <tr>
+  <td><code>virtual Bytes</code></td>
+  <td>
+   <code>peekNext() = 0</code>
+   <div>Same as before, but does not move the iterator once forward.<div>
   </td>
  </tr>
 </tbody>
 </table>
 
-<h3 id="struct-startswith">struct StartsWith</h3>
-<p>A function object that checks if a byte array has a certain prefix.</p>
-<table class="reference-table">
-<tbody>
- <tr>
-  <th colspan="2">Member functions</th>
- </tr>
- <tr>
-  <td><code>explicit</code></td>
-  <td>
-   <code>StartsWith(const Bytes & bytes)</code>
-   <div>Creates a functor that checks if a byte array starts with bytes when called.<div>
-  </td>
- </tr>
- <tr>
-  <td><code>const Bytes &</code></td>
-  <td>
-   <code>bytes() const</code>
-   <div>Returns a read-only reference to the wrapped byte array.<div>
-  </td>
- </tr>
- <tr>
-  <td><code>bool</code></td>
-  <td>
-   <code>operator()(const Bytes & bytes) const</code>
-   <div>Returns true if bytes starts with the wrapped byte array, false otherwise.<div>
-  </td>
- </tr>
-</tbody>
-</table>
-
-<h3 id="struct-endswith">struct EndsWith</h3>
-<p>A function object that checks if a byte array has a certain suffix.</p>
-<table class="reference-table">
-<tbody>
- <tr>
-  <th colspan="2">Member functions</th>
- </tr>
- <tr>
-  <td><code>explicit</code></td>
-  <td>
-   <code>EndsWith(const Bytes & bytes)</code>
-   <div>Creates a functor that checks if a byte array ends with bytes when called.<div>
-  </td>
- </tr>
- <tr>
-  <td><code>const Bytes &</code></td>
-  <td>
-   <code>bytes() const</code>
-   <div>Returns a read-only reference to the wrapped byte array.<div>
-  </td>
- </tr>
- <tr>
-  <td><code>bool</code></td>
-  <td>
-   <code>operator()(const Bytes & bytes) const</code>
-   <div>Returns true if bytes ends with the wrapped byte array, false otherwise.<div>
-  </td>
- </tr>
-</tbody>
-</table>
+<div class="reference-more">
+ <h4 id="iterator-next">
+  <code>virtual <a href="#class-bytes">Bytes</a> Iterator::next() = 0</code>
+ </h4>
+ <p>Returns the next value from the underlying list and moves the iterator once forward. The returned <a href="#class-bytes">Bytes</a> object points to data managed by the iterator and is only valid for read access until the next call of this method. Reading from invalid data is undefined behavior. A deep copy of the value can be created by either calling its <a href="#bytes-tostring">toString()</a> method or <a href="http://en.cppreference.com/w/cpp/string/byte/memcpy">std::memcpy()</a> its data into another buffer.</p>
+ <p><span class="requires" /><code>hasNext()</code> yields true.</p>
+</div>
 
 <h2 id="maphpp">Map.hpp</h2>
 <pre><code class="cpp">#include &lt;multimap/Map.hpp&gt;
@@ -445,8 +425,8 @@ namespace multimap
 
 <h3 id="class-map">class Map</h3>
 <p>This class implements a 1:n key-value store where each key is associated with a list of values. When putting a key-value pair into the map, the value is appended to the end of the list that is associated with the key. If no such key-list pair already exist, it will be created. Looking up a key returns a read-only iterator for the associated list. If the key does not exist, the list is considered to be empty and the returned iterator has no values to deliver. From a user's point of view there is no distinction between an empty list and a non-existing list.</p>
-<p>Map also supports removing or replacing values. When a value is removed, it will be marked as such for the moment making it invisible for subsequent iterations. Running an <a href="#map-optimize">optimze</a> operation removes the data physically. The replace operation is implemented as a remove of the old value followed by an insert/put of the new value. In other words, the replacement is not in-place, but the new value is always the last value in the corresponding list. To restore a certain order an <a href="#map-optimize">optimze</a> operation can be run as well. However, optimization is considered a less frequent, more administrative task.</p>
-<p>The class is designed to be a fast and mutable 1:n key-value store. For that reason, Map holds the entire key set in memory. This is also true for keys that were removed from the map at runtime. In addition, each key is associated with a write buffer which altogether contribute a lot to the total memory footprint of the map. Therefore, the number of keys to be put is limited by the amount of available memory. However, this simple design was intended in favour of performance, especially due to the fact that memory is relatively cheap and (server) machines are equipped with more and more of it. As a rule of thumb, assuming keys with 10 bytes in size on average, Map scales up to 10 M keys on desktop machines with 8 GiB of RAM and up to 100 M keys on server machines with 64 GiB of RAM. The number of values, though, is practically limited only by the amount of disk space. For more information, please visit the <a href="../overview/#block-organization">overview</a> page.</p>
+<p>Map also supports removing or replacing values. When a value is removed, it will be marked as such for the moment making it invisible for subsequent iterations. Running an <a href="#map-optimize">optimze</a> operation removes the data physically. The replace operation is implemented as a remove of the old value followed by an insert/put of the new value. In other words, the replacement is not in-place, but the new value is always the last value in the corresponding list. To restore a certain order an optimze operation can be run as well. However, optimization is considered a less frequent, more administrative task.</p>
+<p>The class is designed to be a fast and mutable. For that reason, this class holds the entire key set in memory. This is also true for keys that were removed from the map at runtime. In addition, each key is associated with a write buffer which altogether contribute a lot to the total memory footprint of the map. Therefore, the number of keys to be put is limited by the amount of available memory. However, this simple design was intended in favour of performance, especially due to the fact that memory is relatively cheap and (server) machines are equipped with more and more of it.</p>
 <table class="reference-table">
 <tbody>
  <tr>
@@ -456,21 +436,21 @@ namespace multimap
   <td></td>
   <td>
    <code>Limits</code>
-   <div>Provides static methods to ask for maximum key and value sizes. <a href="#type-maplimits">more...</a><div>
+   <div>Provides static methods to ask for maximum key and value sizes. <a href="#struct-maplimits">more...</a><div>
+  </td>
+ </tr>
+ <tr>
+  <td></td>
+  <td>
+   <code>Options</code>
+   <div>Pure data holder used to configure an instance of Map. <a href="#struct-mapoptions">more...</a><div>
   </td>
  </tr>
  <tr>
   <td></td>
   <td>
    <code>Stats</code>
-   <div>Type that reports statistical information about an instance of Map. <a href="#type-mapstats">more...</a><div>
-  </td>
- </tr>
- <tr>
-  <td></td>
-  <td>
-   <code>Iterator</code>
-   <div>Input iterator type that reads a list of values. <a href="#type-mapiterator">more...</a><div>
+   <div>Pure data holder that reports statistics about an instance of Map. <a href="#struct-mapstats">more...</a><div>
   </td>
  </tr>
  <tr>
@@ -502,85 +482,145 @@ namespace multimap
   <td><code>void</code></td>
   <td>
    <code>put(const Bytes & key, const Bytes & value)</code>
-   <div>Appends value to the end of the list associated with key. <a href="#map-put">more...</a><div>
+   <div>Appends value to the end of the list associated with the specified key. <a href="#map-put-range">more...</a><div>
   </td>
  </tr>
  <tr>
-  <td><code>Iterator</code></td>
+  <td>
+   <code>template</code><br>
+   <code>void</code>
+  </td>
+  <td>
+   <code>&lt;typename InputIter&gt;</code><br>
+   <code>put(const Bytes & key, InputIter first, InputIter last)</code>
+   <div>Appends a range of values to the end of the list associated with the specified key. <a href="#map-put">more...</a><div>
+  </td>
+ </tr>
+ <tr>
+  <td><code>std::unique_ptr&lt;Iterator&gt;</code></td>
   <td>
    <code>get(const Bytes & key) const</code>
-   <div>Returns a read-only iterator for the list associated with key. <a href="#map-get">more...</a><div>
+   <div>Returns a read-only iterator for the list associated with the specified key. <a href="#map-get">more...</a><div>
   </td>
  </tr>
  <tr>
   <td><code>bool</code></td>
   <td>
-   <code>removeKey(const Bytes & key)</code>
-   <div>Removes all values associated with key. <a href="#map-remove-key">more...</a><div>
-  </td>
- </tr>
- <tr>
-  <td>
-    <code>template</code><br>
-    <code>uint32_t</code>
-  </td>
-  <td>
-   <code>&lt;typename Predicate&gt;</code><br>
-   <code>removeKeys(Predicate predicate)</code>
-   <div>Removes all values associated with keys for which predicate yields true. <a href="#map-remove-keys">more...</a><div>
-  </td>
- </tr>
- <tr>
-  <td>
-    <code>template</code><br>
-    <code>bool</code>
-  </td>
-  <td>
-   <code>&lt;typename Predicate&gt;</code><br>
-   <code>removeValue(const Bytes & key, Predicate predicate)</code>
-   <div>Removes the first value from the list associated with key for which predicate yields true. <a href="#map-remove-value">more...</a><div>
-  </td>
- </tr>
- <tr>
-  <td>
-    <code>template</code><br>
-    <code>uint32_t</code>
-  </td>
-  <td>
-   <code>&lt;typename Predicate&gt;</code><br>
-   <code>removeValues(const Bytes & key, Predicate predicate)</code>
-   <div>Removes all values from the list associated with key for which predicate yields true. <a href="#map-remove-values">more...</a><div>
-  </td>
- </tr>
- <tr>
-  <td>
-    <code>template</code><br>
-    <code>bool</code>
-  </td>
-  <td>
-   <code>&lt;typename Function&gt;</code><br>
-   <code>replaceValue(const Bytes & key, Function map)</code>
-   <div>Replaces the first value in the list associated with key by the result of invoking map. Values for which map returns the empty string are not replaced. <a href="#map-replace-value">more...</a><div>
-  </td>
- </tr>
- <tr>
-  <td>
-    <code>template</code><br>
-    <code>uint32_t</code>
-  </td>
-  <td>
-   <code>&lt;typename Function&gt;</code><br>
-   <code>replaceValues(const Bytes & key, Function map)</code>
-   <div>Replaces each value in the list associated with key by the result of invoking map. Values for which map returns the empty string are not replaced. <a href="#map-replace-values">more...</a><div>
+   <code>contains(const Bytes & key) const</code>
+   <div>Returns true if there is at least one value associated with the specified key, false otherwise. <a href="#map-contains">more...</a><div>
   </td>
  </tr>
  <tr>
   <td><code>uint32_t</code></td>
   <td>
-   <code>replaceValues(const Bytes & key,</code><br>
-   <code><script>nbsp(14)</script>const Bytes & old_value,</code><br>
-   <code><script>nbsp(14)</script>const Bytes & new_value)</code>
-   <div>Replaces each value in the list associated with key which is equal to old_value by new_value. <a href="#map-replace-values-old-new">more...</a><div>
+   <code>remove(const Bytes & key)</code>
+   <div>Removes all values from the list associated with the specified key. <a href="#map-remove">more...</a><div>
+  </td>
+ </tr>
+ <tr>
+  <td>
+    <code>bool</code>
+  </td>
+  <td>
+   <code>removeFirstEqual(const Bytes & key, const Bytes & value)</code>
+   <div>Removes the first value which is equal to the given one from the list associated with the specified key. <a href="#map-remove-first-equal">more...</a><div>
+  </td>
+ </tr>
+ <tr>
+  <td>
+    <code>uint32_t</code>
+  </td>
+  <td>
+   <code>removeAllEqual(const Bytes & key, const Bytes & value)</code>
+   <div>Removes all values which are equal to the given one from the list associated with the specified key. <a href="#map-remove-all-equal">more...</a><div>
+  </td>
+ </tr>
+ <tr>
+  <td>
+    <code>template</code><br>
+    <code>bool</code>
+  </td>
+  <td>
+   <code>&lt;typename Predicate&gt;</code><br>
+   <code>removeFirstMatch(const Bytes & key, Predicate predicate)</code>
+   <div>Removes the first value for which predicate yields true from the list associated with the specified key. <a href="#map-remove-first-match-key">more...</a><div>
+  </td>
+ </tr>
+ <tr>
+  <td>
+    <code>template</code><br>
+    <code>uint32_t</code>
+  </td>
+  <td>
+   <code>&lt;typename Predicate&gt;</code><br>
+   <code>removeFirstMatch(Predicate predicate)</code>
+   <div>Removes all values from the list associated with the first key for which predicate yields true. <a href="#map-remove-first-match">more...</a><div>
+  </td>
+ </tr>
+ <tr>
+  <td>
+    <code>template</code><br>
+    <code>uint32_t</code>
+  </td>
+  <td>
+   <code>&lt;typename Predicate&gt;</code><br>
+   <code>removeAllMatches(const Bytes & key, Predicate predicate)</code>
+   <div>Removes all values for which predicate yields true from the list associated with the specified key. <a href="#map-remove-all-matches-key">more...</a><div>
+  </td>
+ </tr>
+ <tr>
+  <td>
+    <code>template</code><br>
+    <code>std::pair&lt;uint32_t, uint64_t&gt;</code>
+  </td>
+  <td>
+   <code>&lt;typename Predicate&gt;</code><br>
+   <code>removeAllMatches(Predicate predicate)</code>
+   <div>Removes all values from lists associated with keys for which predicate yields true. <a href="#map-remove-all-matches">more...</a><div>
+  </td>
+ </tr>
+ <tr>
+  <td>
+    <code>bool</code>
+  </td>
+  <td>
+   <code>replaceFirstEqual(const Bytes & key,</code><br>
+   <code><script>nbsp(18)</script>const Bytes & old_value,</code><br>
+   <code><script>nbsp(18)</script>const Bytes & new_value)</code>
+   <div>Replaces the first value which is equal to old_value with new_value in the list associated with the specified key. <a href="#map-replace-first-equal">more...</a><div>
+  </td>
+ </tr>
+ <tr>
+  <td>
+    <code>uint32_t</code>
+  </td>
+  <td>
+   <code>replaceAllEqual(const Bytes & key,</code><br>
+   <code><script>nbsp(16)</script>const Bytes & old_value,</code><br>
+   <code><script>nbsp(16)</script>const Bytes & new_value)</code>
+   <div>Replaces all values which are equal to old_value with new_value in the list associated with the specified key. <a href="#map-replace-all-equal">more...</a><div>
+  </td>
+ </tr>
+ <tr>
+  <td>
+    <code>template</code><br>
+    <code>bool</code>
+  </td>
+  <td>
+   <code>&lt;typename Function&gt;</code><br>
+   <code>replaceFirstMatch(const Bytes & key, Function map)</code>
+   <div>Replaces the first value with the result of invoking map in the list associated with the specified key. A match is indicated if map returns a non-empty string for a given value. <a href="#map-replace-first-match">more...</a><div>
+  </td>
+ </tr>
+ <tr>
+  <td>
+    <code>template</code><br>
+    <code>uint32_t</code>
+  </td>
+  <td>
+   <code>&lt;typename Function&gt;</code><br>
+   <code>replaceAllMatches(const Bytes & key, Function map)</code>
+   <div>Replaces all values with the result of invoking map in the list associated with the specified key. A match is indicated if map returns a non-empty string for a given value. <a href="#map-replace-all-matches">more...</a><div>
   </td>
  </tr>
  <tr>
@@ -591,7 +631,7 @@ namespace multimap
   <td>
    <code>&lt;typename Procedure&gt;</code><br>
    <code>forEachKey(Procedure process) const</code>
-   <div>Applies process to each key whose list is not empty. <a href="#map-for-each-key">more...</a><div>
+   <div>Applies process to each key in the map. <a href="#map-for-each-key">more...</a><div>
   </td>
  </tr>
  <tr>
@@ -602,7 +642,7 @@ namespace multimap
   <td>
    <code>&lt;typename Procedure&gt;</code><br>
    <code>forEachValue(const Bytes & key, Procedure process) const</code>
-   <div>Applies process to each value associated with key. <a href="#map-for-each-value">more...</a><div>
+   <div>Applies process to each value in the list associated with the specified key. <a href="#map-for-each-value">more...</a><div>
   </td>
  </tr>
  <tr>
@@ -673,7 +713,7 @@ namespace multimap
    <code>importFromBase64(const boost::filesystem::path & directory,</code><br>
    <code><script>nbsp(17)</script>const boost::filesystem::path & input)</code><br>
    <code><script>nbsp(17)</script>const Options & options)</code>
-   <div>Same as before, but gives the user more control by providing an <a href="#class-options">Options</a> parameter which is passed to the constructor of Map when opening. This way a map can be created if it does not already exist. <a href="#map-map-directory-options">more...</a><div>
+   <div>Same as before, but gives the user more control by providing an <a href="#struct-mapoptions">Options</a> parameter which is passed to the constructor of Map when opening. This way a map can be created if it does not already exist. <a href="#map-map-directory-options">more...</a><div>
   </td>
  </tr>
  <tr>
@@ -694,7 +734,7 @@ namespace multimap
    <code>exportToBase64(const boost::filesystem::path & directory,</code><br>
    <code><script>nbsp(15)</script>const boost::filesystem::path & output,</code><br>
    <code><script>nbsp(15)</script>const Options & options)</code>
-   <div>Same as before, but gives the user more control by providing an <a href="#class-options">Options</a> parameter. Most users will use this to pass a compare function that triggers a sorting of all lists before exporting them.<div>
+   <div>Same as before, but gives the user more control by providing an <a href="#struct-mapoptions">Options</a> parameter. Most users will use this to pass a compare function that triggers a sorting of all lists before exporting them.<div>
   </td>
  </tr>
  <tr>
@@ -715,7 +755,7 @@ namespace multimap
    <code>optimize(const boost::filesystem::path & directory,</code><br>
    <code><script>nbsp(9)</script>const boost::filesystem::path & output,</code><br>
    <code><script>nbsp(9)</script>const Options & options)</code>
-   <div>Same as before, but gives the user more control by providing an <a href="#class-options">Options</a> parameter. Most users will use this to pass a compare function that triggers a sorting of all lists.<div>
+   <div>Same as before, but gives the user more control by providing an <a href="#struct-mapoptions">Options</a> parameter. Most users will use this to pass a compare function that triggers a sorting of all lists.<div>
   </td>
  </tr>
 </tbody>
@@ -724,8 +764,8 @@ namespace multimap
 <div class="reference-more">
  <h4 id="map-map-directory"><code>explicit Map::Map(const boost::filesystem::path & directory)</code></h4>
  <p>Opens an already existing map located in directory.</p>
- <p><span class="acquires" />a <a href="#directory-lock">directory lock</a> on directory.</p>
- <p><span class="throws" /><a href="http://en.cppreference.com/w/cpp/error/runtime_error" target="_blank">std::runtime_error</a> if one of the following is true:</p>
+ <p><span class="acquires" />a <a href="../overview/#directory-lock">directory lock</a> on directory.</p>
+ <p><span class="throws" /><a href="http://en.cppreference.com/w/cpp/error/runtime_error">std::runtime_error</a> if one of the following is true:</p>
  <ul>
   <li>the directory does not exist</li>
   <li>the directory cannot be locked</li>
@@ -736,11 +776,11 @@ namespace multimap
 <div class="reference-more">
  <h4 id="map-map-directory-options">
   <code>Map::Map(const boost::filesystem::path & directory,</code><br>
-  <code><script>nbsp(9)</script>const Options & options)</code>
+  <code><script>nbsp(9)</script>const <a href="#struct-mapoptions">Options</a> & options)</code>
  </h4>
- <p>Opens or creates a map in directory. For the latter, you need to set <code>options.create_if_missing = true</code>. If an error should be raised in case the map already exists, set <code>options.error_if_exists = true</code>. When a new map is created other fields in options are used to configure the map's block size and number of partitions. See <a href="#optionshpp">Options</a> for more information.</p>
- <p><span class="acquires" />a <a href="#directory-lock">directory lock</a> on directory.</p>
- <p><span class="throws" /><a href="http://en.cppreference.com/w/cpp/error/runtime_error" target="_blank">std::runtime_error</a> if one of the following is true:</p>
+ <p>Opens or creates a map in directory. For the latter, you need to set <code>options.create_if_missing = true</code>. If an error should be raised in case the map already exists, set <code>options.error_if_exists = true</code>. When a new map is created other fields in options are used to configure the map's block size and number of partitions. See <a href="#struct-mapoptions">Options</a> for more information.</p>
+ <p><span class="acquires" />a <a href="../overview/#directory-lock">directory lock</a> on directory.</p>
+ <p><span class="throws" /><a href="http://en.cppreference.com/w/cpp/error/runtime_error">std::runtime_error</a> if one of the following is true:</p>
  <ul>
   <li>the directory does not exist</li>
   <li>the directory cannot be locked</li>
@@ -763,13 +803,13 @@ namespace multimap
 
 <div class="reference-more">
  <h4 id="map-put"><code>void Map::put(const Bytes & key, const Bytes & value)</code></h4>
- <p>Appends value to the end of the list associated with key.</p>
+ <p>Appends value to the end of the list associated with the specified key.</p>
  <p><span class="acquires" /></p>
  <ul>
-  <li>a <a href="#writer-lock">writer lock</a> on the map object.</li>
-  <li>a <a href="#writer-lock">writer lock</a> on the list associated with key.</li>
+  <li>a <a href="../overview/#writer-lock">writer lock</a> on the map object.</li>
+  <li>a <a href="../overview/#writer-lock">writer lock</a> on the list associated with key.</li>
  </ul>
- <p><span class="throws" /><a href="http://en.cppreference.com/w/cpp/error/runtime_error" target="_blank">std::runtime_error</a> if one of the following is true:</p>
+ <p><span class="throws" /><a href="http://en.cppreference.com/w/cpp/error/runtime_error">std::runtime_error</a> if one of the following is true:</p>
  <ul>
   <li><code>key.size() > Map::Limits::maxKeySize()</code></li>
   <li><code>value.size() > Map::Limits::maxValueSize()</code></li>
@@ -778,146 +818,229 @@ namespace multimap
 </div>
 
 <div class="reference-more">
- <h4 id="map-get"><code>Map::Iterator Map::get(const Bytes & key) const</code></h4>
- <p>Returns a read-only iterator for the list associated with key. If the key does not exist, an empty iterator that has no values is returned. A non-empty iterator owns a lock on the associated list that is released automatically when the lifetime of the iterator ends. Note that objects of class <a href="#type-mapiterator">Map::Iterator</a> are moveable.</p>
+ <h4 id="map-put-range">
+  <code>template &lt;typename InputIter&gt;</code><br>
+  <code>void Map::put(const Bytes & key, InputIter first, InputIter last)</code></h4>
+ <p>Appends a range of values to the end of the list associated with the specified key.</p>
  <p><span class="acquires" /></p>
  <ul>
-  <li>a <a href="#reader-lock">reader lock</a> on the map object.</li>
-  <li>a <a href="#reader-lock">reader lock</a> on the list associated with key.</li>
+  <li>a <a href="../overview/#writer-lock">writer lock</a> on the map object.</li>
+  <li>a <a href="../overview/#writer-lock">writer lock</a> on the list associated with key.</li>
+ </ul>
+ <p><span class="throws" /><a href="http://en.cppreference.com/w/cpp/error/runtime_error">std::runtime_error</a> if one of the following is true:</p>
+ <ul>
+  <li><code>key.size() > Map::Limits::maxKeySize()</code></li>
+  <li><code>value.size() > Map::Limits::maxValueSize()</code> for any value in the range</li>
+  <li>the map was opened in read-only mode</li>
  </ul>
 </div>
 
 <div class="reference-more">
- <h4 id="map-remove-key"><code>bool Map::removeKey(const Bytes & key)</code></h4>
- <p>Removes all values associated with key.</p>
+ <h4 id="map-get"><code>std::unique_ptr&lt;<a href="#class-iterator">Iterator</a>&gt; Map::get(const Bytes & key) const</code></h4>
+ <p>Returns a read-only iterator for the list associated with the specified key. If the key does not exist, an empty iterator that has no values is returned. A non-empty iterator owns a reader lock on the associated list that is released automatically when the lifetime of the iterator ends.</p>
  <p><span class="acquires" /></p>
  <ul>
-  <li>a <a href="#reader-lock">reader lock</a> on the map object.</li>
-  <li>a <a href="#writer-lock">writer lock</a> on the list associated with key.</li>
+  <li>a <a href="../overview/#reader-lock">reader lock</a> on the map object.</li>
+  <li>a <a href="../overview/#reader-lock">reader lock</a> on the list associated with key.</li>
  </ul>
- <p><span class="returns" />true if any values have been removed, false otherwise.</p>
 </div>
 
 <div class="reference-more">
- <h4 id="map-remove-keys">
-  <code>template &lt;typename Predicate&gt;</code><br>
-  <code>uint32_t Map::removeKeys(Predicate predicate)</code>
+ <h4 id="map-contains"><code>bool Map::contains(const Bytes & key) const</code></h4>
+ <p>Returns true if there is at least one value associated with the specified key, false otherwise.</p>
+ <p><span class="acquires" /></p>
+ <ul>
+  <li>a <a href="../overview/#reader-lock">reader lock</a> on the map object.</li>
+  <li>a <a href="../overview/#reader-lock">reader lock</a> on the list associated with key.</li>
+ </ul>
+</div>
+
+<div class="reference-more">
+ <h4 id="map-remove"><code>uint32_t Map::remove(const Bytes & key)</code></h4>
+ <p>Removes all values from the list associated with the specified key.</p>
+ <p><span class="acquires" /></p>
+ <ul>
+  <li>a <a href="../overview/#reader-lock">reader lock</a> on the map object.</li>
+  <li>a <a href="../overview/#writer-lock">writer lock</a> on the list associated with key.</li>
+ </ul>
+ <p><span class="returns" />the number of values that have been removed.</p>
+</div>
+
+<div class="reference-more">
+ <h4 id="map-remove-first-equal">
+  <code>bool Map::removeFirstEqual(const Bytes & key, const Bytes & value)</code>
  </h4>
- <p>Removes all values associated with keys for which predicate yields true. The predicate can be any callable that implements the <a href="#predicate">Predicate</a> interface.</p>
+ <p>Removes the first value which is equal to the given one from the list associated with the specified key.</p>
  <p><span class="acquires" /></p>
  <ul>
-  <li>a <a href="#reader-lock">reader lock</a> on the map object.</li>
-  <li>a <a href="#writer-lock">writer lock</a> on lists associated with matching keys.</li>
+  <li>a <a href="../overview/#reader-lock">reader lock</a> on the map object.</li>
+  <li>a <a href="../overview/#writer-lock">writer lock</a> on the list associated with key.</li>
  </ul>
- <p><span class="returns" />the number of keys for which any values have been removed.</p>
+ <p><span class="returns" />true if a value has been removed, false otherwise.</p>
 </div>
 
 <div class="reference-more">
- <h4 id="map-remove-value">
-  <code>template &lt;typename Predicate&gt;</code><br>
-  <code>bool Map::removeValue(const Bytes & key, Predicate predicate)</code>
+ <h4 id="map-remove-all-equal">
+  <code>uint32_t Map::removeAllEqual(const Bytes & key, const Bytes & value)</code>
  </h4>
- <p>Removes the first value from the list associated with key for which predicate yields true. The predicate can be any callable that implements the <a href="#predicate">Predicate</a> interface.</p>
+ <p>Removes all values which are equal to the given one from the list associated with the specified key.</p>
  <p><span class="acquires" /></p>
  <ul>
-  <li>a <a href="#reader-lock">reader lock</a> on the map object.</li>
-  <li>a <a href="#writer-lock">writer lock</a> on the list associated with key.</li>
+  <li>a <a href="../overview/#reader-lock">reader lock</a> on the map object.</li>
+  <li>a <a href="../overview/#writer-lock">writer lock</a> on the list associated with key.</li>
  </ul>
- <p><span class="returns" />true if any value has been removed, false otherwise.</p>
+ <p><span class="returns" />the number of values that have been removed.</p>
 </div>
 
 <div class="reference-more">
- <h4 id="map-remove-values">
-  <code>template &lt;typename Predicate&gt;</code><br>
-  <code>uint32_t Map::removeValues(const Bytes & key, Predicate predicate)</code>
+ <h4 id="map-remove-first-match-key">
+  <code>template &lt;typename <a href="#predicate">Predicate</a>&gt;</code><br>
+  <code>bool Map::removeFirstMatch(const Bytes & key, Predicate predicate)</code>
  </h4>
- <p>Removes all values from the list associated with key for which predicate yields true. The predicate can be any callable that implements the <a href="#predicate">Predicate</a> interface.</p>
+ <p>Removes the first value for which predicate yields true from the list associated with the specified key.</p>
  <p><span class="acquires" /></p>
  <ul>
-  <li>a <a href="#reader-lock">reader lock</a> on the map object.</li>
-  <li>a <a href="#writer-lock">writer lock</a> on the list associated with key.</li>
+  <li>a <a href="../overview/#reader-lock">reader lock</a> on the map object.</li>
+  <li>a <a href="../overview/#writer-lock">writer lock</a> on the list associated with key.</li>
  </ul>
- <p><span class="returns" />the number of values removed.</p>
+ <p><span class="returns" />true if a value has been removed, false otherwise.</p>
 </div>
 
 <div class="reference-more">
- <h4 id="map-replace-value">
-  <code>template &lt;typename Function&gt;</code><br>
-  <code>bool Map::replaceValue(const Bytes & key, Function map)</code>
+ <h4 id="map-remove-first-match">
+  <code>template &lt;typename <a href="#predicate">Predicate</a>&gt;</code><br>
+  <code>uint32_t Map::removeFirstMatch(Predicate predicate)</code>
  </h4>
- <p>Replaces the first value in the list associated with key by the result of invoking map. Values for which map returns the empty string are not replaced. The map function can be any callable that implements the <a href="#function">Function</a> interface.</p>
- <p>Note that a replace operation is actually implemented in terms of a remove of the old value followed by an insert/put of the new value. Thus, the new value is always the last value in the list. In other words, the replacement is not in-place.</p>
+ <p>Removes all values from the list associated with the first key for which predicate yields true.</p>
  <p><span class="acquires" /></p>
  <ul>
-  <li>a <a href="#reader-lock">reader lock</a> on the map object.</li>
-  <li>a <a href="#writer-lock">writer lock</a> on the list associated with key.</li>
+  <li>a <a href="../overview/#reader-lock">reader lock</a> on the map object.</li>
+  <li>a <a href="../overview/#writer-lock">writer lock</a> on the list associated with the matching key.</li>
  </ul>
- <p><span class="returns" />true if any value has been replaced, false otherwise.</p>
+ <p><span class="returns" />the number of values that have been removed.</p>
 </div>
 
 <div class="reference-more">
- <h4 id="map-replace-values">
-  <code>template &lt;typename Function&gt;</code><br>
-  <code>uint32_t Map::replaceValues(const Bytes & key, Function map)</code>
+ <h4 id="map-remove-all-matches-key">
+  <code>template &lt;typename <a href="#predicate">Predicate</a>&gt;</code><br>
+  <code>uint32_t Map::removeAllMatches(const Bytes & key, Predicate predicate)</code>
  </h4>
- <p>Replaces each value in the list associated with key by the result of invoking map. Values for which map returns the empty string are not replaced. The map function can be any callable that implements the <a href="#function">Function</a> interface.</p>
- <p>Note that a replace operation is actually implemented in terms of a remove of the old value followed by an insert/put of the new value. Thus, the new value is always the last value in the list. In other words, the replacement is not in-place.</p>
+ <p>Removes the first value for which predicate yields true from the list associated with the specified key.</p>
  <p><span class="acquires" /></p>
  <ul>
-  <li>a <a href="#reader-lock">reader lock</a> on the map object.</li>
-  <li>a <a href="#writer-lock">writer lock</a> on the list associated with key.</li>
+  <li>a <a href="../overview/#reader-lock">reader lock</a> on the map object.</li>
+  <li>a <a href="../overview/#writer-lock">writer lock</a> on the list associated with key.</li>
  </ul>
- <p><span class="returns" />the number of values replaced.</p>
+ <p><span class="returns" />the number of values that have been removed.</p>
 </div>
 
 <div class="reference-more">
- <h4 id="map-replace-values-old-new">
-  <code>uint32_t Map::replaceValues(const Bytes & key, </code><br>
+ <h4 id="map-remove-all-matches">
+  <code>template &lt;typename <a href="#predicate">Predicate</a>&gt;</code><br>
+  <code>std::pair&lt;uint32_t, uint64_t&gt; Map::removeAllMatches(Predicate predicate)</code>
+ </h4>
+ <p>Removes all values from lists associated with keys for which predicate yields true.</p>
+ <p><span class="acquires" /></p>
+ <ul>
+  <li>a <a href="../overview/#reader-lock">reader lock</a> on the map object.</li>
+  <li>a <a href="../overview/#writer-lock">writer lock</a> on lists associated with matching keys.</li>
+ </ul>
+ <p><span class="returns" />a pair whose first element tells the number of keys and the second element the total number of values that have been removed.</p>
+</div>
+
+<div class="reference-more">
+ <h4 id="map-replace-first-equal">
+  <code>bool Map::replaceFirstEqual(const Bytes & key, </code><br>
   <code><script>nbsp(28)</script>const Bytes & old_value,</code><br>
   <code><script>nbsp(28)</script>const Bytes & new_value)</code>
  </h4>
- <p>Replaces each value in the list associated with key which is equal to old_value by new_value.</p>
+ <p>Replaces the first value which is equal to old_value with new_value in the list associated with the specified key.</p>
+ <p>Note that a replace operation is actually implemented in terms of a remove of the old value followed by an insert/put of the new value. Hence, the new value is always the last value in the list. In other words, the replacement is not in-place.</p>
+ <p><span class="acquires" /></p>
+ <ul>
+  <li>a <a href="../overview/#reader-lock">reader lock</a> on the map object.</li>
+  <li>a <a href="../overview/#writer-lock">writer lock</a> on the list associated with key.</li>
+ </ul>
+ <p><span class="returns" />true if a value has been replaced, false otherwise.</p>
+</div>
+
+<div class="reference-more">
+ <h4 id="map-replace-all-equal">
+  <code>uint32_t Map::replaceAllEqual(const Bytes & key, </code><br>
+  <code><script>nbsp(30)</script>const Bytes & old_value,</code><br>
+  <code><script>nbsp(30)</script>const Bytes & new_value)</code>
+ </h4>
+ <p>Replaces all values which are equal to old_value with new_value in the list associated with the specified key.</p>
  <p>Note that a replace operation is actually implemented in terms of a remove of the old value followed by an insert/put of the new value. Thus, the new value is always the last value in the list. In other words, the replacement is not in-place.</p>
  <p><span class="acquires" /></p>
  <ul>
-  <li>a <a href="#reader-lock">reader lock</a> on the map object.</li>
-  <li>a <a href="#writer-lock">writer lock</a> on the list associated with key.</li>
+  <li>a <a href="../overview/#reader-lock">reader lock</a> on the map object.</li>
+  <li>a <a href="../overview/#writer-lock">writer lock</a> on the list associated with key.</li>
  </ul>
- <p><span class="returns" />the number of values replaced.</p>
+ <p><span class="returns" />the number of values that have been replaced.</p>
+</div>
+
+<div class="reference-more">
+ <h4 id="map-replace-first-match">
+  <code>template &lt;typename <a href="#function">Function</a>&gt;</code><br>
+  <code>bool Map::replaceFirstMatch(const Bytes & key, Function map)</code>
+ </h4>
+ <p>Replaces the first value with the result of invoking map in the list associated with the specified key. A match is indicated by returning a non-empty string from map for a given value.</p>
+ <p><span class="acquires" /></p>
+ <ul>
+  <li>a <a href="../overview/#reader-lock">reader lock</a> on the map object.</li>
+  <li>a <a href="../overview/#writer-lock">writer lock</a> on the list associated with key.</li>
+ </ul>
+ <p><span class="returns" />true if a value has been replaced, false otherwise.</p>
+</div>
+
+<div class="reference-more">
+ <h4 id="map-replace-all-matches">
+  <code>template &lt;typename <a href="#function">Function</a>&gt;</code><br>
+  <code>uint32_t Map::replaceAllMatches(const Bytes & key, Function map)</code>
+ </h4>
+ <p>Replaces all values with the result of invoking map in the list associated with the specified key. A match is indicated by returning a non-empty string from map for a given value.</p>
+ <p>Note that a replace operation is actually implemented in terms of a remove of the old value followed by an insert/put of the new value. Thus, the new value is always the last value in the list. In other words, the replacement is not in-place.</p>
+ <p><span class="acquires" /></p>
+ <ul>
+  <li>a <a href="../overview/#reader-lock">reader lock</a> on the map object.</li>
+  <li>a <a href="../overview/#writer-lock">writer lock</a> on the list associated with key.</li>
+ </ul>
+ <p><span class="returns" />the number of values that have been replaced.</p>
 </div>
 
 <div class="reference-more">
  <h4 id="map-for-each-key">
-  <code>template &lt;typename Procedure&gt;</code><br>
+  <code>template &lt;typename <a href="#procedure">Procedure</a>&gt;</code><br>
   <code>void Map::forEachKey(Procedure process) const</code>
  </h4>
- <p>Applies process to each key whose list is not empty. The process argument can be any callable that implements the <a href="#procedure">Procedure</a> interface. </p>
- <p><span class="acquires" />a <a href="#reader-lock">reader lock</a> on the map object.</p>
+ <p>Applies process to each key in the map.</p>
+ <p><span class="acquires" />a <a href="../overview/#reader-lock">reader lock</a> on the map object.</p>
 </div>
 
 <div class="reference-more">
  <h4 id="map-for-each-value">
-  <code>template &lt;typename Procedure&gt;</code><br>
+  <code>template &lt;typename <a href="#procedure">Procedure</a>&gt;</code><br>
   <code>void Map::forEachValue(const Bytes & key, Procedure process) const</code>
  </h4>
- <p>Applies process to each value associated with key. The process argument can be any callable that implements the <a href="#procedure">Procedure</a> interface. </p>
+ <p>Applies process to each value in the list associated with the specified key.</p>
  <p><span class="acquires" /></p>
  <ul>
-  <li>a <a href="#reader-lock">reader lock</a> on the map object.</li>
-  <li>a <a href="#reader-lock">reader lock</a> on the list associated with key.</li>
+  <li>a <a href="../overview/#reader-lock">reader lock</a> on the map object.</li>
+  <li>a <a href="../overview/#reader-lock">reader lock</a> on the list associated with key.</li>
  </ul>
 </div>
 
 <div class="reference-more">
  <h4 id="map-for-each-entry">
-  <code>template &lt;typename BinaryProcedure&gt;</code><br>
+  <code>template &lt;typename <a href="#binaryprocedure">BinaryProcedure</a>&gt;</code><br>
   <code>void Map::forEachEntry(BinaryProcedure process) const</code>
  </h4>
- <p>Applies process to each key-iterator pair. The process argument can be any callable that implements the <a href="#binaryprocedure">BinaryProcedure</a> interface. </p>
+ <p>Applies process to each key-iterator pair.</p>
  <p><span class="acquires" /></p>
  <ul>
-  <li>a <a href="#reader-lock">reader lock</a> on the map object.</li>
-  <li>a <a href="#reader-lock">reader lock</a> on the list that is currently processed.</li>
+  <li>a <a href="../overview/#reader-lock">reader lock</a> on the map object.</li>
+  <li>a <a href="../overview/#reader-lock">reader lock</a> on the list that is currently processed.</li>
  </ul>
 </div>
 
@@ -928,8 +1051,8 @@ namespace multimap
  <p>Returns statistical information about each partition of the map. This operation requires a traversal of the entire map visiting each entry.</p>
  <p><span class="acquires" /></p>
  <ul>
-  <li>a <a href="#reader-lock">reader lock</a> on the map object.</li>
-  <li>a <a href="#reader-lock">reader lock</a> on the list that is currently visited.</li>
+  <li>a <a href="../overview/#reader-lock">reader lock</a> on the map object.</li>
+  <li>a <a href="../overview/#reader-lock">reader lock</a> on the list that is currently visited.</li>
  </ul>
 </div>
 
@@ -940,8 +1063,8 @@ namespace multimap
  <p>Returns statistical information about the map. In fact, this method computes the total values from the result returned by calling the previous method.</p>
  <p><span class="acquires" /></p>
  <ul>
-  <li>a <a href="#reader-lock">reader lock</a> on the map object.</li>
-  <li>a <a href="#reader-lock">reader lock</a> on the list that is currently visited.</li>
+  <li>a <a href="../overview/#reader-lock">reader lock</a> on the map object.</li>
+  <li>a <a href="../overview/#reader-lock">reader lock</a> on the list that is currently visited.</li>
  </ul>
 </div>
 
@@ -951,8 +1074,8 @@ namespace multimap
   <code><script>nbsp(8)</script>const boost::filesystem::path & directory)</code>
  </h4>
  <p>Returns statistical information about each partition of the map located in directory. This method is similar to <a href="#map-get-stats">Map::getStats()</a> except that the map does not need to be instantiated.</p>
- <p><span class="acquires" />a <a href="#directory-lock">directory lock</a> on directory.</p>
- <p><span class="throws" /><a href="http://en.cppreference.com/w/cpp/error/runtime_error" target="_blank">std::runtime_error</a> if one of the following is true:</p>
+ <p><span class="acquires" />a <a href="../overview/#directory-lock">directory lock</a> on directory.</p>
+ <p><span class="throws" /><a href="http://en.cppreference.com/w/cpp/error/runtime_error">std::runtime_error</a> if one of the following is true:</p>
  <ul>
   <li>the directory does not exist</li>
   <li>the directory cannot be locked</li>
@@ -966,9 +1089,9 @@ namespace multimap
   <code><script>nbsp(8)</script>const boost::filesystem::path & directory,</code><br>
   <code><script>nbsp(8)</script>const boost::filesystem::path & input)</code>
  </h4>
- <p>Imports key-value pairs from an input file or directory into the map located in directory. If input refers to a directory all files in that directory will be imported, except hidden files starting with a dot and other sub-directories. A description of the file format can be found in the <a href="overview/#multimap-import">overview</a> section.</p>
- <p><span class="acquires" />a <a href="#directory-lock">directory lock</a> on directory.</p>
- <p><span class="throws" /> everything thrown by the constructor of class <a href="#class-map">Map</a> or <a href="http://en.cppreference.com/w/cpp/error/runtime_error" target="_blank">std::runtime_error</a> if the input file or directory cannot be read.</p>
+ <p>Imports key-value pairs from an input file or directory into the map located in directory. If input refers to a directory all files in that directory will be imported, except hidden files starting with a dot and other sub-directories. A description of the file format can be found in the <a href="../overview/#multimap-import">overview</a> section.</p>
+ <p><span class="acquires" />a <a href="../overview/#directory-lock">directory lock</a> on directory.</p>
+ <p><span class="throws" /> everything thrown by the constructor of class <a href="#class-map">Map</a> or <a href="http://en.cppreference.com/w/cpp/error/runtime_error">std::runtime_error</a> if the input file or directory cannot be read.</p>
 </div>
 
 <div class="reference-more">
@@ -977,9 +1100,9 @@ namespace multimap
   <code><script>nbsp(8)</script>const boost::filesystem::path & directory,</code><br>
   <code><script>nbsp(8)</script>const boost::filesystem::path & output)</code>
  </h4>
- <p>Exports all key-value pairs from the map located in directory to a file denoted by output. If the file already exists, its content will be overwritten. The generated file is in canonical form as described in the <a href="overview/#multimap-export">overview</a> section.</p>
- <p><span class="acquires" />a <a href="#directory-lock">directory lock</a> on directory.</p>
- <p><span class="throws" /><a href="http://en.cppreference.com/w/cpp/error/runtime_error" target="_blank">std::runtime_error</a> if one of the following is true:</p>
+ <p>Exports all key-value pairs from the map located in directory to a file denoted by output. If the file already exists, its content will be overwritten. The generated file is in canonical form as described in the <a href="../overview/#multimap-export">overview</a> section.</p>
+ <p><span class="acquires" />a <a href="../overview/#directory-lock">directory lock</a> on directory.</p>
+ <p><span class="throws" /><a href="http://en.cppreference.com/w/cpp/error/runtime_error">std::runtime_error</a> if one of the following is true:</p>
  <ul>
   <li>the directory does not exist</li>
   <li>the directory cannot be locked</li>
@@ -994,9 +1117,9 @@ namespace multimap
   <code><script>nbsp(8)</script>const boost::filesystem::path & directory,</code><br>
   <code><script>nbsp(8)</script>const boost::filesystem::path & output)</code>
  </h4>
- <p>Rewrites the map located in directory to the directory denoted by output performing various optimizations. For more details please refer to the <a href="overview/#multimap-optimize">overview</a> section.</p>
- <p><span class="acquires" />a <a href="#directory-lock">directory lock</a> on directory.</p>
- <p><span class="throws" /><a href="http://en.cppreference.com/w/cpp/error/runtime_error" target="_blank">std::runtime_error</a> if one of the following is true:</p>
+ <p>Rewrites the map located in directory to the directory denoted by output performing various optimizations. For more details please refer to the <a href="../overview/#multimap-optimize">overview</a> section.</p>
+ <p><span class="acquires" />a <a href="../overview/#directory-lock">directory lock</a> on directory.</p>
+ <p><span class="throws" /><a href="http://en.cppreference.com/w/cpp/error/runtime_error">std::runtime_error</a> if one of the following is true:</p>
  <ul>
   <li>the directory does not exist</li>
   <li>the directory cannot be locked</li>
@@ -1005,55 +1128,7 @@ namespace multimap
  </ul>
 </div>
 
-<h3 id="type-mapiterator">type Map::Iterator</h3>
-<p>This type represents an iterator to read a list of values, possibly by streaming them from an external device.</p>
-<p>The iterator supports lazy initialization, which means that no I/O operation is performed until a value is actually requested. This might be useful in cases where multiple iterators have to be collected first to determine in which order they have to be processed.</p>
-<p>The iterator also owns a reader lock for the underlying list for synchronization purposes. This lock is automatically released when the iterator's destructor is called.</p>
-<table class="reference-table">
-<tbody>
- <tr>
-  <th colspan="2">Member functions</th>
- </tr>
- <tr>
-  <td><code>uint32_t</code></td>
-  <td>
-   <code>available() const</code>
-   <div>Returns the remaining number of values to be iterated. Calling this method does not trigger any I/O operation.<div>
-  </td>
- </tr>
- <tr>
-  <td><code>bool</code></td>
-  <td>
-   <code>hasNext() const</code>
-   <div>Returns true if the iterator has more values, false otherwise.<div>
-  </td>
- </tr>
- <tr>
-  <td><code>Bytes</code></td>
-  <td>
-   <code>next()</code>
-   <div>Returns the next value from the underlying list and moves the iterator once forward. <a href="#map-iterator-next">more...</a><div>
-  </td>
- </tr>
- <tr>
-  <td><code>Bytes</code></td>
-  <td>
-   <code>peekNext()</code>
-   <div>Same as before, but does not move the iterator once forward.<div>
-  </td>
- </tr>
-</tbody>
-</table>
-
-<div class="reference-more">
- <h4 id="map-iterator-next">
-  <code><a href="#class-bytes">Bytes</a> Map::Iterator::next()</code>
- </h4>
- <p>Returns the next value from the underlying list and moves the iterator once forward. The returned <a href="#class-bytes">Bytes</a> object points to data managed by the iterator and is only valid for read access until the next call of this method. Reading from invalid data is undefined behavior. A deep copy of the value can be created by either calling its <a href="#bytes-tostring">toString()</a> method or <a href="http://en.cppreference.com/w/cpp/string/byte/memcpy" target="_blank">std::memcpy()</a> its data into another buffer.</p>
- <p><span class="requires" /><code>hasNext()</code> yields true.</p>
-</div>
-
-<h3 id="type-maplimits">type Map::Limits</h3>
+<h3 id="struct-maplimits">struct Map::Limits</h3>
 <p>This type represents a namespace that provides static methods for obtaining system limitations. Those limits which define constraints on user supplied data also serve as preconditions.</p>
 <table class="reference-table">
 <tbody>
@@ -1077,7 +1152,90 @@ namespace multimap
 </tbody>
 </table>
 
-<h3 id="type-mapstats">type Map::Stats</h3>
+<h3 id="struct-mapoptions">struct Map::Options</h3>
+<p>This class is a pure data holder used for configuration purposes.</p>
+<table class="reference-table">
+<tbody>
+ <tr>
+  <th colspan="2">Data members</th>
+ </tr>
+ <tr>
+  <td><code>uint32_t</code></td>
+  <td>
+   <code>block_size</code>
+   <div>Defines the block size in number of bytes for a newly created map or partition. The value must be a power of two. Typical block sizes are 128, 256, 512 (default), 1024, or even larger. Please refer to the <a href="../overview/#block-organization">overview</a> section for more details.<div>
+  </td>
+ </tr>
+ <tr>
+  <td><code>uint32_t</code></td>
+  <td>
+   <code>num_partitions</code>
+   <div>Defines the number of partitions for a newly created map. The purpose of partitioning is to increase the performance of the <a href="../overview/#multimap-export">export</a> and <a href="../overview/#multimap-optimize">optimize</a> operations by applying a divide and conquer method. A suitable number can be estimated like this: "total number of value-bytes to be put" divided by "the memory allowed to be used running the operation". An underestimate can lead to long runtimes for the mentioned operations. The default value is 23; other values will be rounded to the next prime number that is greater or equal to the given value.<div>
+  </td>
+ </tr>
+ <tr>
+  <td><code>uint32_t</code></td>
+  <td>
+   <code>buffer_size</code>
+   <div>Defines the size of an internal buffer that contains blocks to be written. The default value is 1 MiB; other values are required to be a multiple of the given block size. Most users should leave this parameter alone.<div>
+  </td>
+ </tr>
+ <tr>
+  <td><code>bool</code></td>
+  <td>
+   <code>create_if_missing</code>
+   <div>If set to true, creates a new map if it does not exist. The default value is false.<div>
+  </td>
+ </tr>
+ <tr>
+  <td><code>bool</code></td>
+  <td>
+   <code>error_if_exists</code>
+   <div>If set to true, throws an exception if a map already exists. The default value is false.<div>
+  </td>
+ </tr>
+ <tr>
+  <td><code>bool</code></td>
+  <td>
+   <code>readonly</code>
+   <div>If set to true, opens a map in read-only mode. In this mode all operations that could possibly modify the stored data are not allowed and will throw an exception on an attempt to do so. This flag is useful to prevent unintentional updates of read-only datasets. The default value is false.<div>
+  </td>
+ </tr>
+ <tr>
+  <td><code>bool</code></td>
+  <td>
+   <code>quiet</code>
+   <div>If set to true, no status information for long running operations are sent to stdout. This flag is useful for writing shell scripts. The default value is false.<div>
+  </td>
+ </tr>
+ <tr>
+  <td><code>Compare</code></td>
+  <td>
+   <code>compare</code>
+   <div>A callable that implements the <a href="#compare">Compare</a> interface. It is used to sort lists of values when running certain operations such as <a href="../overview/#multimap-export">export</a> or <a href="../overview/#multimap-optimize">optimize</a>. Actually this member is a <a href="http://en.cppreference.com/w/cpp/utility/functional/function">function wrapper</a>, not a generic type, which can be left empty (default) if no sorting is desired.<div>
+  </td>
+ </tr>
+ <tr>
+  <th colspan="2">Member functions</th>
+ </tr>
+ <tr>
+  <td><code>void</code></td>
+  <td>
+   <code>keepNumPartitions()</code>
+   <div>Sets <code>num_partitions</code> to a special value that indicates to the <a href="../overview/#multimap-optimize">optimize</a> operation that the number of partitions should not be changed. <div>
+  </td>
+ </tr>
+ <tr>
+  <td><code>void</code></td>
+  <td>
+   <code>keepBlockSize()</code>
+   <div>Sets <code>block_size</code> to a special value that indicates to the <a href="../overview/#multimap-optimize">optimize</a> operation that the block size should not be changed.<div>
+  </td>
+ </tr>
+</tbody>
+</table>
+
+<h3 id="struct-mapstats">struct Map::Stats</h3>
 <p>This type is a pure data holder for reporting statistical information.</p>
 <table class="reference-table">
 <tbody>
@@ -1088,7 +1246,7 @@ namespace multimap
   <td><code>uint64_t</code></td>
   <td>
    <code>block_size</code>
-   <div>Tells the block size of the map or partition which was defined in <a href="#class-options">Options</a> when creating the map.<div>
+   <div>Tells the block size of the map or partition which was defined in <a href="#struct-mapoptions">Options</a> when creating the map.<div>
   </td>
  </tr>
  <tr>
@@ -1137,7 +1295,7 @@ namespace multimap
   <td><code>uint64_t</code></td>
   <td>
    <code>num_blocks</code>
-   <div>Tells the number of blocks currently written to disk. Note that in-memory write buffer blocks that are associated with each keys are not taken into account. For more details please refer to the <a href="overview/#block-organization">overview</a> section.<div>
+   <div>Tells the number of blocks currently written to disk. Note that in-memory write buffer blocks that are associated with each keys are not taken into account. For more details please refer to the <a href="../overview/#block-organization">overview</a> section.<div>
   </td>
  </tr>
  <tr>
@@ -1158,7 +1316,7 @@ namespace multimap
   <td><code>uint64_t</code></td>
   <td>
    <code>num_values_total</code>
-   <div>Tells the total number of values in a map or partition, including values that are marked as removed. Note that this number can only be decreased by running an <a href="overview/#multimap-optimize">optimize</a> operation.
+   <div>Tells the total number of values in a map or partition, including values that are marked as removed. Note that this number can only be decreased by running an <a href="../overview/#multimap-optimize">optimize</a> operation.
   </td>
  </tr>
  <tr>
@@ -1178,96 +1336,8 @@ namespace multimap
 </tbody>
 </table>
 
-<h2 id="optionshpp">Options.hpp</h2>
-<pre><code class="cpp">#include &lt;multimap/Options.hpp&gt;
-namespace multimap
-</code></pre>
-
-<h3 id="class-options">class Options</h3>
-<p>This class is a pure data holder used for configuration purposes.</p>
-<table class="reference-table">
-<tbody>
- <tr>
-  <th colspan="2">Data members</th>
- </tr>
- <tr>
-  <td><code>uint32_t</code></td>
-  <td>
-   <code>block_size</code>
-   <div>Defines the block size in number of bytes for a newly created map or partition. The value must be a power of two. Typical block sizes are 128, 256, 512 (default), 1024, or even larger. Please refer to the <a href="overview/#block-organization">overview</a> section for more details.<div>
-  </td>
- </tr>
- <tr>
-  <td><code>uint32_t</code></td>
-  <td>
-   <code>num_partitions</code>
-   <div>Defines the number of partitions for a newly created map. The purpose of partitioning is to increase the performance of the <a href="overview/#multimap-export">export</a> and <a href="overview/#multimap-optimize">optimize</a> operations by applying a divide and conquer method. A suitable number can be estimated like this: "total number of value-bytes to be put" divided by "the memory allowed to be used running the operation". An underestimate can lead to long runtimes for the mentioned operations. The default value is 23; other values will be rounded to the next prime number that is greater or equal to the given value.<div>
-  </td>
- </tr>
- <tr>
-  <td><code>uint32_t</code></td>
-  <td>
-   <code>buffer_size</code>
-   <div>Defines the size of an internal buffer that contains blocks to be written. The default value is 1 MiB; other values are required to be a multiple of the given block size. Most users should leave this parameter alone.<div>
-  </td>
- </tr>
- <tr>
-  <td><code>bool</code></td>
-  <td>
-   <code>create_if_missing</code>
-   <div>If set to true, creates a new map if it does not exist. The default value is false.<div>
-  </td>
- </tr>
- <tr>
-  <td><code>bool</code></td>
-  <td>
-   <code>error_if_exists</code>
-   <div>If set to true, throws an exception if a map already exists. The default value is false.<div>
-  </td>
- </tr>
- <tr>
-  <td><code>bool</code></td>
-  <td>
-   <code>readonly</code>
-   <div>If set to true, opens a map in read-only mode. In this mode all operations that could possibly modify the stored data are not allowed and will throw an exception on an attempt to do so. This flag is useful to prevent unintentional updates of read-only datasets. The default value is false.<div>
-  </td>
- </tr>
- <tr>
-  <td><code>bool</code></td>
-  <td>
-   <code>quiet</code>
-   <div>If set to true, no status information for long running operations are sent to stdout. This flag is useful for writing shell scripts. The default value is false.<div>
-  </td>
- </tr>
- <tr>
-  <td><code>Compare</code></td>
-  <td>
-   <code>compare</code>
-   <div>A callable that implements the <a href="#compare">Compare</a> interface. It is used to sort lists of values when running certain operations such as <a href="overview/#multimap-export">export</a> or <a href="overview/#multimap-optimize">optimize</a>. Actually this member is a <a href="http://en.cppreference.com/w/cpp/utility/functional/function" target="_blank">function wrapper</a>, not a generic type, which can be left empty (default) if no sorting is desired.<div>
-  </td>
- </tr>
- <tr>
-  <th colspan="2">Member functions</th>
- </tr>
- <tr>
-  <td><code>void</code></td>
-  <td>
-   <code>keepNumPartitions()</code>
-   <div>Sets <code>num_partitions</code> to a special value that indicates to the <a href="overview/#multimap-optimize">optimize</a> operation that the number of partitions should not be changed. <div>
-  </td>
- </tr>
- <tr>
-  <td><code>void</code></td>
-  <td>
-   <code>keepBlockSize()</code>
-   <div>Sets <code>block_size</code> to a special value that indicates to the <a href="overview/#multimap-optimize">optimize</a> operation that the block size should not be changed.<div>
-  </td>
- </tr>
-</tbody>
-</table>
-
 <h2 id="interfaces">Interfaces</h2>
-<p>The interfaces described here are requirements expected by some user-provided function objects. They are typically employed as template parameters and are not to be confused with abstract classes used in object-oriented programming. Sometimes this type of interfaces is also referred to as <a href="http://en.cppreference.com/w/cpp/concept" target="_blank">Concepts</a>.</p>
+<p>The interfaces described here are requirements expected by some user-provided function objects. They are typically employed as template parameters and are not to be confused with abstract classes used in object-oriented programming. Sometimes this type of interfaces is also referred to as <a href="http://en.cppreference.com/w/cpp/concept">Concepts</a>.</p>
 <h3 id="compare">Compare</h3>
 <p>A callable that is applied to two instances of class <a href="#class-bytes">Bytes</a> returning a boolean that tells if the left operand is less than the right operand. This interface is equivalent to the Compare concept described <a href="http://en.cppreference.com/w/cpp/concept/Compare">here</a>. Objects implementing this interface are typically used by sorting algorithms.</p>
 <table class="reference-table">
@@ -1337,7 +1407,7 @@ namespace multimap
 </table>
 
 <h3 id="binaryprocedure">BinaryProcedure</h3>
-<p>A callable that is applied to a pair of objects without returning a value. The first object being an instance of class <a href="#class-bytes">Bytes</a> and the second object being an instance of class <a href="#type-mapiterator">Map::Iterator</a>. Binary procedures may maintain an internal state that changes during application. Objects implementing this interface are typically used to visit entries when traversing a map.</p>
+<p>A callable that takes two arguments and does not return a value. The first argument being an instance of class <a href="#class-bytes">Bytes</a> and the second argument being a pointer to an object implementing the <a href="#class-iterator">Iterator</a> interface. Binary procedures may maintain an internal state that changes during application. Objects implementing this interface are typically used to visit entries when traversing a map.</p>
 <table class="reference-table">
 <tbody>
  <tr>
@@ -1346,23 +1416,12 @@ namespace multimap
  <tr>
   <td><code>void</code></td>
   <td>
-   <code>operator()(const Bytes & key, Map::Iterator iterator)</code>
-   <div>Processes a list iterator that is associated with key, possibly changing the callable's state. Note that as long as the iterator is alive, the corresponding list is locked by a <a href="#reader-lock">reader lock</a>.<div>
+   <code>operator()(const Bytes & key, Iterator * iterator)</code>
+   <div>Processes the list associated with key, possibly changing the callable's state. The lifetime of the given iterator ends when the function has terminated. Do not keep a copy of the pointer in the callable's state.<div>
   </td>
  </tr>
 </tbody>
 </table>
-
-<h2 id="locking">Locking</h2>
-<p>Multimap makes use of three kinds of locks in order to synchronize concurrent access to objects of type <a href="#class-map">Map</a>.</p>
-<h3 id="directory-lock">Directory Lock</h3>
-<p>A directory lock is a simple file located in the directory where a map lives. Such a file is created when a <a href="#class-map">Map</a> object is instantiated or any of its static member functions is called. When the object gets destructed or the function terminates the file is automatically deleted. The directory lock ensures that only one process can access a map at the same time.</p>
-<h3 id="reader-lock">Reader Lock</h3>
-<p>A reader lock, also called shared lock, locks an object for read-only access. Multimap uses such locks to protect lists of values that are currently in use against modification by other threads. However, a single list can be read-locked by multiple threads at the same time.</p>
-<p>A reader lock is typically wrapped and owned by an iterator returned from calling <a href="#map-get">Map::get()</a>. According to <a href="http://en.cppreference.com/w/cpp/language/raii" target="_blank">RAII</a> the lock is automatically released when the iterator gets destructed. Any method of <a href="#class-map">Map</a> that needs to acquire a reader lock to perform its operation will block if the resource is currently locked by a writer lock and until this lock is released.</p>
-<h3 id="writer-lock">Writer Lock</h3>
-<p>A writer lock, also called exclusive or unique lock, locks an object for read-write access. Multimap uses such locks to gain exclusive access to lists of values for modification purposes. When a list is locked by a writer lock it cannot be locked by any other reader or writer lock at the same time.</p>
-<p>Unlike reader locks that are wrapped by iterators, the ownership of writer locks is never transferred to the client in order to reduce the risk of running into deadlocks. Nevertheless, iterators that allow the modification of the underlying list are used inside the library. So, any method of <a href="#class-map">Map</a> that needs to acquire a writer lock to perform its operation will block if the resource is currently locked either by a reader lock or writer lock, and until this lock is released.</p>
               </div>
               <div class="col-md-3" role="complementary">
                 <nav id="multimap-sidebar"
@@ -1378,14 +1437,10 @@ namespace multimap
                         </ul>
                       </li>
                     
-                      <li><a href="#callableshpp">callables.hpp</a>
+                      <li><a href="#iteratorhpp">Iterator.hpp</a>
                         <ul>
                           
-                          <li><a href="#struct-contains">struct Contains</a></li>
-                          
-                          <li><a href="#struct-startswith">struct StartsWith</a></li>
-                          
-                          <li><a href="#struct-endswith">struct EndsWith</a></li>
+                          <li><a href="#class-iterator">class Iterator</a></li>
                           
                         </ul>
                       </li>
@@ -1395,19 +1450,11 @@ namespace multimap
                           
                           <li><a href="#class-map">class Map</a></li>
                           
-                          <li><a href="#type-mapiterator">type Map::Iterator</a></li>
+                          <li><a href="#struct-maplimits">struct Map::Limits</a></li>
                           
-                          <li><a href="#type-maplimits">type Map::Limits</a></li>
+                          <li><a href="#struct-mapoptions">struct Map::Options</a></li>
                           
-                          <li><a href="#type-mapstats">type Map::Stats</a></li>
-                          
-                        </ul>
-                      </li>
-                    
-                      <li><a href="#optionshpp">Options.hpp</a>
-                        <ul>
-                          
-                          <li><a href="#class-options">class Options</a></li>
+                          <li><a href="#struct-mapstats">struct Map::Stats</a></li>
                           
                         </ul>
                       </li>
@@ -1424,18 +1471,6 @@ namespace multimap
                           <li><a href="#procedure">Procedure</a></li>
                           
                           <li><a href="#binaryprocedure">BinaryProcedure</a></li>
-                          
-                        </ul>
-                      </li>
-                    
-                      <li><a href="#locking">Locking</a>
-                        <ul>
-                          
-                          <li><a href="#directory-lock">Directory Lock</a></li>
-                          
-                          <li><a href="#reader-lock">Reader Lock</a></li>
-                          
-                          <li><a href="#writer-lock">Writer Lock</a></li>
                           
                         </ul>
                       </li>
@@ -1461,15 +1496,15 @@ namespace multimap
           <img style="float:right" src="../img/agpl-v3-logo-white-on-gray.png" />
         </a>
         <p>
-          <i class="fa fa-copyright"></i> 2015-2016 by <a href="https://github.com/mtrenkmann" target="_blank">Martin Trenkmann</a>
+          <i class="fa fa-copyright"></i> 2015-<script>year()</script> by <a href="https://github.com/mtrenkmann">Martin Trenkmann</a>
         </p>
-        <p>Documentation built with <a href="http://getbootstrap.com/" target="_blank">Bootstrap</a>
-          &middot; <a href="http://www.tipo.net.ar/" target="_blank">Faster One</a>
-          &middot; <a href="http://www.carrois.com/fira-4-1/" target="_blank">Fira</a>
-          &middot; <a href="http://fontawesome.io/" target="_blank">Font Awesome</a>
-          &middot; <a href="https://highlightjs.org/" target="_blank">highlight.js</a>
-          &middot; <a href="https://daringfireball.net/projects/markdown/" target="_blank">Markdown</a>
-          &middot; <a href="http://www.mkdocs.org/" target="_blank">MkDocs</a></p>
+        <p>Documentation built with <a href="http://getbootstrap.com/">Bootstrap</a>
+          &middot; <a href="http://www.tipo.net.ar/">Faster One</a>
+          &middot; <a href="http://www.carrois.com/fira-4-1/">Fira</a>
+          &middot; <a href="http://fontawesome.io/">Font Awesome</a>
+          &middot; <a href="https://highlightjs.org/">highlight.js</a>
+          &middot; <a href="https://daringfireball.net/projects/markdown/">Markdown</a>
+          &middot; <a href="http://www.mkdocs.org/">MkDocs</a></p>
       </div>
     </footer>
   </body>

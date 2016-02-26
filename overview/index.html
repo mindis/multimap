@@ -46,6 +46,9 @@
           document.write("&nbsp;");
         }
       }
+      function year() {
+        document.write(new Date().getFullYear());
+      }
     </script>
   </head>
   
@@ -126,8 +129,23 @@
                 
               
                 
-                  <li >
-                    <a href="../installation/">Installation</a>
+                  <li class="dropdown ">
+                    <a href="#">Installation <span class="caret"></span></a>
+                    <ul class="dropdown-menu">
+                      
+                        
+                          <li >
+                            <a href="../installation-linux/">GNU/Linux</a>
+                          </li>
+                        
+                      
+                        
+                          <li >
+                            <a href="../installation-osx/">OS X</a>
+                          </li>
+                        
+                      
+                    </ul>
                   </li>
                 
               
@@ -135,9 +153,9 @@
               <li class="dropdown">
                 <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">GitHub <span class="caret"></span></a>
                 <ul class="dropdown-menu">
-                  <li><a href="https://github.com/mtrenkmann/multimap" target="_blank">View on GitHub</a></li>
-                  <li><a href="https://github.com/mtrenkmann/multimap/issues" target="_blank">Create an Issue</a></li>
-                  <li><a href="https://github.com/mtrenkmann/multimap/subscription" target="_blank">Watch this Project</a></li>
+                  <li><a href="https://github.com/mtrenkmann/multimap">View on GitHub</a></li>
+                  <li><a href="https://github.com/mtrenkmann/multimap/issues">Create an Issue</a></li>
+                  <li><a href="https://github.com/mtrenkmann/multimap/subscription">Watch this Project</a></li>
                 </ul>
               </li>
             </ul>
@@ -258,49 +276,62 @@ num_blocks      = (num_values * avg_value_size) / block_size
 </table>
 <h2 id="serialization">Serialization</h2>
 <p>As mentioned previously, keys and values are arbitrary byte arrays. This has the advantage that Multimap does not need to deal with packing/unpacking of user-defined data types and leaves the door open for compression (currently not applied). For the user this has the advantage that he/she can stick with his/her preferred serialization method.</p>
-<p>On the other hand, this approach has the disadvantage that values are seen as <a href="https://en.wikipedia.org/wiki/Binary_large_object" target="_blank">binary large objects</a> with no type information. In other words, a value is treated as one entity and therefore can only be deleted or replaced as a whole. Updates on individual fields of composite types are not possible.</p>
+<p>On the other hand, this approach has the disadvantage that values are seen as <a href="https://en.wikipedia.org/wiki/Binary_large_object">binary large objects</a> with no type information. In other words, a value is treated as one entity and therefore can only be deleted or replaced as a whole. Updates on individual fields of composite types are not possible.</p>
 <!--
 The tutorial pages demonstrate how Multimap can be used together with some popular serialization libraries.
 -->
 
-<p>For more information please refer to Wikipedia's <a href="https://en.wikipedia.org/wiki/Comparison_of_data_serialization_formats" target="_blank">comparison of data serialization formats</a>.</p>
+<p>For more information please refer to <a href="https://en.wikipedia.org/wiki/Comparison_of_data_serialization_formats">comparison of data serialization formats</a>.</p>
+<h2 id="locking">Locking</h2>
+<p>Multimap makes use of three kinds of locks in order to synchronize concurrent access.</p>
+<h3 id="directory-lock">Directory Lock</h3>
+<p>A directory lock ensures that only one process can access a map at a time. The lock itself is a simple text file located in the directory where a map lives, and which contains the id of the accessing process. The file is created when a map is instantiated or any of its static member functions is called. When the object gets deleted or the static method terminates the file is deleted automatically.</p>
+<h3 id="reader-lock">Reader Lock</h3>
+<p>A reader lock, also called shared lock, protects a list against modification by other threads. Since this lock allows read-only access to a list, multiple threads can acquire a reader lock for the same list at a time. The reader lock object is typically wrapped and owned by an iterator given to the client. According to <a href="http://en.cppreference.com/w/cpp/language/raii">RAII</a> the lock is automatically released when the iterator is deleted. Any operation that needs to acquire a reader lock will block if the resource is currently locked by a writer lock and until this lock is released.</p>
+<h3 id="writer-lock">Writer Lock</h3>
+<p>A writer lock, also called exclusive or unique lock, locks a list for modification purposes. Since this lock allows read-write access to a list, only one thread can acquire a writer lock for a list at a time. Unlike reader locks which are wrapped by iterators, the ownership of writer locks is never transferred to the client in order to reduce the risk of running into deadlocks. Nevertheless, iterators that allow the modification of lists are used inside the library to implement remove and replace operations. As a consequence, such operations will block if the list is already locked by any other lock, and until this lock is released.</p>
+<p>Guideline:</p>
+<ul>
+<li>Do not own an iterator longer as needed since it will block other threads trying to modify the same list.</li>
+<li>Never try to run a modifying operation while owning an iterator to the same list if you won't run into deadlocks.</li>
+</ul>
 <h2 id="command-line-tool">Command Line Tool</h2>
 <p>Multimap also comes with a command line tool that can and should be installed in addition to the shared library. The tool allows you to perform some administration operations right in your terminal. Here is the help page:</p>
 <pre><code class="plain">$ multimap help
 USAGE
 
-  multimap COMMAND PATH_TO_MAP [PATH] [OPTIONS]
+  multimap COMMAND path/to/map [PATH] [OPTIONS]
 
 COMMANDS
 
   help           Print this help message and exit.
   stats          Print statistics about an instance.
-  import         Import key-value pairs from Base64-encoded text files.
-  export         Export key-value pairs to a Base64-encoded text file.
+  import         Import key-value pairs in Base64 encoding from text files.
+  export         Export key-value pairs in Base64 encoding to a text file.
   optimize       Rewrite an instance performing various optimizations.
 
 OPTIONS
 
-  --create       Create a new instance if missing when importing data.
-  --bs      NUM  Block size to use for a new instance. Default is 512.
-  --nparts  NUM  Number of partitions to use for a new instance. Default is 23.
-  --quiet        Don't print out any status messages.
+  -create        Create a new instance if missing when importing data.
+  -bs       NUM  Block size to use for a new instance. Default is 512.
+  -nparts   NUM  Number of partitions to use for a new instance. Default is 23.
+  -quiet         Don't output any status messages.
 
 EXAMPLES
 
   multimap stats    path/to/map
   multimap import   path/to/map path/to/input
-  multimap import   path/to/map path/to/input/base64.csv
-  multimap import   path/to/map path/to/input/base64.csv --create
-  multimap export   path/to/map path/to/output/base64.csv
+  multimap import   path/to/map path/to/input.csv
+  multimap import   path/to/map path/to/input.csv -create
+  multimap export   path/to/map path/to/output.csv
   multimap optimize path/to/map path/to/output
-  multimap optimize path/to/map path/to/output --bs 128
-  multimap optimize path/to/map path/to/output --nparts 42
-  multimap optimize path/to/map path/to/output --nparts 42 --bs 128
+  multimap optimize path/to/map path/to/output -bs 128
+  multimap optimize path/to/map path/to/output -nparts 42
+  multimap optimize path/to/map path/to/output -nparts 42 -bs 128
 
 
 Copyright (C) 2015-2016 Martin Trenkmann
-&lt;http://multimap.io&gt;
+&lt;http://multimap.io&gt; version 0.5.0
 </code></pre>
 
 <h3 id="multimap-stats">$ multimap stats</h3>
@@ -313,12 +344,12 @@ Copyright (C) 2015-2016 Martin Trenkmann
 #0   list_size_avg     45        *******************
 #0   list_size_max     974136    ****
 #0   list_size_min     1         ******************************
-#0   num_blocks        3170842   ******************
+#0   num_blocks        3744150   ********************
 #0   num_keys_total    573308    ******************************
 #0   num_keys_valid    573308    ******************************
 #0   num_values_total  25836927  *******************
 #0   num_values_valid  25836927  *******************
-#0   num_partitions    0
+#0   num_partitions    0         
 
 #1   block_size        128       ******************************
 #1   key_size_avg      8         ******************************
@@ -327,7 +358,7 @@ Copyright (C) 2015-2016 Martin Trenkmann
 #1   list_size_avg     45        *******************
 #1   list_size_max     1010385   ****
 #1   list_size_min     1         ******************************
-#1   num_blocks        3209400   *******************
+#1   num_blocks        3781806   ********************
 #1   num_keys_total    572406    ******************************
 #1   num_keys_valid    572406    ******************************
 #1   num_values_total  26124736  *******************
@@ -343,7 +374,7 @@ Copyright (C) 2015-2016 Martin Trenkmann
 ===  list_size_avg     47       
 ===  list_size_max     8259736  
 ===  list_size_min     1        
-===  num_blocks        77641183 
+===  num_blocks        90808430 
 ===  num_keys_total    13167247 
 ===  num_keys_valid    13167247 
 ===  num_values_total  629686802
@@ -351,7 +382,7 @@ Copyright (C) 2015-2016 Martin Trenkmann
 ===  num_partitions    23
 </code></pre>
 
-<p>Since a map is divided into several partitions there is one info block per partition, followed by a final block that states the total numbers. The asterisks visualize the numbers as relative values with respect to the partition with the maximum value in this category. The output can be filtered with a little help from <code>grep</code>. For example, a histogram that shows the distribution of values among the partitions can be generated like this:</p>
+<p>Since a map is divided into several partitions, there is one info block per partition followed by a final block that states the total numbers. The asterisks visualize the numbers as relative values with respect to the partition with the maximum value in this category. The output can be filtered with a little help from <code>grep</code>. For example, a histogram that shows the distribution of values among the partitions can be generated like this:</p>
 <pre><code class="plain">$ multimap stats path/to/map | grep values_total
 #0   num_values_total  25836927  *******************
 #1   num_values_total  26124736  *******************
@@ -379,7 +410,7 @@ Copyright (C) 2015-2016 Martin Trenkmann
 ===  num_values_total  629686802
 </code></pre>
 
-<p>Similarly, to print only the total values you can run:</p>
+<p>Similarly, to get only the total values you can run:</p>
 <pre><code class="plain">$ multimap stats path/to/map | grep =
 ===  block_size        128      
 ===  key_size_avg      8        
@@ -388,7 +419,7 @@ Copyright (C) 2015-2016 Martin Trenkmann
 ===  list_size_avg     47       
 ===  list_size_max     8259736  
 ===  list_size_min     1        
-===  num_blocks        77641183 
+===  num_blocks        90808430 
 ===  num_keys_total    13167247 
 ===  num_keys_valid    13167247 
 ===  num_values_total  629686802
@@ -397,9 +428,9 @@ Copyright (C) 2015-2016 Martin Trenkmann
 </code></pre>
 
 <h3 id="multimap-import">$ multimap import</h3>
-<p>This command allows you to import key-value pairs from Base64-encoded text files. The file format is defined as follows:</p>
+<p>This command allows you to import key-value pairs in Base64 encoding from text files. Such an input file must meet the following requirements:</p>
 <ul>
-<li>The file is in <a href="https://en.wikipedia.org/wiki/Comma-separated_values" target="_blank">CSV format</a>.</li>
+<li>The file is in <a href="https://en.wikipedia.org/wiki/Comma-separated_values">CSV format</a>.</li>
 <li>The delimiter is whitespace or tab.</li>
 <li>Each line starts with a key followed by one or more values.</li>
 <li>Multiple lines may start with the same key.</li>
@@ -433,7 +464,7 @@ key3 value8
 
 <p>The second listing is in canonical form, which means that all values sharing the same key are in one line. In other words, in a file that is in canonical form, there are no two lines that begin with the same key.</p>
 <h3 id="multimap-export">$ multimap export</h3>
-<p>This command allows you to export all key-value pairs from a map into a single text file. The format of this file follows the description given in the <a href="#multimap-import">previous section</a>. The generated file is in canonical form. This feature is useful for data exchange to other libraries and frameworks, or for backup purposes.</p>
+<p>This command allows you to export all key-value pairs from a map into a single text file. The format of this file follows the description given above. The generated file is in canonical form. This feature is useful for data exchange to other libraries and frameworks, or for backup purposes.</p>
 <h3 id="multimap-optimize">$ multimap optimize</h3>
 <p>The optimize operation rewrites the entire map performing the following tasks:</p>
 <ul>
@@ -443,15 +474,15 @@ key3 value8
 <p>In addition, some optional settings can be applied:</p>
 <ul>
 <li>New block size. Changing the block size could be necessary to tweak the memory footprint.</li>
-<li>List sorting. All lists can be sorted applying a user-defined compare function. This option is only available when using the <a href="../cppreference">C++</a> and <a href="../javareference">Java API</a> directly.</li>
+<li>List sorting. All lists can be sorted applying a user-defined compare function. This option is only available when using the <a href="../cppreference">C++</a> or <a href="../javareference">Java API</a> directly.</li>
 </ul>
 <h2 id="qa">Q&amp;A</h2>
 <p><span class="qa-q" /> Why are all keys held in memory?<br>
-<span class="qa-a" /> Multimap is designed for relatively small keys like dictionary words. Therefore, the footprint of the entire key set is rather small compared to all in-memory blocks that are used as write buffers. Furthermore, the library aims to run on server machines which tend to have more and more memory available. And of course, an internal hash table is a lot faster and easier to maintain than a partly externalized B+ tree or something similar.</p>
+<span class="qa-a" /> Multimap is designed for relatively short keys like dictionary words. Therefore, the footprint of the entire key set is rather small compared to all in-memory blocks that are used as write buffers. Furthermore, the library aims to run on server machines which tend to have more and more memory available. And of course, an internal hash table is a lot faster and easier to maintain than a partly externalized B+ tree or something similar.</p>
 <p><span class="qa-q" /> Why both keys and values have to be byte arrays?<br>
-<span class="qa-a" /> Multimap aims to keep things simple. There are plenty of very good <a href="https://en.wikipedia.org/wiki/Comparison_of_data_serialization_formats" target="_blank">serialization libraries</a> available so that users can freely choose their preferred method. Reading and writing raw binary data also makes Multimap independent from such libraries which in turn facilitates data exchange with different programming languages and/or systems. On the other hand, due to lack of type information Multimap cannot operate on individual fields of composite types without injecting code for packing/unpacking.</p>
-<p><span class="qa-q" /> Why values cannot be replaced in-place?<br>
-<span class="qa-a" /> Values are written to disk in the same order as they were put without leaving any gaps. Therefore, if a new value is larger than the old one there is simply not enough room for it. An in-place replacement would be possible, though, if the value size is fixed. Maybe this option will be provided in further releases. Anyway, replacing values is considered a little-frequented operation. If you really want to have the new value at the old position you need to run an <a href="#multimap-optimize">optimize</a> operation passing in a compare function to sort all lists accordingly.</p>
+<span class="qa-a" /> Multimap aims to keep things simple. There are plenty of <a href="https://en.wikipedia.org/wiki/Comparison_of_data_serialization_formats">serialization libraries</a> available, so that users can freely choose their preferred method. Reading and writing raw binary data also makes Multimap independent from such libraries which in turn facilitates data exchange with different programming languages and/or systems. On the other hand, due to lack of type information Multimap cannot operate on individual fields of composite types without injecting code for packing/unpacking.</p>
+<p><span class="qa-q" /> Why can values not be replaced in-place?<br>
+<span class="qa-a" /> Values are written to disk in the same order as they were put without leaving any gaps. Therefore, if a new value is larger than the old one there is simply not enough room for it. An in-place replacement would be possible though, if the value size would be fix. Maybe this option will be provided in further releases. Anyway, replacing values is considered a little-frequented operation. If you really want to have the new value at the old position you need to run an <a href="#multimap-optimize">optimize</a> operation passing in a compare function to sort all lists accordingly.</p>
 <p><span class="qa-q" /> Why is there no sort method for the list associated with a key?<br>
 <span class="qa-a" /> A sort method would be possible from an implementation point of view, but as a list grows the cost of calling this method increases as well. Users that are not aware about the complexity might trigger it carelessly too often, e.g. after every single replace operation, finally slowing down the entire system.</p>
 <p><span class="qa-q" /> Can I use Multimap as a 1:1 key value store?<br>
@@ -477,6 +508,18 @@ key3 value8
                     
                       <li><a href="#serialization">Serialization</a>
                         <ul>
+                          
+                        </ul>
+                      </li>
+                    
+                      <li><a href="#locking">Locking</a>
+                        <ul>
+                          
+                          <li><a href="#directory-lock">Directory Lock</a></li>
+                          
+                          <li><a href="#reader-lock">Reader Lock</a></li>
+                          
+                          <li><a href="#writer-lock">Writer Lock</a></li>
                           
                         </ul>
                       </li>
@@ -522,15 +565,15 @@ key3 value8
           <img style="float:right" src="../img/agpl-v3-logo-white-on-gray.png" />
         </a>
         <p>
-          <i class="fa fa-copyright"></i> 2015-2016 by <a href="https://github.com/mtrenkmann" target="_blank">Martin Trenkmann</a>
+          <i class="fa fa-copyright"></i> 2015-<script>year()</script> by <a href="https://github.com/mtrenkmann">Martin Trenkmann</a>
         </p>
-        <p>Documentation built with <a href="http://getbootstrap.com/" target="_blank">Bootstrap</a>
-          &middot; <a href="http://www.tipo.net.ar/" target="_blank">Faster One</a>
-          &middot; <a href="http://www.carrois.com/fira-4-1/" target="_blank">Fira</a>
-          &middot; <a href="http://fontawesome.io/" target="_blank">Font Awesome</a>
-          &middot; <a href="https://highlightjs.org/" target="_blank">highlight.js</a>
-          &middot; <a href="https://daringfireball.net/projects/markdown/" target="_blank">Markdown</a>
-          &middot; <a href="http://www.mkdocs.org/" target="_blank">MkDocs</a></p>
+        <p>Documentation built with <a href="http://getbootstrap.com/">Bootstrap</a>
+          &middot; <a href="http://www.tipo.net.ar/">Faster One</a>
+          &middot; <a href="http://www.carrois.com/fira-4-1/">Fira</a>
+          &middot; <a href="http://fontawesome.io/">Font Awesome</a>
+          &middot; <a href="https://highlightjs.org/">highlight.js</a>
+          &middot; <a href="https://daringfireball.net/projects/markdown/">Markdown</a>
+          &middot; <a href="http://www.mkdocs.org/">MkDocs</a></p>
       </div>
     </footer>
   </body>

@@ -46,6 +46,9 @@
           document.write("&nbsp;");
         }
       }
+      function year() {
+        document.write(new Date().getFullYear());
+      }
     </script>
   </head>
   
@@ -126,8 +129,23 @@
                 
               
                 
-                  <li >
-                    <a href="installation/">Installation</a>
+                  <li class="dropdown ">
+                    <a href="#">Installation <span class="caret"></span></a>
+                    <ul class="dropdown-menu">
+                      
+                        
+                          <li >
+                            <a href="installation-linux/">GNU/Linux</a>
+                          </li>
+                        
+                      
+                        
+                          <li >
+                            <a href="installation-osx/">OS X</a>
+                          </li>
+                        
+                      
+                    </ul>
                   </li>
                 
               
@@ -135,9 +153,9 @@
               <li class="dropdown">
                 <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">GitHub <span class="caret"></span></a>
                 <ul class="dropdown-menu">
-                  <li><a href="https://github.com/mtrenkmann/multimap" target="_blank">View on GitHub</a></li>
-                  <li><a href="https://github.com/mtrenkmann/multimap/issues" target="_blank">Create an Issue</a></li>
-                  <li><a href="https://github.com/mtrenkmann/multimap/subscription" target="_blank">Watch this Project</a></li>
+                  <li><a href="https://github.com/mtrenkmann/multimap">View on GitHub</a></li>
+                  <li><a href="https://github.com/mtrenkmann/multimap/issues">Create an Issue</a></li>
+                  <li><a href="https://github.com/mtrenkmann/multimap/subscription">Watch this Project</a></li>
                 </ul>
               </li>
             </ul>
@@ -151,7 +169,7 @@
             
               <div class="col-md-12" role="main">
                 <p><br></p>
-<p>Multimap is a fast 1:n key-value store that provides a mapping from keys to lists of values. The library is named after the <a href="https://en.wikipedia.org/wiki/Multimap" target="_blank">data structure</a> you might already know from your very first computer science course, but beyond that it handles the external persistent storage of the entire data. Because Multimap is optimized for large numbers of n, it works perfectly as a building block for retrieval systems that employ <a href="https://en.wikipedia.org/wiki/Inverted_index" target="_blank">inverted indexing</a>.</p>
+<p>Multimap is a fast 1:n key-value store that provides a mapping from keys to lists of values. This type of data structure is actually known as <a href="https://en.wikipedia.org/wiki/Multimap">multimap</a>, hence the name. Though most programming languages offer some kind of multimap standard container, this library is designed for amounts of data that do not fit into memory and/or which require external persistent storage.</p>
 <div class="row">
   <div class="col-md-6">
     <h2>Features</h2>
@@ -160,7 +178,7 @@
     <li>Supported operations: put, get, remove, replace</li>
     <li>Keys and values are arbitrary byte arrays</li>
     <li>Keys are hold in memory, values are stored on disk</li>
-    <li>Import/export from/to Base64-encoded text files</li>
+    <li>Import/export of Base64 key-value pairs from/to text files</li>
     <li>Full thread-safe</li>
     </ul>
   </div>
@@ -176,8 +194,8 @@
         <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
       </div>
       <div class="panel-body-right">
-        Download <a href="https://github.com/mtrenkmann/multimap/archive/v0.4.0.tar.gz">multimap-0.4.0.tar.gz</a><br>
-        <small><a href="installation">Installation</a> instructions for C++ and Java</small>
+        Download <a href="https://github.com/mtrenkmann/multimap/archive/v0.5.0.tar.gz">multimap-0.5.0.tar.gz</a><br>
+        <small>Installation instructions for <a href="installation-linux">GNU/Linux</a> and <a href="installation-osx">OS X</a></small>
       </div>
     </div>
   </div>
@@ -192,7 +210,7 @@
 <pre><code class="cpp">#include &lt;multimap/Map.hpp&gt;
 
 int main() {
-  multimap::Options options;
+  multimap::Map::Options options;
   options.create_if_missing = true;
   multimap::Map map(&quot;path/to/directory&quot;, options);
 
@@ -200,8 +218,8 @@ int main() {
   map.put(&quot;key&quot;, &quot;2nd value&quot;);
 
   auto iter = map.get(&quot;key&quot;);
-  while (iter.hasNext()) {
-    doSomething(iter.next());
+  while (iter-&gt;hasNext()) {
+    doSomething(iter-&gt;next());
   }
 
   // d'tor of iter releases internal reader lock.
@@ -219,12 +237,12 @@ int main() {
 <pre><code class="java">import io.multimap.*;
 
 public static void main(String[] args) {
-  Options options = new Options();
+  Map.Options options = new Map.Options();
   options.setCreateIfMissing(true);
   Map map = new Map(&quot;path/to/directory&quot;, options);
 
-  map.put(&quot;key&quot;, &quot;1st value&quot;);
-  map.put(&quot;key&quot;, &quot;2nd value&quot;);
+  map.put(&quot;key&quot;, Utils.toByteArray(&quot;1st value&quot;));
+  map.put(&quot;key&quot;, Utils.toByteArray(&quot;2nd value&quot;));
 
   Iterator iter = map.get(&quot;key&quot;);
   while (iter.hasNext()) {
@@ -241,7 +259,7 @@ public static void main(String[] args) {
 </div>
 </div>
 <br></p>
-<p>Multimap is <a href="https://www.fsf.org/about/what-is-free-software" target="_bank">free software</a> implemented in standard C++11 and POSIX, distributed under the terms of the <a href="http://www.gnu.org/licenses/agpl-3.0.en.html" target="_blank">GNU Affero General Public License</a> (AGPL) version 3. At this time, Multimap runs under GNU/Linux on x86-64 and x86-32. This is also true for the included Java binding.</p>
+<p>Multimap is <a href="https://www.fsf.org/about/what-is-free-software">free software</a> implemented in standard C++11 and POSIX, distributed under the terms of the <a href="http://www.gnu.org/licenses/agpl-3.0.en.html">GNU Affero General Public License</a> (AGPL) version 3. Supported platforms are x86-64 and x86-32 running GNU/Linux or OS X. This is also true for the included Java binding.</p>
               </div>
             
           </div>
@@ -258,15 +276,15 @@ public static void main(String[] args) {
           <img style="float:right" src="./img/agpl-v3-logo-white-on-gray.png" />
         </a>
         <p>
-          <i class="fa fa-copyright"></i> 2015-2016 by <a href="https://github.com/mtrenkmann" target="_blank">Martin Trenkmann</a>
+          <i class="fa fa-copyright"></i> 2015-<script>year()</script> by <a href="https://github.com/mtrenkmann">Martin Trenkmann</a>
         </p>
-        <p>Documentation built with <a href="http://getbootstrap.com/" target="_blank">Bootstrap</a>
-          &middot; <a href="http://www.tipo.net.ar/" target="_blank">Faster One</a>
-          &middot; <a href="http://www.carrois.com/fira-4-1/" target="_blank">Fira</a>
-          &middot; <a href="http://fontawesome.io/" target="_blank">Font Awesome</a>
-          &middot; <a href="https://highlightjs.org/" target="_blank">highlight.js</a>
-          &middot; <a href="https://daringfireball.net/projects/markdown/" target="_blank">Markdown</a>
-          &middot; <a href="http://www.mkdocs.org/" target="_blank">MkDocs</a></p>
+        <p>Documentation built with <a href="http://getbootstrap.com/">Bootstrap</a>
+          &middot; <a href="http://www.tipo.net.ar/">Faster One</a>
+          &middot; <a href="http://www.carrois.com/fira-4-1/">Fira</a>
+          &middot; <a href="http://fontawesome.io/">Font Awesome</a>
+          &middot; <a href="https://highlightjs.org/">highlight.js</a>
+          &middot; <a href="https://daringfireball.net/projects/markdown/">Markdown</a>
+          &middot; <a href="http://www.mkdocs.org/">MkDocs</a></p>
       </div>
     </footer>
   </body>

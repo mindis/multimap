@@ -46,6 +46,9 @@
           document.write("&nbsp;");
         }
       }
+      function year() {
+        document.write(new Date().getFullYear());
+      }
     </script>
   </head>
   
@@ -126,8 +129,23 @@
                 
               
                 
-                  <li >
-                    <a href="../installation/">Installation</a>
+                  <li class="dropdown ">
+                    <a href="#">Installation <span class="caret"></span></a>
+                    <ul class="dropdown-menu">
+                      
+                        
+                          <li >
+                            <a href="../installation-linux/">GNU/Linux</a>
+                          </li>
+                        
+                      
+                        
+                          <li >
+                            <a href="../installation-osx/">OS X</a>
+                          </li>
+                        
+                      
+                    </ul>
                   </li>
                 
               
@@ -135,9 +153,9 @@
               <li class="dropdown">
                 <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">GitHub <span class="caret"></span></a>
                 <ul class="dropdown-menu">
-                  <li><a href="https://github.com/mtrenkmann/multimap" target="_blank">View on GitHub</a></li>
-                  <li><a href="https://github.com/mtrenkmann/multimap/issues" target="_blank">Create an Issue</a></li>
-                  <li><a href="https://github.com/mtrenkmann/multimap/subscription" target="_blank">Watch this Project</a></li>
+                  <li><a href="https://github.com/mtrenkmann/multimap">View on GitHub</a></li>
+                  <li><a href="https://github.com/mtrenkmann/multimap/issues">Create an Issue</a></li>
+                  <li><a href="https://github.com/mtrenkmann/multimap/subscription">Watch this Project</a></li>
                 </ul>
               </li>
             </ul>
@@ -153,12 +171,12 @@
                 <p><br></p>
 <pre><code class="java">import io.multimap.Iterator;
 import io.multimap.Map;
-import io.multimap.Options;
+import io.multimap.Utils;
 </code></pre>
 
 <h2 id="creating-a-map">Creating a Map</h2>
 <p>The minimal code to create a map is</p>
-<pre><code class="java">Options options = new Options();
+<pre><code class="java">Map.Options options = new Map.Options();
 options.setCreateIfMissing(true);
 Map map = new Map(&quot;path/to/directory&quot;, options);
 </code></pre>
@@ -166,7 +184,7 @@ Map map = new Map(&quot;path/to/directory&quot;, options);
 <p>However, you should also catch errors that may occur during construction.</p>
 <pre><code class="java">Map map = null;
 try {
-  Options options = new Options();
+  Map.Options options = new Map.Options();
   options.setCreateIfMissing(true);
   map = new Map(&quot;path/to/directory&quot;, options);
 } catch (Exception e) {
@@ -192,16 +210,14 @@ try {
 
 <h2 id="putting-values">Putting Values</h2>
 <p>Putting a value means to append a value to the end of the list that is associated with a key. Both the key and the value are of type <code>byte[]</code>.</p>
-<pre><code class="java">Charset cs = Charset.forName(&quot;UTF-8&quot;);
-
-map.put(&quot;key&quot;.getBytes(cs), &quot;value&quot;.getBytes(cs));
+<pre><code class="java">map.put(Utils.toByteArray(&quot;key&quot;), Utils.toByteArray(&quot;value&quot;));
 // Puts a value constructed from a string.
 
-map.put(&quot;key&quot;, &quot;value2&quot;);
-// There is an overload that accepts strings instead of byte arrays.
-// Internally the strings are converted to bytes as shown before.
+map.put(&quot;key&quot;, Utils.toByteArray(&quot;value2&quot;));
+// There is an overload that accepts a key being a string.
+// Internally the key is converted into a byte array as shown before.
 
-map.put(&quot;key&quot;, Integer.toString(23));
+map.put(&quot;key&quot;, Utils.toByteArray(Integer.toString(23)));
 // Puts a value constructed from an integer.
 
 map.put(&quot;key&quot;, ByteBuffer.allocate(4).putInt(23).array());
@@ -212,7 +228,7 @@ map.put(&quot;key&quot;, somelib.serializeAsByteArray(someObject));
 </code></pre>
 
 <h2 id="getting-values">Getting Values</h2>
-<p>Getting values means to request a read-only <a href="../javadoc/io/multimap/Iterator.html">Iterator</a> to the list associated with a key. If no such list exists the returned iterator points to an empty list. An iterator that points to a non-empty list holds a <a href="../cppreference#reader-lock">reader lock</a> on this list to synchronize concurrent access. A list can be read by multiple iterators from different threads at the same time. If an iterator is not needed anymore its <code>close()</code> method must be called in order to unlock the underlying list.</p>
+<p>Getting values means to request a read-only <a href="../javadoc/io/multimap/Iterator.html">Iterator</a> to the list associated with a key. If no such list exists the returned iterator points to an empty list. An iterator that points to a non-empty list holds a <a href="../overview#reader-lock">reader lock</a> on this list to synchronize concurrent access. A list can be read by multiple iterators from different threads at the same time. If an iterator is not needed anymore its <code>close()</code> method must be called in order to unlock the underlying list.</p>
 <pre><code class="java">Iterator iter = map.get(key);
 
 while (iter.hasNext()) {
@@ -223,29 +239,30 @@ while (iter.hasNext()) {
 iter.close();  // Releases the internal reader lock.
 </code></pre>
 
-<p>A call to <code>next()</code> returns the next value as an <code>java.nio.ByteBuffer</code>. This byte buffer is a direct one, which means that it wraps a pointer to memory allocated and managed by the native library. It is not backed by a <code>byte[]</code> managed by the Java Garbage Collector. Hence, the value is only valid as long as the iterator is not moving forward. You should never copy around this kind of byte buffer.</p>
+<p>A call to <code>next()</code> returns the next value as <code>java.nio.ByteBuffer</code>. This byte buffer is a direct one, which means that it wraps a pointer to memory allocated and managed by the native library. It is not backed by a <code>byte[]</code> managed by the Java Garbage Collector. Hence, the value is only valid as long as the iterator is not moving forward. You should never copy around this kind of byte buffer.</p>
 <p>Things about iterators that are also worth noting:</p>
 <ul>
-<li>Since iterators can be put into containers or the like, there has to take special care not to run into deadlocks, because there is another type of iterator which holds a writer lock on a list for exclusive access. This type of iterator is only used internally for implementing remove and replace operations.</li>
-<li>Iterators support lazy initialization which means that no I/O operation is performed until its <code>next()</code> method has been called. This feature is useful in cases where multiple iterators must be requested first in order to determine in which order they have to be processed.</li>
-<li>Calling <code>nextAsByteArray()</code> or <code>nextAsString()</code> instead of <code>next()</code> is a simple way to get a deep copy of the current value that is managed by the Java Garbage Collector.</li>
-<li>Iterators can tell the number of values left to iterate by invoking <code>available()</code>.</li>
+<li>Iterators can tell the number of remaining values via <code>available()</code>.</li>
+<li>Iterators can emit the next value without moving forward via <code>peekNext()</code>.</li>
+<li>Calling <code>nextAsByteArray()</code> is a simple way to get a deep copy of the current value managed by the Java GC.</li>
+<li>Iterators support lazy initialization which means that no I/O operation is performed until a value is actually requested via <code>next()</code> or <code>peekNext()</code>. This feature might be useful in cases where multiple iterators have to be collected first in order to decide in which order they need to be processed.</li>
+<li>The lifetime of an iterator should be as short as possible to hold the internal reader lock on the underlying list no longer as needed. There are operations, such as remove and replace, which require exclusive access to lists, and which will block if the list in question is already locked.</li>
 </ul>
 <h2 id="removing-values">Removing Values</h2>
-<p>Values can be removed from a list by injecting a <a href="../javadoc/io/multimap/Callables.Predicate.html">Predicate</a> which yields true for values to be removed. There are methods to remove only the first or all matches from a list. Since this is a mutating operation the methods require exclusive access to the list and therefore try to acquire a <a href="../cppreference#writer-lock">writer lock</a> for that list.</p>
+<p>Values can be removed from a list by injecting a <a href="../javadoc/io/multimap/Callables.Predicate.html">Predicate</a> which yields true for values to be removed. There are methods to remove only the first or all matches from a list. Since this is a mutating operation the methods require exclusive access to the list and therefore try to acquire a <a href="../overview#writer-lock">writer lock</a> for that list.</p>
 <pre><code class="java">import io.multimap.Callables.Predicate;
-import io.multimap.Utils;
 
-map.put(key, &quot;1&quot;);
-map.put(key, &quot;2&quot;);
-map.put(key, &quot;3&quot;);
-map.put(key, &quot;4&quot;);
-map.put(key, &quot;5&quot;);
-map.put(key, &quot;6&quot;);
+map.put(key, Utils.toByteArray(&quot;1&quot;));
+map.put(key, Utils.toByteArray(&quot;2&quot;));
+map.put(key, Utils.toByteArray(&quot;3&quot;));
+map.put(key, Utils.toByteArray(&quot;3&quot;));
+map.put(key, Utils.toByteArray(&quot;4&quot;));
+map.put(key, Utils.toByteArray(&quot;5&quot;));
+map.put(key, Utils.toByteArray(&quot;6&quot;));
 
-map.removeValue(key, &quot;3&quot;);
+map.removeFirstEqual(key, Utils.toByteArray(&quot;3&quot;));
 // Removes the first value equal to &quot;3&quot;.
-// key -&gt; {&quot;1&quot;, &quot;2&quot;, &quot;4&quot;, &quot;5&quot;, &quot;6&quot;}
+// key -&gt; {&quot;1&quot;, &quot;2&quot;, &quot;3&quot;, &quot;4&quot;, &quot;5&quot;, &quot;6&quot;}
 
 Predicate isEven = new Predicate() {  
   @Override
@@ -254,37 +271,37 @@ Predicate isEven = new Predicate() {
   }
 };
 
-map.removeValue(key, isEven);
+map.removeFirstMatch(key, isEven);
 // Removes the first value that is even.
-// key -&gt; {&quot;1&quot;, &quot;4&quot;, &quot;5&quot;, &quot;6&quot;}
+// key -&gt; {&quot;1&quot;, &quot;3&quot;, &quot;4&quot;, &quot;5&quot;, &quot;6&quot;}
 
-map.removeValues(key, isEven);
+map.removeAllMatches(key, isEven);
 // Removes all values that are even.
-// key -&gt; {&quot;1&quot;, &quot;5&quot;}
+// key -&gt; {&quot;1&quot;, &quot;3&quot;, &quot;5&quot;}
 
-map.removeKey(key);
-// Removes all values.
+map.remove(key);
+// Removes all values associated with key.
 // key -&gt; {}
 </code></pre>
 
 <p>When a value is removed it will only be marked as removed for the moment so that subsequent iterations will ignore it. Only an optimize operation triggered either via <a href="../javadoc/io/multimap/Map.html">API call</a> or the <a href="../overview#multimap-optimize">command line tool</a> will remove the data physically.</p>
-<p>Note that if the list is already locked either by a <a href="../overview#reader-lock">reader</a> or <a href="../overview#writer-lock">writer lock</a> any remove operation on that list will block until the lock is released. A thread should never try to remove values while holding iterators to the same list to avoid deadlocks.</p>
+<p>Note that if the list is already locked either by a <a href="../overview#reader-lock">reader</a> or <a href="../overview#writer-lock">writer lock</a> any remove operation on that list will block until the lock is released. A thread should never try to remove a value while owning an iterator to the same list to avoid deadlocks.</p>
 <h2 id="replacing-values">Replacing Values</h2>
-<p>Values can be replaced by injecting a <a href="../javadoc/io/multimap/Callables.Procedure.html">Procedure</a> that represents a map function which yields a <code>byte[]</code> for values to be replaced or <code>null</code> if not. There are methods to replace only the first or all matches in a list. Since this is a mutating operation the methods require exclusive access to the list and therefore try to acquire a <a href="../overview#writer-lock">writer lock</a> for that list.</p>
+<p>Values can be replaced by injecting a <a href="../javadoc/io/multimap/Callables.Procedure.html">Procedure</a> that represents a map function which yields a <code>byte[]</code> for values to be replaced or <code>null</code> if not. There are methods to replace only the first or all matches in a list. Since this is a mutating operation these methods require exclusive access to a list and therefore try to acquire a <a href="../overview#writer-lock">writer lock</a> for the list in question.</p>
 <p>When a value is replaced the old value is marked as removed and the new value is appended to the end of the list. Hence, replace operations will not preserve the order of values. If a certain order needs to be restored an <a href="../overview#multimap-optimize">optimize</a> operation has to be run parameterized with an appropriate <a href="../javadoc/io/multimap/Callables.LessThan.html">LessThan</a> function.</p>
 <pre><code class="java">import io.multimap.Callables.Function;
-import io.multimap.Utils;
 
-map.put(key, &quot;1&quot;);
-map.put(key, &quot;2&quot;);
-map.put(key, &quot;3&quot;);
-map.put(key, &quot;4&quot;);
-map.put(key, &quot;5&quot;);
-map.put(key, &quot;6&quot;);
+map.put(key, Utils.toByteArray(&quot;1&quot;));
+map.put(key, Utils.toByteArray(&quot;2&quot;));
+map.put(key, Utils.toByteArray(&quot;3&quot;));
+map.put(key, Utils.toByteArray(&quot;3&quot;));
+map.put(key, Utils.toByteArray(&quot;4&quot;));
+map.put(key, Utils.toByteArray(&quot;5&quot;));
+map.put(key, Utils.toByteArray(&quot;6&quot;));
 
-map.replaceValue(key, &quot;3&quot;, &quot;4&quot;);
+map.replaceFirstEqual(key, Utils.toByteArray(&quot;3&quot;), Utils.toByteArray(&quot;4&quot;));
 // Replaces the first value equal to &quot;3&quot; by &quot;4&quot;.
-// key -&gt; {&quot;1&quot;, &quot;2&quot;, &quot;4&quot;, &quot;5&quot;, &quot;6&quot;, &quot;4&quot;}
+// key -&gt; {&quot;1&quot;, &quot;2&quot;, &quot;3&quot;, &quot;4&quot;, &quot;5&quot;, &quot;6&quot;, &quot;4&quot;}
 
 Function incrementIfEven = new Function() {  
   @Override
@@ -294,20 +311,20 @@ Function incrementIfEven = new Function() {
   }
 };
 
-map.replaceValue(key, incrementIfEven);
+map.replaceFirstMatch(key, incrementIfEven);
 // Replaces the first value that is even by its successor.
-// key -&gt; {&quot;1&quot;, &quot;4&quot;, &quot;5&quot;, &quot;6&quot;, &quot;4&quot;, &quot;3&quot;}
+// key -&gt; {&quot;1&quot;, &quot;3&quot;, &quot;4&quot;, &quot;5&quot;, &quot;6&quot;, &quot;4&quot;, &quot;3&quot;}
 
-map.replaceValues(key, &quot;4&quot;, &quot;8&quot;);
+map.replaceAllEqual(key, Utils.toByteArray(&quot;4&quot;), Utils.toByteArray(&quot;8&quot;));
 // Replaces all values equal to &quot;4&quot; by &quot;8&quot;.
-// key -&gt; {&quot;1&quot;, &quot;5&quot;, &quot;6&quot;, &quot;3&quot;, &quot;8&quot;, &quot;8&quot;}
+// key -&gt; {&quot;1&quot;, &quot;3&quot;, &quot;5&quot;, &quot;6&quot;, &quot;3&quot;, &quot;8&quot;, &quot;8&quot;}
 
-map.replaceValues(key, incrementIfEven);
+map.replaceAllMatches(key, incrementIfEven);
 // Replaces all values that are even by its successor.
-// key -&gt; {&quot;1&quot;, &quot;5&quot;, &quot;3&quot;, &quot;7&quot;, &quot;9&quot;, &quot;9&quot;}
+// key -&gt; {&quot;1&quot;, &quot;3&quot;, &quot;5&quot;, &quot;3&quot;, &quot;7&quot;, &quot;9&quot;, &quot;9&quot;}
 </code></pre>
 
-<p>Note that if the list is already locked either by a <a href="../cppreference#reader-lock">reader</a> or <a href="../cppreference#writer-lock">writer lock</a> any replace method will block until the lock is released. A thread should never try to replace values while holding iterators to the same list to avoid deadlocks.</p>
+<p>Note that if the list is already locked either by a <a href="../overview#reader-lock">reader</a> or <a href="../overview#writer-lock">writer lock</a> any replace method will block until the lock is released. A thread should never try to replace a value while owning an iterator to the same list to avoid deadlocks.</p>
               </div>
               <div class="col-md-3" role="complementary">
                 <nav id="multimap-sidebar"
@@ -378,15 +395,15 @@ map.replaceValues(key, incrementIfEven);
           <img style="float:right" src="../img/agpl-v3-logo-white-on-gray.png" />
         </a>
         <p>
-          <i class="fa fa-copyright"></i> 2015-2016 by <a href="https://github.com/mtrenkmann" target="_blank">Martin Trenkmann</a>
+          <i class="fa fa-copyright"></i> 2015-<script>year()</script> by <a href="https://github.com/mtrenkmann">Martin Trenkmann</a>
         </p>
-        <p>Documentation built with <a href="http://getbootstrap.com/" target="_blank">Bootstrap</a>
-          &middot; <a href="http://www.tipo.net.ar/" target="_blank">Faster One</a>
-          &middot; <a href="http://www.carrois.com/fira-4-1/" target="_blank">Fira</a>
-          &middot; <a href="http://fontawesome.io/" target="_blank">Font Awesome</a>
-          &middot; <a href="https://highlightjs.org/" target="_blank">highlight.js</a>
-          &middot; <a href="https://daringfireball.net/projects/markdown/" target="_blank">Markdown</a>
-          &middot; <a href="http://www.mkdocs.org/" target="_blank">MkDocs</a></p>
+        <p>Documentation built with <a href="http://getbootstrap.com/">Bootstrap</a>
+          &middot; <a href="http://www.tipo.net.ar/">Faster One</a>
+          &middot; <a href="http://www.carrois.com/fira-4-1/">Fira</a>
+          &middot; <a href="http://fontawesome.io/">Font Awesome</a>
+          &middot; <a href="https://highlightjs.org/">highlight.js</a>
+          &middot; <a href="https://daringfireball.net/projects/markdown/">Markdown</a>
+          &middot; <a href="http://www.mkdocs.org/">MkDocs</a></p>
       </div>
     </footer>
   </body>
