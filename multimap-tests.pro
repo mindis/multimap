@@ -87,6 +87,7 @@ SOURCES += \
     src/cpp/multimap/thirdparty/googletest/src/gtest-typed-test.cc \
     src/cpp/multimap/thirdparty/googletest/src/gtest.cc \
     src/cpp/multimap/BytesTest.cpp \
+    src/cpp/multimap/IteratorTest.cpp \
     src/cpp/multimap/MapTest.cpp
 
 # Only enable for memory leak checking with Google Address Sanitizer.
