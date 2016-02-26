@@ -23,19 +23,19 @@ namespace {
 
 class EmptyIter : public Iterator {
  public:
-  void operator delete(void* /* ptr */) {}  // Disable deallocation
+  virtual uint32_t available() const override { return 0; }
 
-  uint32_t available() const override { return 0; }
+  virtual bool hasNext() const override { return false; }
 
-  bool hasNext() const override { return false; }
+  virtual Bytes next() override { return Bytes(); }
 
-  Bytes next() override { return Bytes(); }
-
-  Bytes peekNext() override { return Bytes(); }
+  virtual Bytes peekNext() override { return Bytes(); }
 };
 
 }  // namespace
 
-Iterator* const Iterator::EMPTY = new EmptyIter();
+std::unique_ptr<Iterator> Iterator::newEmptyInstance() {
+  return std::unique_ptr<Iterator>(new EmptyIter());
+}
 
 }  // namespace multimap

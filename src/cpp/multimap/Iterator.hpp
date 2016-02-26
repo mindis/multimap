@@ -18,6 +18,7 @@
 #ifndef MULTIMAP_ITERATOR_HPP_INCLUDED
 #define MULTIMAP_ITERATOR_HPP_INCLUDED
 
+#include <memory>
 #include "multimap/Bytes.hpp"
 #include "multimap/thirdparty/mt/mt.hpp"
 
@@ -25,7 +26,7 @@ namespace multimap {
 
 class Iterator : public mt::Resource {
  public:
-  static Iterator* const EMPTY;
+  static std::unique_ptr<Iterator> newEmptyInstance();
 
   virtual ~Iterator() = default;
 
