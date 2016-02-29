@@ -18,6 +18,7 @@
 #include "multimap/ImmutableMap.hpp"
 
 #include <boost/filesystem/operations.hpp>
+#include "multimap/internal/Varint.hpp"
 
 namespace multimap {
 
@@ -50,22 +51,19 @@ std::string getNameOfStatsFile(size_t index) {
 }
 
 // index is in [0, 64) where 0 is the LSB.
-bool isBitSet(size_t hash, size_t index) { return (hash >> index) & 1; }
+bool isBitSet(size_t bits, size_t index) { return (bits >> index) & 1; }
 
 void writeBytes(std::FILE* stream, const Bytes& bytes) {
-  const uint32_t size = bytes.size();
-  MT_ASSERT_TRUE(mt::fwrite(stream, &size, sizeof size));
+  MT_ASSERT_NOT_ZERO(internal::Varint::writeUintToStream(stream, bytes.size()));
   MT_ASSERT_TRUE(mt::fwrite(stream, bytes.data(), size));
 }
 
 bool readBytes(std::FILE* stream, std::vector<char>* bytes) {
   uint32_t size;
-  if (mt::fread(stream, &size, sizeof size)) {
-    bytes->resize(size);
-    MT_ASSERT_TRUE(mt::fread(stream, bytes->data(), size));
-    return true;
-  }
-  return false;
+  if (internal::Varint::readUintFromStream(stream, &size) == 0) return false;
+  bytes->resize(size);
+  MT_ASSERT_TRUE(mt::fread(stream, bytes->data(), size));
+  return true;
 }
 
 }  // namespace
