@@ -50,35 +50,35 @@ struct Varint {
   };
 
   static uint32_t readUintFromBuffer(const char* buf, size_t len,
-                                     uint32_t* value);
+                                     uint32_t* val);
   // Reads a 32-bit unsigned integer from `buffer` into `output`.
   // Returns the number of bytes read on success, otherwise zero.
   // Preconditions:
   //  * `buf` is not null
-  //  * `value` is not null
+  //  * `val` is not null
 
   static uint32_t readUintWithFlagFromBuffer(const char* buf, size_t len,
-                                             uint32_t* value, bool* flag);
+                                             uint32_t* val, bool* flag);
   // Reads a 32-bit unsigned integer with flag from `buffer` into `value` and
   // `flag`. Returns the number of bytes read on success, otherwise zero.
   // Preconditions:
   //  * `buf` is not null
-  //  * `value` is not null
+  //  * `val` is not null
   //  * `flag` is not null
 
-  static uint32_t writeUintToBuffer(uint32_t value, char* buf, size_t len);
+  static uint32_t writeUintToBuffer(uint32_t val, char* buf, size_t len);
   // Writes a 32-bit unsigned integer into `buffer`.
   // Returns the number of bytes written on success, otherwise zero.
   // Preconditions:
-  //  * `value` is not greater than `MAX_N4`
+  //  * `val` is not greater than `MAX_N4`
   //  * `buf` is not null
 
-  static uint32_t writeUintWithFlagToBuffer(uint32_t value, bool flag,
-                                            char* buf, size_t len);
+  static uint32_t writeUintWithFlagToBuffer(uint32_t val, bool flag, char* buf,
+                                            size_t len);
   // Writes a 32-bit unsigned integer with flag into `buffer`.
   // Returns the number of bytes written on success, otherwise zero.
   // Preconditions:
-  //  * `value` is not greater than `MAX_N4_WITH_FLAG`
+  //  * `val` is not greater than `MAX_N4_WITH_FLAG`
   //  * `buf` is not null
 
   static void writeFlagToBuffer(bool flag, char* buf, size_t len);

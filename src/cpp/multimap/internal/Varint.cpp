@@ -43,40 +43,40 @@ const uint32_t Varint::Limits::MAX_N3_WITH_FLAG = (1 << 21) - 1;
 const uint32_t Varint::Limits::MAX_N4_WITH_FLAG = (1 << 29) - 1;
 
 uint32_t Varint::readUintFromBuffer(const char* buf, size_t len,
-                                    uint32_t* value) {
+                                    uint32_t* val) {
   MT_REQUIRE_NOT_NULL(buf);
-  MT_REQUIRE_NOT_NULL(value);
+  MT_REQUIRE_NOT_NULL(val);
 
   if (len > 0) {
     const std::uint8_t* ptr = reinterpret_cast<const std::uint8_t*>(buf);
     const int length = (ptr[0] & 0xC0);  // 11000000
     switch (length) {
       case 0x00:  // 00000000
-        *value = ptr[0];
+        *val = ptr[0];
         return 1;
       case 0x40:  // 01000000
         if (len < 2) {
           break;
         }
-        *value = (ptr[0] & 0x3F) << 8;
-        *value += ptr[1];
+        *val = (ptr[0] & 0x3F) << 8;
+        *val += ptr[1];
         return 2;
       case 0x80:  // 10000000
         if (len < 3) {
           break;
         }
-        *value = (ptr[0] & 0x3F) << 16;
-        *value += ptr[1] << 8;
-        *value += ptr[2];
+        *val = (ptr[0] & 0x3F) << 16;
+        *val += ptr[1] << 8;
+        *val += ptr[2];
         return 3;
       case 0xC0:  // 11000000
         if (len < 4) {
           break;
         }
-        *value = (ptr[0] & 0x3F) << 24;
-        *value += ptr[1] << 16;
-        *value += ptr[2] << 8;
-        *value += ptr[3];
+        *val = (ptr[0] & 0x3F) << 24;
+        *val += ptr[1] << 16;
+        *val += ptr[2] << 8;
+        *val += ptr[3];
         return 4;
       default:
         mt::fail("Invalid varint encoding");
@@ -86,9 +86,9 @@ uint32_t Varint::readUintFromBuffer(const char* buf, size_t len,
 }
 
 uint32_t Varint::readUintWithFlagFromBuffer(const char* buf, size_t len,
-                                            uint32_t* value, bool* flag) {
+                                            uint32_t* val, bool* flag) {
   MT_REQUIRE_NOT_NULL(buf);
-  MT_REQUIRE_NOT_NULL(value);
+  MT_REQUIRE_NOT_NULL(val);
   MT_REQUIRE_NOT_NULL(flag);
 
   if (len > 0) {
@@ -97,31 +97,31 @@ uint32_t Varint::readUintWithFlagFromBuffer(const char* buf, size_t len,
     *flag = (ptr[0] & 0x20);             // 00100000
     switch (length) {
       case 0x00:  // 00000000
-        *value = (ptr[0] & 0x1F);
+        *val = (ptr[0] & 0x1F);
         return 1;
       case 0x40:  // 01000000
         if (len < 2) {
           break;
         }
-        *value = (ptr[0] & 0x1F) << 8;
-        *value += ptr[1];
+        *val = (ptr[0] & 0x1F) << 8;
+        *val += ptr[1];
         return 2;
       case 0x80:  // 10000000
         if (len < 3) {
           break;
         }
-        *value = (ptr[0] & 0x1F) << 16;
-        *value += ptr[1] << 8;
-        *value += ptr[2];
+        *val = (ptr[0] & 0x1F) << 16;
+        *val += ptr[1] << 8;
+        *val += ptr[2];
         return 3;
       case 0xC0:  // 11000000
         if (len < 4) {
           break;
         }
-        *value = (ptr[0] & 0x1F) << 24;
-        *value += ptr[1] << 16;
-        *value += ptr[2] << 8;
-        *value += ptr[3];
+        *val = (ptr[0] & 0x1F) << 24;
+        *val += ptr[1] << 16;
+        *val += ptr[2] << 8;
+        *val += ptr[3];
         return 4;
       default:
         mt::fail("Invalid varint with flag encoding");
@@ -130,89 +130,89 @@ uint32_t Varint::readUintWithFlagFromBuffer(const char* buf, size_t len,
   return 0;
 }
 
-uint32_t Varint::writeUintToBuffer(uint32_t value, char* buf, size_t len) {
+uint32_t Varint::writeUintToBuffer(uint32_t val, char* buf, size_t len) {
   MT_REQUIRE_NOT_NULL(buf);
 
   std::uint8_t* ptr = reinterpret_cast<std::uint8_t*>(buf);
-  if (value < 0x00000040) {  // 00000000 00000000 00000000 01000000
+  if (val < 0x00000040) {  // 00000000 00000000 00000000 01000000
     if (len < 1) {
       goto too_few_bytes;
     }
-    ptr[0] = value;
+    ptr[0] = val;
     return 1;
   }
-  if (value < 0x00004000) {  // 00000000 00000000 01000000 00000000
+  if (val < 0x00004000) {  // 00000000 00000000 01000000 00000000
     if (len < 2) {
       goto too_few_bytes;
     }
-    ptr[0] = (value >> 8) | 0x40;
-    ptr[1] = (value);
+    ptr[0] = (val >> 8) | 0x40;
+    ptr[1] = (val);
     return 2;
   }
-  if (value < 0x00400000) {  // 00000000 01000000 00000000 00000000
+  if (val < 0x00400000) {  // 00000000 01000000 00000000 00000000
     if (len < 3) {
       goto too_few_bytes;
     }
-    ptr[0] = (value >> 16) | 0x80;
-    ptr[1] = (value >> 8);
-    ptr[2] = (value);
+    ptr[0] = (val >> 16) | 0x80;
+    ptr[1] = (val >> 8);
+    ptr[2] = (val);
     return 3;
   }
-  if (value < 0x40000000) {  // 01000000 00000000 00000000 00000000
+  if (val < 0x40000000) {  // 01000000 00000000 00000000 00000000
     if (len < 4) {
       goto too_few_bytes;
     }
-    ptr[0] = (value >> 24) | 0xC0;
-    ptr[1] = (value >> 16);
-    ptr[2] = (value >> 8);
-    ptr[3] = (value);
+    ptr[0] = (val >> 24) | 0xC0;
+    ptr[1] = (val >> 16);
+    ptr[2] = (val >> 8);
+    ptr[3] = (val);
     return 4;
   }
-  mt::fail("Cannot encode too big value: %d", value);
+  mt::fail("Cannot encode too big value: %d", val);
 too_few_bytes:
   return 0;
 }
 
-uint32_t Varint::writeUintWithFlagToBuffer(uint32_t value, bool flag, char* buf,
+uint32_t Varint::writeUintWithFlagToBuffer(uint32_t val, bool flag, char* buf,
                                            size_t len) {
   MT_REQUIRE_NOT_NULL(buf);
 
   std::uint8_t* ptr = reinterpret_cast<std::uint8_t*>(buf);
-  if (value < 0x00000020) {  // 00000000 00000000 00000000 00100000
+  if (val < 0x00000020) {  // 00000000 00000000 00000000 00100000
     if (len < 1) {
       goto too_few_bytes;
     }
-    ptr[0] = value | (flag ? 0x20 : 0x00);
+    ptr[0] = val | (flag ? 0x20 : 0x00);
     return 1;
   }
-  if (value < 0x00002000) {  // 00000000 00000000 00100000 00000000
+  if (val < 0x00002000) {  // 00000000 00000000 00100000 00000000
     if (len < 2) {
       goto too_few_bytes;
     }
-    ptr[0] = (value >> 8) | (flag ? 0x60 : 0x40);
-    ptr[1] = (value);
+    ptr[0] = (val >> 8) | (flag ? 0x60 : 0x40);
+    ptr[1] = (val);
     return 2;
   }
-  if (value < 0x00200000) {  // 00000000 00100000 00000000 00000000
+  if (val < 0x00200000) {  // 00000000 00100000 00000000 00000000
     if (len < 3) {
       goto too_few_bytes;
     }
-    ptr[0] = (value >> 16) | (flag ? 0xA0 : 0x80);
-    ptr[1] = (value >> 8);
-    ptr[2] = (value);
+    ptr[0] = (val >> 16) | (flag ? 0xA0 : 0x80);
+    ptr[1] = (val >> 8);
+    ptr[2] = (val);
     return 3;
   }
-  if (value < 0x20000000) {  // 00100000 00000000 00000000 00000000
+  if (val < 0x20000000) {  // 00100000 00000000 00000000 00000000
     if (len < 4) {
       goto too_few_bytes;
     }
-    ptr[0] = (value >> 24) | (flag ? 0xE0 : 0xC0);
-    ptr[1] = (value >> 16);
-    ptr[2] = (value >> 8);
-    ptr[3] = (value);
+    ptr[0] = (val >> 24) | (flag ? 0xE0 : 0xC0);
+    ptr[1] = (val >> 16);
+    ptr[2] = (val >> 8);
+    ptr[3] = (val);
     return 4;
   }
-  mt::fail("Cannot encode too big value: %d", value);
+  mt::fail("Cannot encode too big value: %d", val);
 too_few_bytes:
   return 0;
 }
