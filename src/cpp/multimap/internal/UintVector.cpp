@@ -73,7 +73,7 @@ bool UintVector::add(uint32_t value) {
   allocateMoreIfFull();
   if (empty()) {
     if (value <= Varint::Limits::MAX_N4) {
-      offset_ += Varint::writeUintToBuffer(value, current(), size_);
+      offset_ += Varint::writeUintToBuffer(current(), size_, value);
       offset_ += writeUint32(value, current());
       return true;
     }
@@ -84,7 +84,7 @@ bool UintVector::add(uint32_t value) {
     MT_ASSERT_LT(prev_value, value);
     const uint32_t delta = value - prev_value;
     if (delta <= Varint::Limits::MAX_N4) {
-      offset_ += Varint::writeUintToBuffer(delta, current(), remaining());
+      offset_ += Varint::writeUintToBuffer(current(), remaining(), delta);
       offset_ += writeUint32(value, current());
       return true;
     }
