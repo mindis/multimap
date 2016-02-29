@@ -55,7 +55,7 @@ bool isBitSet(size_t bits, size_t index) { return (bits >> index) & 1; }
 
 void writeBytes(std::FILE* stream, const Bytes& bytes) {
   MT_ASSERT_NOT_ZERO(internal::Varint::writeUintToStream(stream, bytes.size()));
-  MT_ASSERT_TRUE(mt::fwrite(stream, bytes.data(), size));
+  MT_ASSERT_TRUE(mt::fwrite(stream, bytes.data(), bytes.size()));
 }
 
 bool readBytes(std::FILE* stream, std::vector<char>* bytes) {

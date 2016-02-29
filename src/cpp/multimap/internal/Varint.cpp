@@ -85,7 +85,7 @@ uint32_t Varint::readUintFromBuffer(const char* buf, size_t len,
   return 0;
 }
 
-uint32_t readUintFromStream(std::FILE* stream, uint32_t* value) {
+uint32_t Varint::readUintFromStream(std::FILE* stream, uint32_t* value) {
   MT_REQUIRE_NOT_NULL(stream);
   MT_REQUIRE_NOT_NULL(value);
 
@@ -216,7 +216,7 @@ uint32_t Varint::writeUintToBuffer(char* buf, size_t len, uint32_t value) {
   return 0;
 }
 
-uint32_t writeUintToStream(std::FILE* stream, uint32_t value) {
+uint32_t Varint::writeUintToStream(std::FILE* stream, uint32_t value) {
   MT_REQUIRE_NOT_NULL(stream);
 
   uint8_t b0, b1, b2, b3;
