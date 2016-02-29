@@ -85,6 +85,58 @@ uint32_t Varint::readUintFromBuffer(const char* buf, size_t len,
   return 0;
 }
 
+uint32_t readUintFromStream(std::FILE* stream, uint32_t* val) {
+  MT_REQUIRE_NOT_NULL(stream);
+  MT_REQUIRE_NOT_NULL(val);
+
+  int ch = std::fgetc(stream);
+  if (ch == EOF) return 0;
+
+  uint8_t b0 = ch;
+  uint8_t b1, b2, b3;
+  switch (b0 & 0xC0) {
+    case 0x00:  // 00000000
+      *val = b0;
+      return 1;
+    case 0x40:  // 01000000
+      ch = std::fgetc(stream);
+      if (ch == EOF) return 0;
+      b1 = ch;
+      *val = (b0 & 0x3F) << 8;
+      *val += b1;
+      return 2;
+    case 0x80:  // 10000000
+      ch = std::fgetc(stream);
+      if (ch == EOF) return 0;
+      b1 = ch;
+      ch = std::fgetc(stream);
+      if (ch == EOF) return 0;
+      b2 = ch;
+      *val = (b0 & 0x3F) << 16;
+      *val += b1 << 8;
+      *val += b2;
+      return 3;
+    case 0xC0:  // 11000000
+      ch = std::fgetc(stream);
+      if (ch == EOF) return 0;
+      b1 = ch;
+      ch = std::fgetc(stream);
+      if (ch == EOF) return 0;
+      b2 = ch;
+      ch = std::fgetc(stream);
+      if (ch == EOF) return 0;
+      b3 = ch;
+      *val = (b0 & 0x3F) << 24;
+      *val += b1 << 16;
+      *val += b2 << 8;
+      *val += b3;
+      return 4;
+    default:
+      mt::fail("Invalid varint encoding");
+  }
+  return 0;
+}
+
 uint32_t Varint::readUintWithFlagFromBuffer(const char* buf, size_t len,
                                             uint32_t* val, bool* flag) {
   MT_REQUIRE_NOT_NULL(buf);
@@ -170,6 +222,46 @@ uint32_t Varint::writeUintToBuffer(char* buf, size_t len, uint32_t val) {
   }
   mt::fail("Cannot encode too big value: %d", val);
 too_few_bytes:
+  return 0;
+}
+
+uint32_t writeUintToStream(std::FILE* stream, uint32_t val) {
+  MT_REQUIRE_NOT_NULL(stream);
+
+  uint8_t b0, b1, b2, b3;
+  if (val < 0x00000040) {  // 00000000 00000000 00000000 01000000
+    b0 = val;
+    if (std::fputc(b0, stream) == EOF) return 0;
+    return 1;
+  }
+  if (val < 0x00004000) {  // 00000000 00000000 01000000 00000000
+    b0 = (val >> 8) | 0x40;
+    b1 = (val);
+    if (std::fputc(b0, stream) == EOF) return 0;
+    if (std::fputc(b1, stream) == EOF) return 0;
+    return 2;
+  }
+  if (val < 0x00400000) {  // 00000000 01000000 00000000 00000000
+    b0 = (val >> 16) | 0x80;
+    b1 = (val >> 8);
+    b2 = (val);
+    if (std::fputc(b0, stream) == EOF) return 0;
+    if (std::fputc(b1, stream) == EOF) return 0;
+    if (std::fputc(b2, stream) == EOF) return 0;
+    return 3;
+  }
+  if (val < 0x40000000) {  // 01000000 00000000 00000000 00000000
+    b0 = (val >> 24) | 0xC0;
+    b1 = (val >> 16);
+    b2 = (val >> 8);
+    b3 = (val);
+    if (std::fputc(b0, stream) == EOF) return 0;
+    if (std::fputc(b1, stream) == EOF) return 0;
+    if (std::fputc(b2, stream) == EOF) return 0;
+    if (std::fputc(b3, stream) == EOF) return 0;
+    return 4;
+  }
+  mt::fail("Cannot encode too big value: %d", val);
   return 0;
 }
 

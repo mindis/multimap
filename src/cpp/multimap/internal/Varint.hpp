@@ -20,6 +20,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
 
 namespace multimap {
 namespace internal {
@@ -57,6 +58,8 @@ struct Varint {
   //  * `buf` is not null
   //  * `val` is not null
 
+  static uint32_t readUintFromStream(std::FILE* stream, uint32_t* val);
+
   static uint32_t readUintWithFlagFromBuffer(const char* buf, size_t len,
                                              uint32_t* val, bool* flag);
   // Reads a 32-bit unsigned integer with flag from `buf` into `val` and
@@ -72,6 +75,8 @@ struct Varint {
   // Preconditions:
   //  * `val` is not greater than `MAX_N4`
   //  * `buf` is not null
+
+  static uint32_t writeUintToStream(std::FILE* stream, uint32_t val);
 
   static uint32_t writeUintWithFlagToBuffer(char* buf, size_t len, uint32_t val,
                                             bool flag);
