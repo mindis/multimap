@@ -130,7 +130,7 @@ uint32_t Varint::readUintWithFlagFromBuffer(const char* buf, size_t len,
   return 0;
 }
 
-uint32_t Varint::writeUintToBuffer(uint32_t val, char* buf, size_t len) {
+uint32_t Varint::writeUintToBuffer(char* buf, size_t len, uint32_t val) {
   MT_REQUIRE_NOT_NULL(buf);
 
   std::uint8_t* ptr = reinterpret_cast<std::uint8_t*>(buf);
@@ -173,8 +173,8 @@ too_few_bytes:
   return 0;
 }
 
-uint32_t Varint::writeUintWithFlagToBuffer(uint32_t val, bool flag, char* buf,
-                                           size_t len) {
+uint32_t Varint::writeUintWithFlagToBuffer(char* buf, size_t len, uint32_t val,
+                                           bool flag) {
   MT_REQUIRE_NOT_NULL(buf);
 
   std::uint8_t* ptr = reinterpret_cast<std::uint8_t*>(buf);
@@ -217,7 +217,7 @@ too_few_bytes:
   return 0;
 }
 
-void Varint::writeFlagToBuffer(bool flag, char* buf, size_t len) {
+void Varint::writeFlagToBuffer(char* buf, size_t len, bool flag) {
   MT_REQUIRE_NOT_NULL(buf);
   MT_REQUIRE_NOT_ZERO(len);
 
