@@ -42,13 +42,13 @@ const uint32_t Varint::Limits::MAX_N2_WITH_FLAG = (1 << 13) - 1;
 const uint32_t Varint::Limits::MAX_N3_WITH_FLAG = (1 << 21) - 1;
 const uint32_t Varint::Limits::MAX_N4_WITH_FLAG = (1 << 29) - 1;
 
-uint32_t Varint::readUintFromBuffer(const char* buffer, size_t len,
+uint32_t Varint::readUintFromBuffer(const char* buf, size_t len,
                                     uint32_t* value) {
-  MT_REQUIRE_NOT_NULL(buffer);
+  MT_REQUIRE_NOT_NULL(buf);
   MT_REQUIRE_NOT_NULL(value);
 
   if (len > 0) {
-    const std::uint8_t* ptr = reinterpret_cast<const std::uint8_t*>(buffer);
+    const std::uint8_t* ptr = reinterpret_cast<const std::uint8_t*>(buf);
     const int length = (ptr[0] & 0xC0);  // 11000000
     switch (length) {
       case 0x00:  // 00000000
@@ -85,14 +85,14 @@ uint32_t Varint::readUintFromBuffer(const char* buffer, size_t len,
   return 0;
 }
 
-uint32_t Varint::readUintWithFlagFromBuffer(const char* buffer, size_t len,
+uint32_t Varint::readUintWithFlagFromBuffer(const char* buf, size_t len,
                                             uint32_t* value, bool* flag) {
-  MT_REQUIRE_NOT_NULL(buffer);
+  MT_REQUIRE_NOT_NULL(buf);
   MT_REQUIRE_NOT_NULL(value);
   MT_REQUIRE_NOT_NULL(flag);
 
   if (len > 0) {
-    const std::uint8_t* ptr = reinterpret_cast<const std::uint8_t*>(buffer);
+    const std::uint8_t* ptr = reinterpret_cast<const std::uint8_t*>(buf);
     const int length = (ptr[0] & 0xC0);  // 11000000
     *flag = (ptr[0] & 0x20);             // 00100000
     switch (length) {
@@ -130,10 +130,10 @@ uint32_t Varint::readUintWithFlagFromBuffer(const char* buffer, size_t len,
   return 0;
 }
 
-uint32_t Varint::writeUintToBuffer(uint32_t value, char* buffer, size_t len) {
-  MT_REQUIRE_NOT_NULL(buffer);
+uint32_t Varint::writeUintToBuffer(uint32_t value, char* buf, size_t len) {
+  MT_REQUIRE_NOT_NULL(buf);
 
-  std::uint8_t* ptr = reinterpret_cast<std::uint8_t*>(buffer);
+  std::uint8_t* ptr = reinterpret_cast<std::uint8_t*>(buf);
   if (value < 0x00000040) {  // 00000000 00000000 00000000 01000000
     if (len < 1) {
       goto too_few_bytes;
@@ -173,11 +173,11 @@ too_few_bytes:
   return 0;
 }
 
-uint32_t Varint::writeUintWithFlagToBuffer(uint32_t value, bool flag,
-                                           char* buffer, size_t len) {
-  MT_REQUIRE_NOT_NULL(buffer);
+uint32_t Varint::writeUintWithFlagToBuffer(uint32_t value, bool flag, char* buf,
+                                           size_t len) {
+  MT_REQUIRE_NOT_NULL(buf);
 
-  std::uint8_t* ptr = reinterpret_cast<std::uint8_t*>(buffer);
+  std::uint8_t* ptr = reinterpret_cast<std::uint8_t*>(buf);
   if (value < 0x00000020) {  // 00000000 00000000 00000000 00100000
     if (len < 1) {
       goto too_few_bytes;
@@ -217,14 +217,14 @@ too_few_bytes:
   return 0;
 }
 
-void Varint::writeFlagToBuffer(bool flag, char* buffer, size_t len) {
-  MT_REQUIRE_NOT_NULL(buffer);
+void Varint::writeFlagToBuffer(bool flag, char* buf, size_t len) {
+  MT_REQUIRE_NOT_NULL(buf);
   MT_REQUIRE_NOT_ZERO(len);
 
   if (flag) {
-    *reinterpret_cast<std::uint8_t*>(buffer) |= 0x20;
+    *reinterpret_cast<std::uint8_t*>(buf) |= 0x20;
   } else {
-    *reinterpret_cast<std::uint8_t*>(buffer) &= 0xDF;
+    *reinterpret_cast<std::uint8_t*>(buf) &= 0xDF;
   }
 }
 
