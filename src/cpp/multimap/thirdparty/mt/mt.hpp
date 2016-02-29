@@ -43,7 +43,7 @@
 
 namespace mt {
 
-static const uint32_t VERSION = 20160219;
+static const uint32_t VERSION = 20160229;
 
 // -----------------------------------------------------------------------------
 // COMMON
@@ -152,11 +152,11 @@ std::string toString(const char* format, va_list args);
 
 void toString(const char* format, va_list args, std::string* output);
 
-} // namespace internal
+}  // namespace internal
 
-#define __MT_TO_STRING(format, args, output)                                   \
-  va_start(args, format);                                                      \
-  internal::toString(format, args, output);                                    \
+#define __MT_TO_STRING(format, args, output) \
+  va_start(args, format);                    \
+  internal::toString(format, args, output);  \
   va_end(args)
 
 template <typename Error = std::runtime_error>
@@ -308,7 +308,7 @@ inline const char* errnostr() { return std::strerror(errno); }
 // -----------------------------------------------------------------------------
 
 class AutoCloseFd {
-public:
+ public:
   static const int NO_FD = -1;
 
   AutoCloseFd() = default;
@@ -337,7 +337,7 @@ public:
     fd_ = fd;
   }
 
-private:
+ private:
   int fd_ = NO_FD;
 };
 
@@ -428,7 +428,7 @@ inline void* mremap(void* old_addr, uint64_t old_size, uint64_t new_size,
 #endif
 
 class AutoCloseFile {
-public:
+ public:
   AutoCloseFile() = default;
 
   explicit AutoCloseFile(std::FILE* file) : file_(file) {}
@@ -457,7 +457,7 @@ public:
     file_ = file;
   }
 
-private:
+ private:
   std::FILE* file_ = nullptr;
 };
 
@@ -468,14 +468,12 @@ inline AutoCloseFile fopen(const boost::filesystem::path& file,
   return AutoCloseFile(result);
 }
 
-inline void fread(std::FILE* stream, void* buf, uint64_t len) {
-  const auto result = std::fread(buf, sizeof(char), len, stream);
-  Check::isEqual(result, len, "fread() failed");
+inline bool fread(std::FILE* stream, void* buf, size_t len) {
+  return std::fread(buf, sizeof(char), len, stream) == len;
 }
 
-inline void fwrite(std::FILE* stream, const void* buf, size_t len) {
-  const auto result = std::fwrite(buf, sizeof(char), len, stream);
-  Check::isEqual(result, len, "fwrite() failed");
+inline bool fwrite(std::FILE* stream, const void* buf, size_t len) {
+  return std::fwrite(buf, sizeof(char), len, stream) == len;
 }
 
 inline void fwriteOrPrompt(std::FILE* stream, const void* buf, size_t len) {
@@ -500,19 +498,17 @@ inline void fwriteOrPrompt(std::FILE* stream, const void* buf, size_t len) {
   }
 }
 
-inline void fseek(std::FILE* stream, long offset, int origin) {
-  const auto result = std::fseek(stream, offset, origin);
-  Check::isZero(result, "fseek() failed");
+inline bool fseek(std::FILE* stream, long offset, int origin) {
+  return std::fseek(stream, offset, origin) == 0;
 }
 
-inline uint64_t ftell(std::FILE* stream) {
-  const auto result = std::ftell(stream);
-  Check::notEqual(result, -1, "ftell() failed because of '%s'", errnostr());
-  return result;
+inline bool ftell(std::FILE* stream, uint64_t* output) {
+  *output = std::ftell(stream);
+  return *output != static_cast<uint64_t>(-1);
 }
 
 class DirectoryLockGuard : public Resource {
-public:
+ public:
   static const char* DEFAULT_FILENAME;
 
   DirectoryLockGuard(const boost::filesystem::path& directory,
@@ -524,7 +520,7 @@ public:
 
   const std::string& filename() const;
 
-private:
+ private:
   boost::filesystem::path directory_;
   std::string filename_;
 };
@@ -585,8 +581,8 @@ constexpr bool hasExpectedSize(size_t size_on_32_bit_system,
 //   static_assert(mt::hasExpectedSize<Type>(40, 48)::value,
 //                 "class Type does not have expected size");
 
-#define MT_ENABLE_IF(condition)                                                \
-  template <bool __MT_B = condition,                                           \
+#define MT_ENABLE_IF(condition)      \
+  template <bool __MT_B = condition, \
             typename std::enable_if<__MT_B>::type* = nullptr>
 // Enables a method of a class template if a boolean parameter is true.
 //
@@ -601,14 +597,14 @@ constexpr bool hasExpectedSize(size_t size_on_32_bit_system,
 //     // Error: no matching function for call to `Foo<false>::mutate()'.
 //   };
 
-#define MT_DISABLE_IF(condition)                                               \
-  template <bool __MT_B = condition,                                           \
+#define MT_DISABLE_IF(condition)     \
+  template <bool __MT_B = condition, \
             typename std::enable_if<!__MT_B>::type* = nullptr>
 // Disables a method of a class template if a boolean parameter is true.
 
-#define MT_ENABLE_IF_SAME(generic_type, concrete_type)                         \
-  template <typename __MT_T = generic_type,                                    \
-            typename std::enable_if<                                           \
+#define MT_ENABLE_IF_SAME(generic_type, concrete_type) \
+  template <typename __MT_T = generic_type,            \
+            typename std::enable_if<                   \
                 std::is_same<__MT_T, concrete_type>::value>::type* = nullptr>
 // Enables a method of a class template for some concrete type argument.
 //
@@ -665,7 +661,7 @@ constexpr bool hasExpectedSize(size_t size_on_32_bit_system,
 // -----------------------------------------------------------------------------
 
 class AssertionError : public std::logic_error {
-public:
+ public:
   enum class Type { ASSERTION, PRECONDITION, POSTCONDITION };
 
   enum class Expected { TRUE, FALSE, IS_NULL, IS_ZERO, NOT_NULL, NOT_ZERO };
@@ -735,7 +731,7 @@ void throwError(const char* file, size_t line, const char* expr, Lhs lhs_value,
   throw AssertionError(file, line, expr, lhs_value, rhs_value, type);
 }
 
-} // namespace internal
+}  // namespace internal
 
 template <typename Lhs, typename Rhs>
 AssertionError::AssertionError(const char* file, size_t line, const char* expr,
@@ -743,116 +739,116 @@ AssertionError::AssertionError(const char* file, size_t line, const char* expr,
     : std::logic_error(internal::makeErrorMessage(file, line, expr, lhs_value,
                                                   rhs_value, type, 4)) {}
 
-} // namespace mt
+}  // namespace mt
 
 #define __MT_VOID ((void)0)
 
-#define __MT_ASSERT_TRUE(expr)                                                 \
-  (expr) ? __MT_VOID                                                           \
-         : mt::internal::throwError(__FILE__, __LINE__, #expr,                 \
-                                    mt::AssertionError::Expected::TRUE,        \
+#define __MT_ASSERT_TRUE(expr)                                          \
+  (expr) ? __MT_VOID                                                    \
+         : mt::internal::throwError(__FILE__, __LINE__, #expr,          \
+                                    mt::AssertionError::Expected::TRUE, \
                                     mt::AssertionError::Type::ASSERTION);
-#define __MT_ASSERT_FALSE(expr)                                                \
-  !(expr) ? __MT_VOID                                                          \
-          : mt::internal::throwError(__FILE__, __LINE__, #expr,                \
-                                     mt::AssertionError::Expected::FALSE,      \
+#define __MT_ASSERT_FALSE(expr)                                           \
+  !(expr) ? __MT_VOID                                                     \
+          : mt::internal::throwError(__FILE__, __LINE__, #expr,           \
+                                     mt::AssertionError::Expected::FALSE, \
                                      mt::AssertionError::Type::ASSERTION);
-#define __MT_ASSERT_NULL(expr)                                                 \
-  !(expr) ? __MT_VOID                                                          \
-          : mt::internal::throwError(__FILE__, __LINE__, #expr,                \
-                                     mt::AssertionError::Expected::IS_NULL,    \
+#define __MT_ASSERT_NULL(expr)                                              \
+  !(expr) ? __MT_VOID                                                       \
+          : mt::internal::throwError(__FILE__, __LINE__, #expr,             \
+                                     mt::AssertionError::Expected::IS_NULL, \
                                      mt::AssertionError::Type::ASSERTION);
-#define __MT_ASSERT_ZERO(expr)                                                 \
-  !(expr) ? __MT_VOID                                                          \
-          : mt::internal::throwError(__FILE__, __LINE__, #expr,                \
-                                     mt::AssertionError::Expected::IS_ZERO,    \
+#define __MT_ASSERT_ZERO(expr)                                              \
+  !(expr) ? __MT_VOID                                                       \
+          : mt::internal::throwError(__FILE__, __LINE__, #expr,             \
+                                     mt::AssertionError::Expected::IS_ZERO, \
                                      mt::AssertionError::Type::ASSERTION);
-#define __MT_ASSERT_NOT_NULL(expr)                                             \
-  (expr) ? __MT_VOID                                                           \
-         : mt::internal::throwError(__FILE__, __LINE__, #expr,                 \
-                                    mt::AssertionError::Expected::NOT_NULL,    \
+#define __MT_ASSERT_NOT_NULL(expr)                                          \
+  (expr) ? __MT_VOID                                                        \
+         : mt::internal::throwError(__FILE__, __LINE__, #expr,              \
+                                    mt::AssertionError::Expected::NOT_NULL, \
                                     mt::AssertionError::Type::ASSERTION);
-#define __MT_ASSERT_NOT_ZERO(expr)                                             \
-  (expr) ? __MT_VOID                                                           \
-         : mt::internal::throwError(__FILE__, __LINE__, #expr,                 \
-                                    mt::AssertionError::Expected::NOT_ZERO,    \
+#define __MT_ASSERT_NOT_ZERO(expr)                                          \
+  (expr) ? __MT_VOID                                                        \
+         : mt::internal::throwError(__FILE__, __LINE__, #expr,              \
+                                    mt::AssertionError::Expected::NOT_ZERO, \
                                     mt::AssertionError::Type::ASSERTION);
-#define __MT_ASSERT_COMPARE(expr, lhs, rhs)                                    \
-  (expr) ? __MT_VOID                                                           \
-         : mt::internal::throwError(__FILE__, __LINE__, #expr, lhs, rhs,       \
+#define __MT_ASSERT_COMPARE(expr, lhs, rhs)                              \
+  (expr) ? __MT_VOID                                                     \
+         : mt::internal::throwError(__FILE__, __LINE__, #expr, lhs, rhs, \
                                     mt::AssertionError::Type::ASSERTION);
 
-#define __MT_REQUIRE_TRUE(expr)                                                \
-  (expr) ? __MT_VOID                                                           \
-         : mt::internal::throwError(__FILE__, __LINE__, #expr,                 \
-                                    mt::AssertionError::Expected::TRUE,        \
+#define __MT_REQUIRE_TRUE(expr)                                         \
+  (expr) ? __MT_VOID                                                    \
+         : mt::internal::throwError(__FILE__, __LINE__, #expr,          \
+                                    mt::AssertionError::Expected::TRUE, \
                                     mt::AssertionError::Type::PRECONDITION);
-#define __MT_REQUIRE_FALSE(expr)                                               \
-  !(expr) ? __MT_VOID                                                          \
-          : mt::internal::throwError(__FILE__, __LINE__, #expr,                \
-                                     mt::AssertionError::Expected::FALSE,      \
+#define __MT_REQUIRE_FALSE(expr)                                          \
+  !(expr) ? __MT_VOID                                                     \
+          : mt::internal::throwError(__FILE__, __LINE__, #expr,           \
+                                     mt::AssertionError::Expected::FALSE, \
                                      mt::AssertionError::Type::PRECONDITION);
-#define __MT_REQUIRE_NULL(expr)                                                \
-  !(expr) ? __MT_VOID                                                          \
-          : mt::internal::throwError(__FILE__, __LINE__, #expr,                \
-                                     mt::AssertionError::Expected::IS_NULL,    \
+#define __MT_REQUIRE_NULL(expr)                                             \
+  !(expr) ? __MT_VOID                                                       \
+          : mt::internal::throwError(__FILE__, __LINE__, #expr,             \
+                                     mt::AssertionError::Expected::IS_NULL, \
                                      mt::AssertionError::Type::PRECONDITION);
-#define __MT_REQUIRE_ZERO(expr)                                                \
-  !(expr) ? __MT_VOID                                                          \
-          : mt::internal::throwError(__FILE__, __LINE__, #expr,                \
-                                     mt::AssertionError::Expected::IS_ZERO,    \
+#define __MT_REQUIRE_ZERO(expr)                                             \
+  !(expr) ? __MT_VOID                                                       \
+          : mt::internal::throwError(__FILE__, __LINE__, #expr,             \
+                                     mt::AssertionError::Expected::IS_ZERO, \
                                      mt::AssertionError::Type::PRECONDITION);
-#define __MT_REQUIRE_NOT_NULL(expr)                                            \
-  (expr) ? __MT_VOID                                                           \
-         : mt::internal::throwError(__FILE__, __LINE__, #expr,                 \
-                                    mt::AssertionError::Expected::NOT_NULL,    \
+#define __MT_REQUIRE_NOT_NULL(expr)                                         \
+  (expr) ? __MT_VOID                                                        \
+         : mt::internal::throwError(__FILE__, __LINE__, #expr,              \
+                                    mt::AssertionError::Expected::NOT_NULL, \
                                     mt::AssertionError::Type::PRECONDITION);
-#define __MT_REQUIRE_NOT_ZERO(expr)                                            \
-  (expr) ? __MT_VOID                                                           \
-         : mt::internal::throwError(__FILE__, __LINE__, #expr,                 \
-                                    mt::AssertionError::Expected::NOT_ZERO,    \
+#define __MT_REQUIRE_NOT_ZERO(expr)                                         \
+  (expr) ? __MT_VOID                                                        \
+         : mt::internal::throwError(__FILE__, __LINE__, #expr,              \
+                                    mt::AssertionError::Expected::NOT_ZERO, \
                                     mt::AssertionError::Type::PRECONDITION);
-#define __MT_REQUIRE_COMPARE(expr, lhs, rhs)                                   \
-  (expr) ? __MT_VOID                                                           \
-         : mt::internal::throwError(__FILE__, __LINE__, #expr, lhs, rhs,       \
+#define __MT_REQUIRE_COMPARE(expr, lhs, rhs)                             \
+  (expr) ? __MT_VOID                                                     \
+         : mt::internal::throwError(__FILE__, __LINE__, #expr, lhs, rhs, \
                                     mt::AssertionError::Type::PRECONDITION);
 
-#define __MT_ENSURE_TRUE(expr)                                                 \
-  (expr) ? __MT_VOID                                                           \
-         : mt::internal::throwError(__FILE__, __LINE__, #expr,                 \
-                                    mt::AssertionError::Expected::TRUE,        \
+#define __MT_ENSURE_TRUE(expr)                                          \
+  (expr) ? __MT_VOID                                                    \
+         : mt::internal::throwError(__FILE__, __LINE__, #expr,          \
+                                    mt::AssertionError::Expected::TRUE, \
                                     mt::AssertionError::Type::POSTCONDITION);
-#define __MT_ENSURE_FALSE(expr)                                                \
-  !(expr) ? __MT_VOID                                                          \
-          : mt::internal::throwError(__FILE__, __LINE__, #expr,                \
-                                     mt::AssertionError::Expected::FALSE,      \
+#define __MT_ENSURE_FALSE(expr)                                           \
+  !(expr) ? __MT_VOID                                                     \
+          : mt::internal::throwError(__FILE__, __LINE__, #expr,           \
+                                     mt::AssertionError::Expected::FALSE, \
                                      mt::AssertionError::Type::POSTCONDITION);
-#define __MT_ENSURE_NULL(expr)                                                 \
-  !(expr) ? __MT_VOID                                                          \
-          : mt::internal::throwError(__FILE__, __LINE__, #expr,                \
-                                     mt::AssertionError::Expected::IS_NULL,    \
+#define __MT_ENSURE_NULL(expr)                                              \
+  !(expr) ? __MT_VOID                                                       \
+          : mt::internal::throwError(__FILE__, __LINE__, #expr,             \
+                                     mt::AssertionError::Expected::IS_NULL, \
                                      mt::AssertionError::Type::POSTCONDITION);
-#define __MT_ENSURE_ZERO(expr)                                                 \
-  !(expr) ? __MT_VOID                                                          \
-          : mt::internal::throwError(__FILE__, __LINE__, #expr,                \
-                                     mt::AssertionError::Expected::IS_ZERO,    \
+#define __MT_ENSURE_ZERO(expr)                                              \
+  !(expr) ? __MT_VOID                                                       \
+          : mt::internal::throwError(__FILE__, __LINE__, #expr,             \
+                                     mt::AssertionError::Expected::IS_ZERO, \
                                      mt::AssertionError::Type::POSTCONDITION);
-#define __MT_ENSURE_NOT_NULL(expr)                                             \
-  (expr) ? __MT_VOID                                                           \
-         : mt::internal::throwError(__FILE__, __LINE__, #expr,                 \
-                                    mt::AssertionError::Expected::NOT_NULL,    \
+#define __MT_ENSURE_NOT_NULL(expr)                                          \
+  (expr) ? __MT_VOID                                                        \
+         : mt::internal::throwError(__FILE__, __LINE__, #expr,              \
+                                    mt::AssertionError::Expected::NOT_NULL, \
                                     mt::AssertionError::Type::POSTCONDITION);
-#define __MT_ENSURE_NOT_ZERO(expr)                                             \
-  (expr) ? __MT_VOID                                                           \
-         : mt::internal::throwError(__FILE__, __LINE__, #expr,                 \
-                                    mt::AssertionError::Expected::NOT_ZERO,    \
+#define __MT_ENSURE_NOT_ZERO(expr)                                          \
+  (expr) ? __MT_VOID                                                        \
+         : mt::internal::throwError(__FILE__, __LINE__, #expr,              \
+                                    mt::AssertionError::Expected::NOT_ZERO, \
                                     mt::AssertionError::Type::POSTCONDITION);
-#define __MT_ENSURE_COMPARE(expr, lhs, rhs)                                    \
-  (expr) ? __MT_VOID                                                           \
-         : mt::internal::throwError(__FILE__, __LINE__, #expr, lhs, rhs,       \
+#define __MT_ENSURE_COMPARE(expr, lhs, rhs)                              \
+  (expr) ? __MT_VOID                                                     \
+         : mt::internal::throwError(__FILE__, __LINE__, #expr, lhs, rhs, \
                                     mt::AssertionError::Type::POSTCONDITION);
 
-#define __MT_FAIL(message)                                                     \
+#define __MT_FAIL(message) \
   mt::internal::throwError(__FILE__, __LINE__, message);
 
 // These assertions/macros are always enabled.
@@ -898,4 +894,4 @@ AssertionError::AssertionError(const char* file, size_t line, const char* expr,
 
 #define MT_FAIL(message) __MT_FAIL(message)
 
-#endif // MT_MT_HPP_INCLUDED
+#endif  // MT_MT_HPP_INCLUDED

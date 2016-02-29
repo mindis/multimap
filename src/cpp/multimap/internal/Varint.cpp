@@ -42,11 +42,12 @@ const uint32_t Varint::Limits::MAX_N2_WITH_FLAG = (1 << 13) - 1;
 const uint32_t Varint::Limits::MAX_N3_WITH_FLAG = (1 << 21) - 1;
 const uint32_t Varint::Limits::MAX_N4_WITH_FLAG = (1 << 29) - 1;
 
-uint32_t Varint::readUint(const char* buffer, size_t size, uint32_t* value) {
+uint32_t Varint::readUintFromBuffer(const char* buffer, size_t len,
+                                    uint32_t* value) {
   MT_REQUIRE_NOT_NULL(buffer);
   MT_REQUIRE_NOT_NULL(value);
 
-  if (size > 0) {
+  if (len > 0) {
     const std::uint8_t* ptr = reinterpret_cast<const std::uint8_t*>(buffer);
     const int length = (ptr[0] & 0xC0);  // 11000000
     switch (length) {
@@ -54,14 +55,14 @@ uint32_t Varint::readUint(const char* buffer, size_t size, uint32_t* value) {
         *value = ptr[0];
         return 1;
       case 0x40:  // 01000000
-        if (size < 2) {
+        if (len < 2) {
           break;
         }
         *value = (ptr[0] & 0x3F) << 8;
         *value += ptr[1];
         return 2;
       case 0x80:  // 10000000
-        if (size < 3) {
+        if (len < 3) {
           break;
         }
         *value = (ptr[0] & 0x3F) << 16;
@@ -69,7 +70,7 @@ uint32_t Varint::readUint(const char* buffer, size_t size, uint32_t* value) {
         *value += ptr[2];
         return 3;
       case 0xC0:  // 11000000
-        if (size < 4) {
+        if (len < 4) {
           break;
         }
         *value = (ptr[0] & 0x3F) << 24;
@@ -84,13 +85,13 @@ uint32_t Varint::readUint(const char* buffer, size_t size, uint32_t* value) {
   return 0;
 }
 
-uint32_t Varint::readUintWithFlag(const char* buffer, size_t size,
-                                  uint32_t* value, bool* flag) {
+uint32_t Varint::readUintWithFlagFromBuffer(const char* buffer, size_t len,
+                                            uint32_t* value, bool* flag) {
   MT_REQUIRE_NOT_NULL(buffer);
   MT_REQUIRE_NOT_NULL(value);
   MT_REQUIRE_NOT_NULL(flag);
 
-  if (size > 0) {
+  if (len > 0) {
     const std::uint8_t* ptr = reinterpret_cast<const std::uint8_t*>(buffer);
     const int length = (ptr[0] & 0xC0);  // 11000000
     *flag = (ptr[0] & 0x20);             // 00100000
@@ -99,14 +100,14 @@ uint32_t Varint::readUintWithFlag(const char* buffer, size_t size,
         *value = (ptr[0] & 0x1F);
         return 1;
       case 0x40:  // 01000000
-        if (size < 2) {
+        if (len < 2) {
           break;
         }
         *value = (ptr[0] & 0x1F) << 8;
         *value += ptr[1];
         return 2;
       case 0x80:  // 10000000
-        if (size < 3) {
+        if (len < 3) {
           break;
         }
         *value = (ptr[0] & 0x1F) << 16;
@@ -114,7 +115,7 @@ uint32_t Varint::readUintWithFlag(const char* buffer, size_t size,
         *value += ptr[2];
         return 3;
       case 0xC0:  // 11000000
-        if (size < 4) {
+        if (len < 4) {
           break;
         }
         *value = (ptr[0] & 0x1F) << 24;
@@ -129,19 +130,19 @@ uint32_t Varint::readUintWithFlag(const char* buffer, size_t size,
   return 0;
 }
 
-uint32_t Varint::writeUint(uint32_t value, char* buffer, size_t size) {
+uint32_t Varint::writeUintToBuffer(uint32_t value, char* buffer, size_t len) {
   MT_REQUIRE_NOT_NULL(buffer);
 
   std::uint8_t* ptr = reinterpret_cast<std::uint8_t*>(buffer);
   if (value < 0x00000040) {  // 00000000 00000000 00000000 01000000
-    if (size < 1) {
+    if (len < 1) {
       goto too_few_bytes;
     }
     ptr[0] = value;
     return 1;
   }
   if (value < 0x00004000) {  // 00000000 00000000 01000000 00000000
-    if (size < 2) {
+    if (len < 2) {
       goto too_few_bytes;
     }
     ptr[0] = (value >> 8) | 0x40;
@@ -149,7 +150,7 @@ uint32_t Varint::writeUint(uint32_t value, char* buffer, size_t size) {
     return 2;
   }
   if (value < 0x00400000) {  // 00000000 01000000 00000000 00000000
-    if (size < 3) {
+    if (len < 3) {
       goto too_few_bytes;
     }
     ptr[0] = (value >> 16) | 0x80;
@@ -158,7 +159,7 @@ uint32_t Varint::writeUint(uint32_t value, char* buffer, size_t size) {
     return 3;
   }
   if (value < 0x40000000) {  // 01000000 00000000 00000000 00000000
-    if (size < 4) {
+    if (len < 4) {
       goto too_few_bytes;
     }
     ptr[0] = (value >> 24) | 0xC0;
@@ -172,20 +173,20 @@ too_few_bytes:
   return 0;
 }
 
-uint32_t Varint::writeUintWithFlag(uint32_t value, bool flag, char* buffer,
-                                   size_t size) {
+uint32_t Varint::writeUintWithFlagToBuffer(uint32_t value, bool flag,
+                                           char* buffer, size_t len) {
   MT_REQUIRE_NOT_NULL(buffer);
 
   std::uint8_t* ptr = reinterpret_cast<std::uint8_t*>(buffer);
   if (value < 0x00000020) {  // 00000000 00000000 00000000 00100000
-    if (size < 1) {
+    if (len < 1) {
       goto too_few_bytes;
     }
     ptr[0] = value | (flag ? 0x20 : 0x00);
     return 1;
   }
   if (value < 0x00002000) {  // 00000000 00000000 00100000 00000000
-    if (size < 2) {
+    if (len < 2) {
       goto too_few_bytes;
     }
     ptr[0] = (value >> 8) | (flag ? 0x60 : 0x40);
@@ -193,7 +194,7 @@ uint32_t Varint::writeUintWithFlag(uint32_t value, bool flag, char* buffer,
     return 2;
   }
   if (value < 0x00200000) {  // 00000000 00100000 00000000 00000000
-    if (size < 3) {
+    if (len < 3) {
       goto too_few_bytes;
     }
     ptr[0] = (value >> 16) | (flag ? 0xA0 : 0x80);
@@ -202,7 +203,7 @@ uint32_t Varint::writeUintWithFlag(uint32_t value, bool flag, char* buffer,
     return 3;
   }
   if (value < 0x20000000) {  // 00100000 00000000 00000000 00000000
-    if (size < 4) {
+    if (len < 4) {
       goto too_few_bytes;
     }
     ptr[0] = (value >> 24) | (flag ? 0xE0 : 0xC0);
@@ -216,9 +217,9 @@ too_few_bytes:
   return 0;
 }
 
-void Varint::writeFlag(bool flag, char* buffer, size_t size) {
+void Varint::writeFlagToBuffer(bool flag, char* buffer, size_t len) {
   MT_REQUIRE_NOT_NULL(buffer);
-  MT_REQUIRE_NOT_ZERO(size);
+  MT_REQUIRE_NOT_ZERO(len);
 
   if (flag) {
     *reinterpret_cast<std::uint8_t*>(buffer) |= 0x20;

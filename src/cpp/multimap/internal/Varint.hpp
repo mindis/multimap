@@ -49,15 +49,16 @@ struct Varint {
     Limits() = delete;
   };
 
-  static uint32_t readUint(const char* buffer, size_t size, uint32_t* value);
-  // Reads a 32-bit unsigned integer from `buffer` into `value`.
+  static uint32_t readUintFromBuffer(const char* buffer, size_t len,
+                                     uint32_t* value);
+  // Reads a 32-bit unsigned integer from `buffer` into `output`.
   // Returns the number of bytes read on success, otherwise zero.
   // Preconditions:
   //  * `buffer` is not null
   //  * `value` is not null
 
-  static uint32_t readUintWithFlag(const char* buffer, size_t size,
-                                   uint32_t* value, bool* flag);
+  static uint32_t readUintWithFlagFromBuffer(const char* buffer, size_t len,
+                                             uint32_t* value, bool* flag);
   // Reads a 32-bit unsigned integer with flag from `buffer` into `value` and
   // `flag`. Returns the number of bytes read on success, otherwise zero.
   // Preconditions:
@@ -65,27 +66,27 @@ struct Varint {
   //  * `value` is not null
   //  * `flag` is not null
 
-  static uint32_t writeUint(uint32_t value, char* buffer, size_t size);
+  static uint32_t writeUintToBuffer(uint32_t value, char* buffer, size_t len);
   // Writes a 32-bit unsigned integer into `buffer`.
   // Returns the number of bytes written on success, otherwise zero.
   // Preconditions:
   //  * `value` is not greater than `MAX_N4`
   //  * `buffer` is not null
 
-  static uint32_t writeUintWithFlag(uint32_t value, bool flag, char* buffer,
-                                    size_t size);
+  static uint32_t writeUintWithFlagToBuffer(uint32_t value, bool flag,
+                                            char* buffer, size_t len);
   // Writes a 32-bit unsigned integer with flag into `buffer`.
   // Returns the number of bytes written on success, otherwise zero.
   // Preconditions:
   //  * `value` is not greater than `MAX_N4_WITH_FLAG`
   //  * `buffer` is not null
 
-  static void writeFlag(bool flag, char* buffer, size_t size);
-  // Sets a flag in `buffer` which is expected to point to the first byte
-  // of a valid varint encoding produced by a call to `writeUintWithFlag()`.
+  static void writeFlagToBuffer(bool flag, char* buffer, size_t len);
+  // Sets a flag in `buffer` which is expected to point to the first byte of a
+  // valid varint encoding produced by a call to `writeUintWithFlagToBuffer()`.
   // Preconditions:
   //  * `buffer` is not null
-  //  * `size` is not zero
+  //  * `len` is not zero
 
   Varint() = delete;
 };

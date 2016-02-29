@@ -153,7 +153,7 @@ std::string makeErrorMessage(const char* file, unsigned line, const char* expr,
   return oss.str();
 }
 
-} // namespace
+}  // namespace
 
 bool isPrime(uint64_t number) {
   if (number % 2 == 0) {
@@ -202,7 +202,7 @@ uint32_t crc32(const void* data, size_t size) {
 
 // Source: http://www.isthe.com/chongo/src/fnv/hash_32a.c
 uint32_t fnv1aHash32(const void* data, size_t size) {
-  uint32_t h = 0x811c9dc5; // FNV1_32A_INIT
+  uint32_t h = 0x811c9dc5;  // FNV1_32A_INIT
   const auto ptr = reinterpret_cast<const std::uint8_t*>(data);
   for (size_t i = 0; i != size; ++i) {
     h ^= ptr[i];
@@ -213,7 +213,7 @@ uint32_t fnv1aHash32(const void* data, size_t size) {
 
 // Source: http://www.isthe.com/chongo/src/fnv/hash_64a.c
 uint64_t fnv1aHash64(const void* data, size_t size) {
-  uint64_t h = 0xcbf29ce484222325ULL; // FNV1A_64_INIT
+  uint64_t h = 0xcbf29ce484222325ULL;  // FNV1A_64_INIT
   const auto ptr = reinterpret_cast<const std::uint8_t*>(data);
   for (size_t i = 0; i != size; ++i) {
     h ^= ptr[i];
@@ -384,7 +384,7 @@ void printStackTrace(size_t skip_head) {
   printStackTraceTo(std::cerr, skip_head);
 }
 
-} // namespace internal
+}  // namespace internal
 
 AssertionError::AssertionError(const char* message)
     : std::logic_error(message) {}
@@ -401,4 +401,4 @@ AssertionError::AssertionError(const char* file, size_t line, const char* expr,
                                AssertionError::Type type)
     : std::logic_error(makeErrorMessage(file, line, expr, expected, type, 5)) {}
 
-} // namespace mt
+}  // namespace mt

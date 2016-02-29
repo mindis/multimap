@@ -25,9 +25,12 @@ HEADERS += \
     src/cpp/multimap/thirdparty/mt/mt.hpp \
     src/cpp/multimap/thirdparty/xxhash/xxhash.h \
     src/cpp/multimap/Bytes.hpp \
+    src/cpp/multimap/ImmutableMap.hpp \
     src/cpp/multimap/Iterator.hpp \
     src/cpp/multimap/Map.hpp \
-    src/cpp/multimap/Version.hpp
+    src/cpp/multimap/Version.hpp \
+    src/cpp/multimap/internal/Mph.hpp \
+    src/cpp/multimap/internal/MphTable.hpp
 
 SOURCES += \
     src/cpp/multimap/internal/Arena.cpp \
@@ -42,8 +45,11 @@ SOURCES += \
     src/cpp/multimap/thirdparty/mt/mt.cpp \
     src/cpp/multimap/thirdparty/xxhash/xxhash.c \
     src/cpp/multimap/Iterator.cpp \
+    src/cpp/multimap/ImmutableMap.cpp \
     src/cpp/multimap/Map.cpp \
-    src/cpp/multimap/Version.cpp
+    src/cpp/multimap/Version.cpp \
+    src/cpp/multimap/internal/Mph.cpp \
+    src/cpp/multimap/internal/MphTable.cpp
 
 unix:!macx: LIBS += -lboost_filesystem -lboost_system -lboost_thread -lpthread
 

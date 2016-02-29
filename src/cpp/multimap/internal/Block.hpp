@@ -69,7 +69,7 @@ class Block {
   size_t readSizeWithFlag(uint32_t* size, bool* flag) {
     MT_REQUIRE_NOT_NULL(data_);
     const auto nbytes =
-        Varint::readUintWithFlag(current(), remaining(), size, flag);
+        Varint::readUintWithFlagFromBuffer(current(), remaining(), size, flag);
     offset_ += nbytes;
     return nbytes;
   }
@@ -109,7 +109,7 @@ class Block {
   size_t writeSizeWithFlag(uint32_t size, bool flag) {
     MT_REQUIRE_NOT_NULL(data_);
     const auto nbytes =
-        Varint::writeUintWithFlag(size, flag, current(), remaining());
+        Varint::writeUintWithFlagToBuffer(size, flag, current(), remaining());
     offset_ += nbytes;
     return nbytes;
   }
@@ -117,7 +117,7 @@ class Block {
   MT_DISABLE_IF(IsReadOnly)
   void writeFlagAt(bool flag, size_t offset) {
     MT_REQUIRE_NOT_NULL(data_);
-    Varint::writeFlag(flag, data_ + offset, size_ - offset);
+    Varint::writeFlagToBuffer(flag, data_ + offset, size_ - offset);
   }
 
  private:
