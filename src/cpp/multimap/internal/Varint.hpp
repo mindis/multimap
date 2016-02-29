@@ -51,39 +51,39 @@ struct Varint {
   };
 
   static uint32_t readUintFromBuffer(const char* buf, size_t len,
-                                     uint32_t* val);
-  // Reads a 32-bit unsigned integer from `buf` into `val`.
+                                     uint32_t* value);
+  // Reads a 32-bit unsigned integer from `buf` into `value`.
   // Returns the number of bytes read on success, otherwise zero.
   // Preconditions:
   //  * `buf` is not null
-  //  * `val` is not null
+  //  * `value` is not null
 
-  static uint32_t readUintFromStream(std::FILE* stream, uint32_t* val);
+  static uint32_t readUintFromStream(std::FILE* stream, uint32_t* value);
 
   static uint32_t readUintWithFlagFromBuffer(const char* buf, size_t len,
-                                             uint32_t* val, bool* flag);
-  // Reads a 32-bit unsigned integer with flag from `buf` into `val` and
+                                             uint32_t* value, bool* flag);
+  // Reads a 32-bit unsigned integer with flag from `buf` into `value` and
   // `flag`. Returns the number of bytes read on success, otherwise zero.
   // Preconditions:
   //  * `buf` is not null
-  //  * `val` is not null
+  //  * `value` is not null
   //  * `flag` is not null
 
-  static uint32_t writeUintToBuffer(char* buf, size_t len, uint32_t val);
+  static uint32_t writeUintToBuffer(char* buf, size_t len, uint32_t value);
   // Writes a 32-bit unsigned integer into `buf`.
   // Returns the number of bytes written on success, otherwise zero.
   // Preconditions:
-  //  * `val` is not greater than `MAX_N4`
+  //  * `value` is not greater than `MAX_N4`
   //  * `buf` is not null
 
-  static uint32_t writeUintToStream(std::FILE* stream, uint32_t val);
+  static uint32_t writeUintToStream(std::FILE* stream, uint32_t value);
 
-  static uint32_t writeUintWithFlagToBuffer(char* buf, size_t len, uint32_t val,
-                                            bool flag);
+  static uint32_t writeUintWithFlagToBuffer(char* buf, size_t len,
+                                            uint32_t value, bool flag);
   // Writes a 32-bit unsigned integer with flag into `buf`.
   // Returns the number of bytes written on success, otherwise zero.
   // Preconditions:
-  //  * `val` is not greater than `MAX_N4_WITH_FLAG`
+  //  * `value` is not greater than `MAX_N4_WITH_FLAG`
   //  * `buf` is not null
 
   static void writeFlagToBuffer(char* buf, size_t len, bool flag);
