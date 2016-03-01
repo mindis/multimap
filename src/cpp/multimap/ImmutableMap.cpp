@@ -50,32 +50,14 @@ std::string getNameOfStatsFile(size_t index) {
   return internal::MphTable::getNameOfStatsFile(getPrefix(index));
 }
 
-void writeBytes(std::FILE* stream, const Bytes& bytes) {
-  MT_ASSERT_NOT_ZERO(internal::Varint::writeUintToStream(stream, bytes.size()));
-  MT_ASSERT_TRUE(mt::fwrite(stream, bytes.data(), bytes.size()));
-}
-
-void writeBytes(std::FILE* stream, const std::vector<char>& bytes) {
-  MT_ASSERT_NOT_ZERO(internal::Varint::writeUintToStream(stream, bytes.size()));
-  MT_ASSERT_TRUE(mt::fwrite(stream, bytes.data(), bytes.size()));
-}
-
-bool readBytes(std::FILE* stream, std::vector<char>* bytes) {
-  uint32_t size;
-  if (internal::Varint::readUintFromStream(stream, &size) == 0) return false;
-  bytes->resize(size);
-  MT_ASSERT_TRUE(mt::fread(stream, bytes->data(), size));
-  return true;
+template <typename Element>
+Element& select(std::vector<Element>& vec, const Bytes& key) {
+  return vec[std::hash<Bytes>()(key) % vec.size()];
 }
 
 template <typename Element>
-Element& select(std::vector<Element>& vector, const Bytes& key) {
-  return vector[std::hash<Bytes>()(key) % vector.size()];
-}
-
-template <typename Element>
-Element& select(std::vector<Element>& vector, Bytes&& key) {
-  return vector[std::hash<Bytes>()(key) % vector.size()];
+Element& select(std::vector<Element>& vec, const std::vector<char>& key) {
+  return vec[std::hash<Bytes>()(Bytes(key.data(), key.size())) % vec.size()];
 }
 
 }  // namespace
@@ -124,15 +106,15 @@ ImmutableMap::Builder::Builder(const boost::filesystem::path& directory,
 
 ImmutableMap::Builder::~Builder() {
   for (auto& bucket : buckets_) {
-    bucket.stream.reset();
+    //    bucket.stream.reset();
     boost::filesystem::remove(bucket.filename);
   }
 }
 
 void ImmutableMap::Builder::put(const Bytes& key, const Bytes& value) {
   auto& bucket = select(buckets_, key);
-  writeBytes(bucket.stream.get(), key);
-  writeBytes(bucket.stream.get(), value);
+  MT_ASSERT_TRUE(writeBytes(bucket.stream.get(), key));
+  MT_ASSERT_TRUE(writeBytes(bucket.stream.get(), value));
   bucket.size += value.size();
   if (bucket.size > options_.max_bucket_size && !bucket.is_large) {
     // Double number of buckets and rehash all records.
@@ -151,8 +133,7 @@ void ImmutableMap::Builder::put(const Bytes& key, const Bytes& value) {
       MT_ASSERT_TRUE(mt::fseek(bucket.stream.get(), 0, SEEK_SET));
       while (readBytes(bucket.stream.get(), &old_key) &&
              readBytes(bucket.stream.get(), &old_value)) {
-        auto& new_bucket =
-            select(new_buckets, Bytes(old_key.data(), old_key.size()));
+        auto& new_bucket = select(new_buckets, old_key);
         writeBytes(new_bucket.stream.get(), old_key);
         writeBytes(new_bucket.stream.get(), old_value);
         new_bucket.size += old_value.size();

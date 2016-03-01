@@ -73,7 +73,7 @@ class ImmutableMap : public mt::Resource {
       Bucket() = default;
 
       boost::filesystem::path filename;
-      mt::AutoCloseFile stream;  // TODO Check if AutoCloseFd is equally fast
+      mt::AutoCloseFile stream;
       bool is_large = false;
       uint64_t size = 0;
     };
