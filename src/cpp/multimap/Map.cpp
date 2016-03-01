@@ -105,7 +105,7 @@ Map::Map(const boost::filesystem::path& directory)
     : Map(directory, Options()) {}
 
 Map::Map(const boost::filesystem::path& directory, const Options& options)
-    : lock_(directory, getNameOfLockFile()) {
+    : dlock_(directory, getNameOfLockFile()) {
   checkOptions(options);
   internal::Partition::Options part_options;
   part_options.readonly = options.readonly;
@@ -135,7 +135,7 @@ Map::~Map() {
     Id id;
     id.num_partitions = partitions_.size();
     id.block_size = partitions_.front()->getBlockSize();
-    id.writeToFile(lock_.directory() / getNameOfIdFile());
+    id.writeToFile(dlock_.directory() / getNameOfIdFile());
   }
 }
 

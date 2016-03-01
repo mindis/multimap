@@ -225,7 +225,7 @@ class Map : public mt::Resource {
   }
 
   std::vector<std::unique_ptr<internal::Partition> > partitions_;
-  mt::DirectoryLockGuard lock_;
+  mt::DirectoryLockGuard dlock_;
 };
 
 }  // namespace multimap
