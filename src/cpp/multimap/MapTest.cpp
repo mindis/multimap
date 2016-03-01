@@ -221,8 +221,8 @@ TEST_P(MapTestWithParam, GetTotalStatsReturnsCorrectValuesAfterRemovingValues) {
 
     const auto key = std::to_string(0);
     const auto val = std::to_string(0);
-    const auto num_values_removed = map->removeFirstEqual(key, val) +
-                                    map->removeAllMatches(key, IS_ODD);
+    const auto num_values_removed =
+        map->removeFirstEqual(key, val) + map->removeAllMatches(key, IS_ODD);
 
     stats_backup = map->getTotalStats();
     const auto exp_num_values_total = GetParam() * GetParam();
