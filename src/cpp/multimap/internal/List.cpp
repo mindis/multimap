@@ -33,17 +33,18 @@ std::unique_ptr<List> List::readFromStream(std::FILE* stream) {
 void List::readFromStream(std::FILE* stream, List* list) {
   WriterLockGuard<SharedMutex> lock(list->mutex_);
   MT_ASSERT_TRUE(mt::fread(stream, &list->stats_.num_values_total,
-            sizeof list->stats_.num_values_total));
+                           sizeof list->stats_.num_values_total));
   MT_ASSERT_TRUE(mt::fread(stream, &list->stats_.num_values_removed,
-            sizeof list->stats_.num_values_removed));
+                           sizeof list->stats_.num_values_removed));
   list->block_ids_ = UintVector::readFromStream(stream);
 }
 
 void List::writeToStream(std::FILE* stream) const {
   ReaderLockGuard<SharedMutex> lock(mutex_);
-  MT_ASSERT_TRUE(mt::fwrite(stream, &stats_.num_values_total, sizeof stats_.num_values_total));
+  MT_ASSERT_TRUE(mt::fwrite(stream, &stats_.num_values_total,
+                            sizeof stats_.num_values_total));
   MT_ASSERT_TRUE(mt::fwrite(stream, &stats_.num_values_removed,
-             sizeof stats_.num_values_removed));
+                            sizeof stats_.num_values_removed));
   block_ids_.writeToStream(stream);
 }
 
