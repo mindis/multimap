@@ -43,7 +43,7 @@
 
 namespace mt {
 
-static const uint32_t VERSION = 20160229;
+static const uint32_t VERSION = 20160301;
 
 // -----------------------------------------------------------------------------
 // COMMON
@@ -363,45 +363,36 @@ inline AutoCloseFd create(const boost::filesystem::path& file, mode_t mode) {
   return AutoCloseFd(result);
 }
 
-inline void read(int fd, void* buf, size_t len) {
-  const auto result = ::read(fd, buf, len);
-  Check::notEqual(result, -1, "read() failed because of '%s'", errnostr());
-  Check::isEqual(static_cast<size_t>(result), len,
-                 "read() read less bytes than expected");
+inline bool read(int fd, void* buf, size_t len) {
+  return static_cast<size_t>(::read(fd, buf, len)) == len;
 }
 
-inline void pread(int fd, void* buf, size_t len, uint64_t offset) {
-  const auto result = ::pread(fd, buf, len, offset);
-  Check::notEqual(result, -1, "pread() failed because of '%s'", errnostr());
-  Check::isEqual(static_cast<size_t>(result), len,
-                 "pread() read less bytes than expected");
+inline bool pread(int fd, void* buf, size_t len, uint64_t offset) {
+  return static_cast<size_t>(::pread(fd, buf, len, offset)) == len;
 }
 
-inline void write(int fd, const void* buf, size_t len) {
-  const auto result = ::write(fd, buf, len);
-  Check::notEqual(result, -1, "write() failed because of '%s'", errnostr());
-  Check::isEqual(static_cast<size_t>(result), len,
-                 "write() wrote less bytes than expected");
+inline bool write(int fd, const void* buf, size_t len) {
+  return static_cast<size_t>(::write(fd, buf, len)) == len;
 }
 
-inline void pwrite(int fd, const void* buf, size_t len, uint64_t offset) {
-  const auto result = ::pwrite(fd, buf, len, offset);
-  Check::notEqual(result, -1, "pwrite() failed because of '%s'", errnostr());
-  Check::isEqual(static_cast<size_t>(result), len,
-                 "pwrite() wrote less bytes than expected");
+inline bool pwrite(int fd, const void* buf, size_t len, uint64_t offset) {
+  return static_cast<size_t>(::pwrite(fd, buf, len, offset)) == len;
 }
 
-inline uint64_t seek(int fd, std::int64_t offset, int whence) {
+inline bool seek(int fd, int64_t offset, int whence,
+                 uint64_t* new_offset = nullptr) {
   const auto result = ::lseek(fd, offset, whence);
-  Check::notEqual(result, -1, "seek() failed because of '%s'", errnostr());
-  return result;
+  if (result == -1) return false;
+  if (new_offset) *new_offset = result;
+  return true;
 }
 
-inline uint64_t tell(int fd) { return seek(fd, 0, SEEK_CUR); }
+inline bool tell(int fd, uint64_t* offset) {
+  return seek(fd, 0, SEEK_CUR, offset);
+}
 
-inline void truncate(int fd, uint64_t length) {
-  const auto result = ::ftruncate(fd, length);
-  Check::isZero(result, "truncate() failed because of '%s'", errnostr());
+inline bool truncate(int fd, uint64_t length) {
+  return ::ftruncate(fd, length) == 0;
 }
 
 inline void* mmap(void* addr, uint64_t length, int prot, int flags, int fd,
@@ -468,6 +459,18 @@ inline AutoCloseFile fopen(const boost::filesystem::path& file,
   return AutoCloseFile(result);
 }
 
+inline bool fget(std::FILE* stream, uint8_t* byte) {
+  const auto result = std::fgetc(stream);
+  if (result == EOF) return false;
+  *byte = result;
+  return true;
+}
+
+inline bool fput(std::FILE* stream, uint8_t byte) {
+  const auto result = std::fputc(byte, stream);
+  return result != EOF;
+}
+
 inline bool fread(std::FILE* stream, void* buf, size_t len) {
   return std::fread(buf, sizeof(char), len, stream) == len;
 }
@@ -502,9 +505,9 @@ inline bool fseek(std::FILE* stream, long offset, int origin) {
   return std::fseek(stream, offset, origin) == 0;
 }
 
-inline bool ftell(std::FILE* stream, uint64_t* output) {
-  *output = std::ftell(stream);
-  return *output != static_cast<uint64_t>(-1);
+inline bool ftell(std::FILE* stream, uint64_t* offset) {
+  *offset = std::ftell(stream);
+  return *offset != static_cast<uint64_t>(-1);
 }
 
 class DirectoryLockGuard : public Resource {
