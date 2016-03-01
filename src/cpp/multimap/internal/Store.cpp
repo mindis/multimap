@@ -27,8 +27,8 @@ Store::Store(const boost::filesystem::path& filename, const Options& options)
   MT_REQUIRE_NOT_ZERO(getBlockSize());
   if (boost::filesystem::is_regular_file(filename)) {
     fd_ = mt::open(filename, options.readonly ? O_RDONLY : O_RDWR);
-    mt::seek(fd_.get(), 0, SEEK_END);
-    const auto length = mt::tell(fd_.get());
+    uint64_t length;
+    MT_ASSERT_TRUE(mt::seek(fd_.get(), 0, SEEK_END, &length));
     mt::Check::isZero(length % getBlockSize(),
                       "Store: block size does not match size of data file");
     if (length != 0) {
@@ -80,7 +80,8 @@ uint32_t Store::putUnlocked(const char* block) {
   if (buffer_.full()) {
     // Flush buffer and remap data file.
     buffer_.flushTo(fd_.get());
-    const auto new_size = mt::tell(fd_.get());
+    uint64_t new_size;
+    MT_ASSERT_TRUE(mt::tell(fd_.get(), &new_size));
     const auto prot = PROT_READ | PROT_WRITE;
     if (mapped_.data) {
       // fsync(fd_);
