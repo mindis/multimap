@@ -25,6 +25,7 @@
 #include <algorithm>
 #include <functional>
 #include <string>
+#include "multimap/internal/Varint.hpp"
 #include "multimap/thirdparty/mt/mt.hpp"
 #include "multimap/thirdparty/xxhash/xxhash.h"
 
@@ -77,6 +78,50 @@ inline bool operator<(const Bytes& lhs, const Bytes& rhs) {
   const auto min_size = std::min(lhs.size(), rhs.size());
   const auto result = std::memcmp(lhs.data(), rhs.data(), min_size);
   return (result == 0) ? (lhs.size() < rhs.size()) : (result < 0);
+}
+
+template <typename Allocate>
+Bytes readBytes(std::FILE* stream, Allocate allocate) {
+  uint32_t size;
+  if (internal::Varint::readUintFromStream(stream, &size) != 0) {
+    const auto data = allocate(size);
+    MT_ASSERT_TRUE(mt::fread(stream, data, size));
+    // See comment before, why this is an assertion.
+    return Bytes(data, size);
+  }
+  return Bytes();
+}
+
+inline bool readBytes(std::FILE* stream, std::vector<char>* bytes) {
+  uint32_t size;
+  if (internal::Varint::readUintFromStream(stream, &size) != 0) {
+    bytes->resize(size);
+    MT_ASSERT_TRUE(mt::fread(stream, bytes->data(), bytes->size()));
+    // The stream is expected to contain valid encodings of Bytes objects.
+    // Hence, after successfully reading the size field, it is an error if
+    // the data field could not be read.
+    return true;
+  }
+  return false;
+}
+
+inline bool writeBytes(std::FILE* stream, const Bytes& bytes) {
+  if (internal::Varint::writeUintToStream(stream, bytes.size()) != 0) {
+    MT_ASSERT_TRUE(mt::fwrite(stream, bytes.data(), bytes.size()));
+    // An instance of Bytes must be written as a whole in order
+    // to guarantee that the stream contains a valid encoding.
+    return true;
+  }
+  return false;
+}
+
+inline bool writeBytes(std::FILE* stream, const std::vector<char>& bytes) {
+  if (internal::Varint::writeUintToStream(stream, bytes.size()) != 0) {
+    MT_ASSERT_TRUE(mt::fwrite(stream, bytes.data(), bytes.size()));
+    // See comment before, why this is an assertion.
+    return true;
+  }
+  return false;
 }
 
 }  // namespace multimap
