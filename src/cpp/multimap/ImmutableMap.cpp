@@ -95,33 +95,38 @@ uint32_t ImmutableMap::Limits::maxValueSize() {
   return internal::MphTable::Limits::maxValueSize();
 }
 
-ImmutableMap::Builder::Builder(const boost::filesystem::path& directory)
-    : directory_lock_(directory) {
+ImmutableMap::Builder::Builder(const boost::filesystem::path& directory,
+                               const Options& options)
+    : directory_lock_(directory, getNameOfLockFile()), options_(options) {
   mt::Check::isEqual(
       std::distance(boost::filesystem::directory_iterator(directory),
                     boost::filesystem::directory_iterator()),
       1, "Directory must be empty '%s'", directory.c_str());
-  buckets_.reset(new BucketNode(0, directory / (getPrefix() + ".b")));
+  BucketNode::Options bucket_opts;
+  bucket_opts.depth = 0;
+  bucket_opts.max_bucket_size = options.max_bucket_size;
+  buckets_.reset(new BucketNode(directory / (getPrefix() + ".b"), bucket_opts));
 }
 
 void ImmutableMap::Builder::put(const Bytes& key, const Bytes& value) {
   buckets_->put(key, value);
 }
 
-std::vector<ImmutableMap::Stats> ImmutableMap::Builder::build(
-    const Options& options) {
+std::vector<ImmutableMap::Stats> ImmutableMap::Builder::build() {
   std::vector<Stats> stats;
   buckets_->forEachLeaf([&](BucketNode* bucket) {
     const auto datafile = bucket->close();
-    stats.push_back(internal::MphTable::build(datafile, options));
+    stats.push_back(internal::MphTable::build(datafile, options_));
     boost::filesystem::remove(datafile);
   });
   return stats;
 }
 
 ImmutableMap::Builder::BucketNode::BucketNode(
-    uint32_t depth, const boost::filesystem::path& filename)
-    : depth_(depth), filename_(filename), stream_(mt::fopen(filename, "w+")) {}
+    const boost::filesystem::path& filename, const Options& options)
+    : filename_(filename),
+      options_(options),
+      stream_(mt::fopen(filename, "w+")) {}
 
 ImmutableMap::Builder::BucketNode::~BucketNode() {
   stream_.reset();
@@ -134,26 +139,29 @@ void ImmutableMap::Builder::BucketNode::put(const Bytes& key,
     writeBytes(stream_.get(), key);
     writeBytes(stream_.get(), value);
     payload_ += value.size();
-    if (payload_ > MAX_PAYLOAD && !is_large_) {
+    if (payload_ > options_.max_bucket_size && !is_large_) {
       // Split bucket.
-      std::vector<char> key, value;
-      lhs_.reset(new BucketNode(depth_ + 1, filename_.string() + '0'));
-      rhs_.reset(new BucketNode(depth_ + 1, filename_.string() + '1'));
+      Options new_bucket_options;
+      new_bucket_options.depth = options_.depth + 1;
+      new_bucket_options.max_bucket_size = options_.max_bucket_size;
+      lhs_.reset(new BucketNode(filename_.string() + '0', new_bucket_options));
+      rhs_.reset(new BucketNode(filename_.string() + '1', new_bucket_options));
       MT_ASSERT_TRUE(mt::fseek(stream_.get(), 0, SEEK_SET));
 
       mt::log() << "Splitting bucket " << filename_ << " of size " << payload_
                 << std::endl;
 
+      std::vector<char> key, value;
       while (readBytes(stream_.get(), &key) &&
              readBytes(stream_.get(), &value)) {
         put(Bytes(key.data(), key.size()), Bytes(value.data(), value.size()));
       }
       stream_.reset();
       MT_ASSERT_TRUE(boost::filesystem::remove(filename_));
-      if (lhs_->payload_ > MAX_PAYLOAD) {
+      if (lhs_->payload_ > options_.max_bucket_size) {
         lhs_->is_large_ = true;
       }
-      if (rhs_->payload_ > MAX_PAYLOAD) {
+      if (rhs_->payload_ > options_.max_bucket_size) {
         rhs_->is_large_ = true;
       }
 
@@ -163,7 +171,7 @@ void ImmutableMap::Builder::BucketNode::put(const Bytes& key,
                 << rhs_->payload_ << std::endl;
     }
   } else {
-    return (isBitSet(hash, depth_) ? rhs_ : lhs_)->put(key, value, hash);
+    (isBitSet(hash, options_.depth) ? rhs_ : lhs_)->put(key, value, hash);
   }
 }
 

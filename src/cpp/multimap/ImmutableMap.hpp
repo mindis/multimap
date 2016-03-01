@@ -51,22 +51,31 @@ class ImmutableMap : public mt::Resource {
     static uint32_t maxValueSize();
   };
 
-  typedef internal::MphTable::Options Options;
+  struct Options : public internal::MphTable::Options {
+    uint64_t max_bucket_size = mt::GiB(1);
+  };
 
   typedef internal::MphTable::Stats Stats;
 
   class Builder : public mt::Resource {
    public:
-    explicit Builder(const boost::filesystem::path& directory);
+    explicit Builder(const boost::filesystem::path& directory,
+                     const Options& options);
 
     void put(const Bytes& key, const Bytes& value);
 
-    std::vector<Stats> build(const Options& options);
+    std::vector<Stats> build();
 
    private:
     class BucketNode : public mt::Resource {
      public:
-      BucketNode(uint32_t depth, const boost::filesystem::path& filename);
+      struct Options {
+        uint32_t depth = 0;
+        uint64_t max_bucket_size = mt::GiB(1);
+      };
+
+      BucketNode(const boost::filesystem::path& filename,
+                 const Options& options);
 
       ~BucketNode();
 
@@ -91,14 +100,12 @@ class ImmutableMap : public mt::Resource {
       }
 
      private:
-      static const uint64_t MAX_PAYLOAD = mt::GiB(1);
-
       bool isLeaf() const { return !lhs_ && !rhs_; }
 
       void put(const Bytes& key, const Bytes& value, size_t hash);
 
-      const uint32_t depth_;
       const boost::filesystem::path filename_;
+      const Options options_;
       mt::AutoCloseFile stream_;  // TODO Check if AutoCloseFd is equally fast
       bool is_large_ = false;
       uint64_t payload_ = 0;
@@ -109,6 +116,7 @@ class ImmutableMap : public mt::Resource {
 
     mt::DirectoryLockGuard directory_lock_;
     std::unique_ptr<BucketNode> buckets_;
+    const Options options_;
   };
 
   explicit ImmutableMap(const boost::filesystem::path& directory);
