@@ -115,9 +115,9 @@ class Block {
   }
 
   MT_DISABLE_IF(IsReadOnly)
-  void writeFlagAt(bool flag, size_t offset) {
+  void setFlagAt(bool flag, size_t offset) {
     MT_REQUIRE_NOT_NULL(data_);
-    Varint::writeFlagToBuffer(data_ + offset, size_ - offset, flag);
+    Varint::setFlag(data_ + offset, flag);
   }
 
  private:

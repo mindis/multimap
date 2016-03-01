@@ -59,7 +59,8 @@ std::vector<uint32_t> UintVector::unpack() const {
     uint32_t offset = 0;
     uint32_t remaining = offset_ - sizeof value;
     while (remaining > 0) {
-      nbytes = Varint::readUintFromBuffer(data_.get() + offset, remaining, &delta);
+      nbytes =
+          Varint::readUintFromBuffer(data_.get() + offset, remaining, &delta);
       offset += nbytes;
       remaining -= nbytes;
       values.push_back(value + delta);

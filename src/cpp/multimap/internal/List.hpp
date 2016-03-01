@@ -276,15 +276,15 @@ class List : public mt::Resource {
       }
 
       MT_ENABLE_IF(IsMutable)
-      void overwriteLastExtractedFlag(bool value) {
+      void overwriteLastExtractedFlag(bool flag) {
         if (size_with_flag_ptr_.index < blocks_.size()) {
           auto &block = blocks_[size_with_flag_ptr_.index];
-          block.writeFlagAt(value, size_with_flag_ptr_.offset);
+          block.setFlagAt(flag, size_with_flag_ptr_.offset);
           block.ignore = false;
           // Triggers that the block is written back to the
           // store when `writeBackMutatedBlocks()` is called.
         } else {
-          last_block_.writeFlagAt(value, size_with_flag_ptr_.offset);
+          last_block_.setFlagAt(flag, size_with_flag_ptr_.offset);
         }
       }
 

@@ -183,7 +183,7 @@ TEST(ReadWriteBlockTest, WriteValuesAndFlipFlags) {
     if (nbytes != 0) {
       nbytes = block.writeData(value.data(), value.size());
       if (nbytes == value.size()) {
-        block.writeFlagAt(!flag, offset);
+        block.setFlagAt(!flag, offset);
         ++num_values;
         continue;
       }
