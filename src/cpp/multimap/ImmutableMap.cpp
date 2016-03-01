@@ -30,30 +30,32 @@ std::string getNameOfIdFile() { return getPrefix() + ".id"; }
 
 std::string getNameOfLockFile() { return getPrefix() + ".lock"; }
 
-std::string getTablePrefix(size_t index) {
+std::string getPrefix(size_t index) {
   return getPrefix() + '.' + std::to_string(index);
 }
 
 std::string getNameOfMphfFile(size_t index) {
-  return internal::MphTable::getNameOfMphfFile(getTablePrefix(index));
+  return internal::MphTable::getNameOfMphfFile(getPrefix(index));
 }
 
 std::string getNameOfDataFile(size_t index) {
-  return internal::MphTable::getNameOfDataFile(getTablePrefix(index));
+  return internal::MphTable::getNameOfDataFile(getPrefix(index));
 }
 
 std::string getNameOfListsFile(size_t index) {
-  return internal::MphTable::getNameOfListsFile(getTablePrefix(index));
+  return internal::MphTable::getNameOfListsFile(getPrefix(index));
 }
 
 std::string getNameOfStatsFile(size_t index) {
-  return internal::MphTable::getNameOfStatsFile(getTablePrefix(index));
+  return internal::MphTable::getNameOfStatsFile(getPrefix(index));
 }
 
-// index is in [0, 64) where 0 is the LSB.
-bool isBitSet(size_t bits, size_t index) { return (bits >> index) & 1; }
-
 void writeBytes(std::FILE* stream, const Bytes& bytes) {
+  MT_ASSERT_NOT_ZERO(internal::Varint::writeUintToStream(stream, bytes.size()));
+  MT_ASSERT_TRUE(mt::fwrite(stream, bytes.data(), bytes.size()));
+}
+
+void writeBytes(std::FILE* stream, const std::vector<char>& bytes) {
   MT_ASSERT_NOT_ZERO(internal::Varint::writeUintToStream(stream, bytes.size()));
   MT_ASSERT_TRUE(mt::fwrite(stream, bytes.data(), bytes.size()));
 }
@@ -64,6 +66,16 @@ bool readBytes(std::FILE* stream, std::vector<char>* bytes) {
   bytes->resize(size);
   MT_ASSERT_TRUE(mt::fread(stream, bytes->data(), size));
   return true;
+}
+
+template <typename Element>
+Element& select(std::vector<Element>& vector, const Bytes& key) {
+  return vector[std::hash<Bytes>()(key) % vector.size()];
+}
+
+template <typename Element>
+Element& select(std::vector<Element>& vector, Bytes&& key) {
+  return vector[std::hash<Bytes>()(key) % vector.size()];
 }
 
 }  // namespace
@@ -97,86 +109,84 @@ uint32_t ImmutableMap::Limits::maxValueSize() {
 
 ImmutableMap::Builder::Builder(const boost::filesystem::path& directory,
                                const Options& options)
-    : directory_lock_(directory, getNameOfLockFile()), options_(options) {
+    : options_(options), dlock_(directory, getNameOfLockFile()) {
   mt::Check::isEqual(
       std::distance(boost::filesystem::directory_iterator(directory),
                     boost::filesystem::directory_iterator()),
       1, "Directory must be empty '%s'", directory.c_str());
-  BucketNode::Options bucket_opts;
-  bucket_opts.depth = 0;
-  bucket_opts.max_bucket_size = options.max_bucket_size;
-  buckets_.reset(new BucketNode(directory / (getPrefix() + ".b"), bucket_opts));
+  buckets_.resize(mt::nextPrime(options.num_buckets));
+  for (size_t i = 0; i != buckets_.size(); i++) {
+    auto& bucket = buckets_[i];
+    bucket.filename = directory / getPrefix(i);
+    bucket.stream = mt::fopen(bucket.filename, "w+");
+  }
+}
+
+ImmutableMap::Builder::~Builder() {
+  for (auto& bucket : buckets_) {
+    bucket.stream.reset();
+    boost::filesystem::remove(bucket.filename);
+  }
 }
 
 void ImmutableMap::Builder::put(const Bytes& key, const Bytes& value) {
-  buckets_->put(key, value);
+  auto& bucket = select(buckets_, key);
+  writeBytes(bucket.stream.get(), key);
+  writeBytes(bucket.stream.get(), value);
+  bucket.size += value.size();
+  if (bucket.size > options_.max_bucket_size && !bucket.is_large) {
+    // Double number of buckets and rehash all records.
+
+    mt::log() << "Rehashing caused by " << bucket.filename << std::endl;
+
+    std::vector<Bucket> new_buckets(mt::nextPrime(buckets_.size() * 2));
+    for (size_t i = 0; i != new_buckets.size(); i++) {
+      auto& new_bucket = new_buckets[i];
+      new_bucket.filename = dlock_.directory() / (getPrefix(i) + ".new");
+      new_bucket.stream = mt::fopen(new_bucket.filename, "w+");
+    }
+    std::vector<char> old_key;
+    std::vector<char> old_value;
+    for (auto& bucket : buckets_) {
+      MT_ASSERT_TRUE(mt::fseek(bucket.stream.get(), 0, SEEK_SET));
+      while (readBytes(bucket.stream.get(), &old_key) &&
+             readBytes(bucket.stream.get(), &old_value)) {
+        auto& new_bucket =
+            select(new_buckets, Bytes(old_key.data(), old_key.size()));
+        writeBytes(new_bucket.stream.get(), old_key);
+        writeBytes(new_bucket.stream.get(), old_value);
+        new_bucket.size += old_value.size();
+      }
+      bucket.stream.reset();
+      boost::filesystem::remove(bucket.filename);
+    }
+    // Rename new bucket files and check if there are large ones.
+    for (auto& new_bucket : new_buckets) {
+      const auto old_filename = new_bucket.filename;
+      const auto new_filename = new_bucket.filename.replace_extension();
+      boost::filesystem::rename(old_filename, new_filename);
+      if (new_bucket.size > options_.max_bucket_size) {
+        new_bucket.is_large = true;
+      }
+    }
+    buckets_ = std::move(new_buckets);
+
+    mt::log() << "Rehashing done. #buckets " << buckets_.size() << std::endl;
+  }
 }
 
 std::vector<ImmutableMap::Stats> ImmutableMap::Builder::build() {
   std::vector<Stats> stats;
-  buckets_->forEachLeaf([&](BucketNode* bucket) {
-    const auto datafile = bucket->close();
-    stats.push_back(internal::MphTable::build(datafile, options_));
-    boost::filesystem::remove(datafile);
-  });
+  for (auto& bucket : buckets_) {
+    bucket.stream.reset();
+    stats.push_back(internal::MphTable::build(bucket.filename, options_));
+    boost::filesystem::remove(bucket.filename);
+  }
   return stats;
 }
 
-ImmutableMap::Builder::BucketNode::BucketNode(
-    const boost::filesystem::path& filename, const Options& options)
-    : filename_(filename),
-      options_(options),
-      stream_(mt::fopen(filename, "w+")) {}
-
-ImmutableMap::Builder::BucketNode::~BucketNode() {
-  stream_.reset();
-  //  boost::filesystem::remove(filename_);
-}
-
-void ImmutableMap::Builder::BucketNode::put(const Bytes& key,
-                                            const Bytes& value, size_t hash) {
-  if (isLeaf()) {
-    writeBytes(stream_.get(), key);
-    writeBytes(stream_.get(), value);
-    payload_ += value.size();
-    if (payload_ > options_.max_bucket_size && !is_large_) {
-      // Split bucket.
-      Options new_bucket_options;
-      new_bucket_options.depth = options_.depth + 1;
-      new_bucket_options.max_bucket_size = options_.max_bucket_size;
-      lhs_.reset(new BucketNode(filename_.string() + '0', new_bucket_options));
-      rhs_.reset(new BucketNode(filename_.string() + '1', new_bucket_options));
-      MT_ASSERT_TRUE(mt::fseek(stream_.get(), 0, SEEK_SET));
-
-      mt::log() << "Splitting bucket " << filename_ << " of size " << payload_
-                << std::endl;
-
-      std::vector<char> key, value;
-      while (readBytes(stream_.get(), &key) &&
-             readBytes(stream_.get(), &value)) {
-        put(Bytes(key.data(), key.size()), Bytes(value.data(), value.size()));
-      }
-      stream_.reset();
-      MT_ASSERT_TRUE(boost::filesystem::remove(filename_));
-      if (lhs_->payload_ > options_.max_bucket_size) {
-        lhs_->is_large_ = true;
-      }
-      if (rhs_->payload_ > options_.max_bucket_size) {
-        rhs_->is_large_ = true;
-      }
-
-      mt::log() << "New bucket 0 " << lhs_->filename_ << " of size "
-                << lhs_->payload_ << std::endl;
-      mt::log() << "New bucket 1 " << rhs_->filename_ << " of size "
-                << rhs_->payload_ << std::endl;
-    }
-  } else {
-    (isBitSet(hash, options_.depth) ? rhs_ : lhs_)->put(key, value, hash);
-  }
-}
-
 ImmutableMap::ImmutableMap(const boost::filesystem::path& directory)
-    : directory_lock_(directory) {}
+    : dlock_(directory) {}
 
 ImmutableMap::~ImmutableMap() {}
 
@@ -202,11 +212,5 @@ void ImmutableMap::exportToBase64(const boost::filesystem::path& directory,
 void ImmutableMap::exportToBase64(const boost::filesystem::path& directory,
                                   const boost::filesystem::path& output,
                                   const Options& options) {}
-
-const internal::MphTable* ImmutableMap::MphTableNode::get(size_t hash,
-                                                          size_t depth) const {
-  if (isLeaf()) return table.get();
-  return (isBitSet(hash, depth) ? right : left)->get(hash, ++depth);
-}
 
 }  // namespace multimap

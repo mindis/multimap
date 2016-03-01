@@ -53,70 +53,34 @@ class ImmutableMap : public mt::Resource {
 
   struct Options : public internal::MphTable::Options {
     uint64_t max_bucket_size = mt::GiB(1);
+    uint32_t num_buckets = 23;
   };
 
   typedef internal::MphTable::Stats Stats;
 
   class Builder : public mt::Resource {
    public:
-    explicit Builder(const boost::filesystem::path& directory,
-                     const Options& options);
+    Builder(const boost::filesystem::path& directory, const Options& options);
+
+    ~Builder();
 
     void put(const Bytes& key, const Bytes& value);
 
     std::vector<Stats> build();
 
    private:
-    class BucketNode : public mt::Resource {
-     public:
-      struct Options {
-        uint32_t depth = 0;
-        uint64_t max_bucket_size = mt::GiB(1);
-      };
+    struct Bucket {
+      Bucket() = default;
 
-      BucketNode(const boost::filesystem::path& filename,
-                 const Options& options);
-
-      ~BucketNode();
-
-      void put(const Bytes& key, const Bytes& value) {
-        const auto hash = mt::fnv1aHash(key.data(), key.size());
-        put(key, value, hash);
-      }
-
-      template <typename Procedure>
-      // Requires: void operator()(Bucket*);
-      void forEachLeaf(Procedure process) {
-        if (isLeaf()) {
-          process(this);
-        } else {
-          lhs_->forEachLeaf(process);
-          rhs_->forEachLeaf(process);
-        }
-      }
-
-      boost::filesystem::path close() {
-        return isLeaf() ? (stream_.reset(), filename_) : "";
-      }
-
-     private:
-      bool isLeaf() const { return !lhs_ && !rhs_; }
-
-      void put(const Bytes& key, const Bytes& value, size_t hash);
-
-      const boost::filesystem::path filename_;
-      const Options options_;
-      mt::AutoCloseFile stream_;  // TODO Check if AutoCloseFd is equally fast
-      bool is_large_ = false;
-      uint64_t payload_ = 0;
-
-      std::unique_ptr<BucketNode> lhs_;
-      std::unique_ptr<BucketNode> rhs_;
+      boost::filesystem::path filename;
+      mt::AutoCloseFile stream;  // TODO Check if AutoCloseFd is equally fast
+      bool is_large = false;
+      uint64_t size = 0;
     };
 
-    mt::DirectoryLockGuard directory_lock_;
-    std::unique_ptr<BucketNode> buckets_;
     const Options options_;
+    std::vector<Bucket> buckets_;
+    mt::DirectoryLockGuard dlock_;
   };
 
   explicit ImmutableMap(const boost::filesystem::path& directory);
@@ -125,25 +89,25 @@ class ImmutableMap : public mt::Resource {
 
   std::unique_ptr<Iterator> get(const Bytes& key) const;
 
-  bool contains(const Bytes& key) const {
-    return tables_.get(key)->contains(key);
-  }
+  bool contains(const Bytes& key) const { return getTable(key)->contains(key); }
 
   template <typename Procedure>
   void forEachKey(Procedure process) const {
-    tables_.forEachLeaf(
-        [&](const internal::MphTable& table) { table.forEachKey(process); });
+    for (const auto& table : tables_) {
+      table->forEachKey(process);
+    }
   }
 
   template <typename Procedure>
   void forEachValue(const Bytes& key, Procedure process) const {
-    tables_.get(key)->forEachValue(key, process);
+    getTable(key)->forEachValue(key, process);
   }
 
   template <typename BinaryProcedure>
   void forEachEntry(BinaryProcedure process) const {
-    tables_.forEachLeaf(
-        [&](const internal::MphTable& table) { table.forEachEntry(process); });
+    for (const auto& table : tables_) {
+      table->forEachEntry(process);
+    }
   }
 
   std::vector<Stats> getStats() const;
@@ -171,6 +135,7 @@ class ImmutableMap : public mt::Resource {
                              const Options& options);
 
  private:
+  /*
   struct MphTableNode {
     std::unique_ptr<MphTableNode> left;
     std::unique_ptr<MphTableNode> right;
@@ -197,9 +162,14 @@ class ImmutableMap : public mt::Resource {
    private:
     const internal::MphTable* get(size_t hash, size_t depth) const;
   };
+  */
 
-  mt::DirectoryLockGuard directory_lock_;
-  MphTableNode tables_;
+  const internal::MphTable* getTable(const Bytes& key) const {
+    return tables_[std::hash<Bytes>()(key) % tables_.size()].get();
+  }
+
+  std::vector<std::unique_ptr<internal::MphTable>> tables_;
+  mt::DirectoryLockGuard dlock_;
 };
 
 }  // namespace multimap
