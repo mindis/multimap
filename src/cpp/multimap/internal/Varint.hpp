@@ -59,6 +59,11 @@ struct Varint {
   //  * `value` is not null
 
   static uint32_t readUintFromStream(std::FILE* stream, uint32_t* value);
+  // Reads a 32-bit unsigned integer from `stream` into `value`.
+  // Returns the number of bytes read on success, otherwise zero.
+  // Preconditions:
+  //  * `stream` is not null
+  //  * `value` is not null
 
   static uint32_t readUintWithFlagFromBuffer(const char* buf, size_t len,
                                              uint32_t* value, bool* flag);
@@ -73,25 +78,29 @@ struct Varint {
   // Writes a 32-bit unsigned integer into `buf`.
   // Returns the number of bytes written on success, otherwise zero.
   // Preconditions:
-  //  * `value` is not greater than `MAX_N4`
   //  * `buf` is not null
+  //  * `value` is not greater than `MAX_N4`
 
   static uint32_t writeUintToStream(std::FILE* stream, uint32_t value);
+  // Writes a 32-bit unsigned integer into `stream`.
+  // Returns the number of bytes written on success, otherwise zero.
+  // Preconditions:
+  //  * `stream` is not null
+  //  * `value` is not greater than `MAX_N4`
 
   static uint32_t writeUintWithFlagToBuffer(char* buf, size_t len,
                                             uint32_t value, bool flag);
   // Writes a 32-bit unsigned integer with flag into `buf`.
   // Returns the number of bytes written on success, otherwise zero.
   // Preconditions:
-  //  * `value` is not greater than `MAX_N4_WITH_FLAG`
   //  * `buf` is not null
+  //  * `value` is not greater than `MAX_N4_WITH_FLAG`
 
-  static void writeFlagToBuffer(char* buf, size_t len, bool flag);
-  // Sets a flag in `buffer` which is expected to point to the first byte of a
+  static void setFlag(char* buf, bool flag);
+  // Sets a flag in `buf` which is expected to point to the first byte of a
   // valid varint encoding produced by a call to `writeUintWithFlagToBuffer()`.
   // Preconditions:
   //  * `buf` is not null
-  //  * `len` is not zero
 
   Varint() = delete;
 };

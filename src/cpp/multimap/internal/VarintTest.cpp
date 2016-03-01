@@ -44,11 +44,6 @@ TEST(VarintTest, IsNotDefaultConstructible) {
   ASSERT_FALSE(std::is_default_constructible<Varint>::value);
 }
 
-TEST_F(VarintTestFixture, WriteValueToNullPtrThrows) {
-  ASSERT_THROW(Varint::writeUintToBuffer(nullptr, 1, value),
-               mt::AssertionError);
-}
-
 TEST_F(VarintTestFixture, WriteMinN1Value) {
   ASSERT_THAT(Varint::writeUintToBuffer(b4, sizeof b4, Varint::Limits::MIN_N1),
               Eq(1));
@@ -277,16 +272,6 @@ TEST_F(VarintTestFixture, ReadMaxN4Value) {
   ASSERT_THAT(value, Eq(Varint::Limits::MAX_N4));
 }
 
-TEST_F(VarintTestFixture, ReadValueFromNullPtrThrows) {
-  ASSERT_THROW(Varint::readUintFromBuffer(nullptr, sizeof b4, &value),
-               mt::AssertionError);
-}
-
-TEST_F(VarintTestFixture, ReadValueIntoNullPtrThrows) {
-  ASSERT_THROW(Varint::readUintFromBuffer(b4, sizeof b4, nullptr),
-               mt::AssertionError);
-}
-
 TEST_F(VarintTestFixture, ReadMinN1ValueWithTrueFlag) {
   flag = false;
   Varint::writeUintWithFlagToBuffer(b4, sizeof b4,
@@ -445,24 +430,6 @@ TEST_F(VarintTestFixture, ReadMaxN4ValueWithFalseFlag) {
               Eq(4));
   ASSERT_THAT(value, Eq(Varint::Limits::MAX_N4_WITH_FLAG));
   ASSERT_THAT(flag, Eq(false));
-}
-
-TEST_F(VarintTestFixture, ReadValueWithFlagFromNullPtrThrows) {
-  ASSERT_THROW(
-      Varint::readUintWithFlagFromBuffer(nullptr, sizeof b4, &value, &flag),
-      mt::AssertionError);
-}
-
-TEST_F(VarintTestFixture, ReadValueWithFlagIntoNullValueThrows) {
-  ASSERT_THROW(
-      Varint::readUintWithFlagFromBuffer(b4, sizeof b4, nullptr, &flag),
-      mt::AssertionError);
-}
-
-TEST_F(VarintTestFixture, ReadValueWithFlagIntoNullFlagThrows) {
-  ASSERT_THROW(
-      Varint::readUintWithFlagFromBuffer(b4, sizeof b4, &value, nullptr),
-      mt::AssertionError);
 }
 
 TEST_F(VarintTestFixture, WriteAndReadSequenceOfValues) {
@@ -626,22 +593,14 @@ TEST_F(VarintTestFixture, WriteAndReadSequenceOfValuesWithTrueAndFalseFlags) {
 
 TEST_F(VarintTestFixture, WriteTrueFlag) {
   std::memset(b4, 0xDF, sizeof b4);
-  ASSERT_NO_THROW(Varint::writeFlagToBuffer(b4, sizeof b4, true));
+  Varint::setFlag(b4, true);
   ASSERT_THAT(b4, ElementsAre(0xFF, 0xDF, 0xDF, 0xDF));
-}
-
-TEST_F(VarintTestFixture, WriteTrueFlagToEmptyBufferThrows) {
-  ASSERT_THROW(Varint::writeFlagToBuffer(b4, 0, true), mt::AssertionError);
 }
 
 TEST_F(VarintTestFixture, WriteFalseFlag) {
   std::memset(b4, 0xFF, sizeof b4);
-  ASSERT_NO_THROW(Varint::writeFlagToBuffer(b4, sizeof b4, false));
+  Varint::setFlag(b4, false);
   ASSERT_THAT(b4, ElementsAre(0xDF, 0xFF, 0xFF, 0xFF));
-}
-
-TEST_F(VarintTestFixture, WriteFalseFlagToEmptyBufferThrows) {
-  ASSERT_THROW(Varint::writeFlagToBuffer(b4, 0, false), mt::AssertionError);
 }
 
 }  // namespace internal
