@@ -124,6 +124,7 @@ class Store : public mt::Resource {
   // The names are borrowed from `posix_fadvise`.
 
   void adviseAccessPattern(AccessPattern pattern) const;
+  // TODO Replace by `readAhead()` which uses POSIX readahead().
 
   bool isReadOnly() const { return buffer_.size == 0; }
 
