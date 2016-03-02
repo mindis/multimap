@@ -89,34 +89,12 @@ class MphTable : public mt::Resource {
   static std::string getNameOfStatsFile(const std::string& prefix);
 
  private:
-  static void readBytesFromStream(std::FILE* stream, std::vector<char>* bytes) {
-    uint32_t size;
-    mt::fread(stream, &size, sizeof size);
-    bytes->resize(size);
-    mt::fread(stream, bytes->data(), bytes->size());
-  }
-
-  template <typename Allocate>
-  static Bytes readBytesFromStream(std::FILE* stream, Allocate allocate) {
-    uint32_t size;
-    mt::fread(stream, &size, sizeof size);
-    char* data = allocate(size);
-    mt::fread(stream, data, size);
-    return Bytes(data, size);
-  }
-
-  void writeBytesToStream(const Bytes& bytes, std::FILE* stream) const {
-    const uint32_t size = bytes.size();
-    mt::fwrite(stream, &size, sizeof size);
-    mt::fwrite(stream, bytes.data(), bytes.size());
-  }
-
-  std::unique_ptr<Mphf> mphf_;
-  const uint32_t* table_data_;
+  std::unique_ptr<Mph> mph_;
+  std::vector<uint32_t> data_;  // TODO Try to mmap this data
   boost::filesystem::path prefix_;
 };
 
 }  // namespace internal
 }  // namespace multimap
 
-#endif  // MULTIMAP_INTERNAL_PARTITION_HPP_INCLUDED
+#endif  // MULTIMAP_INTERNAL_MPH_TABLE_HPP_INCLUDED

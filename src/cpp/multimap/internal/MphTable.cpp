@@ -18,6 +18,8 @@
 #include "multimap/internal/MphTable.hpp"
 
 #include <limits>
+#include <unordered_map>
+#include "multimap/internal/Arena.hpp"
 
 namespace multimap {
 namespace internal {
@@ -35,7 +37,25 @@ MphTable::MphTable(const boost::filesystem::path& prefix) {}
 MphTable::~MphTable() {}
 
 MphTable::Stats MphTable::build(const boost::filesystem::path& datafile,
-                                const Options& options) {}
+                                const Options& options) {
+  Arena arena;
+  std::vector<char> key;
+  std::vector<char> value;
+  typedef std::vector<Bytes> List;
+  std::unordered_map<Bytes, List> map;
+  const auto stream = mt::fopen(datafile, "r");
+  while (readBytes(stream.get(), &key) && readBytes(stream.get(), &value)) {
+    auto iter = map.find(Bytes(key.data(), key.size()));
+    if (iter == map.end()) {
+      auto new_key_data = arena.allocate(key.size());
+      std::memcpy(new_key_data, key.data(), key.size());
+      iter = map.emplace(Bytes(new_key_data, key.size()), List()).first;
+    }
+    auto new_value_data = arena.allocate(value.size());
+    std::memcpy(new_value_data, value.data(), value.size());
+    iter->second.emplace_back(new_value_data, value.size());
+  }
+}
 
 std::unique_ptr<Iterator> MphTable::get(const Bytes& key) const {}
 
