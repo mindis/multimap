@@ -17,6 +17,10 @@ unix {
     multimap_internal.files += src/cpp/multimap/internal/*.h*
     INSTALLS += multimap_internal
 
+    multimap_thirdparty_cmph.path = $$INCLUDE_MULTIMAP/thirdparty/cmph
+    multimap_thirdparty_cmph.files += src/cpp/multimap/thirdparty/cmph/*.h*
+    INSTALLS += multimap_thirdparty_cmph
+
     multimap_thirdparty_mt.path = $$INCLUDE_MULTIMAP/thirdparty/mt
     multimap_thirdparty_mt.files += src/cpp/multimap/thirdparty/mt/*.h*
     INSTALLS += multimap_thirdparty_mt
