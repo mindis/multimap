@@ -61,7 +61,7 @@ template <typename Procedure>
 //              size_t partition_index, size_t num_partitions);
 void forEachPartition(const boost::filesystem::path& directory,
                       Procedure process) {
-  mt::DirectoryLockGuard lock(directory, getNameOfLockFile());
+  mt::DirectoryLockGuard lock(directory.string(), getNameOfLockFile());
   const auto id = Map::Id::readFromDirectory(directory);
   Version::checkCompatibility(id.major_version, id.minor_version);
 
@@ -83,13 +83,13 @@ Map::Id Map::Id::readFromDirectory(const boost::filesystem::path& directory) {
 
 Map::Id Map::Id::readFromFile(const boost::filesystem::path& filename) {
   Id id;
-  const auto stream = mt::fopen(filename, "r");
+  const auto stream = mt::fopen(filename.string(), "r");
   mt::fread(stream.get(), &id, sizeof id);
   return id;
 }
 
 void Map::Id::writeToFile(const boost::filesystem::path& filename) const {
-  const auto stream = mt::fopen(filename, "w");
+  const auto stream = mt::fopen(filename.string(), "w");
   mt::fwrite(stream.get(), this, sizeof *this);
 }
 
@@ -105,7 +105,7 @@ Map::Map(const boost::filesystem::path& directory)
     : Map(directory, Options()) {}
 
 Map::Map(const boost::filesystem::path& directory, const Options& options)
-    : dlock_(directory, getNameOfLockFile()) {
+    : dlock_(directory.string(), getNameOfLockFile()) {
   checkOptions(options);
   internal::Partition::Options part_options;
   part_options.readonly = options.readonly;
@@ -152,7 +152,7 @@ Map::Stats Map::getTotalStats() const { return Stats::total(getStats()); }
 bool Map::isReadOnly() const { return partitions_.front()->isReadOnly(); }
 
 std::vector<Map::Stats> Map::stats(const boost::filesystem::path& directory) {
-  mt::DirectoryLockGuard lock(directory, getNameOfLockFile());
+  mt::DirectoryLockGuard lock(directory.string(), getNameOfLockFile());
   const auto id = Id::readFromDirectory(directory);
   Version::checkCompatibility(id.major_version, id.minor_version);
   std::vector<Stats> stats;
@@ -173,12 +173,12 @@ void Map::importFromBase64(const boost::filesystem::path& directory,
                            const Options& options) {
   Map map(directory, options);
 
-  const auto import_file = [&](const boost::filesystem::path& file) {
-    std::ifstream input(file.string());
-    mt::check(input.is_open(), "Could not open '%s'", file.c_str());
+  const auto import_file = [&](const boost::filesystem::path& filename) {
+    std::ifstream input(filename.string());
+    mt::check(input.is_open(), "Could not open '%s'", filename.c_str());
 
     if (!options.quiet) {
-      mt::log(std::cout) << "Importing " << file << std::endl;
+      mt::log() << "Importing " << filename.string() << std::endl;
     }
 
     std::string base64_key;
