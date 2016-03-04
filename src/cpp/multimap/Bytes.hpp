@@ -85,8 +85,10 @@ Bytes readBytes(std::FILE* stream, Allocate allocate) {
   uint32_t size;
   if (internal::Varint::readUintFromStream(stream, &size) != 0) {
     const auto data = allocate(size);
-    MT_ASSERT_TRUE(mt::fread(stream, data, size));
-    // See comment before, why this is an assertion.
+    mt::fread(stream, data, size);
+    // The stream is expected to contain valid encodings of Bytes objects.
+    // Hence, after successfully reading the size field, mt::fread() will
+    // throw, if the data field could not be read to signal an invalid stream.
     return Bytes(data, size);
   }
   return Bytes();
@@ -96,32 +98,26 @@ inline bool readBytes(std::FILE* stream, std::vector<char>* bytes) {
   uint32_t size;
   if (internal::Varint::readUintFromStream(stream, &size) != 0) {
     bytes->resize(size);
-    MT_ASSERT_TRUE(mt::fread(stream, bytes->data(), bytes->size()));
-    // The stream is expected to contain valid encodings of Bytes objects.
-    // Hence, after successfully reading the size field, it is an error if
-    // the data field could not be read.
+    mt::fread(stream, bytes->data(), bytes->size());
+    // Read comment above, why mt::fread() may throw here.
     return true;
   }
   return false;
 }
 
-inline bool writeBytes(std::FILE* stream, const Bytes& bytes) {
-  if (internal::Varint::writeUintToStream(stream, bytes.size()) != 0) {
-    MT_ASSERT_TRUE(mt::fwrite(stream, bytes.data(), bytes.size()));
-    // An instance of Bytes must be written as a whole in order
-    // to guarantee that the stream contains a valid encoding.
-    return true;
-  }
-  return false;
+inline void writeBytes(std::FILE* stream, const Bytes& bytes) {
+  mt::Check::notZero(internal::Varint::writeUintToStream(stream, bytes.size()),
+                     "writeUintToStream() failed");
+  mt::fwrite(stream, bytes.data(), bytes.size());
+  // This method throws if any of the write operations fail.
+  // In Multimap's philosophy there is no reasonable recovery if a bytes object
+  // could not be written. If that happens, it is either because of faulty user
+  // behavious, e.g. someone deleted the file, or because there is simply not
+  // enough space left on the device.
 }
 
-inline bool writeBytes(std::FILE* stream, const std::vector<char>& bytes) {
-  if (internal::Varint::writeUintToStream(stream, bytes.size()) != 0) {
-    MT_ASSERT_TRUE(mt::fwrite(stream, bytes.data(), bytes.size()));
-    // See comment before, why this is an assertion.
-    return true;
-  }
-  return false;
+inline void writeBytes(std::FILE* stream, const std::vector<char>& bytes) {
+  writeBytes(stream, Bytes(bytes.data(), bytes.size()));
 }
 
 }  // namespace multimap
