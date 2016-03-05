@@ -25,6 +25,7 @@
 #include <algorithm>
 #include <functional>
 #include <string>
+#include <utility>
 #include "multimap/internal/Varint.hpp"
 #include "multimap/thirdparty/mt/mt.hpp"
 #include "multimap/thirdparty/xxhash/xxhash.h"
@@ -58,6 +59,30 @@ class Bytes {
   }
 
   std::string toString() const { return std::string(data_, size_); }
+
+  template <typename Allocate>
+  Bytes clone(Allocate allocate) const {
+    char* new_data = allocate(size_);
+    std::memcpy(new_data, data_, size_);
+    return Bytes(new_data, size_);
+  }
+
+  // ---------------------------------------------------------------------------
+  // I/O support
+  // ---------------------------------------------------------------------------
+
+  static std::pair<Bytes, const char*> readFromBuffer(const char* first, const char* last);
+
+  static const char* readFromBuffer(const char* first, const char* last, std::vector<const char*>* output);
+
+  template <typename Allocate>
+  static std::pair<Bytes, size_t> readFromStream(std::FILE* stream, Allocate allocate);
+
+  static size_t readFromStream(std::FILE* stream, std::vector<const char*>* output);
+
+  const char* writeToBuffer(const char* first, const char* last) const;
+
+  size_t writeToStream(std::FILE* stream) const;
 
  private:
   const char* data_ = "";
