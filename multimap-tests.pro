@@ -71,7 +71,6 @@ SOURCES += \
     src/cpp/multimap/internal/ListTest.cpp \
     src/cpp/multimap/internal/PartitionTest.cpp \
     src/cpp/multimap/internal/StoreTest.cpp \
-    src/cpp/multimap/internal/UintVectorTest.cpp \
     src/cpp/multimap/internal/VarintTest.cpp \
     src/cpp/multimap/thirdparty/googlemock/src/gmock_main.cc \
     src/cpp/multimap/thirdparty/googlemock/src/gmock-cardinalities.cc \
@@ -89,7 +88,8 @@ SOURCES += \
     src/cpp/multimap/BytesTest.cpp \
     src/cpp/multimap/IteratorTest.cpp \
     src/cpp/multimap/MapTest.cpp \
-    src/cpp/multimap/VersionTest.cpp
+    src/cpp/multimap/VersionTest.cpp \
+    src/cpp/multimap/internal/Uint32VectorTest.cpp
 
 # Only enable for memory leak checking with Google Address Sanitizer.
 # Caution: You may experience increased memory usage.
