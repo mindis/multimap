@@ -26,33 +26,32 @@ Store::Store(const boost::filesystem::path& filename, const Options& options)
     : options_(options) {
   MT_REQUIRE_NOT_ZERO(getBlockSize());
   if (boost::filesystem::is_regular_file(filename)) {
-    fd_ = mt::open(filename, options.readonly ? O_RDONLY : O_RDWR);
-    uint64_t length;
-    MT_ASSERT_TRUE(mt::seek(fd_.get(), 0, SEEK_END, &length));
-    mt::Check::isZero(length % getBlockSize(),
+    fd_ = mt::open(filename.string(), options.readonly ? O_RDONLY : O_RDWR);
+    const auto file_size = mt::seek(fd_.get(), 0, SEEK_END);
+    mt::Check::isZero(file_size % getBlockSize(),
                       "Store: block size does not match size of data file");
-    if (length != 0) {
+    if (file_size != 0) {
       auto prot = PROT_READ;
       if (!options.readonly) {
         prot |= PROT_WRITE;
       }
-      mapped_.data = mt::mmap(nullptr, length, prot, MAP_SHARED, fd_.get(), 0);
-      mapped_.size = length;
+      mapped_.data = mt::mmap(file_size, prot, MAP_SHARED, fd_.get(), 0);
+      mapped_.size = file_size;
     }
 
   } else {
-    fd_ = mt::open(filename, O_RDWR | O_CREAT, 0644);
+    fd_ = mt::open(filename.string(), O_RDWR | O_CREAT, 0644);
   }
   if (!options.readonly) {
     mt::Check::isZero(options.buffer_size % getBlockSize(),
                       "Store: buffer size must be a multiple of block size");
-    buffer_.data.reset(new char[options.buffer_size]);
+    buffer_.data.reset(new uint8_t[options.buffer_size]);
     buffer_.size = options.buffer_size;
   }
 }
 
 Store::~Store() {
-  if (fd_.get() != -1) {
+  if (fd_.get() != mt::AutoCloseFd::INVALID) {
     if (mapped_.data) {
       mt::munmap(mapped_.data, mapped_.size);
     }
@@ -76,12 +75,11 @@ void Store::adviseAccessPattern(AccessPattern pattern) const {
   }
 }
 
-uint32_t Store::putUnlocked(const char* block) {
+uint32_t Store::putUnlocked(const byte* block) {
   if (buffer_.full()) {
     // Flush buffer and remap data file.
     buffer_.flushTo(fd_.get());
-    uint64_t new_size;
-    MT_ASSERT_TRUE(mt::tell(fd_.get(), &new_size));
+    const auto new_size = mt::tell(fd_.get());
     const auto prot = PROT_READ | PROT_WRITE;
     if (mapped_.data) {
       // fsync(fd_);
@@ -96,12 +94,10 @@ uint32_t Store::putUnlocked(const char* block) {
           mt::mremap(mapped_.data, mapped_.size, new_size, MREMAP_MAYMOVE);
 #else
       mt::munmap(mapped_.data, mapped_.size);
-      mapped_.data =
-          mt::mmap(nullptr, new_size, prot, MAP_SHARED, fd_.get(), 0);
+      mapped_.data = mt::mmap(new_size, prot, MAP_SHARED, fd_.get(), 0);
 #endif
     } else {
-      mapped_.data =
-          mt::mmap(nullptr, new_size, prot, MAP_SHARED, fd_.get(), 0);
+      mapped_.data = mt::mmap(new_size, prot, MAP_SHARED, fd_.get(), 0);
     }
     mapped_.size = new_size;
   }
@@ -112,7 +108,7 @@ uint32_t Store::putUnlocked(const char* block) {
   return getNumBlocksUnlocked() - 1;
 }
 
-void Store::getUnlocked(uint32_t id, char* block) const {
+void Store::getUnlocked(uint32_t id, byte* block) const {
   if (fill_page_cache_) {
     fill_page_cache_ = false;
     // Touch each block to load it into the OS page cache.
@@ -124,18 +120,18 @@ void Store::getUnlocked(uint32_t id, char* block) const {
   std::memcpy(block, getAddressOf(id), getBlockSize());
 }
 
-void Store::replaceUnlocked(uint32_t id, const char* block) {
+void Store::replaceUnlocked(uint32_t id, const byte* block) {
   MT_REQUIRE_NOT_NULL(block);
   std::memcpy(getAddressOf(id), block, getBlockSize());
 }
 
-char* Store::getAddressOf(uint32_t id) const {
+uint8_t* Store::getAddressOf(uint32_t id) const {
   MT_REQUIRE_LT(id, getNumBlocksUnlocked());
 
   const auto num_blocks_mapped = mapped_.getNumBlocks(getBlockSize());
   if (id < num_blocks_mapped) {
     const auto offset = getBlockSize() * id;
-    return static_cast<char*>(mapped_.data) + offset;
+    return mapped_.data + offset;
   } else {
     const auto offset = getBlockSize() * (id - num_blocks_mapped);
     return buffer_.data.get() + offset;

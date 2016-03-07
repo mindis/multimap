@@ -142,13 +142,13 @@ class Store : public mt::Resource {
   // Private non-thread-safe interface, needs external synchronization.
   // ---------------------------------------------------------------------------
 
-  uint32_t putUnlocked(const char* block);
+  uint32_t putUnlocked(const byte* block);
 
-  void getUnlocked(uint32_t id, char* block) const;
+  void getUnlocked(uint32_t id, byte* block) const;
 
-  void replaceUnlocked(uint32_t id, const char* block);
+  void replaceUnlocked(uint32_t id, const byte* block);
 
-  char* getAddressOf(uint32_t id) const;
+  byte* getAddressOf(uint32_t id) const;
 
   uint64_t getNumBlocksUnlocked() const {
     return mapped_.getNumBlocks(options_.block_size) +
@@ -156,7 +156,7 @@ class Store : public mt::Resource {
   }
 
   struct Mapped {
-    void* data = nullptr;
+    byte* data = nullptr;
     uint64_t size = 0;
 
     // Requires: `block_size` != 0
@@ -166,7 +166,7 @@ class Store : public mt::Resource {
   };
 
   struct Buffer {
-    std::unique_ptr<char[]> data;
+    std::unique_ptr<byte[]> data;
     uint64_t offset = 0;
     uint64_t size = 0;
 
