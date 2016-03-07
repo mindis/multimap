@@ -15,27 +15,27 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-// -----------------------------------------------------------------------------
-// Documentation:  http://multimap.io/cppreference/#byteshpp
-// -----------------------------------------------------------------------------
+#include "multimap/Bytes.hpp"
 
-#ifndef MULTIMAP_BYTES_HPP_INCLUDED
-#define MULTIMAP_BYTES_HPP_INCLUDED
-
-#include <cstdio>
-#include <vector>
+#include "multimap/Range.hpp"
 
 namespace multimap {
 
-typedef unsigned char byte;
-typedef std::vector<byte> Bytes;
+const byte* readBytesFromBuffer(const byte* buffer, Bytes* output) {
+  const Range bytes = Range::readFromBuffer(buffer);
+  bytes.copyTo(output);
+  return bytes.end();
+}
 
-const byte* readBytesFromBuffer(const byte* buffer, Bytes* output);
+bool readBytesFromStream(std::FILE* stream, Bytes* output) {
+  return Range::readFromStream(stream, [output](size_t size) {
+    output->resize(size);
+    return output->data();
+  }).size() != 0;
+}
 
-bool readBytesFromStream(std::FILE* stream, Bytes* output);
-
-void writeBytesToStream(std::FILE* stream, const Bytes& input);
+void writeBytesToStream(std::FILE* stream, const Bytes& input) {
+  Range(input).writeToStream(stream);
+}
 
 }  // namespace multimap
-
-#endif  // MULTIMAP_BYTES_HPP_INCLUDED
