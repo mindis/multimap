@@ -34,30 +34,9 @@ std::string getPrefix(size_t index) {
   return getPrefix() + '.' + std::to_string(index);
 }
 
-std::string getNameOfMphfFile(size_t index) {
-  return internal::MphTable::getNameOfMphfFile(getPrefix(index));
-}
-
-std::string getNameOfDataFile(size_t index) {
-  return internal::MphTable::getNameOfDataFile(getPrefix(index));
-}
-
-std::string getNameOfListsFile(size_t index) {
-  return internal::MphTable::getNameOfListsFile(getPrefix(index));
-}
-
-std::string getNameOfStatsFile(size_t index) {
-  return internal::MphTable::getNameOfStatsFile(getPrefix(index));
-}
-
 template <typename Element>
-Element& select(std::vector<Element>& vec, const Bytes& key) {
-  return vec[std::hash<Bytes>()(key) % vec.size()];
-}
-
-template <typename Element>
-Element& select(std::vector<Element>& vec, const std::vector<char>& key) {
-  return vec[std::hash<Bytes>()(Bytes(key.data(), key.size())) % vec.size()];
+Element& select(std::vector<Element>& elements, const Range& key) {
+  return elements[std::hash<Range>()(key) % elements.size()];
 }
 
 }  // namespace
@@ -70,14 +49,14 @@ ImmutableMap::Id ImmutableMap::Id::readFromDirectory(
 ImmutableMap::Id ImmutableMap::Id::readFromFile(
     const boost::filesystem::path& filename) {
   Id id;
-  const auto stream = mt::fopen(filename, "r");
+  const auto stream = mt::fopen(filename.string(), "r");
   mt::fread(stream.get(), &id, sizeof id);
   return id;
 }
 
 void ImmutableMap::Id::writeToFile(
     const boost::filesystem::path& filename) const {
-  const auto stream = mt::fopen(filename, "w");
+  const auto stream = mt::fopen(filename.string(), "w");
   mt::fwrite(stream.get(), this, sizeof *this);
 }
 
@@ -91,7 +70,7 @@ uint32_t ImmutableMap::Limits::maxValueSize() {
 
 ImmutableMap::Builder::Builder(const boost::filesystem::path& directory,
                                const Options& options)
-    : options_(options), dlock_(directory, getNameOfLockFile()) {
+    : options_(options), dlock_(directory.string(), getNameOfLockFile()) {
   mt::Check::isEqual(
       std::distance(boost::filesystem::directory_iterator(directory),
                     boost::filesystem::directory_iterator()),
@@ -100,42 +79,36 @@ ImmutableMap::Builder::Builder(const boost::filesystem::path& directory,
   for (size_t i = 0; i != buckets_.size(); i++) {
     auto& bucket = buckets_[i];
     bucket.filename = directory / getPrefix(i);
-    bucket.stream = mt::fopen(bucket.filename, "w+");
+    bucket.stream = mt::fopen(bucket.filename.string(), "w+");
   }
 }
 
-ImmutableMap::Builder::~Builder() {
-  for (auto& bucket : buckets_) {
-    //    bucket.stream.reset();
-    boost::filesystem::remove(bucket.filename);
-  }
-}
-
-void ImmutableMap::Builder::put(const Bytes& key, const Bytes& value) {
-  auto& bucket = select(buckets_, key);
-  MT_ASSERT_TRUE(writeBytes(bucket.stream.get(), key));
-  MT_ASSERT_TRUE(writeBytes(bucket.stream.get(), value));
+void ImmutableMap::Builder::put(const Range& key, const Range& value) {
+  Bucket& bucket = select(buckets_, key);
+  key.writeToStream(bucket.stream.get());
+  value.writeToStream(bucket.stream.get());
   bucket.size += value.size();
   if (bucket.size > options_.max_bucket_size && !bucket.is_large) {
     // Double number of buckets and rehash all records.
-
-    mt::log() << "Rehashing caused by " << bucket.filename << std::endl;
-
     std::vector<Bucket> new_buckets(mt::nextPrime(buckets_.size() * 2));
+    if (!options_.quiet)
+      mt::log() << "Rehashing from " << buckets_.size() << " to "
+                << new_buckets.size() << " buckets triggered by "
+                << bucket.filename.string() << std::endl;
     for (size_t i = 0; i != new_buckets.size(); i++) {
       auto& new_bucket = new_buckets[i];
       new_bucket.filename = dlock_.directory() / (getPrefix(i) + ".new");
-      new_bucket.stream = mt::fopen(new_bucket.filename, "w+");
+      new_bucket.stream = mt::fopen(new_bucket.filename.string(), "w+");
     }
-    std::vector<char> old_key;
-    std::vector<char> old_value;
+    Bytes old_key;
+    Bytes old_value;
     for (auto& bucket : buckets_) {
-      MT_ASSERT_TRUE(mt::fseek(bucket.stream.get(), 0, SEEK_SET));
-      while (readBytes(bucket.stream.get(), &old_key) &&
-             readBytes(bucket.stream.get(), &old_value)) {
-        auto& new_bucket = select(new_buckets, old_key);
-        writeBytes(new_bucket.stream.get(), old_key);
-        writeBytes(new_bucket.stream.get(), old_value);
+      mt::fseek(bucket.stream.get(), 0, SEEK_SET);
+      while (readBytesFromStream(bucket.stream.get(), &old_key) &&
+             readBytesFromStream(bucket.stream.get(), &old_value)) {
+        Bucket& new_bucket = select(new_buckets, old_key);
+        writeBytesToStream(new_bucket.stream.get(), old_key);
+        writeBytesToStream(new_bucket.stream.get(), old_value);
         new_bucket.size += old_value.size();
       }
       bucket.stream.reset();
@@ -151,8 +124,7 @@ void ImmutableMap::Builder::put(const Bytes& key, const Bytes& value) {
       }
     }
     buckets_ = std::move(new_buckets);
-
-    mt::log() << "Rehashing done. #buckets " << buckets_.size() << std::endl;
+    if (!options_.quiet) mt::log() << "Rehashing finished" << std::endl;
   }
 }
 
@@ -160,25 +132,41 @@ std::vector<ImmutableMap::Stats> ImmutableMap::Builder::build() {
   std::vector<Stats> stats;
   for (auto& bucket : buckets_) {
     bucket.stream.reset();
-    stats.push_back(internal::MphTable::build(bucket.filename, options_));
+    stats.push_back(internal::MphTable::build(
+        bucket.filename.string(), bucket.filename.string(), options_));
     boost::filesystem::remove(bucket.filename);
   }
   return stats;
 }
 
 ImmutableMap::ImmutableMap(const boost::filesystem::path& directory)
-    : dlock_(directory) {}
+    : dlock_(directory.string()) {}
 
-ImmutableMap::~ImmutableMap() {}
+std::unique_ptr<Iterator> ImmutableMap::get(const Range& key) const {
+  return getTable(key).get(key);
+}
 
-std::unique_ptr<Iterator> ImmutableMap::get(const Bytes& key) const {}
+std::vector<ImmutableMap::Stats> ImmutableMap::getStats() const {
+  std::vector<ImmutableMap::Stats> stats(tables_.size());
+  for (size_t i = 0; i != tables_.size(); i++) {
+    stats[i] = tables_[i].getStats();
+  }
+  return stats;
+}
 
-std::vector<ImmutableMap::Stats> ImmutableMap::getStats() const {}
-
-ImmutableMap::Stats ImmutableMap::getTotalStats() const {}
+ImmutableMap::Stats ImmutableMap::getTotalStats() const {
+  return Stats::total(getStats());
+}
 
 std::vector<ImmutableMap::Stats> ImmutableMap::stats(
-    const boost::filesystem::path& directory) {}
+    const boost::filesystem::path& directory) {
+  const auto id = Id::readFromDirectory(directory);
+  std::vector<ImmutableMap::Stats> stats(id.num_tables);
+  for (size_t i = 0; i != id.num_tables; i++) {
+    stats[i] = internal::MphTable::stats(getPrefix(i));
+  }
+  return stats;
+}
 
 void ImmutableMap::buildFromBase64(const boost::filesystem::path& directory,
                                    const boost::filesystem::path& input) {}
