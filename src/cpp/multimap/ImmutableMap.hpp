@@ -29,8 +29,8 @@
 
 namespace multimap {
 
-class ImmutableMap : public mt::Resource {
-  // This class is read-only and therefore lock-free.
+class ImmutableMap {
+  // This class is read-only and does not need external locking.
 
  public:
   struct Id {
@@ -39,8 +39,8 @@ class ImmutableMap : public mt::Resource {
     uint64_t minor_version = Version::MINOR;
 
     static Id readFromDirectory(const boost::filesystem::path& directory);
-    static Id readFromFile(const boost::filesystem::path& file);
-    void writeToFile(const boost::filesystem::path& file) const;
+    static Id readFromFile(const boost::filesystem::path& filename);
+    void writeToFile(const boost::filesystem::path& filename) const;
   };
 
   static_assert(mt::hasExpectedSize<Id>(24, 24),
@@ -58,20 +58,16 @@ class ImmutableMap : public mt::Resource {
 
   typedef internal::MphTable::Stats Stats;
 
-  class Builder : public mt::Resource {
+  class Builder {
    public:
     Builder(const boost::filesystem::path& directory, const Options& options);
 
-    ~Builder();
-
-    void put(const Bytes& key, const Bytes& value);
+    void put(const Range& key, const Range& value);
 
     std::vector<Stats> build();
 
    private:
     struct Bucket {
-      Bucket() = default;
-
       boost::filesystem::path filename;
       mt::AutoCloseFile stream;
       bool is_large = false;
@@ -85,28 +81,24 @@ class ImmutableMap : public mt::Resource {
 
   explicit ImmutableMap(const boost::filesystem::path& directory);
 
-  ~ImmutableMap();
-
-  std::unique_ptr<Iterator> get(const Bytes& key) const;
-
-  bool contains(const Bytes& key) const { return getTable(key)->contains(key); }
+  std::unique_ptr<Iterator> get(const Range& key) const;
 
   template <typename Procedure>
   void forEachKey(Procedure process) const {
     for (const auto& table : tables_) {
-      table->forEachKey(process);
+      table.forEachKey(process);
     }
   }
 
   template <typename Procedure>
-  void forEachValue(const Bytes& key, Procedure process) const {
-    getTable(key)->forEachValue(key, process);
+  void forEachValue(const Range& key, Procedure process) const {
+    getTable(key).forEachValue(key, process);
   }
 
   template <typename BinaryProcedure>
   void forEachEntry(BinaryProcedure process) const {
     for (const auto& table : tables_) {
-      table->forEachEntry(process);
+      table.forEachEntry(process);
     }
   }
 
@@ -135,40 +127,11 @@ class ImmutableMap : public mt::Resource {
                              const Options& options);
 
  private:
-  /*
-  struct MphTableNode {
-    std::unique_ptr<MphTableNode> left;
-    std::unique_ptr<MphTableNode> right;
-    std::unique_ptr<internal::MphTable> table;
-
-    bool isLeaf() const { return !left && !right; }
-
-    const internal::MphTable* get(const Bytes& key) const {
-      const auto hash = mt::fnv1aHash(key.data(), key.size());
-      return get(hash, 0);  // Check correctness of passing 0.
-    }
-
-    template <typename Procedure>
-    // Requires: void operator()(const internal::MphTable&)
-    void forEachLeaf(Procedure process) {
-      if (isLeaf()) {
-        process(*table);
-      } else {
-        left->forEachLeaf(process);
-        right->forEachLeaf(process);
-      }
-    }
-
-   private:
-    const internal::MphTable* get(size_t hash, size_t depth) const;
-  };
-  */
-
-  const internal::MphTable* getTable(const Bytes& key) const {
-    return tables_[std::hash<Bytes>()(key) % tables_.size()].get();
+  const internal::MphTable& getTable(const Range& key) const {
+    return tables_[std::hash<Range>()(key) % tables_.size()];
   }
 
-  std::vector<std::unique_ptr<internal::MphTable>> tables_;
+  std::vector<internal::MphTable> tables_;
   mt::DirectoryLockGuard dlock_;
 };
 
