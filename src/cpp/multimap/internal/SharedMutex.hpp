@@ -20,12 +20,11 @@
 
 #include <memory>
 #include <boost/thread/shared_mutex.hpp>
-#include "multimap/thirdparty/mt/mt.hpp"
 
 namespace multimap {
 namespace internal {
 
-class SharedMutex : public mt::Resource {
+class SharedMutex {
   // This class serves the same purpose as std::shared_mutex (C++17) a.k.a.
   // boost::shared_mutex, but is designed for minimal memory footprint in order
   // to allow many simultaneous instances. In contrast to the mentioned mutexes
@@ -75,9 +74,6 @@ class SharedMutex : public mt::Resource {
 
   std::unique_ptr<RefCountedMutex> mutex_;
 };
-
-static_assert(mt::hasExpectedSize<SharedMutex>(4, 8),
-              "class SharedMutex does not have expected size");
 
 }  // namespace internal
 }  // namespace multimap

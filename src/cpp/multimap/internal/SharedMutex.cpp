@@ -18,6 +18,7 @@
 #include "multimap/internal/SharedMutex.hpp"
 
 #include <mutex>
+#include "multimap/thirdparty/mt/mt.hpp"
 
 namespace multimap {
 namespace internal {
