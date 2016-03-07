@@ -17,34 +17,37 @@
 
 #include "multimap/internal/Arena.hpp"
 
+#include "multimap/thirdparty/mt/mt.hpp"
+
 namespace multimap {
 namespace internal {
 
-Arena::Arena(uint32_t chunk_size) : chunk_size_(chunk_size) {
+Arena::Arena(uint32_t chunk_size)
+    : mutex_(new std::mutex()), chunk_size_(chunk_size) {
   MT_REQUIRE_TRUE(mt::isPowerOfTwo(chunk_size_));
   MT_REQUIRE_NOT_ZERO(chunk_size_);
 }
 
-char* Arena::allocate(uint32_t num_bytes) {
+uint8_t* Arena::allocate(uint32_t num_bytes) {
   MT_REQUIRE_NOT_ZERO(num_bytes);
-  std::lock_guard<std::mutex> lock(mutex_);
+  std::lock_guard<std::mutex> lock(*mutex_);
 
-  char* result;
+  uint8_t* result;
   if (num_bytes <= chunk_size_) {
     if (chunks_.empty()) {
-      chunks_.emplace_back(new char[chunk_size_]);
+      chunks_.emplace_back(new uint8_t[chunk_size_]);
       chunk_offset_ = 0;
     }
     const auto num_bytes_free = chunk_size_ - chunk_offset_;
     if (num_bytes > num_bytes_free) {
-      chunks_.emplace_back(new char[chunk_size_]);
+      chunks_.emplace_back(new uint8_t[chunk_size_]);
       chunk_offset_ = 0;
     }
     result = chunks_.back().get() + chunk_offset_;
     chunk_offset_ += num_bytes;
 
   } else {
-    blobs_.emplace_back(new char[num_bytes]);
+    blobs_.emplace_back(new uint8_t[num_bytes]);
     result = blobs_.back().get();
   }
 
@@ -53,12 +56,12 @@ char* Arena::allocate(uint32_t num_bytes) {
 }
 
 uint64_t Arena::allocated() const {
-  std::lock_guard<std::mutex> lock(mutex_);
+  std::lock_guard<std::mutex> lock(*mutex_);
   return allocated_;
 }
 
 void Arena::deallocateAll() {
-  std::lock_guard<std::mutex> lock(mutex_);
+  std::lock_guard<std::mutex> lock(*mutex_);
   chunks_.clear();
   blobs_.clear();
   chunk_offset_ = 0;

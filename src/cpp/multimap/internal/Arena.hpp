@@ -21,12 +21,11 @@
 #include <memory>
 #include <mutex>
 #include <vector>
-#include "multimap/thirdparty/mt/mt.hpp"
 
 namespace multimap {
 namespace internal {
 
-class Arena : public mt::Resource {
+class Arena {
   // Objects of this class are thread-safe.
 
  public:
@@ -34,16 +33,16 @@ class Arena : public mt::Resource {
 
   explicit Arena(uint32_t chunk_size = DEFAULT_CHUNK_SIZE);
 
-  char* allocate(uint32_t nbytes);
+  uint8_t* allocate(uint32_t nbytes);
 
   uint64_t allocated() const;
 
   void deallocateAll();
 
  private:
-  mutable std::mutex mutex_;
-  std::vector<std::unique_ptr<char[]> > chunks_;
-  std::vector<std::unique_ptr<char[]> > blobs_;
+  std::unique_ptr<std::mutex> mutex_;
+  std::vector<std::unique_ptr<uint8_t[]> > chunks_;
+  std::vector<std::unique_ptr<uint8_t[]> > blobs_;
   uint32_t chunk_offset_ = 0;
   uint32_t chunk_size_ = 0;
   uint64_t allocated_ = 0;

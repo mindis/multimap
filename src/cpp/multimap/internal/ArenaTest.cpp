@@ -32,9 +32,9 @@ TEST(ArenaTest, IsNotCopyConstructibleOrAssignable) {
   ASSERT_FALSE(std::is_copy_assignable<Arena>::value);
 }
 
-TEST(ArenaTest, IsNotMoveConstructibleOrAssignable) {
-  ASSERT_FALSE(std::is_move_constructible<Arena>::value);
-  ASSERT_FALSE(std::is_move_assignable<Arena>::value);
+TEST(ArenaTest, IsMoveConstructibleAndAssignable) {
+  ASSERT_TRUE(std::is_move_constructible<Arena>::value);
+  ASSERT_TRUE(std::is_move_assignable<Arena>::value);
 }
 
 TEST(ArenaTest, DefaultConstructedHasProperState) {
