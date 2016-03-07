@@ -40,7 +40,7 @@ typedef cmph_uint32 *bdz_queue_t;
 static void bdz_alloc_queue(bdz_queue_t *queuep, cmph_uint32 nedges) {
   (*queuep) = malloc(nedges * sizeof(cmph_uint32));
 };
-static void bdz_free_queue(bdz_queue_t *queue) { free(*queue); };
+static void bdz_free_queue(bdz_queue_t *queue) { free(*queue); }
 
 typedef struct {
   cmph_uint32 nedges;
