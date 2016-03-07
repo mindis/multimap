@@ -24,50 +24,42 @@ uint32_t List::Limits::maxValueSize() {
   return Varint::Limits::MAX_N4_WITH_FLAG;
 }
 
-std::unique_ptr<List> List::readFromStream(std::FILE* stream) {
-  std::unique_ptr<List> list(new List());
-  readFromStream(stream, list.get());
-  return list;
-}
-
-void List::readFromStream(std::FILE* stream, List* list) {
-  WriterLockGuard<SharedMutex> lock(list->mutex_);
-  MT_ASSERT_TRUE(mt::fread(stream, &list->stats_.num_values_total,
-                           sizeof list->stats_.num_values_total));
-  MT_ASSERT_TRUE(mt::fread(stream, &list->stats_.num_values_removed,
-                           sizeof list->stats_.num_values_removed));
-  list->block_ids_ = UintVector::readFromStream(stream);
+List List::readFromStream(std::FILE* stream) {
+  List list;
+  mt::fread(stream, &list.stats_.num_values_total,
+            sizeof list.stats_.num_values_total);
+  mt::fread(stream, &list.stats_.num_values_removed,
+            sizeof list.stats_.num_values_removed);
+  list.block_ids_ = UintVector::readFromStream(stream);
+  return std::move(list);
 }
 
 void List::writeToStream(std::FILE* stream) const {
   ReaderLockGuard<SharedMutex> lock(mutex_);
-  MT_ASSERT_TRUE(mt::fwrite(stream, &stats_.num_values_total,
-                            sizeof stats_.num_values_total));
-  MT_ASSERT_TRUE(mt::fwrite(stream, &stats_.num_values_removed,
-                            sizeof stats_.num_values_removed));
+  mt::fwrite(stream, &stats_.num_values_total, sizeof stats_.num_values_total);
+  mt::fwrite(stream, &stats_.num_values_removed,
+             sizeof stats_.num_values_removed);
   block_ids_.writeToStream(stream);
 }
 
-void List::appendUnlocked(const Bytes& value, Store* store, Arena* arena) {
+void List::appendUnlocked(const Range& value, Store* store, Arena* arena) {
   MT_REQUIRE_LE(value.size(), Limits::maxValueSize());
   MT_REQUIRE_LT(stats_.num_values_total, std::numeric_limits<uint32_t>::max());
 
   if (!block_.hasData()) {
     const auto block_size = store->getBlockSize();
-    char* data = arena->allocate(block_size);
+    byte* data = arena->allocate(block_size);
     block_ = ReadWriteBlock(data, block_size);
   }
 
   // Write value's metadata.
-  auto nbytes = block_.writeSizeWithFlag(value.size(), false);
-  if (nbytes == 0) {
+  if (!block_.writeSizeWithFlag(value.size(), false)) {
     flushUnlocked(store);
-    nbytes = block_.writeSizeWithFlag(value.size(), false);
-    MT_ASSERT_NOT_ZERO(nbytes);
+    MT_ASSERT_TRUE(block_.writeSizeWithFlag(value.size(), false));
   }
 
   // Write value's data.
-  nbytes = block_.writeData(value.data(), value.size());
+  auto nbytes = block_.writeData(value);
   if (nbytes < value.size()) {
     flushUnlocked(store);
 
@@ -76,8 +68,8 @@ void List::appendUnlocked(const Bytes& value, Store* store, Arena* arena) {
     // to the block file.  Write the rest into the local block.
 
     std::vector<ExtendedReadOnlyBlock> blocks;
-    const auto block_size = block_.size();
-    const char* tail_data = value.data() + nbytes;
+    const size_t block_size = block_.size();
+    const byte* tail_data = value.begin() + nbytes;
     uint32_t remaining = value.size() - nbytes;
     while (remaining >= block_size) {
       blocks.emplace_back(tail_data, block_size);
@@ -89,7 +81,7 @@ void List::appendUnlocked(const Bytes& value, Store* store, Arena* arena) {
       block_ids_.add(block.id);
     }
     if (remaining != 0) {
-      nbytes = block_.writeData(tail_data, remaining);
+      nbytes = block_.writeData(Range(tail_data, remaining));
       MT_ASSERT_EQ(nbytes, remaining);
     }
   }

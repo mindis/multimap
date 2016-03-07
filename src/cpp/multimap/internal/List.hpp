@@ -27,13 +27,12 @@
 #include "multimap/internal/SharedMutex.hpp"
 #include "multimap/internal/Store.hpp"
 #include "multimap/internal/UintVector.hpp"
-#include "multimap/thirdparty/mt/mt.hpp"
 #include "multimap/Iterator.hpp"
 
 namespace multimap {
 namespace internal {
 
-class List : public mt::Resource {
+class List {
   // This class is designed for minimal memory footprint in order to allow many
   // simultaneous instances. The following patterns were applied:
   //
@@ -54,8 +53,8 @@ class List : public mt::Resource {
       return num_values_total - num_values_removed;
     }
 
-    static Stats readFromStream(std::FILE *stream);
-    void writeToStream(std::FILE *stream) const;
+    static Stats readFromStream(std::FILE* stream);
+    void writeToStream(std::FILE* stream) const;
   };
 
   static_assert(mt::hasExpectedSize<Stats>(8, 8),
@@ -63,17 +62,17 @@ class List : public mt::Resource {
 
   List() = default;
 
-  static std::unique_ptr<List> readFromStream(std::FILE *stream);
-  static void readFromStream(std::FILE *stream, List *list);
-  void writeToStream(std::FILE *stream) const;
+  static List readFromStream(std::FILE* stream);
 
-  void append(const Bytes &value, Store *store, Arena *arena) {
+  void writeToStream(std::FILE* stream) const;
+
+  void append(const Range& value, Store* store, Arena* arena) {
     WriterLockGuard<SharedMutex> lock(mutex_);
     appendUnlocked(value, store, arena);
   }
 
   template <typename InputIter>
-  void append(InputIter first, InputIter last, Store *store, Arena *arena) {
+  void append(InputIter first, InputIter last, Store* store, Arena* arena) {
     WriterLockGuard<SharedMutex> lock(mutex_);
     while (first != last) {
       appendUnlocked(*first, store, arena);
@@ -82,20 +81,20 @@ class List : public mt::Resource {
   }
 
   template <typename Procedure>
-  void forEachValue(Procedure process, const Store &store) {
+  void forEachValue(Procedure process, const Store& store) {
     ReadIterator iter(*this, store);
     while (iter.hasNext()) {
       process(iter.next());
     }
   }
 
-  std::unique_ptr<Iterator> newIterator(const Store &store) const {
+  std::unique_ptr<Iterator> newIterator(const Store& store) const {
     return std::unique_ptr<Iterator>(new ReadIterator(*this, store));
   }
 
   template <typename Predicate>
-  bool removeFirstMatch(Predicate predicate, Store *store) {
-    WriteIterator iter(this, store);
+  bool removeFirstMatch(Predicate predicate, Store* store) {
+    ExclusiveIterator iter(this, store);
     while (iter.hasNext()) {
       if (predicate(iter.next())) {
         iter.remove();
@@ -106,9 +105,9 @@ class List : public mt::Resource {
   }
 
   template <typename Predicate>
-  uint32_t removeAllMatches(Predicate predicate, Store *store) {
+  uint32_t removeAllMatches(Predicate predicate, Store* store) {
     uint32_t num_removed = 0;
-    WriteIterator iter(this, store);
+    ExclusiveIterator iter(this, store);
     while (iter.hasNext()) {
       if (predicate(iter.next())) {
         iter.remove();
@@ -119,9 +118,9 @@ class List : public mt::Resource {
   }
 
   template <typename Function>
-  bool replaceFirstMatch(Function map, Store *store, Arena *arena) {
-    std::vector<std::string> replaced_values;
-    WriteIterator iter(this, store);
+  bool replaceFirstMatch(Function map, Store* store, Arena* arena) {
+    std::vector<Bytes> replaced_values;
+    ExclusiveIterator iter(this, store);
     while (iter.hasNext()) {
       auto replaced_value = map(iter.next());
       if (!replaced_value.empty()) {
@@ -131,16 +130,16 @@ class List : public mt::Resource {
       }
     }
     // `iter` keeps the list in locked state.
-    for (const auto &value : replaced_values) {
+    for (const auto& value : replaced_values) {
       appendUnlocked(value, store, arena);
     }
     return replaced_values.size();
   }
 
   template <typename Function>
-  uint32_t replaceAllMatches(Function map, Store *store, Arena *arena) {
-    std::vector<std::string> replaced_values;
-    WriteIterator iter(this, store);
+  uint32_t replaceAllMatches(Function map, Store* store, Arena* arena) {
+    std::vector<Bytes> replaced_values;
+    ExclusiveIterator iter(this, store);
     while (iter.hasNext()) {
       auto replaced_value = map(iter.next());
       if (!replaced_value.empty()) {
@@ -149,7 +148,7 @@ class List : public mt::Resource {
       }
     }
     // `iter` keeps the list in locked state.
-    for (const auto &value : replaced_values) {
+    for (const auto& value : replaced_values) {
       appendUnlocked(value, store, arena);
     }
     return replaced_values.size();
@@ -160,24 +159,24 @@ class List : public mt::Resource {
     return getStatsUnlocked();
   }
 
-  bool tryGetStats(Stats *stats) const {
+  bool tryGetStats(Stats* stats) const {
     ReaderLock<SharedMutex> lock(mutex_, TRY_TO_LOCK);
     return lock ? (*stats = getStatsUnlocked(), true) : false;
   }
 
   Stats getStatsUnlocked() const { return stats_; }
 
-  void flush(Store *store, Stats *stats = nullptr) {
+  void flush(Store* store, Stats* stats = nullptr) {
     WriterLockGuard<SharedMutex> lock(mutex_);
     flushUnlocked(store, stats);
   }
 
-  bool tryFlush(Store *store, Stats *stats = nullptr) {
+  bool tryFlush(Store* store, Stats* stats = nullptr) {
     WriterLock<SharedMutex> lock(mutex_, TRY_TO_LOCK);
     return lock ? (flushUnlocked(store, stats), true) : false;
   }
 
-  void flushUnlocked(Store *store, Stats *stats = nullptr) {
+  void flushUnlocked(Store* store, Stats* stats = nullptr) {
     if (block_.hasData()) {
       block_.fillUpWithZeros();
       block_ids_.add(store->put(block_));
@@ -209,7 +208,7 @@ class List : public mt::Resource {
       static const uint32_t BLOCK_CACHE_SIZE = 1024;
 
       MT_ENABLE_IF(IsMutable)
-      Stream(List *list, Store *store)
+      Stream(List* list, Store* store)
           : block_ids_(list->block_ids_.unpack()),
             last_block_(list->block_.getView()),
             store_(store) {
@@ -217,7 +216,7 @@ class List : public mt::Resource {
       }
 
       MT_DISABLE_IF(IsMutable)
-      Stream(const List &list, const Store &store)
+      Stream(const List& list, const Store& store)
           : block_ids_(list.block_ids_.unpack()),
             last_block_(list.block_.getView()),
             store_(&store) {
@@ -226,10 +225,10 @@ class List : public mt::Resource {
 
       ~Stream() { writeBackMutatedBlocks(); }
 
-      void readSizeWithFlag(uint32_t *size, bool *flag) {
+      void readSizeWithFlag(uint32_t* size, bool* flag) {
         while (true) {
           if (blocks_index_ < blocks_.size()) {
-            auto &block = blocks_[blocks_index_];
+            auto& block = blocks_[blocks_index_];
             const auto nbytes = block.readSizeWithFlag(size, flag);
             if (nbytes == 0 || *size == 0) {
               // End of block or end of data is reached, read next block.
@@ -252,12 +251,12 @@ class List : public mt::Resource {
         }
       }
 
-      void readData(char *target, uint32_t size) {
+      void readData(uint32_t size, byte* target) {
         uint32_t nbytes = 0;
         do {
           if (blocks_index_ < blocks_.size()) {
-            auto &block = blocks_[blocks_index_];
-            nbytes = block.readData(target, size);
+            auto& block = blocks_[blocks_index_];
+            nbytes = block.readData(size, target);
             if (nbytes < size) {
               ++blocks_index_;
             }
@@ -265,7 +264,7 @@ class List : public mt::Resource {
             size -= nbytes;
 
           } else if (block_ids_.empty()) {
-            nbytes = last_block_.readData(target, size);
+            nbytes = last_block_.readData(size, target);
             MT_ASSERT_EQ(nbytes, size);
             size -= nbytes;
 
@@ -278,7 +277,7 @@ class List : public mt::Resource {
       MT_ENABLE_IF(IsMutable)
       void overwriteLastExtractedFlag(bool flag) {
         if (size_with_flag_ptr_.index < blocks_.size()) {
-          auto &block = blocks_[size_with_flag_ptr_.index];
+          auto& block = blocks_[size_with_flag_ptr_.index];
           block.setFlagAt(flag, size_with_flag_ptr_.offset);
           block.ignore = false;
           // Triggers that the block is written back to the
@@ -297,12 +296,12 @@ class List : public mt::Resource {
           arena_.deallocateAll();
           blocks_.reserve(BLOCK_CACHE_SIZE);
           while (blocks_.size() < BLOCK_CACHE_SIZE && !block_ids_.empty()) {
-            char *block_data = arena_.allocate(block_size);
+            uint8_t* block_data = arena_.allocate(block_size);
             blocks_.emplace_back(block_data, block_size, block_ids_.back());
             block_ids_.pop_back();
           }
           store_->get(blocks_.begin(), blocks_.end());
-          for (auto &block : blocks_) {
+          for (auto& block : blocks_) {
             block.ignore = true;
             // Triggers that the block is not written back to the
             // store when `writeBackMutatedBlocks()` is called.
@@ -313,12 +312,12 @@ class List : public mt::Resource {
           std::vector<ExtendedReadWriteBlock> blocks;
           blocks.reserve(BLOCK_CACHE_SIZE);
           while (blocks.size() < BLOCK_CACHE_SIZE && !block_ids_.empty()) {
-            char *block_data = arena_.allocate(block_size);
+            uint8_t* block_data = arena_.allocate(block_size);
             blocks.emplace_back(block_data, block_size, block_ids_.back());
             block_ids_.pop_back();
           }
           store_->get(blocks.begin(), blocks.end());
-          for (auto &block : blocks) {
+          for (auto& block : blocks) {
             blocks_.push_back(block);
             blocks_.back().ignore = true;
             // Triggers that the block is not written back to the
@@ -345,7 +344,7 @@ class List : public mt::Resource {
       ReadWriteBlock last_block_;
       // Contains a shallow copy of `list->block_` given in the constructor.
 
-      typename std::conditional<IsMutable, Store, const Store>::type *store_;
+      typename std::conditional<IsMutable, Store, const Store>::type* store_;
       Arena arena_;
     };
 
@@ -353,14 +352,14 @@ class List : public mt::Resource {
     Iter() : list_(nullptr) {}
 
     MT_ENABLE_IF(IsMutable)
-    Iter(List *list, Store *store)
+    Iter(List* list, Store* store)
         : list_(list), stream_(new Stream(list, store)) {
       list_->mutex_.lock();
       stats_.available = list->stats_.num_values_valid();
     }
 
     MT_DISABLE_IF(IsMutable)
-    Iter(const List &list, const Store &store)
+    Iter(const List& list, const Store& store)
         : list_(&list), stream_(new Stream(list, store)) {
       list_->mutex_.lock_shared();
       stats_.available = list.stats_.num_values_valid();
@@ -368,13 +367,13 @@ class List : public mt::Resource {
 
     ~Iter() override;
 
-    uint32_t available() const override { return stats_.available; }
+    size_t available() const override { return stats_.available; }
 
     bool hasNext() const override { return available() != 0; }
 
-    Bytes next() override {
+    Range next() override {
       MT_REQUIRE_TRUE(hasNext());
-      const auto value = peekNext();
+      const Range value = peekNext();
       stats_.load_next_value = true;
       --stats_.available;
       return value;
@@ -382,18 +381,18 @@ class List : public mt::Resource {
     // Preconditions:
     //  * `hasNext()` yields `true`.
 
-    Bytes peekNext() override {
+    Range peekNext() override {
       if (stats_.load_next_value) {
         uint32_t value_size = 0;
         bool is_marked_as_removed = false;
         do {
           stream_->readSizeWithFlag(&value_size, &is_marked_as_removed);
           value_.resize(value_size);
-          stream_->readData(value_.data(), value_size);
+          stream_->readData(value_size, value_.data());
         } while (is_marked_as_removed);
         stats_.load_next_value = false;
       }
-      return Bytes(value_.data(), value_.size());
+      return value_;
     }
     // Preconditions:
     //  * `hasNext()` yields `true`.
@@ -411,16 +410,16 @@ class List : public mt::Resource {
       bool load_next_value = true;
     };
 
-    typename std::conditional<IsMutable, List, const List>::type *list_;
+    typename std::conditional<IsMutable, List, const List>::type* list_;
     std::unique_ptr<Stream> stream_;
-    std::vector<char> value_;
+    Bytes value_;
     Stats stats_;
   };
 
-  typedef Iter<true> WriteIterator;
+  typedef Iter<true> ExclusiveIterator;
   typedef Iter<false> ReadIterator;
 
-  void appendUnlocked(const Bytes &value, Store *store, Arena *arena);
+  void appendUnlocked(const Range& value, Store* store, Arena* arena);
 
   Stats stats_;
   UintVector block_ids_;

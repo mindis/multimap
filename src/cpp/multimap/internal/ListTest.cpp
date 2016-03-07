@@ -285,7 +285,7 @@ TEST_P(ListTestWithParam, AppendLargeValuesAndIterateOnce) {
   SequenceGenerator generator;
   const size_t size = getStore()->getBlockSize() * 2.5;
   for (size_t i = 0; i != GetParam(); ++i) {
-    list.append(generator.generate(size), getStore(), getArena());
+    list.append(generator.nextof(size), getStore(), getArena());
     ASSERT_EQ(list.getStatsUnlocked().num_values_removed, 0);
     ASSERT_EQ(list.getStatsUnlocked().num_values_total, i + 1);
   }
@@ -296,7 +296,7 @@ TEST_P(ListTestWithParam, AppendLargeValuesAndIterateOnce) {
   for (size_t i = 0; i != GetParam(); ++i) {
     ASSERT_TRUE(iter->hasNext());
     ASSERT_EQ(iter->available(), GetParam() - i);
-    ASSERT_EQ(iter->next(), generator.generate(size));
+    ASSERT_EQ(iter->next(), generator.nextof(size));
   }
   ASSERT_FALSE(iter->hasNext());
   ASSERT_EQ(iter->available(), 0);
@@ -307,7 +307,7 @@ TEST_P(ListTestWithParam, AppendLargeValuesAndIterateTwice) {
   SequenceGenerator generator;
   const size_t size = getStore()->getBlockSize() * 2.5;
   for (size_t i = 0; i != GetParam(); ++i) {
-    list.append(generator.generate(size), getStore(), getArena());
+    list.append(generator.nextof(size), getStore(), getArena());
     ASSERT_EQ(list.getStatsUnlocked().num_values_removed, 0);
     ASSERT_EQ(list.getStatsUnlocked().num_values_total, i + 1);
   }
@@ -318,7 +318,7 @@ TEST_P(ListTestWithParam, AppendLargeValuesAndIterateTwice) {
   for (size_t i = 0; i != GetParam(); ++i) {
     ASSERT_TRUE(iter->hasNext());
     ASSERT_EQ(iter->available(), GetParam() - i);
-    ASSERT_EQ(iter->next(), generator.generate(size));
+    ASSERT_EQ(iter->next(), generator.nextof(size));
   }
   ASSERT_FALSE(iter->hasNext());
   ASSERT_EQ(iter->available(), 0);
@@ -328,7 +328,7 @@ TEST_P(ListTestWithParam, AppendLargeValuesAndIterateTwice) {
   for (size_t i = 0; i != GetParam(); ++i) {
     ASSERT_TRUE(iter->hasNext());
     ASSERT_EQ(iter->available(), GetParam() - i);
-    ASSERT_EQ(iter->next(), generator.generate(size));
+    ASSERT_EQ(iter->next(), generator.nextof(size));
   }
   ASSERT_FALSE(iter->hasNext());
   ASSERT_EQ(iter->available(), 0);
