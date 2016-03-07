@@ -45,17 +45,20 @@ Partition::Partition(const std::string& prefix, const Options& options)
   store_options.buffer_size = options.buffer_size;
   const auto map_filename = getNameOfMapFile(prefix);
   if (boost::filesystem::is_regular_file(map_filename)) {
+    Bytes key;
     const auto map_stream = mt::fopen(map_filename, "r");
     const auto stats_filename = getNameOfStatsFile(prefix);
     stats_ = Stats::readFromFile(stats_filename);
     store_options.block_size = stats_.block_size;
     for (size_t i = 0; i != stats_.num_keys_valid; ++i) {
-      auto key = readBytesFromStream(
-          map_stream.get(), [this](int size) { return arena_.allocate(size); });
-      auto list = List::readFromStream(map_stream.get());
-      stats_.num_values_total -= list->getStatsUnlocked().num_values_total;
-      stats_.num_values_valid -= list->getStatsUnlocked().num_values_valid();
-      map_.emplace(key, std::move(list));
+      MT_ASSERT_TRUE(readBytesFromStream(map_stream.get(), &key));
+      const Range new_key = Range(key).makeCopy([this](size_t size){
+        return arena_.allocate(size);
+      });
+      List list = List::readFromStream(map_stream.get());
+      stats_.num_values_total -= list.getStatsUnlocked().num_values_total;
+      stats_.num_values_valid -= list.getStatsUnlocked().num_values_valid();
+      map_.emplace(new_key, std::unique_ptr<List>(new List(std::move(list))));
     }
 
     // Reset stats, but preserve number of total and valid values.
@@ -84,7 +87,7 @@ Partition::~Partition() {
     if (list.tryFlush(store_.get(), &list_stats)) {
       // Ok, everything is fine.
     } else {
-      const auto key_as_base64 = Base64::encode(key);
+      const auto key_as_base64 = Base64::toBase64(key);
       mt::log() << "The list with the key " << key_as_base64
                 << " (Base64) was still locked when shutting down.\n"
                 << " The last known state of the list has been safed,"
@@ -106,7 +109,7 @@ Partition::~Partition() {
       stats_.list_size_min = stats_.list_size_min
                                  ? mt::min(stats_.list_size_min, list_size)
                                  : list_size;
-      writeBytesToStream(key, map_stream.get());
+      key.writeToStream(map_stream.get());
       list.writeToStream(map_stream.get());
     }
   }
