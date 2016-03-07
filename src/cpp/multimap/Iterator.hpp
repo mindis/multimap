@@ -19,24 +19,23 @@
 #define MULTIMAP_ITERATOR_HPP_INCLUDED
 
 #include <memory>
-#include "multimap/Bytes.hpp"
-#include "multimap/thirdparty/mt/mt.hpp"
+#include "multimap/Range.hpp"
 
 namespace multimap {
 
-class Iterator : public mt::Resource {
+class Iterator {
  public:
   static std::unique_ptr<Iterator> newEmptyInstance();
 
   virtual ~Iterator() = default;
 
-  virtual uint32_t available() const = 0;
+  virtual size_t available() const = 0;
 
   virtual bool hasNext() const = 0;
 
-  virtual Bytes next() = 0;
+  virtual Range next() = 0;
 
-  virtual Bytes peekNext() = 0;
+  virtual Range peekNext() = 0;
 };
 
 }  // namespace multimap

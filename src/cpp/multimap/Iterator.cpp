@@ -23,13 +23,13 @@ namespace {
 
 class EmptyIter : public Iterator {
  public:
-  virtual uint32_t available() const override { return 0; }
+  size_t available() const override { return 0; }
 
-  virtual bool hasNext() const override { return false; }
+  bool hasNext() const override { return false; }
 
-  virtual Bytes next() override { return Bytes(); }
+  Range next() override { return Range(); }
 
-  virtual Bytes peekNext() override { return Bytes(); }
+  Range peekNext() override { return Range(); }
 };
 
 }  // namespace
