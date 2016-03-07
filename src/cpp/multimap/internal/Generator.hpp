@@ -28,56 +28,54 @@ namespace internal {
 
 class Generator {
  public:
+  virtual void reset() = 0;
+
   virtual std::string next() = 0;
 
-  std::string generate(std::size_t len) {
-    auto value = this->next();
-    if (value.size() < len) {
-      value.append(len - value.size(), 'x');
-    } else if (value.size() > len) {
-      value.erase(len);
+  std::string nextof(size_t size) {
+    std::string bytes = this->next();
+    if (bytes.size() != size) {
+      bytes.resize(size, 'x');
     }
-    return value;
+    return bytes;
   }
-
-  virtual void reset() = 0;
 };
 
 class RandomGenerator : public Generator {
  public:
-  RandomGenerator() : num_unique_(std::numeric_limits<std::size_t>::max()) {}
+  RandomGenerator() = default;
 
-  RandomGenerator(std::size_t num_unique) : num_unique_(num_unique) {}
+  RandomGenerator(size_t num_unique) : num_unique_(num_unique) {}
+
+  void reset() override { random_engine_ = std::default_random_engine(); }
 
   std::string next() override {
     return std::to_string(distribution_(random_engine_) % num_unique_);
   }
 
-  void reset() override { random_engine_ = std::default_random_engine(); }
-
-  std::size_t num_unique() const { return num_unique_; }
+  size_t numUnique() const { return num_unique_; }
 
  private:
-  const std::size_t num_unique_;
   std::default_random_engine random_engine_;
   std::uniform_int_distribution<std::uint64_t> distribution_;
+  const size_t num_unique_ = std::numeric_limits<size_t>::max();
 };
 
 class SequenceGenerator : public Generator {
  public:
-  SequenceGenerator() : SequenceGenerator(0) {}
+  SequenceGenerator() = default;
 
-  SequenceGenerator(std::size_t start) : start_(start), state_(start) {}
+  SequenceGenerator(size_t first_value) : first_value_(first_value), current_value_(first_value) {}
 
-  std::string next() override { return std::to_string(state_++); }
+  void reset() override { current_value_ = first_value_; }
 
-  void reset() override { state_ = start_; }
+  std::string next() override { return std::to_string(current_value_++); }
 
-  std::size_t start() const { return start_; }
+  size_t firstValue() const { return first_value_; }
 
  private:
-  const std::size_t start_;
-  std::size_t state_;
+  const size_t first_value_ = 0;
+  size_t current_value_ = 0;
 };
 
 }  // namespace internal
