@@ -100,7 +100,7 @@ Stats Stats::max(const std::vector<Stats>& stats) {
 
 Stats Stats::readFromFile(const boost::filesystem::path& filename) {
   Stats stats;
-  const auto stream = mt::fopen(filename, "r");
+  const auto stream = mt::fopen(filename.string(), "r");
   mt::fread(stream.get(), &stats, sizeof stats);
   return stats;
 }
