@@ -23,11 +23,7 @@
 #include <algorithm>
 #include <cctype>
 #include <cmath>
-#include <cstdarg>
-#include <cstdio>
-#include <iostream>
 #include <iomanip>
-#include <memory>
 #include <boost/crc.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/algorithm/string/predicate.hpp>
@@ -251,27 +247,21 @@ std::ostream& log(std::ostream& stream) {
 
 std::ostream& log() { return log(std::clog); }
 
-Files::Bytes Files::readAllBytes(const boost::filesystem::path& filepath) {
-  std::ifstream input(filepath.string());
-  mt::check(input.is_open(), "Could not open '%s'", filepath.c_str());
+const int AutoCloseFd::INVALID = -1;
 
-  Bytes bytes(boost::filesystem::file_size(filepath));
-  input.read(bytes.data(), bytes.size());
-  MT_ENSURE_EQ(static_cast<size_t>(input.gcount()), bytes.size());
-  return bytes;
+AutoCloseFd& AutoCloseFd::operator=(AutoCloseFd&& other) {
+  if (&other != this) {
+    reset(other.fd_);
+    other.fd_ = INVALID;
+  }
+  return *this;
 }
 
-std::vector<std::string> Files::readAllLines(
-    const boost::filesystem::path& filepath) {
-  std::ifstream input(filepath.string());
-  check(input.is_open(), "Could not open '%s'", filepath.c_str());
-
-  std::string line;
-  std::vector<std::string> lines;
-  while (std::getline(input, line)) {
-    lines.push_back(line);
+void AutoCloseFd::reset(int fd) {
+  if (fd_ != INVALID) {
+    Check::isZero(::close(fd_), "close() failed because of '%s'", errnostr());
   }
-  return lines;
+  fd_ = fd;
 }
 
 const char* DirectoryLockGuard::DEFAULT_FILENAME = ".lock";
@@ -281,7 +271,7 @@ DirectoryLockGuard::DirectoryLockGuard(const boost::filesystem::path& directory,
     : directory_(directory), filename_(filename) {
   Check::isTrue(boost::filesystem::is_directory(directory),
                 "No such directory '%s'", directory.c_str());
-  const auto lock_filename = directory / filename;
+  const auto lock_filename = boost::filesystem::path(directory) / filename;
   Check::isFalse(
       boost::filesystem::exists(lock_filename),
       "Could not lock directory, because the lock file '%s' already exists",
@@ -295,19 +285,36 @@ DirectoryLockGuard::DirectoryLockGuard(const boost::filesystem::path& directory,
 
 DirectoryLockGuard::~DirectoryLockGuard() {
   if (!directory_.empty()) {
-    boost::filesystem::remove(directory_ / filename_);
+    boost::filesystem::remove(boost::filesystem::path(directory_) / filename_);
   }
 }
 
-const boost::filesystem::path& DirectoryLockGuard::directory() const {
-  return directory_;
+Files::Bytes Files::readAllBytes(const boost::filesystem::path& filename) {
+  std::ifstream input(filename.string());
+  mt::check(input.is_open(), "Could not open '%s'", filename.c_str());
+
+  Bytes bytes(boost::filesystem::file_size(filename));
+  input.read(bytes.data(), bytes.size());
+  MT_ENSURE_EQ(static_cast<size_t>(input.gcount()), bytes.size());
+  return bytes;
 }
 
-const std::string& DirectoryLockGuard::filename() const { return filename_; }
+std::vector<std::string> Files::readAllLines(
+    const boost::filesystem::path& filename) {
+  std::ifstream input(filename.string());
+  check(input.is_open(), "Could not open '%s'", filename.c_str());
 
-Properties readPropertiesFromFile(const std::string& filepath) {
-  std::ifstream input(filepath);
-  check(input.is_open(), "Could not open '%s'", filepath.c_str());
+  std::string line;
+  std::vector<std::string> lines;
+  while (std::getline(input, line)) {
+    lines.push_back(line);
+  }
+  return lines;
+}
+
+Properties readPropertiesFromFile(const boost::filesystem::path& filename) {
+  std::ifstream input(filename.string());
+  check(input.is_open(), "Could not open '%s'", filename.c_str());
 
   std::string line;
   Properties properties;
@@ -323,22 +330,22 @@ Properties readPropertiesFromFile(const std::string& filepath) {
   }
 
   check(properties.count("checksum") != 0,
-        "Properties file '%s' is missing checksum.", filepath.c_str());
+        "Properties file '%s' is missing checksum.", filename.c_str());
   const auto actual_checksum = std::stoul(properties.at("checksum"));
 
   properties.erase("checksum");
   const auto expected_checksum = crc32(serializeToString(properties));
   check(actual_checksum == expected_checksum, "'%s' has wrong checksum.",
-        filepath.c_str());
+        filename.c_str());
   return properties;
 }
 
-void writePropertiesToFile(const Properties& properties,
-                           const std::string& filepath) {
+void writePropertiesToFile(const boost::filesystem::path& filename,
+                           const Properties& properties) {
   MT_REQUIRE_EQ(properties.count("checksum"), 0);
 
-  std::ofstream output(filepath);
-  check(output.is_open(), "Could not create '%s'", filepath.c_str());
+  std::ofstream output(filename.string());
+  check(output.is_open(), "Could not create '%s'", filename.c_str());
 
   const auto content = serializeToString(properties);
   output << content << "checksum=" << crc32(content) << '\n';

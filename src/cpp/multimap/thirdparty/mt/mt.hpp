@@ -29,9 +29,11 @@
 #include <unistd.h>
 #include <cstdarg>
 #include <cstdio>
+#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <iterator>
+#include <memory>
 #include <map>
 #include <ostream>
 #include <sstream>
@@ -41,9 +43,20 @@
 #include <vector>
 #include <boost/filesystem/path.hpp>
 
+namespace std {
+
+template <>
+struct default_delete<std::FILE> {
+  void operator()(std::FILE* stream) const {
+    if (stream) std::fclose(stream);
+  }
+};
+
+}  // namespace std
+
 namespace mt {
 
-static const uint32_t VERSION = 20160301;
+static const uint32_t VERSION = 20160305;
 
 // -----------------------------------------------------------------------------
 // COMMON
@@ -309,205 +322,170 @@ inline const char* errnostr() { return std::strerror(errno); }
 
 class AutoCloseFd {
  public:
-  static const int NO_FD = -1;
+  static const int INVALID;
 
   AutoCloseFd() = default;
 
   explicit AutoCloseFd(int fd) : fd_(fd) {}
 
-  AutoCloseFd(AutoCloseFd&& other) : fd_(other.fd_) { other.fd_ = NO_FD; }
+  AutoCloseFd(AutoCloseFd&& other) : fd_(other.fd_) { other.fd_ = INVALID; }
 
   ~AutoCloseFd() { reset(); }
 
-  AutoCloseFd& operator=(AutoCloseFd&& other) {
-    if (&other != this) {
-      reset(other.fd_);
-      other.fd_ = NO_FD;
-    }
-    return *this;
-  }
+  AutoCloseFd& operator=(AutoCloseFd&& other);
 
   int get() const { return fd_; }
 
-  void reset(int fd = NO_FD) {
-    if (fd_ != NO_FD) {
-      const auto result = ::close(fd_);
-      Check::isZero(result, "close() failed because of '%s'", errnostr());
-    }
-    fd_ = fd;
-  }
+  void reset(int fd = INVALID);
 
  private:
-  int fd_ = NO_FD;
+  int fd_ = INVALID;
 };
 
-inline AutoCloseFd open(const boost::filesystem::path& file, int flags) {
-  const auto result = ::open(file.c_str(), flags);
-  Check::notEqual(result, -1, "open() failed for '%s' because of '%s'",
-                  file.c_str(), errnostr());
-  return AutoCloseFd(result);
+inline AutoCloseFd openIfExists(const boost::filesystem::path& filename,
+                                int flags) {
+  return AutoCloseFd(::open(filename.c_str(), flags));
 }
 
-inline AutoCloseFd open(const boost::filesystem::path& file, int flags,
+inline AutoCloseFd open(const boost::filesystem::path& filename, int flags) {
+  auto fd = openIfExists(filename, flags);
+  Check::notEqual(fd.get(), AutoCloseFd::INVALID,
+                  "openIfExists() failed for '%s' because of '%s'",
+                  filename.c_str(), errnostr());
+  return fd;
+}
+
+inline AutoCloseFd openIfExists(const boost::filesystem::path& filename,
+                                int flags, mode_t mode) {
+  return AutoCloseFd(::open(filename.c_str(), flags, mode));
+}
+
+inline AutoCloseFd open(const boost::filesystem::path& filename, int flags,
                         mode_t mode) {
-  const auto result = ::open(file.c_str(), flags, mode);
-  Check::notEqual(result, -1, "open() failed for '%s' because of '%s'",
-                  file.c_str(), errnostr());
-  return AutoCloseFd(result);
+  auto fd = openIfExists(filename, flags, mode);
+  Check::notEqual(fd.get(), AutoCloseFd::INVALID,
+                  "openIfExists() failed for '%s' because of '%s'",
+                  filename.c_str(), errnostr());
+  return fd;
 }
 
-inline AutoCloseFd create(const boost::filesystem::path& file, mode_t mode) {
-  const auto result = ::creat(file.c_str(), mode);
-  Check::notEqual(result, -1, "create() failed for '%s' because of '%s'",
-                  file.c_str(), errnostr());
-  return AutoCloseFd(result);
+inline AutoCloseFd create(const boost::filesystem::path& filename,
+                          mode_t mode) {
+  AutoCloseFd fd(::creat(filename.c_str(), mode));
+  Check::notEqual(fd.get(), AutoCloseFd::INVALID,
+                  "creat() failed for '%s' because of '%s'", filename.c_str(),
+                  errnostr());
+  return fd;
 }
 
-inline bool read(int fd, void* buf, size_t len) {
+inline bool readMaybe(int fd, void* buf, size_t len) {
   return static_cast<size_t>(::read(fd, buf, len)) == len;
 }
 
-inline bool pread(int fd, void* buf, size_t len, uint64_t offset) {
-  return static_cast<size_t>(::pread(fd, buf, len, offset)) == len;
+inline void read(int fd, void* buf, size_t len) {
+  Check::isTrue(readMaybe(fd, buf, len), "readMaybe() failed");
 }
 
-inline bool write(int fd, const void* buf, size_t len) {
-  return static_cast<size_t>(::write(fd, buf, len)) == len;
+inline void pread(int fd, void* buf, size_t len, uint64_t offset) {
+  Check::isEqual(::pread(fd, buf, len, offset), len, "pread() failed");
 }
 
-inline bool pwrite(int fd, const void* buf, size_t len, uint64_t offset) {
-  return static_cast<size_t>(::pwrite(fd, buf, len, offset)) == len;
+inline void write(int fd, const void* buf, size_t len) {
+  Check::isEqual(::write(fd, buf, len), len, "write() failed");
 }
 
-inline bool seek(int fd, int64_t offset, int whence,
-                 uint64_t* new_offset = nullptr) {
+inline void pwrite(int fd, const void* buf, size_t len, uint64_t offset) {
+  Check::isEqual(::pwrite(fd, buf, len, offset), len, "pwrite() failed");
+}
+
+inline uint64_t seek(int fd, int64_t offset, int whence) {
   const auto result = ::lseek(fd, offset, whence);
-  if (result == -1) return false;
-  if (new_offset) *new_offset = result;
-  return true;
-}
-
-inline bool tell(int fd, uint64_t* offset) {
-  return seek(fd, 0, SEEK_CUR, offset);
-}
-
-inline bool truncate(int fd, uint64_t length) {
-  return ::ftruncate(fd, length) == 0;
-}
-
-inline void* mmap(void* addr, uint64_t length, int prot, int flags, int fd,
-                  off_t offset) {
-  const auto result = ::mmap(addr, length, prot, flags, fd, offset);
-  Check::notEqual(result, MAP_FAILED, "mmap() failed because of '%s'",
-                  errnostr());
+  Check::notEqual(result, -1, "lseek() failed");
   return result;
 }
 
-inline void munmap(void* addr, uint64_t length) {
+inline uint64_t tell(int fd) { return seek(fd, 0, SEEK_CUR); }
+
+inline void truncate(int fd, uint64_t length) {
+  Check::isZero(::ftruncate(fd, length), "ftruncate() failed");
+}
+
+inline uint8_t* mmap(uint64_t length, int prot, int flags, int fd, off_t off) {
+  const auto result = ::mmap(nullptr, length, prot, flags, fd, off);
+  Check::notEqual(result, MAP_FAILED, "mmap() failed because of '%s'",
+                  errnostr());
+  return reinterpret_cast<uint8_t*>(result);
+}
+
+inline void munmap(uint8_t* addr, uint64_t length) {
   const auto result = ::munmap(addr, length);
   Check::isZero(result, "munmap() failed because of '%s'", errnostr());
 }
 
 #ifdef _GNU_SOURCE
-inline void* mremap(void* old_addr, uint64_t old_size, uint64_t new_size,
-                    int flags) {
+inline uint8_t* mremap(uint8_t* old_addr, uint64_t old_size, uint64_t new_size,
+                       int flags) {
   const auto result = ::mremap(old_addr, old_size, new_size, flags);
   Check::notEqual(result, MAP_FAILED, "mremap() failed because of '%s'",
                   errnostr());
-  return result;
+  return reinterpret_cast<uint8_t*>(result);
 }
 #endif
 
-class AutoCloseFile {
- public:
-  AutoCloseFile() = default;
+typedef std::unique_ptr<std::FILE> AutoCloseFile;
 
-  explicit AutoCloseFile(std::FILE* file) : file_(file) {}
-
-  AutoCloseFile(AutoCloseFile&& other) : file_(other.file_) {
-    other.file_ = nullptr;
-  }
-
-  ~AutoCloseFile() { reset(); }
-
-  AutoCloseFile& operator=(AutoCloseFile&& other) {
-    if (&other != this) {
-      reset(other.file_);
-      other.file_ = nullptr;
-    }
-    return *this;
-  }
-
-  std::FILE* get() const { return file_; }
-
-  void reset(std::FILE* file = nullptr) {
-    if (file_) {
-      const auto status = std::fclose(file_);
-      Check::isZero(status, "std::fclose() failed");
-    }
-    file_ = file;
-  }
-
- private:
-  std::FILE* file_ = nullptr;
-};
-
-inline AutoCloseFile fopen(const boost::filesystem::path& file,
-                           const char* mode) {
-  const auto result = std::fopen(file.c_str(), mode);
-  Check::notNull(result, "fopen() failed because of '%s'", errnostr());
-  return AutoCloseFile(result);
+inline AutoCloseFile fopenIfExists(const boost::filesystem::path& filename,
+                                   const char* mode) {
+  return AutoCloseFile(std::fopen(filename.c_str(), mode));
 }
 
-inline bool fget(std::FILE* stream, uint8_t* byte) {
+inline AutoCloseFile fopen(const boost::filesystem::path& filename,
+                           const char* mode) {
+  auto stream = fopenIfExists(filename, mode);
+  Check::notNull(stream.get(),
+                 "fopenIfExists() failed for '%s' because of '%s'",
+                 filename.c_str(), errnostr());
+  return stream;
+}
+
+inline bool fgetMaybe(std::FILE* stream, uint8_t* byte) {
   const auto result = std::fgetc(stream);
   if (result == EOF) return false;
   *byte = result;
   return true;
 }
 
-inline bool fput(std::FILE* stream, uint8_t byte) {
-  const auto result = std::fputc(byte, stream);
-  return result != EOF;
+inline uint8_t fget(std::FILE* stream) {
+  uint8_t byte = 0;
+  Check::isTrue(fgetMaybe(stream, &byte), "fgetMaybe() failed");
+  return byte;
 }
 
-inline bool fread(std::FILE* stream, void* buf, size_t len) {
+inline void fput(std::FILE* stream, uint8_t byte) {
+  Check::notEqual(std::fputc(byte, stream), EOF, "fputc() failed");
+}
+
+inline bool freadMaybe(std::FILE* stream, void* buf, size_t len) {
   return std::fread(buf, sizeof(char), len, stream) == len;
 }
 
-inline bool fwrite(std::FILE* stream, const void* buf, size_t len) {
-  return std::fwrite(buf, sizeof(char), len, stream) == len;
+inline void fread(std::FILE* stream, void* buf, size_t len) {
+  Check::isTrue(freadMaybe(stream, buf, len), "freadMaybe() failed");
 }
 
-inline void fwriteOrPrompt(std::FILE* stream, const void* buf, size_t len) {
-  while (true) {
-    const auto result = std::fwrite(buf, sizeof(char), len, stream);
-    if (result < len) {
-      std::cout << "Write operation failed because only " << result << " of "
-                << len << " bytes could be written.\nIn case you ran out of "
-                          "disk space you can do some cleanup now and then "
-                          "try to continue.\nTry to continue? [Y/n] "
-                << std::flush;
-      std::string answer;
-      std::getline(std::cin, answer);
-      if (answer == "n") {
-        fail("fwrite() wrote less bytes than expected");
-      }
-      buf = static_cast<const char*>(buf) + result;
-      len -= result;
-    } else {
-      break;
-    }
-  }
+inline void fwrite(std::FILE* stream, const void* buf, size_t len) {
+  Check::isEqual(std::fwrite(buf, sizeof(char), len, stream), len,
+                 "fwrite() failed");
 }
 
-inline bool fseek(std::FILE* stream, long offset, int origin) {
-  return std::fseek(stream, offset, origin) == 0;
+inline void fseek(std::FILE* stream, long offset, int origin) {
+  Check::isZero(std::fseek(stream, offset, origin), "fseek() failed");
 }
 
-inline bool ftell(std::FILE* stream, uint64_t* offset) {
-  *offset = std::ftell(stream);
-  return *offset != static_cast<uint64_t>(-1);
+inline uint64_t ftell(std::FILE* stream) {
+  const auto offset = std::ftell(stream);
+  Check::notEqual(offset, -1, "ftell() failed");
+  return offset;
 }
 
 class DirectoryLockGuard : public Resource {
@@ -519,9 +497,9 @@ class DirectoryLockGuard : public Resource {
 
   ~DirectoryLockGuard();
 
-  const boost::filesystem::path& directory() const;
+  const boost::filesystem::path& directory() const { return directory_; }
 
-  const std::string& filename() const;
+  const std::string& filename() const { return filename_; }
 
  private:
   boost::filesystem::path directory_;
@@ -531,31 +509,10 @@ class DirectoryLockGuard : public Resource {
 struct Files {
   typedef std::vector<char> Bytes;
 
-  static Bytes readAllBytes(const boost::filesystem::path& filepath);
+  static Bytes readAllBytes(const boost::filesystem::path& filename);
 
   static std::vector<std::string> readAllLines(
-      const boost::filesystem::path& filepath);
-
-  template <typename Container>
-  static void writeLinewise(const Container& container,
-                            const boost::filesystem::path& filepath) {
-    writeLinewise(container, filepath,
-                  [](const typename Container::value_type& value,
-                     std::ostream& os) { os << value; });
-  }
-
-  template <typename Container, typename PrintTo>
-  static void writeLinewise(const Container& container,
-                            const boost::filesystem::path& filepath,
-                            PrintTo print_to) {
-    std::ofstream output(filepath.string());
-    check(output.is_open(), "Could not create '%s'", filepath.c_str());
-
-    for (const auto& value : container) {
-      print_to(value, output);
-      output << '\n';
-    }
-  }
+      const boost::filesystem::path& filename);
 };
 
 // -----------------------------------------------------------------------------
@@ -564,10 +521,10 @@ struct Files {
 
 typedef std::map<std::string, std::string> Properties;
 
-Properties readPropertiesFromFile(const std::string& filepath);
+Properties readPropertiesFromFile(const boost::filesystem::path& filename);
 
-void writePropertiesToFile(const Properties& properties,
-                           const std::string& filepath);
+void writePropertiesToFile(const boost::filesystem::path& filename,
+                           const Properties& properties);
 
 // -----------------------------------------------------------------------------
 // TYPE TRAITS
