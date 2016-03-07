@@ -34,9 +34,9 @@ class Range {
  public:
   Range() = default;
 
-  Range(const Bytes& bytes) : Range(bytes.data(), bytes.size()) {}
+  Range(const char* cstr) : Range(cstr, std::strlen(cstr)) {}
 
-  explicit Range(const char* cstr) : Range(cstr, std::strlen(cstr)) {}
+  Range(const Bytes& bytes) : Range(bytes.data(), bytes.size()) {}
 
   Range(const void* data, size_t size)
       : Range(static_cast<const byte*>(data),
