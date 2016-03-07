@@ -64,7 +64,7 @@ class Map : public mt::Resource {
     bool readonly = false;
     bool quiet = false;
 
-    std::function<bool(const Bytes&, const Bytes&)> compare;
+    std::function<bool(const Range&, const Range&)> compare;
 
     void keepNumPartitions() { num_partitions = 0; }
     void keepBlockSize() { block_size = 0; }
@@ -82,35 +82,35 @@ class Map : public mt::Resource {
 
   ~Map();
 
-  void put(const Bytes& key, const Bytes& value) {
+  void put(const Range& key, const Range& value) {
     getPartition(key)->put(key, value);
   }
 
   template <typename InputIter>
-  void put(const Bytes& key, InputIter first, InputIter last) {
+  void put(const Range& key, InputIter first, InputIter last) {
     getPartition(key)->put(key, first, last);
   }
 
-  std::unique_ptr<Iterator> get(const Bytes& key) const {
+  std::unique_ptr<Iterator> get(const Range& key) const {
     return getPartition(key)->get(key);
   }
 
-  bool contains(const Bytes& key) const {
+  bool contains(const Range& key) const {
     return getPartition(key)->contains(key);
   }
 
-  uint32_t remove(const Bytes& key) { return getPartition(key)->remove(key); }
+  uint32_t remove(const Range& key) { return getPartition(key)->remove(key); }
 
-  bool removeFirstEqual(const Bytes& key, const Bytes& value) {
+  bool removeFirstEqual(const Range& key, const Range& value) {
     return getPartition(key)->removeFirstEqual(key, value);
   }
 
-  uint32_t removeAllEqual(const Bytes& key, const Bytes& value) {
+  uint32_t removeAllEqual(const Range& key, const Range& value) {
     return getPartition(key)->removeAllEqual(key, value);
   }
 
   template <typename Predicate>
-  bool removeFirstMatch(const Bytes& key, Predicate predicate) {
+  bool removeFirstMatch(const Range& key, Predicate predicate) {
     return getPartition(key)->removeFirstMatch(key, predicate);
   }
 
@@ -125,7 +125,7 @@ class Map : public mt::Resource {
   }
 
   template <typename Predicate>
-  uint32_t removeAllMatches(const Bytes& key, Predicate predicate) {
+  uint32_t removeAllMatches(const Range& key, Predicate predicate) {
     return getPartition(key)->removeAllMatches(key, predicate);
   }
 
@@ -141,23 +141,23 @@ class Map : public mt::Resource {
     return {num_keys_removed, num_values_removed};
   }
 
-  bool replaceFirstEqual(const Bytes& key, const Bytes& old_value,
-                         const Bytes& new_value) {
+  bool replaceFirstEqual(const Range& key, const Range& old_value,
+                         const Range& new_value) {
     return getPartition(key)->replaceFirstEqual(key, old_value, new_value);
   }
 
-  uint32_t replaceAllEqual(const Bytes& key, const Bytes& old_value,
-                           const Bytes& new_value) {
+  uint32_t replaceAllEqual(const Range& key, const Range& old_value,
+                           const Range& new_value) {
     return getPartition(key)->replaceAllEqual(key, old_value, new_value);
   }
 
   template <typename Function>
-  bool replaceFirstMatch(const Bytes& key, Function map) {
+  bool replaceFirstMatch(const Range& key, Function map) {
     return getPartition(key)->replaceFirstMatch(key, map);
   }
 
   template <typename Function>
-  uint32_t replaceAllMatches(const Bytes& key, Function map) {
+  uint32_t replaceAllMatches(const Range& key, Function map) {
     return getPartition(key)->replaceAllMatches(key, map);
   }
 
@@ -169,7 +169,7 @@ class Map : public mt::Resource {
   }
 
   template <typename Procedure>
-  void forEachValue(const Bytes& key, Procedure process) const {
+  void forEachValue(const Range& key, Procedure process) const {
     getPartition(key)->forEachValue(key, process);
   }
 
@@ -214,14 +214,14 @@ class Map : public mt::Resource {
                        const Options& options);
 
  private:
-  internal::Partition* getPartition(const Bytes& key) {
-    const auto hash = mt::fnv1aHash(key.data(), key.size());
-    return partitions_[hash % partitions_.size()].get();
+  internal::Partition* getPartition(const Range& key) {
+    //    const auto hash = mt::fnv1aHash(key.data(), key.size());
+    return partitions_[std::hash<Range>()(key) % partitions_.size()].get();
   }
 
-  const internal::Partition* getPartition(const Bytes& key) const {
-    const auto hash = mt::fnv1aHash(key.data(), key.size());
-    return partitions_[hash % partitions_.size()].get();
+  const internal::Partition* getPartition(const Range& key) const {
+    //    const auto hash = mt::fnv1aHash(key.data(), key.size());
+    return partitions_[std::hash<Range>()(key) % partitions_.size()].get();
   }
 
   std::vector<std::unique_ptr<internal::Partition> > partitions_;
