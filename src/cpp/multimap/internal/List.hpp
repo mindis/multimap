@@ -26,7 +26,7 @@
 #include "multimap/internal/Locks.hpp"
 #include "multimap/internal/SharedMutex.hpp"
 #include "multimap/internal/Store.hpp"
-#include "multimap/internal/UintVector.hpp"
+#include "multimap/internal/Uint32Vector.hpp"
 #include "multimap/Iterator.hpp"
 
 namespace multimap {
@@ -422,7 +422,7 @@ class List {
   void appendUnlocked(const Range& value, Store* store, Arena* arena);
 
   Stats stats_;
-  UintVector block_ids_;
+  Uint32Vector block_ids_;
   ReadWriteBlock block_;
   mutable SharedMutex mutex_;
 };

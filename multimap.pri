@@ -23,7 +23,7 @@ HEADERS += \
     src/cpp/multimap/internal/SharedMutex.hpp \
     src/cpp/multimap/internal/Stats.hpp \
     src/cpp/multimap/internal/Store.hpp \
-    src/cpp/multimap/internal/UintVector.hpp \
+    src/cpp/multimap/internal/Uint32Vector.hpp \
     src/cpp/multimap/internal/Varint.hpp \
     src/cpp/multimap/thirdparty/cmph/bdz.h \
     src/cpp/multimap/thirdparty/cmph/bdz_ph.h \
@@ -82,7 +82,7 @@ SOURCES += \
     src/cpp/multimap/internal/SharedMutex.cpp \
     src/cpp/multimap/internal/Stats.cpp \
     src/cpp/multimap/internal/Store.cpp \
-    src/cpp/multimap/internal/UintVector.cpp \
+    src/cpp/multimap/internal/Uint32Vector.cpp \
     src/cpp/multimap/internal/Varint.cpp \
     src/cpp/multimap/thirdparty/cmph/bdz.c \
     src/cpp/multimap/thirdparty/cmph/bdz_ph.c \

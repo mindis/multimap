@@ -30,7 +30,7 @@ List List::readFromStream(std::FILE* stream) {
             sizeof list.stats_.num_values_total);
   mt::fread(stream, &list.stats_.num_values_removed,
             sizeof list.stats_.num_values_removed);
-  list.block_ids_ = UintVector::readFromStream(stream);
+  list.block_ids_ = Uint32Vector::readFromStream(stream);
   return std::move(list);
 }
 
