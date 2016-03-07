@@ -18,27 +18,20 @@
 #ifndef MULTIMAP_INTERNAL_BASE64_HPP_INCLUDED
 #define MULTIMAP_INTERNAL_BASE64_HPP_INCLUDED
 
-#include "multimap/Bytes.hpp"
+#include <string>
+#include "multimap/Range.hpp"
 
 namespace multimap {
 namespace internal {
 
 struct Base64 {
-  static std::string encode(const Bytes& binary);
-  // Encodes binary data to a Base64 string.
+  static void toBase64(const Range& bytes, std::string* output);
 
-  static void encode(const Bytes& binary, std::string* base64);
-  // Encodes binary data to a Base64 string.
+  static std::string toBase64(const Range& bytes);
 
-  static void encode(const std::string& binary, std::string* base64);
-  // Encodes binary data to a Base64 string.
+  static void fromBase64(const std::string& base64, Bytes* output);
 
-  static void encode(const char* data, size_t size, std::string* base64);
-  // Encodes binary data to a Base64 string.
-
-  static void decode(const std::string& base64, std::string* binary);
-  // Decodes a base64 string to binary data. std::string as the target type
-  // is used as a self-managing byte buffer, it will contain binary data.
+  static Bytes fromBase64(const std::string& base64);
 
   Base64() = delete;
 };
