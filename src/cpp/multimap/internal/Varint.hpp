@@ -18,9 +18,9 @@
 #ifndef MULTIMAP_INTERNAL_VARINT_HPP_INCLUDED
 #define MULTIMAP_INTERNAL_VARINT_HPP_INCLUDED
 
-#include <cstddef>
-#include <cstdint>
 #include <cstdio>
+#include <cstdint>
+#include "multimap/Bytes.hpp"
 
 namespace multimap {
 namespace internal {
@@ -50,57 +50,21 @@ struct Varint {
     Limits() = delete;
   };
 
-  static uint32_t readUintFromBuffer(const char* buf, size_t len,
-                                     uint32_t* value);
-  // Reads a 32-bit unsigned integer from `buf` into `value`.
-  // Returns the number of bytes read on success, otherwise zero.
-  // Preconditions:
-  //  * `buf` is not null
-  //  * `value` is not null
+  static const byte* readUint32FromBuffer(const byte* buffer, uint32_t* value);
 
-  static uint32_t readUintFromStream(std::FILE* stream, uint32_t* value);
-  // Reads a 32-bit unsigned integer from `stream` into `value`.
-  // Returns the number of bytes read on success, otherwise zero.
-  // Preconditions:
-  //  * `stream` is not null
-  //  * `value` is not null
+  static size_t readUint32FromStream(std::FILE* stream, uint32_t* value);
 
-  static uint32_t readUintWithFlagFromBuffer(const char* buf, size_t len,
-                                             uint32_t* value, bool* flag);
-  // Reads a 32-bit unsigned integer with flag from `buf` into `value` and
-  // `flag`. Returns the number of bytes read on success, otherwise zero.
-  // Preconditions:
-  //  * `buf` is not null
-  //  * `value` is not null
-  //  * `flag` is not null
+  static const byte* readUint32WithFlagFromBuffer(const byte* buffer,
+                                                  uint32_t* value, bool* flag);
 
-  static uint32_t writeUintToBuffer(char* buf, size_t len, uint32_t value);
-  // Writes a 32-bit unsigned integer into `buf`.
-  // Returns the number of bytes written on success, otherwise zero.
-  // Preconditions:
-  //  * `buf` is not null
-  //  * `value` is not greater than `MAX_N4`
+  static byte* writeUint32ToBuffer(byte* begin, byte* end, uint32_t value);
 
-  static uint32_t writeUintToStream(std::FILE* stream, uint32_t value);
-  // Writes a 32-bit unsigned integer into `stream`.
-  // Returns the number of bytes written on success, otherwise zero.
-  // Preconditions:
-  //  * `stream` is not null
-  //  * `value` is not greater than `MAX_N4`
+  static size_t writeUint32ToStream(std::FILE* stream, uint32_t value);
 
-  static uint32_t writeUintWithFlagToBuffer(char* buf, size_t len,
-                                            uint32_t value, bool flag);
-  // Writes a 32-bit unsigned integer with flag into `buf`.
-  // Returns the number of bytes written on success, otherwise zero.
-  // Preconditions:
-  //  * `buf` is not null
-  //  * `value` is not greater than `MAX_N4_WITH_FLAG`
+  static byte* writeUint32WithFlagToBuffer(byte* begin, byte* end,
+                                           uint32_t value, bool flag);
 
-  static void setFlag(char* buf, bool flag);
-  // Sets a flag in `buf` which is expected to point to the first byte of a
-  // valid varint encoding produced by a call to `writeUintWithFlagToBuffer()`.
-  // Preconditions:
-  //  * `buf` is not null
+  static void setFlagInBuffer(byte* buffer, bool flag);
 
   Varint() = delete;
 };

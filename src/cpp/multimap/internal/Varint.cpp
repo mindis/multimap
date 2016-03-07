@@ -42,160 +42,157 @@ const uint32_t Varint::Limits::MAX_N2_WITH_FLAG = (1 << 13) - 1;
 const uint32_t Varint::Limits::MAX_N3_WITH_FLAG = (1 << 21) - 1;
 const uint32_t Varint::Limits::MAX_N4_WITH_FLAG = (1 << 29) - 1;
 
-uint32_t Varint::readUintFromBuffer(const char* buf, size_t len,
-                                    uint32_t* value) {
-  if (len == 0) return 0;
-  const uint8_t* ptr = reinterpret_cast<const uint8_t*>(buf);
-  const int length = (ptr[0] & 0xC0);  // 11000000
+const byte* Varint::readUint32FromBuffer(const byte* buffer, uint32_t* value) {
+  const auto length = *buffer & 0xC0;  // 11000000
   switch (length) {
     case 0x00:  // 00000000
-      *value = ptr[0];
-      return 1;
+      *value = *buffer++;
+      break;
     case 0x40:  // 01000000
-      if (len < 2) break;
-      *value = (ptr[0] & 0x3F) << 8;
-      *value += ptr[1];
-      return 2;
+      *value = (*buffer++ & 0x3F) << 8;
+      *value += *buffer++;
+      break;
     case 0x80:  // 10000000
-      if (len < 3) break;
-      *value = (ptr[0] & 0x3F) << 16;
-      *value += ptr[1] << 8;
-      *value += ptr[2];
-      return 3;
+      *value = (*buffer++ & 0x3F) << 16;
+      *value += *buffer++ << 8;
+      *value += *buffer++;
+      break;
     case 0xC0:  // 11000000
-      if (len < 4) break;
-      *value = (ptr[0] & 0x3F) << 24;
-      *value += ptr[1] << 16;
-      *value += ptr[2] << 8;
-      *value += ptr[3];
-      return 4;
+      *value = (*buffer++ & 0x3F) << 24;
+      *value += *buffer++ << 16;
+      *value += *buffer++ << 8;
+      *value += *buffer++;
+      break;
     default:
-      mt::fail("Invalid varint encoding");
+      MT_FAIL("Reached default branch in switch statement");
+  }
+  return buffer;
+}
+
+// TODO Make return type a boolean.
+// TODO Micro-benchmark this compared to byte[4].
+size_t Varint::readUint32FromStream(std::FILE* stream, uint32_t* value) {
+  byte b0 = 0;
+  if (mt::fgetMaybe(stream, &b0)) {
+    const auto length = b0 & 0xC0;  // 11000000
+    switch (length) {
+      case 0x00: {  // 00000000
+        *value = b0;
+        return 1;
+      }
+      case 0x40: {  // 01000000
+        const byte b1 = mt::fget(stream);
+        *value = (b0 & 0x3F) << 8;
+        *value += b1;
+        return 2;
+      }
+      case 0x80: {  // 10000000
+        const byte b1 = mt::fget(stream);
+        const byte b2 = mt::fget(stream);
+        *value = (b0 & 0x3F) << 16;
+        *value += b1 << 8;
+        *value += b2;
+        return 3;
+      }
+      case 0xC0: {  // 11000000
+        const byte b1 = mt::fget(stream);
+        const byte b2 = mt::fget(stream);
+        const byte b3 = mt::fget(stream);
+        *value = (b0 & 0x3F) << 24;
+        *value += b1 << 16;
+        *value += b2 << 8;
+        *value += b3;
+        return 4;
+      }
+      default:
+        MT_FAIL("Reached default branch in switch statement");
+    }
   }
   return 0;
 }
 
-uint32_t Varint::readUintFromStream(std::FILE* stream, uint32_t* value) {
-  uint8_t b0, b1, b2, b3;
-  if (!mt::fget(stream, &b0)) return 0;
-  switch (b0 & 0xC0) {
-    case 0x00:  // 00000000
-      *value = b0;
-      return 1;
-    case 0x40:  // 01000000
-      if (!mt::fget(stream, &b1)) break;
-      *value = (b0 & 0x3F) << 8;
-      *value += b1;
-      return 2;
-    case 0x80:  // 10000000
-      if (!mt::fget(stream, &b1)) break;
-      if (!mt::fget(stream, &b2)) break;
-      *value = (b0 & 0x3F) << 16;
-      *value += b1 << 8;
-      *value += b2;
-      return 3;
-    case 0xC0:  // 11000000
-      if (!mt::fget(stream, &b1)) break;
-      if (!mt::fget(stream, &b2)) break;
-      if (!mt::fget(stream, &b3)) break;
-      *value = (b0 & 0x3F) << 24;
-      *value += b1 << 16;
-      *value += b2 << 8;
-      *value += b3;
-      return 4;
-    default:
-      mt::fail("Invalid varint encoding");
-  }
-  return 0;
-}
-
-uint32_t Varint::readUintWithFlagFromBuffer(const char* buf, size_t len,
-                                            uint32_t* value, bool* flag) {
-  if (len == 0) return 0;
-  const uint8_t* ptr = reinterpret_cast<const uint8_t*>(buf);
-  const int length = (ptr[0] & 0xC0);  // 11000000
-  *flag = (ptr[0] & 0x20);             // 00100000
+const byte* readUint32WithFlagFromBuffer(const byte* buffer, uint32_t* value,
+                                         bool* flag) {
+  *flag = *buffer & 0x20;              // 00100000
+  const auto length = *buffer & 0xC0;  // 11000000
   switch (length) {
     case 0x00:  // 00000000
-      *value = (ptr[0] & 0x1F);
-      return 1;
+      *value = *buffer++ & 0x1F;
+      break;
     case 0x40:  // 01000000
-      if (len < 2) break;
-      *value = (ptr[0] & 0x1F) << 8;
-      *value += ptr[1];
-      return 2;
+      *value = (*buffer++ & 0x1F) << 8;
+      *value += *buffer++;
+      break;
     case 0x80:  // 10000000
-      if (len < 3) break;
-      *value = (ptr[0] & 0x1F) << 16;
-      *value += ptr[1] << 8;
-      *value += ptr[2];
-      return 3;
+      *value = (*buffer++ & 0x1F) << 16;
+      *value += *buffer++ << 8;
+      *value += *buffer++;
+      break;
     case 0xC0:  // 11000000
-      if (len < 4) break;
-      *value = (ptr[0] & 0x1F) << 24;
-      *value += ptr[1] << 16;
-      *value += ptr[2] << 8;
-      *value += ptr[3];
-      return 4;
+      *value = (*buffer++ & 0x1F) << 24;
+      *value += *buffer++ << 16;
+      *value += *buffer++ << 8;
+      *value += *buffer++;
+      break;
     default:
-      mt::fail("Invalid varint with flag encoding");
+      MT_FAIL("Reached default branch in switch statement");
   }
-  return 0;
+  return buffer;
 }
 
-uint32_t Varint::writeUintToBuffer(char* buf, size_t len, uint32_t value) {
-  uint8_t* ptr = reinterpret_cast<uint8_t*>(buf);
+byte* Varint::writeUint32ToBuffer(byte* begin, byte* end, uint32_t value) {
   if (value < 0x00000040) {  // 00000000 00000000 00000000 01000000
-    if (len < 1) return 0;
-    ptr[0] = value;
-    return 1;
+    if (end - begin < 1) return end;
+    *begin++ = value;
+    return begin;
   }
   if (value < 0x00004000) {  // 00000000 00000000 01000000 00000000
-    if (len < 2) return 0;
-    ptr[0] = (value >> 8) | 0x40;
-    ptr[1] = (value);
-    return 2;
+    if (end - begin < 2) return end;
+    *begin++ = (value >> 8) | 0x40;
+    *begin++ = (value);
+    return begin;
   }
   if (value < 0x00400000) {  // 00000000 01000000 00000000 00000000
-    if (len < 3) return 0;
-    ptr[0] = (value >> 16) | 0x80;
-    ptr[1] = (value >> 8);
-    ptr[2] = (value);
-    return 3;
+    if (end - begin < 3) return end;
+    *begin++ = (value >> 16) | 0x80;
+    *begin++ = (value >> 8);
+    *begin++ = (value);
+    return begin;
   }
   if (value < 0x40000000) {  // 01000000 00000000 00000000 00000000
-    if (len < 4) return 0;
-    ptr[0] = (value >> 24) | 0xC0;
-    ptr[1] = (value >> 16);
-    ptr[2] = (value >> 8);
-    ptr[3] = (value);
-    return 4;
+    if (end - begin < 4) return end;
+    *begin++ = (value >> 24) | 0xC0;
+    *begin++ = (value >> 16);
+    *begin++ = (value >> 8);
+    *begin++ = (value);
+    return begin;
   }
-  mt::fail("Cannot encode too big value: %d", value);
-  return 0;
+  mt::fail("writeUint32ToBuffer() failed. Too big value: %d", value);
+  return begin;
 }
 
-uint32_t Varint::writeUintToStream(std::FILE* stream, uint32_t value) {
-  uint8_t b0, b1, b2, b3;
+size_t Varint::writeUint32ToStream(std::FILE* stream, uint32_t value) {
+  // TODO Make b0, b1, b2, b3 an array.
+  byte b0, b1, b2, b3;
   if (value < 0x00000040) {  // 00000000 00000000 00000000 01000000
     b0 = value;
-    if (!mt::fput(stream, b0)) return 0;
+    mt::fput(stream, b0);
     return 1;
   }
   if (value < 0x00004000) {  // 00000000 00000000 01000000 00000000
     b0 = (value >> 8) | 0x40;
     b1 = (value);
-    if (!mt::fput(stream, b0)) return 0;
-    if (!mt::fput(stream, b1)) return 0;
+    mt::fput(stream, b0);
+    mt::fput(stream, b1);
     return 2;
   }
   if (value < 0x00400000) {  // 00000000 01000000 00000000 00000000
     b0 = (value >> 16) | 0x80;
     b1 = (value >> 8);
     b2 = (value);
-    if (!mt::fput(stream, b0)) return 0;
-    if (!mt::fput(stream, b1)) return 0;
-    if (!mt::fput(stream, b2)) return 0;
+    mt::fput(stream, b0);
+    mt::fput(stream, b1);
+    mt::fput(stream, b2);
     return 3;
   }
   if (value < 0x40000000) {  // 01000000 00000000 00000000 00000000
@@ -203,55 +200,50 @@ uint32_t Varint::writeUintToStream(std::FILE* stream, uint32_t value) {
     b1 = (value >> 16);
     b2 = (value >> 8);
     b3 = (value);
-    if (!mt::fput(stream, b0)) return 0;
-    if (!mt::fput(stream, b1)) return 0;
-    if (!mt::fput(stream, b2)) return 0;
-    if (!mt::fput(stream, b3)) return 0;
+    mt::fput(stream, b0);
+    mt::fput(stream, b1);
+    mt::fput(stream, b2);
+    mt::fput(stream, b3);
     return 4;
   }
-  mt::fail("Cannot encode too big value: %d", value);
+  mt::fail("writeUint32ToStream() failed. Too big value: %d", value);
   return 0;
 }
 
-uint32_t Varint::writeUintWithFlagToBuffer(char* buf, size_t len,
-                                           uint32_t value, bool flag) {
-  uint8_t* ptr = reinterpret_cast<uint8_t*>(buf);
+byte* Varint::writeUint32WithFlagToBuffer(byte* begin, byte* end,
+                                          uint32_t value, bool flag) {
   if (value < 0x00000020) {  // 00000000 00000000 00000000 00100000
-    if (len < 1) return 0;
-    ptr[0] = value | (flag ? 0x20 : 0x00);
-    return 1;
+    if (end - begin < 1) return end;
+    *begin++ = value | (flag ? 0x20 : 0x00);
+    return begin;
   }
   if (value < 0x00002000) {  // 00000000 00000000 00100000 00000000
-    if (len < 2) return 0;
-    ptr[0] = (value >> 8) | (flag ? 0x60 : 0x40);
-    ptr[1] = (value);
-    return 2;
+    if (end - begin < 2) return end;
+    *begin++ = (value >> 8) | (flag ? 0x60 : 0x40);
+    *begin++ = (value);
+    return begin;
   }
   if (value < 0x00200000) {  // 00000000 00100000 00000000 00000000
-    if (len < 3) return 0;
-    ptr[0] = (value >> 16) | (flag ? 0xA0 : 0x80);
-    ptr[1] = (value >> 8);
-    ptr[2] = (value);
-    return 3;
+    if (end - begin < 3) return end;
+    *begin++ = (value >> 16) | (flag ? 0xA0 : 0x80);
+    *begin++ = (value >> 8);
+    *begin++ = (value);
+    return begin;
   }
   if (value < 0x20000000) {  // 00100000 00000000 00000000 00000000
-    if (len < 4) return 0;
-    ptr[0] = (value >> 24) | (flag ? 0xE0 : 0xC0);
-    ptr[1] = (value >> 16);
-    ptr[2] = (value >> 8);
-    ptr[3] = (value);
-    return 4;
+    if (end - begin < 4) return end;
+    *begin++ = (value >> 24) | (flag ? 0xE0 : 0xC0);
+    *begin++ = (value >> 16);
+    *begin++ = (value >> 8);
+    *begin++ = (value);
+    return begin;
   }
-  mt::fail("Cannot encode too big value: %d", value);
-  return 0;
+  mt::fail("writeUint32WithFlagToBuffer() failed. Too big value: %d", value);
+  return begin;
 }
 
-void Varint::setFlag(char* buf, bool flag) {
-  if (flag) {
-    *reinterpret_cast<uint8_t*>(buf) |= 0x20;
-  } else {
-    *reinterpret_cast<uint8_t*>(buf) &= 0xDF;
-  }
+void Varint::setFlagInBuffer(byte* buffer, bool flag) {
+  flag ? (*buffer |= 0x20) : (*buffer &= 0xDF);
 }
 
 }  // namespace internal
