@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "multimap/internal/UintVector.hpp"
+#include "multimap/internal/Uint32Vector.hpp"
 
 #include "multimap/internal/Varint.hpp"
 
@@ -24,45 +24,41 @@ namespace internal {
 
 namespace {
 
-uint32_t readUint32(const char* source, uint32_t* target) {
-  std::memcpy(target, source, sizeof *target);
-  return sizeof *target;
+inline const byte* readUint32(const byte* buffer, uint32_t* value) {
+  std::memcpy(value, buffer, sizeof *value);
+  return buffer + sizeof *value;
 }
 
-uint32_t writeUint32(uint32_t source, char* target) {
-  std::memcpy(target, &source, sizeof source);
-  return sizeof source;
+inline byte* writeUint32(byte* buffer, uint32_t value) {
+  std::memcpy(buffer, &value, sizeof value);
+  return buffer + sizeof value;
 }
 
 }  // namespace
 
-UintVector UintVector::readFromStream(std::FILE* stream) {
-  UintVector vector;
+Uint32Vector Uint32Vector::readFromStream(std::FILE* stream) {
+  Uint32Vector vector;
   mt::fread(stream, &vector.offset_, sizeof vector.offset_);
-  vector.data_.reset(new char[vector.offset_]);
+  vector.data_.reset(new uint8_t[vector.offset_]);
   mt::fread(stream, vector.data_.get(), vector.offset_);
   vector.size_ = vector.offset_;
   return vector;
 }
 
-void UintVector::writeToStream(std::FILE* stream) const {
+void Uint32Vector::writeToStream(std::FILE* stream) const {
   mt::fwrite(stream, &offset_, sizeof offset_);
   mt::fwrite(stream, data_.get(), offset_);
 }
 
-std::vector<uint32_t> UintVector::unpack() const {
+std::vector<uint32_t> Uint32Vector::unpack() const {
   std::vector<uint32_t> values;
   if (!empty()) {
     uint32_t delta = 0;
     uint32_t value = 0;
-    uint32_t nbytes = 0;
-    uint32_t offset = 0;
-    uint32_t remaining = offset_ - sizeof value;
-    while (remaining > 0) {
-      nbytes =
-          Varint::readUintFromBuffer(data_.get() + offset, remaining, &delta);
-      offset += nbytes;
-      remaining -= nbytes;
+    const byte* begin = data_.get();
+    const byte* end = begin + offset_ - sizeof value;
+    while (begin != end) {
+      begin = Varint::readUint32FromBuffer(begin, &delta);
       values.push_back(value + delta);
       value = values.back();
     }
@@ -70,35 +66,30 @@ std::vector<uint32_t> UintVector::unpack() const {
   return values;
 }
 
-bool UintVector::add(uint32_t value) {
+void Uint32Vector::add(uint32_t value) {
   allocateMoreIfFull();
   if (empty()) {
-    if (value <= Varint::Limits::MAX_N4) {
-      offset_ += Varint::writeUintToBuffer(current(), size_, value);
-      offset_ += writeUint32(value, current());
-      return true;
-    }
+    byte* new_pos = Varint::writeUint32ToBuffer(pos(), end(), value);
+    new_pos = writeUint32(new_pos, value);
+    offset_ = new_pos - data_.get();
   } else {
     uint32_t prev_value;
     offset_ -= sizeof prev_value;
-    readUint32(current(), &prev_value);
+    readUint32(pos(), &prev_value);
     MT_ASSERT_LT(prev_value, value);
     const uint32_t delta = value - prev_value;
-    if (delta <= Varint::Limits::MAX_N4) {
-      offset_ += Varint::writeUintToBuffer(current(), remaining(), delta);
-      offset_ += writeUint32(value, current());
-      return true;
-    }
+    byte* new_pos = Varint::writeUint32ToBuffer(pos(), end(), delta);
+    new_pos = writeUint32(pos(), value);
+    offset_ = new_pos - data_.get();
   }
-  return false;
 }
 
-void UintVector::allocateMoreIfFull() {
+void Uint32Vector::allocateMoreIfFull() {
   const uint32_t required_size = sizeof(uint32_t) * 2;
   if (required_size > size_ - offset_) {
     const uint32_t new_end_offset = size_ * 1.5;
     const auto new_size = std::max(new_end_offset, required_size);
-    std::unique_ptr<char[]> new_data(new char[new_size]);
+    std::unique_ptr<byte[]> new_data(new byte[new_size]);
     std::memcpy(new_data.get(), data_.get(), offset_);
     data_ = std::move(new_data);
     size_ = new_size;

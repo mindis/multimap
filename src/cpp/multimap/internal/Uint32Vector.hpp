@@ -15,30 +15,29 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTIMAP_INTERNAL_UINT_VECTOR_HPP_INCLUDED
-#define MULTIMAP_INTERNAL_UINT_VECTOR_HPP_INCLUDED
+#ifndef MULTIMAP_INTERNAL_UINT32_VECTOR_HPP_INCLUDED
+#define MULTIMAP_INTERNAL_UINT32_VECTOR_HPP_INCLUDED
 
+#include <cstdio>
 #include <memory>
 #include <vector>
 #include "multimap/thirdparty/mt/mt.hpp"
+#include "multimap/Bytes.hpp"
 
 namespace multimap {
 namespace internal {
 
-class UintVector {
+class Uint32Vector {
  public:
-  UintVector() = default;
+  Uint32Vector() = default;
 
-  UintVector(UintVector&&) = default;
-  UintVector& operator=(UintVector&&) = default;
-
-  static UintVector readFromStream(std::FILE* stream);
+  static Uint32Vector readFromStream(std::FILE* stream);
 
   void writeToStream(std::FILE* stream) const;
 
   std::vector<uint32_t> unpack() const;
 
-  bool add(uint32_t value);
+  void add(uint32_t value);
 
   bool empty() const { return offset_ == 0; }
 
@@ -51,19 +50,18 @@ class UintVector {
  private:
   void allocateMoreIfFull();
 
-  char* current() const { return data_.get() + offset_; }
+  uint8_t* pos() const { return data_.get() + offset_; }
+  uint8_t* end() const { return data_.get() + size_; }
 
-  uint32_t remaining() const { return size_ - offset_; }
-
-  std::unique_ptr<char[]> data_;
+  std::unique_ptr<byte[]> data_;
   uint32_t offset_ = 0;
   uint32_t size_ = 0;
 };
 
-static_assert(mt::hasExpectedSize<UintVector>(12, 16),
+static_assert(mt::hasExpectedSize<Uint32Vector>(12, 16),
               "class UintVector does not have expected size");
 
 }  // namespace internal
 }  // namespace multimap
 
-#endif  // MULTIMAP_INTERNAL_UINT_VECTOR_HPP_INCLUDED
+#endif  // MULTIMAP_INTERNAL_UINT32_VECTOR_HPP_INCLUDED

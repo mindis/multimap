@@ -17,7 +17,7 @@
 
 #include <type_traits>
 #include "gmock/gmock.h"
-#include "multimap/internal/UintVector.hpp"
+#include "multimap/internal/Uint32Vector.hpp"
 #include "multimap/internal/Varint.hpp"
 
 namespace multimap {
@@ -26,28 +26,28 @@ namespace internal {
 using testing::ElementsAreArray;
 
 TEST(UintVectorTest, IsDefaultConstructible) {
-  ASSERT_TRUE(std::is_default_constructible<UintVector>::value);
+  ASSERT_TRUE(std::is_default_constructible<Uint32Vector>::value);
 }
 
 TEST(UintVectorTest, IsNotCopyConstructibleOrAssignable) {
-  ASSERT_FALSE(std::is_copy_constructible<UintVector>::value);
-  ASSERT_FALSE(std::is_copy_assignable<UintVector>::value);
+  ASSERT_FALSE(std::is_copy_constructible<Uint32Vector>::value);
+  ASSERT_FALSE(std::is_copy_assignable<Uint32Vector>::value);
 }
 
 TEST(UintVectorTest, IsMoveConstructibleAndAssignable) {
-  ASSERT_TRUE(std::is_move_constructible<UintVector>::value);
-  ASSERT_TRUE(std::is_move_assignable<UintVector>::value);
+  ASSERT_TRUE(std::is_move_constructible<Uint32Vector>::value);
+  ASSERT_TRUE(std::is_move_assignable<Uint32Vector>::value);
 }
 
 TEST(UintVectorTest, DefaultConstructedHasProperState) {
-  ASSERT_TRUE(UintVector().unpack().empty());
-  ASSERT_TRUE(UintVector().empty());
+  ASSERT_TRUE(Uint32Vector().unpack().empty());
+  ASSERT_TRUE(Uint32Vector().empty());
 }
 
 class UintVectorTestWithParam : public testing::TestWithParam<uint32_t> {};
 
 TEST_P(UintVectorTestWithParam, AddValueAndUnpack) {
-  UintVector vector;
+  Uint32Vector vector;
   vector.add(GetParam());
   ASSERT_EQ(vector.unpack().size(), 1);
   ASSERT_EQ(vector.unpack().front(), GetParam());
@@ -58,12 +58,12 @@ INSTANTIATE_TEST_CASE_P(Parameterized, UintVectorTestWithParam,
                                         Varint::Limits::MAX_N4));
 
 TEST(UintVectorTest, TryToAddTooLargeValue) {
-  UintVector vector;
-  ASSERT_FALSE(vector.add(Varint::Limits::MAX_N4 + 1));
+  Uint32Vector vector;
+  ASSERT_THROW(vector.add(Varint::Limits::MAX_N4), mt::AssertionError);
 }
 
 TEST(UintVectorTest, AddIncreasingValuesAndUnpack) {
-  UintVector vector;
+  Uint32Vector vector;
   uint32_t values[] = {0, 1, 10, 1000, 10000000, Varint::Limits::MAX_N4};
   for (auto value : values) {
     vector.add(value);
@@ -72,7 +72,7 @@ TEST(UintVectorTest, AddIncreasingValuesAndUnpack) {
 }
 
 TEST(UintVectorTest, AddDecreasingValuesAndThrow) {
-  UintVector vector;
+  Uint32Vector vector;
   uint32_t values[] = {Varint::Limits::MAX_N4, 10000000};
   vector.add(values[0]);
   ASSERT_THROW(vector.add(values[1]), mt::AssertionError);
