@@ -21,31 +21,32 @@
 #include <memory>
 #include <mutex>
 #include <vector>
+#include "multimap/Bytes.hpp"
 
 namespace multimap {
 namespace internal {
 
 class Arena {
-  // Objects of this class are thread-safe.
+  // Objects of this class are thread-safe.  // TODO Make NOT thread-safe
 
  public:
-  static const uint32_t DEFAULT_CHUNK_SIZE = 4096;
+  static const size_t DEFAULT_CHUNK_SIZE = 4096;
 
-  explicit Arena(uint32_t chunk_size = DEFAULT_CHUNK_SIZE);
+  explicit Arena(size_t chunk_size = DEFAULT_CHUNK_SIZE);
 
-  uint8_t* allocate(uint32_t nbytes);
+  byte* allocate(size_t nbytes);
 
-  uint64_t allocated() const;
+  size_t allocated() const;
 
   void deallocateAll();
 
  private:
   std::unique_ptr<std::mutex> mutex_;
-  std::vector<std::unique_ptr<uint8_t[]> > chunks_;
-  std::vector<std::unique_ptr<uint8_t[]> > blobs_;
-  uint32_t chunk_offset_ = 0;
-  uint32_t chunk_size_ = 0;
-  uint64_t allocated_ = 0;
+  std::vector<std::unique_ptr<byte[]> > chunks_;
+  std::vector<std::unique_ptr<byte[]> > blobs_;
+  size_t chunk_offset_ = 0;
+  size_t chunk_size_ = 0;
+  size_t allocated_ = 0;
 };
 
 }  // namespace internal

@@ -22,32 +22,32 @@
 namespace multimap {
 namespace internal {
 
-Arena::Arena(uint32_t chunk_size)
+Arena::Arena(size_t chunk_size)
     : mutex_(new std::mutex()), chunk_size_(chunk_size) {
   MT_REQUIRE_TRUE(mt::isPowerOfTwo(chunk_size_));
   MT_REQUIRE_NOT_ZERO(chunk_size_);
 }
 
-uint8_t* Arena::allocate(uint32_t num_bytes) {
+byte* Arena::allocate(size_t num_bytes) {
   MT_REQUIRE_NOT_ZERO(num_bytes);
   std::lock_guard<std::mutex> lock(*mutex_);
 
-  uint8_t* result;
+  byte* result;
   if (num_bytes <= chunk_size_) {
     if (chunks_.empty()) {
-      chunks_.emplace_back(new uint8_t[chunk_size_]);
+      chunks_.emplace_back(new byte[chunk_size_]);
       chunk_offset_ = 0;
     }
     const auto num_bytes_free = chunk_size_ - chunk_offset_;
     if (num_bytes > num_bytes_free) {
-      chunks_.emplace_back(new uint8_t[chunk_size_]);
+      chunks_.emplace_back(new byte[chunk_size_]);
       chunk_offset_ = 0;
     }
     result = chunks_.back().get() + chunk_offset_;
     chunk_offset_ += num_bytes;
 
   } else {
-    blobs_.emplace_back(new uint8_t[num_bytes]);
+    blobs_.emplace_back(new byte[num_bytes]);
     result = blobs_.back().get();
   }
 
@@ -55,7 +55,7 @@ uint8_t* Arena::allocate(uint32_t num_bytes) {
   return result;
 }
 
-uint64_t Arena::allocated() const {
+size_t Arena::allocated() const {
   std::lock_guard<std::mutex> lock(*mutex_);
   return allocated_;
 }
