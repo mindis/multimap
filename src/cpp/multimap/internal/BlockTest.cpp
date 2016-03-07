@@ -49,7 +49,7 @@ TEST(ReadOnlyBlockTest, ConstructedWithNullDataThrows) {
 }
 
 TEST(ReadOnlyBlockTest, ConstructedWithDataHasProperState) {
-  char buf[512];
+  byte buf[512];
   ASSERT_TRUE(ReadOnlyBlock(buf, sizeof buf).hasData());
   ASSERT_EQ(ReadOnlyBlock(buf, sizeof buf).data(), buf);
   ASSERT_EQ(ReadOnlyBlock(buf, sizeof buf).size(), sizeof buf);
@@ -79,7 +79,7 @@ TEST(ReadWriteBlockTest, ConstructedWithNullDataThrows) {
 }
 
 TEST(ReadWriteBlockTest, ConstructedWithDataHasProperState) {
-  char buf[512];
+  byte buf[512];
   ASSERT_TRUE(ReadWriteBlock(buf, sizeof buf).hasData());
   ASSERT_EQ(ReadWriteBlock(buf, sizeof buf).data(), buf);
   ASSERT_EQ(ReadWriteBlock(buf, sizeof buf).size(), sizeof buf);
@@ -88,17 +88,17 @@ TEST(ReadWriteBlockTest, ConstructedWithDataHasProperState) {
 }
 
 TEST(ReadWriteBlockTest, WriteToDefaultConstructedThrows) {
-  ASSERT_THROW(ReadWriteBlock().writeData("x", 1), mt::AssertionError);
+  ASSERT_THROW(ReadWriteBlock().writeData("x"), mt::AssertionError);
 }
 
 TEST(ReadWriteBlockTest, WriteValuesSmallerThanBlockSize) {
-  char buf[512];
+  byte buf[512];
   ReadWriteBlock block(buf, sizeof buf);
 
   std::string value = "123";
   while (true) {
     const auto remaining = block.remaining();
-    const auto nbytes = block.writeData(value.data(), value.size());
+    const auto nbytes = block.writeData(value.c_str());
     if (remaining < value.size()) {
       ASSERT_EQ(nbytes, remaining);
       ASSERT_EQ(block.remaining(), 0);
@@ -111,39 +111,39 @@ TEST(ReadWriteBlockTest, WriteValuesSmallerThanBlockSize) {
 }
 
 TEST(ReadWriteBlockTest, WriteValuesLargerThanBlockSize) {
-  char buf[512];
+  byte buf[512];
   ReadWriteBlock block(buf, sizeof buf);
 
   std::string value(600, 'x');
-  auto nbytes = block.writeData(value.data(), value.size());
+  auto nbytes = block.writeData(value.c_str());
   ASSERT_EQ(nbytes, block.size());
   ASSERT_EQ(block.remaining(), 0);
   ASSERT_EQ(block.offset(), block.size());
 
-  nbytes = block.writeData(value.data(), value.size());
+  nbytes = block.writeData(value.c_str());
   ASSERT_EQ(nbytes, 0);
   ASSERT_EQ(block.remaining(), 0);
   ASSERT_EQ(block.offset(), block.size());
 
   block.rewind();
-  nbytes = block.writeData(value.data(), value.size());
+  nbytes = block.writeData(value.c_str());
   ASSERT_EQ(nbytes, block.size());
   ASSERT_EQ(block.remaining(), 0);
   ASSERT_EQ(block.offset(), block.size());
 }
 
 TEST(ReadWriteBlockTest, WriteValuesAndIterateOnce) {
-  char buf[512];
+  byte buf[512];
   ReadWriteBlock block(buf, sizeof buf);
 
   size_t num_values = 0;
   SequenceGenerator gen;
   while (true) {
-    const auto value = gen.next();
     const bool flag = num_values % 2;
+    const std::string value = gen.next();
     auto nbytes = block.writeSizeWithFlag(value.size(), flag);
     if (nbytes != 0) {
-      nbytes = block.writeData(value.data(), value.size());
+      nbytes = block.writeData(value.c_str());
       if (nbytes == value.size()) {
         ++num_values;
         continue;
@@ -159,29 +159,28 @@ TEST(ReadWriteBlockTest, WriteValuesAndIterateOnce) {
   bool flag;
   uint32_t size;
   for (size_t i = 0; i != num_values; ++i) {
-    const auto expected = gen.next();
+    const std::string expected = gen.next();
     block.readSizeWithFlag(&size, &flag);
     ASSERT_EQ(size, expected.size());
     ASSERT_EQ(flag, i % 2);
-    std::vector<char> actual(size);
+    AutoBytes actual(size);
     block.readData(actual.data(), size);
-    ASSERT_EQ(std::string(actual.data(), actual.size()), expected);
+    ASSERT_EQ(Bytes(actual), expected);
   }
 }
 
 TEST(ReadWriteBlockTest, WriteValuesAndFlipFlags) {
-  char buf[512];
+  byte buf[512];
   ReadWriteBlock block(buf, sizeof buf);
 
   size_t num_values = 0;
   SequenceGenerator gen;
   while (true) {
-    const auto value = gen.next();
     const bool flag = num_values % 2;
+    const std::string value = gen.next();
     const size_t offset = block.offset();
-    auto nbytes = block.writeSizeWithFlag(value.size(), flag);
-    if (nbytes != 0) {
-      nbytes = block.writeData(value.data(), value.size());
+    if (block.writeSizeWithFlag(value.size(), flag)) {
+      const size_t nbytes = block.writeData(value.c_str());
       if (nbytes == value.size()) {
         block.setFlagAt(!flag, offset);
         ++num_values;
@@ -198,13 +197,13 @@ TEST(ReadWriteBlockTest, WriteValuesAndFlipFlags) {
   bool flag;
   uint32_t size;
   for (size_t i = 0; i != num_values; ++i) {
-    const auto expected = gen.next();
+    const std::string expected = gen.next();
     block.readSizeWithFlag(&size, &flag);
     ASSERT_EQ(size, expected.size());
     ASSERT_EQ(flag, !(i % 2));
-    std::vector<char> actual(size);
+    AutoBytes actual(size);
     block.readData(actual.data(), size);
-    ASSERT_EQ(std::string(actual.data(), actual.size()), expected);
+    ASSERT_EQ(Bytes(actual), expected);
   }
 }
 

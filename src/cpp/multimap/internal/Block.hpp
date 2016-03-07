@@ -22,6 +22,7 @@
 #include <algorithm>
 #include "multimap/internal/Varint.hpp"
 #include "multimap/thirdparty/mt/mt.hpp"
+#include "multimap/Range.hpp"
 
 namespace multimap {
 namespace internal {
@@ -36,7 +37,7 @@ class Block {
  public:
   Block() = default;
 
-  Block(char* data, size_t size) : data_(data), size_(size) {
+  Block(byte* data, size_t size) : data_(data), size_(size) {
     MT_REQUIRE_NOT_NULL(data_);
   }
 
@@ -45,7 +46,7 @@ class Block {
 
   bool hasData() const { return data_ != nullptr; }
 
-  const char* data() const { return data_; }
+  const byte* data() const { return data_; }
 
   size_t size() const { return size_; }
 
@@ -55,10 +56,10 @@ class Block {
 
   void rewind() { offset_ = 0; }
 
-  size_t readData(char* target, size_t size) {
+  size_t readData(size_t size, byte* target) {
     MT_REQUIRE_NOT_NULL(data_);
     const auto nbytes = std::min(size, remaining());
-    std::memcpy(target, current(), nbytes);
+    std::memcpy(target, pos(), nbytes);
     offset_ += nbytes;
     return nbytes;
   }
@@ -66,12 +67,15 @@ class Block {
   // Returns the number of bytes actually copied which may be less than `size`.
   // Returns 0 if nothing could be extracted.
 
-  size_t readSizeWithFlag(uint32_t* size, bool* flag) {
+  bool readSizeWithFlag(uint32_t* size, bool* flag) {
     MT_REQUIRE_NOT_NULL(data_);
-    const auto nbytes =
-        Varint::readUintWithFlagFromBuffer(current(), remaining(), size, flag);
-    offset_ += nbytes;
-    return nbytes;
+    if (pos() != end()) {
+      const byte* new_pos =
+          Varint::readUint32WithFlagFromBuffer(pos(), size, flag);
+      offset_ = new_pos - data_;
+      return new_pos != end();
+    }
+    return false;
   }
   // Reads a 32-bit unsigned integer and a boolean flag from the stream.
   // Returns the number of bytes copied.
@@ -82,7 +86,10 @@ class Block {
   // ---------------------------------------------------------------------------
 
   MT_ENABLE_IF(IsReadOnly)
-  Block(const char* data, size_t size) : data_(data), size_(size) {
+  explicit Block(const char* cstr) : Block(cstr, std::strlen(cstr)) {}
+
+  MT_ENABLE_IF(IsReadOnly)
+  Block(const byte* data, size_t size) : data_(data), size_(size) {
     MT_REQUIRE_NOT_NULL(data_);
   }
 
@@ -91,43 +98,41 @@ class Block {
   // ---------------------------------------------------------------------------
 
   MT_DISABLE_IF(IsReadOnly)
-  char* data() { return data_; }
+  byte* data() { return data_; }
 
   MT_DISABLE_IF(IsReadOnly)
-  void fillUpWithZeros() { std::memset(current(), 0, remaining()); }
+  void fillUpWithZeros() { std::memset(pos(), 0, remaining()); }
 
   MT_DISABLE_IF(IsReadOnly)
-  size_t writeData(const char* data, size_t size) {
-    MT_REQUIRE_NOT_NULL(data_);
-    const auto nbytes = std::min(size, remaining());
-    std::memcpy(current(), data, nbytes);
+  size_t writeData(const Range& bytes) {
+    const auto nbytes = std::min(bytes.size(), remaining());
+    std::memcpy(pos(), bytes.begin(), nbytes);
     offset_ += nbytes;
     return nbytes;
   }
 
   MT_DISABLE_IF(IsReadOnly)
-  size_t writeSizeWithFlag(uint32_t size, bool flag) {
-    MT_REQUIRE_NOT_NULL(data_);
-    const auto nbytes =
-        Varint::writeUintWithFlagToBuffer(current(), remaining(), size, flag);
-    offset_ += nbytes;
-    return nbytes;
+  bool writeSizeWithFlag(uint32_t size, bool flag) {
+    const byte* new_pos =
+        Varint::writeUint32WithFlagToBuffer(pos(), end(), size, flag);
+    offset_ = new_pos - data_;
+    return new_pos != end();
   }
 
   MT_DISABLE_IF(IsReadOnly)
   void setFlagAt(bool flag, size_t offset) {
-    MT_REQUIRE_NOT_NULL(data_);
-    Varint::setFlag(data_ + offset, flag);
+    Varint::setFlagInBuffer(data_ + offset, flag);
   }
 
  private:
-  typedef typename std::conditional<IsReadOnly, const char, char>::type Char;
+  typedef typename std::conditional<IsReadOnly, const byte, byte>::type Byte;
 
-  Char* current() const { return data_ + offset_; }
+  Byte* pos() const { return data_ + offset_; }
+  Byte* end() const { return data_ + size_; }
 
-  Char* data_ = nullptr;
-  uint32_t size_ = 0;
+  Byte* data_ = nullptr;
   uint32_t offset_ = 0;
+  uint32_t size_ = 0;
 };
 
 template <bool IsReadOnly>
@@ -141,16 +146,16 @@ struct ExtendedBlock : public Block<IsReadOnly> {
 
   ExtendedBlock(const Block<IsReadOnly>& base) : Base(base) {}
 
-  ExtendedBlock(char* data, size_t size) : Base(data, size) {}
+  ExtendedBlock(byte* data, size_t size) : Base(data, size) {}
 
-  ExtendedBlock(char* data, size_t size, uint32_t id)
+  ExtendedBlock(byte* data, size_t size, uint32_t id)
       : Base(data, size), id(id) {}
 
   MT_ENABLE_IF(IsReadOnly)
-  ExtendedBlock(const char* data, size_t size) : Base(data, size) {}
+  ExtendedBlock(const byte* data, size_t size) : Base(data, size) {}
 
   MT_ENABLE_IF(IsReadOnly)
-  ExtendedBlock(const char* data, size_t size, uint32_t id)
+  ExtendedBlock(const byte* data, size_t size, uint32_t id)
       : Base(data, size), id(id) {}
 
   uint32_t id = -1;
