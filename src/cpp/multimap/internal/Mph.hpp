@@ -18,11 +18,60 @@
 #ifndef MULTIMAP_INTERNAL_MPH_HPP_INCLUDED
 #define MULTIMAP_INTERNAL_MPH_HPP_INCLUDED
 
+#include <memory>
+#include <boost/filesystem/path.hpp>
+#include "multimap/thirdparty/cmph/cmph.h"
+#include "multimap/Range.hpp"
+
+namespace std {
+
+template <>
+struct default_delete<cmph_t> {
+  void operator()(cmph_t* cmph) const {
+    if (cmph) cmph_destroy(cmph);
+  }
+};
+
+}  // namespace std
+
 namespace multimap {
 namespace internal {
 
 class Mph {
-  // This class is read-only and therefore lock-free.
+  // This class is read-only and does not need external locking.
+
+ public:
+  struct Options {
+    bool quiet = false;
+    CMPH_ALGO algorithm = CMPH_BDZ;
+    uint32_t b = 0;  // 0 means use default value.
+    double c = 0;    // 0 means use default value.
+  };
+
+  Mph() = default;
+
+  explicit Mph(const boost::filesystem::path& filename);
+
+  static Mph build(const byte** keys, size_t nkeys, const Options& options);
+  // A key in `keys` points to memory which is encoded like this:
+  // [keylen as uint32][1 .. key data .. keylen]
+
+  static Mph build(const boost::filesystem::path& keys, const Options& options);
+  // `keys` contains a sequence of keys which are encoded as described above.
+
+  void dump(const boost::filesystem::path& filename) const;
+
+  uint32_t operator()(const Range& key) const {
+    return cmph_search(cmph_.get(), reinterpret_cast<const char*>(key.begin()),
+                       key.size());
+  }
+
+  uint32_t size() const { return cmph_size(cmph_.get()); }
+
+ private:
+  explicit Mph(std::unique_ptr<cmph_t> cmph);
+
+  std::unique_ptr<cmph_t> cmph_;
 };
 
 }  // namespace internal

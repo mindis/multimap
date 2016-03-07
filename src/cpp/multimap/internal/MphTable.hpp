@@ -18,17 +18,16 @@
 #ifndef MULTIMAP_INTERNAL_MPH_TABLE_HPP_INCLUDED
 #define MULTIMAP_INTERNAL_MPH_TABLE_HPP_INCLUDED
 
+#include <functional>
 #include "multimap/internal/Mph.hpp"
 #include "multimap/internal/Stats.hpp"
-#include "multimap/thirdparty/mt/mt.hpp"
 #include "multimap/Iterator.hpp"
-#include "multimap/Bytes.hpp"
 
 namespace multimap {
 namespace internal {
 
-class MphTable : public mt::Resource {
-  // This class is read-only and therefore lock-free.
+class MphTable {
+  // This class is read-only and does not need external locking.
 
  public:
   struct Limits {
@@ -38,21 +37,14 @@ class MphTable : public mt::Resource {
 
   struct Options {
     bool quiet = false;
-    std::function<bool(const Bytes&, const Bytes&)> compare;
+    std::function<bool(const Range&, const Range&)> compare;
   };
 
   typedef internal::Stats Stats;
 
-  explicit MphTable(const boost::filesystem::path& prefix);
+  explicit MphTable(const std::string& prefix);
 
-  ~MphTable();
-
-  static Stats build(const boost::filesystem::path& datafile,
-                     const Options& options);
-
-  std::unique_ptr<Iterator> get(const Bytes& key) const;
-
-  bool contains(const Bytes& key) const { return get(key).get(); }
+  std::unique_ptr<Iterator> get(const Range& key) const;
 
   template <typename Procedure>
   void forEachKey(Procedure process) const {
@@ -60,7 +52,7 @@ class MphTable : public mt::Resource {
   }
 
   template <typename Procedure>
-  void forEachValue(const Bytes& key, Procedure process) const {
+  void forEachValue(const Range& key, Procedure process) const {
     // TODO
   }
 
@@ -69,29 +61,28 @@ class MphTable : public mt::Resource {
     // TODO
   }
 
-  Stats getStats() const;
-  // Returns various statistics about the partition.
-  // The data is collected upon request and triggers a full partition scan.
+  Stats getStats() const { return stats_; }
 
   // ---------------------------------------------------------------------------
   // Static methods
   // ---------------------------------------------------------------------------
 
+  static Stats build(const std::string& prefix, const std::string& input,
+                     const Options& options);
+
+  static Stats stats(const std::string& prefix);
+
   template <typename BinaryProcedure>
-  static void forEachEntry(const boost::filesystem::path& prefix,
-                           const Options& options, BinaryProcedure process) {
+  static void forEachEntry(const std::string& prefix, const Options& options,
+                           BinaryProcedure process) {
     // TODO
   }
 
-  static std::string getNameOfMphfFile(const std::string& prefix);
-  static std::string getNameOfDataFile(const std::string& prefix);
-  static std::string getNameOfListsFile(const std::string& prefix);
-  static std::string getNameOfStatsFile(const std::string& prefix);
-
  private:
-  std::unique_ptr<Mph> mph_;
-  std::vector<uint32_t> data_;  // TODO Try to mmap this data
-  boost::filesystem::path prefix_;
+  const Mph mph_;
+  const std::vector<uint32_t> table_;  // TODO Try to mmap this data
+  const Range lists_;
+  const Stats stats_;
 };
 
 }  // namespace internal
