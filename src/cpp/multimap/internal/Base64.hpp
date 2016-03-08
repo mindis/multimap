@@ -25,13 +25,13 @@ namespace multimap {
 namespace internal {
 
 struct Base64 {
-  static void toBase64(const Range& bytes, std::string* output);
+  static void encode(const Range& bytes, std::string* output);
 
-  static std::string toBase64(const Range& bytes);
+  static std::string encode(const Range& bytes);
 
-  static void fromBase64(const std::string& base64, Bytes* output);
+  static void decode(const std::string& base64, Bytes* output);
 
-  static Bytes fromBase64(const std::string& base64);
+  static Bytes decode(const std::string& base64);
 
   Base64() = delete;
 };
