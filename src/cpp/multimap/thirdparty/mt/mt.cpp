@@ -292,7 +292,7 @@ DirectoryLockGuard::~DirectoryLockGuard() {
 std::vector<boost::filesystem::path> Files::list(
     const boost::filesystem::path& directory) {
   const auto is_hidden = [](const boost::filesystem::path& path) {
-    return path.empty() ? false : (path.filename().string().front() == '.');
+    return path.filename().string().front() == '.';
   };
 
   std::vector<boost::filesystem::path> files;
