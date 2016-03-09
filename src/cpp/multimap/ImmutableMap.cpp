@@ -39,6 +39,11 @@ Element& select(std::vector<Element>& elements, const Range& key) {
   return elements[std::hash<Range>()(key) % elements.size()];
 }
 
+template <typename Element>
+const Element& select(const std::vector<Element>& elements, const Range& key) {
+  return elements[std::hash<Range>()(key) % elements.size()];
+}
+
 }  // namespace
 
 ImmutableMap::Id ImmutableMap::Id::readFromDirectory(
@@ -143,7 +148,23 @@ ImmutableMap::ImmutableMap(const boost::filesystem::path& directory)
     : dlock_(directory.string()) {}
 
 std::unique_ptr<Iterator> ImmutableMap::get(const Range& key) const {
-  return getTable(key).get(key);
+  return select(tables_, key).get(key);
+}
+
+void ImmutableMap::forEachKey(Procedure process) const {
+  for (const auto& table : tables_) {
+    table.forEachKey(process);
+  }
+}
+
+void ImmutableMap::forEachValue(const Range& key, Procedure process) const {
+  select(tables_, key).forEachValue(key, process);
+}
+
+void ImmutableMap::forEachEntry(BinaryProcedure process) const {
+  for (const auto& table : tables_) {
+    table.forEachEntry(process);
+  }
 }
 
 std::vector<ImmutableMap::Stats> ImmutableMap::getStats() const {
@@ -169,17 +190,37 @@ std::vector<ImmutableMap::Stats> ImmutableMap::stats(
 }
 
 void ImmutableMap::buildFromBase64(const boost::filesystem::path& directory,
-                                   const boost::filesystem::path& input) {}
+                                   const boost::filesystem::path& source) {
+  buildFromBase64(directory, source, Options());
+}
 
 void ImmutableMap::buildFromBase64(const boost::filesystem::path& directory,
-                                   const boost::filesystem::path& input,
-                                   const Options& options) {}
+                                   const boost::filesystem::path& source,
+                                   const Options& options) {
+  std::vector<boost::filesystem::path> files;
+  if (boost::filesystem::is_regular_file(source)) {
+    files.push_back(source);
+  } else if (boost::filesystem::is_directory(source)) {
+    files = mt::Files::list(source);
+  }
+
+  Bytes key;
+  Bytes value;
+  Builder builder(directory, options);
+  for (const auto& file : files) {
+    TsvFileReader reader(file);
+    while (reader.read(&key, &value)) {
+      builder.put(key, value);
+    }
+  }
+  builder.build();
+}
 
 void ImmutableMap::exportToBase64(const boost::filesystem::path& directory,
-                                  const boost::filesystem::path& output) {}
+                                  const boost::filesystem::path& target) {}
 
 void ImmutableMap::exportToBase64(const boost::filesystem::path& directory,
-                                  const boost::filesystem::path& output,
+                                  const boost::filesystem::path& target,
                                   const Options& options) {}
 
 }  // namespace multimap

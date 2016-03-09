@@ -57,6 +57,8 @@ class ImmutableMap {
   };
 
   typedef internal::MphTable::Stats Stats;
+  typedef internal::MphTable::Procedure Procedure;
+  typedef internal::MphTable::BinaryProcedure BinaryProcedure;
 
   class Builder {
    public:
@@ -83,24 +85,11 @@ class ImmutableMap {
 
   std::unique_ptr<Iterator> get(const Range& key) const;
 
-  template <typename Procedure>
-  void forEachKey(Procedure process) const {
-    for (const auto& table : tables_) {
-      table.forEachKey(process);
-    }
-  }
+  void forEachKey(Procedure process) const;
 
-  template <typename Procedure>
-  void forEachValue(const Range& key, Procedure process) const {
-    getTable(key).forEachValue(key, process);
-  }
+  void forEachValue(const Range& key, Procedure process) const;
 
-  template <typename BinaryProcedure>
-  void forEachEntry(BinaryProcedure process) const {
-    for (const auto& table : tables_) {
-      table.forEachEntry(process);
-    }
-  }
+  void forEachEntry(BinaryProcedure process) const;
 
   std::vector<Stats> getStats() const;
 
@@ -113,24 +102,20 @@ class ImmutableMap {
   static std::vector<Stats> stats(const boost::filesystem::path& directory);
 
   static void buildFromBase64(const boost::filesystem::path& directory,
-                              const boost::filesystem::path& input);
+                              const boost::filesystem::path& source);
 
   static void buildFromBase64(const boost::filesystem::path& directory,
-                              const boost::filesystem::path& input,
+                              const boost::filesystem::path& source,
                               const Options& options);
 
   static void exportToBase64(const boost::filesystem::path& directory,
-                             const boost::filesystem::path& output);
+                             const boost::filesystem::path& target);
 
   static void exportToBase64(const boost::filesystem::path& directory,
-                             const boost::filesystem::path& output,
+                             const boost::filesystem::path& target,
                              const Options& options);
 
  private:
-  const internal::MphTable& getTable(const Range& key) const {
-    return tables_[std::hash<Range>()(key) % tables_.size()];
-  }
-
   std::vector<internal::MphTable> tables_;
   mt::DirectoryLockGuard dlock_;
 };
