@@ -24,6 +24,7 @@ HEADERS += \
     src/cpp/multimap/internal/Stats.hpp \
     src/cpp/multimap/internal/Store.hpp \
     src/cpp/multimap/internal/TsvFileReader.hpp \
+    src/cpp/multimap/internal/TsvFileWriter.hpp \
     src/cpp/multimap/internal/UintVector.hpp \
     src/cpp/multimap/internal/Varint.hpp \
     src/cpp/multimap/thirdparty/cmph/bdz.h \
@@ -84,6 +85,7 @@ SOURCES += \
     src/cpp/multimap/internal/Stats.cpp \
     src/cpp/multimap/internal/Store.cpp \
     src/cpp/multimap/internal/TsvFileReader.cpp \
+    src/cpp/multimap/internal/TsvFileWriter.cpp \
     src/cpp/multimap/internal/UintVector.cpp \
     src/cpp/multimap/internal/Varint.cpp \
     src/cpp/multimap/thirdparty/cmph/bdz.c \
