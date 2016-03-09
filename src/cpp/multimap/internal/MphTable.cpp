@@ -81,7 +81,7 @@ std::pair<Map, Arena> readRecordsFromFile(const std::string& filename) {
   Bytes value;
   Arena arena;
   uint32_t key_size;
-  const auto stream = mt::fopen(filename, "r");
+  const auto stream = mt::open(filename, "r");
   while (readBytesFromStream(stream.get(), &key) &&
          readBytesFromStream(stream.get(), &value)) {
     auto iter = map.find(key);
@@ -120,18 +120,18 @@ Table writeListsToFile(const std::string& filename, const Map& map,
   Table table(map.size());
   const auto alignment = 8;
   const Bytes zeros(alignment, 0);
-  const auto stream = mt::fopen(filename, "w");
+  const auto stream = mt::open(filename, "w");
   for (const auto& entry : map) {
-    auto offset = mt::ftell(stream.get());
+    auto offset = mt::tell(stream.get());
     if (const auto remainder = offset % alignment) {
       const auto padding = alignment - remainder;
-      mt::fwrite(stream.get(), &zeros, padding);
+      mt::write(stream.get(), &zeros, padding);
       offset += padding;
     }
     table[mph(entry.first)] = offset / alignment;
     entry.first.writeToStream(stream.get());
     const uint32_t num_values = entry.second.size();
-    mt::fwrite(stream.get(), &num_values, sizeof num_values);
+    mt::write(stream.get(), &num_values, sizeof num_values);
     for (const auto& value : entry.second) {
       value.writeToStream(stream.get());
     }
@@ -142,8 +142,8 @@ Table writeListsToFile(const std::string& filename, const Map& map,
 Table readTableFromFile(const std::string& filename) {
   Table table;
   Table::value_type address;
-  const auto stream = mt::fopen(filename, "r");
-  while (mt::freadMaybe(stream.get(), &address, sizeof address)) {
+  const auto stream = mt::open(filename, "r");
+  while (mt::tryRead(stream.get(), &address, sizeof address)) {
     table.push_back(address);
   }
   table.shrink_to_fit();
@@ -151,8 +151,8 @@ Table readTableFromFile(const std::string& filename) {
 }
 
 void writeTableToFile(const std::string& filename, const Table& table) {
-  const auto stream = mt::fopen(filename, "w");
-  mt::fwrite(stream.get(), table.data(),
+  const auto stream = mt::open(filename, "w");
+  mt::write(stream.get(), table.data(),
              table.size() * sizeof(Table::value_type));
 }
 
