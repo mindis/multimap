@@ -294,7 +294,7 @@ void MphTable::forEachEntry(BinaryProcedure process) const {
 MphTable::Stats MphTable::build(const std::string& prefix,
                                 const boost::filesystem::path& source,
                                 const Options& options) {
-  if (!options.quiet) mt::log() << "Reading " << source << std::endl;
+  if (!options.quiet) mt::log() << "Reading " << source.string() << std::endl;
   auto map_and_arena = readRecordsFromFile(source);
   Map& map = map_and_arena.first;
   if (options.compare) {
