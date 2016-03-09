@@ -21,6 +21,7 @@
 #include <iostream>
 #include <boost/filesystem/operations.hpp>
 #include "multimap/internal/Base64.hpp"
+#include "multimap/internal/TsvFileReader.hpp"
 
 namespace multimap {
 
@@ -164,80 +165,47 @@ std::vector<Map::Stats> Map::stats(const boost::filesystem::path& directory) {
 }
 
 void Map::importFromBase64(const boost::filesystem::path& directory,
-                           const boost::filesystem::path& input) {
-  Map::importFromBase64(directory, input, Options());
+                           const boost::filesystem::path& source) {
+  Map::importFromBase64(directory, source, Options());
 }
 
 void Map::importFromBase64(const boost::filesystem::path& directory,
-                           const boost::filesystem::path& input,
+                           const boost::filesystem::path& source,
                            const Options& options) {
   Map map(directory, options);
 
-  const auto import_file = [&](const boost::filesystem::path& filename) {
-    std::ifstream input(filename.string());
-    mt::check(input.is_open(), "Could not open '%s'", filename.c_str());
-
-    if (!options.quiet) {
-      mt::log() << "Importing " << filename.string() << std::endl;
-    }
-
-    Bytes key;
-    Bytes value;
-    std::string base64_key;
-    std::string base64_value;
-    if (input >> base64_key) {
-      internal::Base64::decode(base64_key, &key);
-      while (input) {
-        switch (input.peek()) {
-          case '\n':
-          case '\r':
-            input >> base64_key;
-            internal::Base64::decode(base64_key, &key);
-            break;
-          case '\f':
-          case '\t':
-          case '\v':
-          case ' ':
-            input.ignore();
-            break;
-          default:
-            input >> base64_value;
-            internal::Base64::decode(base64_value, &value);
-            map.put(key, value);
-        }
-      }
-    }
-  };
-
-  const auto is_hidden = [](const boost::filesystem::path& path) {
-    return path.filename().string().front() == '.';
-  };
-
-  if (boost::filesystem::is_regular_file(input)) {
-    import_file(input);
-  } else if (boost::filesystem::is_directory(input)) {
-    boost::filesystem::directory_iterator end;
-    for (boost::filesystem::directory_iterator it(input); it != end; ++it) {
-      const auto path = it->path();
-      if (boost::filesystem::is_regular_file(path) && !is_hidden(path)) {
-        import_file(it->path());
-      }
-    }
+  std::vector<boost::filesystem::path> files;
+  if (boost::filesystem::is_regular_file(source)) {
+    files.push_back(source);
+  } else if (boost::filesystem::is_directory(source)) {
+    files = mt::Files::list(source);
   } else {
-    mt::fail("No such file or directory '%s'", input.c_str());
+    mt::fail("Not a regular file or directory '%s'", source.c_str());
+  }
+
+  Bytes key;
+  Bytes value;
+  for (const auto& file : files) {
+    if (!options.quiet) {
+      mt::log() << "Importing " << file.string() << std::endl;
+    }
+    internal::TsvFileReader reader(file);
+    while (reader.read(&key, &value)) {
+      map.put(key, value);
+    }
   }
 }
 
 void Map::exportToBase64(const boost::filesystem::path& directory,
-                         const boost::filesystem::path& output) {
-  Map::exportToBase64(directory, output, Options());
+                         const boost::filesystem::path& target) {
+  Map::exportToBase64(directory, target, Options());
 }
 
 void Map::exportToBase64(const boost::filesystem::path& directory,
-                         const boost::filesystem::path& output,
+                         const boost::filesystem::path& target,
                          const Options& options) {
-  std::ofstream output_stream(output.string());
-  mt::check(output_stream.is_open(), "Could not create '%s'", output.c_str());
+  std::ofstream stream(target.string());
+  mt::check(stream.is_open(), "Could not create '%s'", target.c_str());
 
   const auto process =
       [&](const std::string& partition_prefix,
@@ -264,24 +232,24 @@ void Map::exportToBase64(const boost::filesystem::path& directory,
                 std::sort(values.begin(), values.end(), options.compare);
 
                 internal::Base64::encode(key, &base64_key);
-                output_stream << base64_key;
+                stream << base64_key;
                 for (const auto& value : values) {
                   internal::Base64::encode(value, &base64_value);
-                  output_stream << ' ' << base64_value;
+                  stream << ' ' << base64_value;
                 }
-                output_stream << '\n';
+                stream << '\n';
               });
         } else {
           internal::Partition::forEachEntry(
               partition_prefix, partition_options,
               [&](const Range& key, Iterator* iter) {
                 internal::Base64::encode(key, &base64_key);
-                output_stream << base64_key;
+                stream << base64_key;
                 while (iter->hasNext()) {
                   internal::Base64::encode(iter->next(), &base64_value);
-                  output_stream << ' ' << base64_value;
+                  stream << ' ' << base64_value;
                 }
-                output_stream << '\n';
+                stream << '\n';
               });
         }
       };
@@ -289,15 +257,15 @@ void Map::exportToBase64(const boost::filesystem::path& directory,
 }
 
 void Map::optimize(const boost::filesystem::path& directory,
-                   const boost::filesystem::path& output) {
+                   const boost::filesystem::path& target) {
   Options options;
   options.keepBlockSize();
   options.keepNumPartitions();
-  optimize(directory, output, options);
+  optimize(directory, target, options);
 }
 
 void Map::optimize(const boost::filesystem::path& directory,
-                   const boost::filesystem::path& output,
+                   const boost::filesystem::path& target,
                    const Options& options) {
   const auto id = Id::readFromDirectory(directory);
   Options new_options = options;
@@ -309,7 +277,7 @@ void Map::optimize(const boost::filesystem::path& directory,
   if (options.num_partitions == 0) {
     new_options.num_partitions = id.num_partitions;
   }
-  Map new_map(output, new_options);
+  Map new_map(target, new_options);
 
   forEachPartition(
       directory, [&](const std::string& partition_prefix,
