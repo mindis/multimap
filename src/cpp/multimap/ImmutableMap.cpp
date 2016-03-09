@@ -19,6 +19,7 @@
 
 #include <boost/filesystem/operations.hpp>
 #include "multimap/internal/TsvFileReader.hpp"
+#include "multimap/internal/TsvFileWriter.hpp"
 #include "multimap/internal/Varint.hpp"
 
 namespace multimap {
@@ -198,16 +199,19 @@ void ImmutableMap::buildFromBase64(const boost::filesystem::path& directory,
 void ImmutableMap::buildFromBase64(const boost::filesystem::path& directory,
                                    const boost::filesystem::path& source,
                                    const Options& options) {
+  Builder builder(directory, options);
+
   std::vector<boost::filesystem::path> files;
   if (boost::filesystem::is_regular_file(source)) {
     files.push_back(source);
   } else if (boost::filesystem::is_directory(source)) {
     files = mt::Files::list(source);
+  } else {
+    mt::fail("Not a regular file or directory '%s'", source.c_str());
   }
 
   Bytes key;
   Bytes value;
-  Builder builder(directory, options);
   for (const auto& file : files) {
     if (!options.quiet) {
       mt::log() << "Importing " << file.string() << std::endl;
@@ -221,10 +225,24 @@ void ImmutableMap::buildFromBase64(const boost::filesystem::path& directory,
 }
 
 void ImmutableMap::exportToBase64(const boost::filesystem::path& directory,
-                                  const boost::filesystem::path& target) {}
+                                  const boost::filesystem::path& target) {
+  exportToBase64(directory, target, Options());
+}
 
 void ImmutableMap::exportToBase64(const boost::filesystem::path& directory,
                                   const boost::filesystem::path& target,
-                                  const Options& options) {}
+                                  const Options& options) {
+  ImmutableMap map(directory);
+  internal::TsvFileWriter writer(target);
+  for (size_t i = 0; i != map.tables_.size(); i++) {
+    if (!options.quiet) {
+      mt::log() << "Exporting partition " << (i + 1) << " of "
+                << map.tables_.size() << std::endl;
+    }
+    map.tables_[i].forEachEntry([&writer](const Range& key, Iterator* iter) {
+      writer.write(key, iter);
+    });
+  }
+}
 
 }  // namespace multimap
