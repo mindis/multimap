@@ -193,24 +193,24 @@ class Map : public mt::Resource {
   static std::vector<Stats> stats(const boost::filesystem::path& directory);
 
   static void importFromBase64(const boost::filesystem::path& directory,
-                               const boost::filesystem::path& input);
+                               const boost::filesystem::path& source);
 
   static void importFromBase64(const boost::filesystem::path& directory,
-                               const boost::filesystem::path& input,
+                               const boost::filesystem::path& source,
                                const Options& options);
 
   static void exportToBase64(const boost::filesystem::path& directory,
-                             const boost::filesystem::path& output);
+                             const boost::filesystem::path& target);
 
   static void exportToBase64(const boost::filesystem::path& directory,
-                             const boost::filesystem::path& output,
+                             const boost::filesystem::path& target,
                              const Options& options);
 
   static void optimize(const boost::filesystem::path& directory,
-                       const boost::filesystem::path& output);
+                       const boost::filesystem::path& target);
 
   static void optimize(const boost::filesystem::path& directory,
-                       const boost::filesystem::path& output,
+                       const boost::filesystem::path& target,
                        const Options& options);
 
  private:
