@@ -83,14 +83,14 @@ Map::Id Map::Id::readFromDirectory(const boost::filesystem::path& directory) {
 
 Map::Id Map::Id::readFromFile(const boost::filesystem::path& filename) {
   Id id;
-  const auto stream = mt::fopen(filename.string(), "r");
-  mt::fread(stream.get(), &id, sizeof id);
+  const auto stream = mt::open(filename.string(), "r");
+  mt::read(stream.get(), &id, sizeof id);
   return id;
 }
 
 void Map::Id::writeToFile(const boost::filesystem::path& filename) const {
-  const auto stream = mt::fopen(filename.string(), "w");
-  mt::fwrite(stream.get(), this, sizeof *this);
+  const auto stream = mt::open(filename.string(), "w");
+  mt::write(stream.get(), this, sizeof *this);
 }
 
 uint32_t Map::Limits::maxKeySize() {
@@ -186,13 +186,13 @@ void Map::importFromBase64(const boost::filesystem::path& directory,
     std::string base64_key;
     std::string base64_value;
     if (input >> base64_key) {
-      internal::Base64::fromBase64(base64_key, &key);
+      internal::Base64::decode(base64_key, &key);
       while (input) {
         switch (input.peek()) {
           case '\n':
           case '\r':
             input >> base64_key;
-            internal::Base64::fromBase64(base64_key, &key);
+            internal::Base64::decode(base64_key, &key);
             break;
           case '\f':
           case '\t':
@@ -202,7 +202,7 @@ void Map::importFromBase64(const boost::filesystem::path& directory,
             break;
           default:
             input >> base64_value;
-            internal::Base64::fromBase64(base64_value, &value);
+            internal::Base64::decode(base64_value, &value);
             map.put(key, value);
         }
       }
@@ -263,10 +263,10 @@ void Map::exportToBase64(const boost::filesystem::path& directory,
                 }
                 std::sort(values.begin(), values.end(), options.compare);
 
-                internal::Base64::toBase64(key, &base64_key);
+                internal::Base64::encode(key, &base64_key);
                 output_stream << base64_key;
                 for (const auto& value : values) {
-                  internal::Base64::toBase64(value, &base64_value);
+                  internal::Base64::encode(value, &base64_value);
                   output_stream << ' ' << base64_value;
                 }
                 output_stream << '\n';
@@ -275,10 +275,10 @@ void Map::exportToBase64(const boost::filesystem::path& directory,
           internal::Partition::forEachEntry(
               partition_prefix, partition_options,
               [&](const Range& key, Iterator* iter) {
-                internal::Base64::toBase64(key, &base64_key);
+                internal::Base64::encode(key, &base64_key);
                 output_stream << base64_key;
                 while (iter->hasNext()) {
-                  internal::Base64::toBase64(iter->next(), &base64_value);
+                  internal::Base64::encode(iter->next(), &base64_value);
                   output_stream << ' ' << base64_value;
                 }
                 output_stream << '\n';
