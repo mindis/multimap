@@ -19,6 +19,7 @@
 #define MULTIMAP_INTERNAL_MPH_TABLE_HPP_INCLUDED
 
 #include <functional>
+#include <boost/filesystem/path.hpp>
 #include "multimap/internal/Mph.hpp"
 #include "multimap/internal/Stats.hpp"
 #include "multimap/Iterator.hpp"
@@ -41,25 +42,26 @@ class MphTable {
   };
 
   typedef internal::Stats Stats;
+  typedef std::function<void(const Range&)> Procedure;
+  typedef std::function<void(const Range&, Iterator*)> BinaryProcedure;
 
   explicit MphTable(const std::string& prefix);
 
+  MphTable(MphTable&&) = delete;
+  MphTable& operator=(MphTable&&) = delete;
+
+  MphTable(const MphTable&) = delete;
+  MphTable& operator=(const MphTable&) = delete;
+
+  ~MphTable();
+
   std::unique_ptr<Iterator> get(const Range& key) const;
 
-  template <typename Procedure>
-  void forEachKey(Procedure process) const {
-    // TODO
-  }
+  void forEachKey(Procedure process) const;
 
-  template <typename Procedure>
-  void forEachValue(const Range& key, Procedure process) const {
-    // TODO
-  }
+  void forEachValue(const Range& key, Procedure process) const;
 
-  template <typename BinaryProcedure>
-  void forEachEntry(BinaryProcedure process) const {
-    // TODO
-  }
+  void forEachEntry(BinaryProcedure process) const;
 
   Stats getStats() const { return stats_; }
 
@@ -67,20 +69,17 @@ class MphTable {
   // Static methods
   // ---------------------------------------------------------------------------
 
-  static Stats build(const std::string& prefix, const std::string& input,
+  static Stats build(const std::string& prefix,
+                     const boost::filesystem::path& source,
                      const Options& options);
 
   static Stats stats(const std::string& prefix);
 
-  template <typename BinaryProcedure>
-  static void forEachEntry(const std::string& prefix, const Options& options,
-                           BinaryProcedure process) {
-    // TODO
-  }
+  static void forEachEntry(const std::string& prefix, BinaryProcedure process);
 
  private:
   const Mph mph_;
-  const std::vector<uint32_t> table_;  // TODO Try to mmap this data
+  const Range table_;
   const Range lists_;
   const Stats stats_;
 };

@@ -75,7 +75,8 @@ std::string getNameOfTableFile(const std::string& prefix) {
   return prefix + ".table";
 }
 
-std::pair<Map, Arena> readRecordsFromFile(const std::string& filename) {
+std::pair<Map, Arena> readRecordsFromFile(
+    const boost::filesystem::path& filename) {
   Map map;
   Bytes key;
   Bytes value;
@@ -115,52 +116,102 @@ Mph buildMphFromKeys(const Map& map, const MphTable::Options& options) {
   return Mph::build(keys.data(), keys.size(), mph_options);
 }
 
-Table writeListsToFile(const std::string& filename, const Map& map,
-                       const Mph& mph) {
+MphTable::Stats writeMap(const std::string& prefix, const Map& map,
+                         const Mph& mph, bool verbose) {
+  Stats stats;
+  stats.block_size = 8;
+  stats.num_keys_total = map.size();
+  stats.num_keys_valid = map.size();
+
   Table table(map.size());
-  const auto alignment = 8;
-  const Bytes zeros(alignment, 0);
-  const auto stream = mt::open(filename, "w");
+  const Bytes zeros(stats.block_size, 0);
+  const auto lists_filename = getNameOfListsFile(prefix);
+  if (verbose) mt::log() << "Writing " << lists_filename << std::endl;
+  const auto lists_stream = mt::open(lists_filename, "w");
   for (const auto& entry : map) {
-    auto offset = mt::tell(stream.get());
-    if (const auto remainder = offset % alignment) {
-      const auto padding = alignment - remainder;
-      mt::write(stream.get(), &zeros, padding);
+    // TODO Since Linux supports holes in files we actually don't need padding.
+    auto offset = mt::tell(lists_stream.get());
+    if (const auto remainder = offset % stats.block_size) {
+      const auto padding = stats.block_size - remainder;
+      mt::write(lists_stream.get(), &zeros, padding);
       offset += padding;
     }
-    table[mph(entry.first)] = offset / alignment;
-    entry.first.writeToStream(stream.get());
-    const uint32_t num_values = entry.second.size();
-    mt::write(stream.get(), &num_values, sizeof num_values);
-    for (const auto& value : entry.second) {
-      value.writeToStream(stream.get());
+
+    const Range& key = entry.first;
+    const List& list = entry.second;
+    table[mph(key)] = offset / stats.block_size;
+    key.writeToStream(lists_stream.get());
+    const uint32_t num_values = list.size();
+    mt::write(lists_stream.get(), &num_values, sizeof num_values);
+    for (const Range& value : list) {
+      value.writeToStream(lists_stream.get());
     }
+
+    stats.key_size_avg += key.size();
+    stats.key_size_max = mt::max(stats.key_size_max, key.size());
+    stats.key_size_min = stats.key_size_min
+                             ? mt::min(stats.key_size_min, key.size())
+                             : key.size();
+    stats.list_size_avg += list.size();
+    stats.list_size_max = mt::max(stats.list_size_max, list.size());
+    stats.list_size_min = stats.list_size_min
+                              ? mt::min(stats.list_size_min, list.size())
+                              : list.size();
   }
-  return table;
-}
-
-Table readTableFromFile(const std::string& filename) {
-  Table table;
-  Table::value_type address;
-  const auto stream = mt::open(filename, "r");
-  while (mt::tryRead(stream.get(), &address, sizeof address)) {
-    table.push_back(address);
+  if (stats.num_keys_total) {
+    stats.key_size_avg /= stats.num_keys_total;
+    stats.list_size_avg /= stats.num_keys_total;
   }
-  table.shrink_to_fit();
-  return table;
+  auto offset = mt::tell(lists_stream.get());
+  // TODO Since Linux supports holes in files we actually don't need padding.
+  if (const auto remainder = offset % stats.block_size) {
+    const auto padding = stats.block_size - remainder;
+    mt::write(lists_stream.get(), &zeros, padding);
+    offset += padding;
+  }
+  stats.num_blocks = offset / stats.block_size;
+
+  const auto mph_filename = getNameOfMphFile(prefix);
+  if (verbose) mt::log() << "Writing " << mph_filename << std::endl;
+  mph.dump(mph_filename);
+
+  const auto table_filename = getNameOfTableFile(prefix);
+  if (verbose) mt::log() << "Writing " << table_filename << std::endl;
+  const auto table_stream = mt::open(table_filename, "w");
+  mt::write(table_stream.get(), table.data(),
+            table.size() * sizeof(Table::value_type));
+
+  const auto stats_filename = getNameOfStatsFile(prefix);
+  if (verbose) mt::log() << "Writing " << stats_filename << std::endl;
+  stats.writeToFile(stats_filename);
+
+  return stats;
 }
 
-void writeTableToFile(const std::string& filename, const Table& table) {
-  const auto stream = mt::open(filename, "w");
-  mt::write(stream.get(), table.data(),
-             table.size() * sizeof(Table::value_type));
-}
-
-Range mapListsIntoMemory(const std::string& filename) {
+Range mapFileIntoMemory(const boost::filesystem::path& filename) {
   const auto fd = mt::open(filename, O_RDONLY);
   const auto filesize = boost::filesystem::file_size(filename);
   const auto data = mt::mmap(filesize, PROT_READ, MAP_SHARED, fd.get(), 0);
   return Range(data, filesize);
+}
+
+const byte* getList(const Range& lists, uint32_t block_id, size_t block_size) {
+  return lists.begin() + block_id * block_size;
+}
+
+uint32_t getTableEntry(const Range& table, uint32_t index) {
+  return *reinterpret_cast<const Table::value_type*>(
+             table.begin() + index * sizeof(Table::value_type));
+}
+
+size_t getTableSize(const Range& table) {
+  return table.size() / sizeof(Table::value_type);
+}
+
+Table makeCopy(const Range& table) {
+  Table copy(getTableSize(table));
+  std::memcpy(copy.data(), table.begin(), table.size());
+  return copy;
 }
 
 }  // namespace
@@ -175,15 +226,25 @@ uint32_t MphTable::Limits::maxValueSize() {
 
 MphTable::MphTable(const std::string& prefix)
     : mph_(getNameOfMphFile(prefix)),
-      table_(readTableFromFile(getNameOfTableFile(prefix))),
-      lists_(mapListsIntoMemory(getNameOfListsFile(prefix))),
-      stats_(Stats::readFromFile(getNameOfStatsFile(prefix))) {
+      table_(mapFileIntoMemory(getNameOfTableFile(prefix))),
+      lists_(mapFileIntoMemory(getNameOfListsFile(prefix))),
+      stats_(Stats::readFromFile(getNameOfStatsFile(prefix))) {}
+
+MphTable::~MphTable() {
+  if (!lists_.empty()) {
+    mt::munmap(const_cast<byte*>(lists_.begin()), lists_.size());
+  }
+  if (!table_.empty()) {
+    mt::munmap(const_cast<byte*>(table_.begin()), table_.size());
+  }
 }
 
 std::unique_ptr<Iterator> MphTable::get(const Range& key) const {
   const uint32_t hash = mph_(key);
-  if (hash < table_.size()) {
-    const byte* begin = lists_.begin() + table_[hash] * stats_.block_size;
+  if (hash < getTableSize(table_)) {
+    // `hash` may be greater equal than table size for unknown keys.
+    const uint32_t block_id = getTableEntry(table_, hash);
+    const byte* begin = getList(lists_, block_id, stats_.block_size);
     const Range actual_key = Range::readFromBuffer(begin);
     if (actual_key == key) {
       uint32_t num_values;
@@ -194,42 +255,64 @@ std::unique_ptr<Iterator> MphTable::get(const Range& key) const {
     }
   }
   return Iterator::newEmptyInstance();
-  // `hash` may be greater equal than `table_.size()` for unknown keys.
+}
+
+void MphTable::forEachKey(Procedure process) const {
+  Table table_copy = makeCopy(table_);
+  std::sort(table_copy.begin(), table_copy.end());
+  // TODO Advise access pattern for lists_.
+  for (auto block_id : table_copy) {
+    const byte* begin = lists_.begin() + block_id * stats_.block_size;
+    const Range key = Range::readFromBuffer(begin);
+    process(key);
+  }
+}
+
+void MphTable::forEachValue(const Range& key, Procedure process) const {
+  const auto iter = get(key);
+  while (iter->hasNext()) {
+    process(iter->next());
+  }
+}
+
+void MphTable::forEachEntry(BinaryProcedure process) const {
+  Table table_copy = makeCopy(table_);
+  std::sort(table_copy.begin(), table_copy.end());
+  // TODO Advise access pattern for lists_.
+  for (auto block_id : table_copy) {
+    const byte* begin = getList(lists_, block_id, stats_.block_size);
+    const Range key = Range::readFromBuffer(begin);
+    begin = key.end();
+    uint32_t num_values;
+    std::memcpy(&num_values, begin, sizeof num_values);
+    begin += sizeof num_values;
+    ListIter iter(begin, num_values);
+    process(key, &iter);
+  }
 }
 
 MphTable::Stats MphTable::build(const std::string& prefix,
-                                const std::string& input,
+                                const boost::filesystem::path& source,
                                 const Options& options) {
-  if (!options.quiet) mt::log() << "Reading " << input << std::endl;
-  auto map_and_arena = readRecordsFromFile(input);
-  auto& map = map_and_arena.first;
+  if (!options.quiet) mt::log() << "Reading " << source << std::endl;
+  auto map_and_arena = readRecordsFromFile(source);
+  Map& map = map_and_arena.first;
   if (options.compare) {
     for (auto& entry : map) {
       std::sort(entry.second.begin(), entry.second.end(), options.compare);
     }
   }
-  const auto mph = buildMphFromKeys(map, options);
-  const auto mph_filename = getNameOfMphFile(prefix);
-  if (!options.quiet) mt::log() << "Writing " << mph_filename << std::endl;
-  mph.dump(mph_filename);
-
-  const auto data_filename = getNameOfListsFile(prefix);
-  if (!options.quiet) mt::log() << "Writing " << data_filename << std::endl;
-  const auto table = writeListsToFile(data_filename, map, mph);
-
-  const auto table_filename = getNameOfTableFile(prefix);
-  if (!options.quiet) mt::log() << "Writing " << table_filename << std::endl;
-  writeTableToFile(table_filename, table);
-
-  Stats stats;  // TODO
-  const auto stats_filename = getNameOfStatsFile(prefix);
-  if (!options.quiet) mt::log() << "Writing " << stats_filename << std::endl;
-  stats.writeToFile(stats_filename);
-  return stats;
+  const Mph mph = buildMphFromKeys(map, options);
+  return writeMap(prefix, map, mph, !options.quiet);
 }
 
 MphTable::Stats MphTable::stats(const std::string& prefix) {
   return Stats::readFromFile(getNameOfStatsFile(prefix));
+}
+
+void MphTable::forEachEntry(const std::string& prefix,
+                            BinaryProcedure process) {
+  MphTable(prefix).forEachEntry(process);
 }
 
 }  // namespace internal
