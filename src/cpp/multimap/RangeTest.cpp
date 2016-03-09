@@ -17,67 +17,67 @@
 
 #include <type_traits>
 #include "gmock/gmock.h"
-#include "multimap/Bytes.hpp"
+#include "multimap/Range.hpp"
 
 namespace multimap {
 
-TEST(BytesTest, IsDefaultConstructible) {
-  ASSERT_TRUE(std::is_default_constructible<Bytes>::value);
+TEST(RangeTest, IsDefaultConstructible) {
+  ASSERT_TRUE(std::is_default_constructible<Range>::value);
 }
 
-TEST(BytesTest, IsCopyConstructibleAndAssignable) {
-  ASSERT_TRUE(std::is_copy_constructible<Bytes>::value);
-  ASSERT_TRUE(std::is_copy_assignable<Bytes>::value);
+TEST(RangeTest, IsCopyConstructibleAndAssignable) {
+  ASSERT_TRUE(std::is_copy_constructible<Range>::value);
+  ASSERT_TRUE(std::is_copy_assignable<Range>::value);
 }
 
-TEST(BytesTest, IsMoveConstructibleAndAssignable) {
-  ASSERT_TRUE(std::is_move_constructible<Bytes>::value);
-  ASSERT_TRUE(std::is_move_assignable<Bytes>::value);
+TEST(RangeTest, IsMoveConstructibleAndAssignable) {
+  ASSERT_TRUE(std::is_move_constructible<Range>::value);
+  ASSERT_TRUE(std::is_move_assignable<Range>::value);
 }
 
-TEST(BytesTest, EqualityOperator) {
-  ASSERT_TRUE(Bytes("abc") == Bytes("abc"));
-  ASSERT_FALSE(Bytes("bc") == Bytes("abc"));
+TEST(RangeTest, EqualityOperator) {
+  ASSERT_TRUE(Range("abc") == Range("abc"));
+  ASSERT_FALSE(Range("bc") == Range("abc"));
 }
 
-TEST(BytesTest, EqualityOperatorTakesCString) {
-  ASSERT_TRUE(Bytes("abc") == "abc");
-  ASSERT_FALSE(Bytes("bc") == "abc");
+TEST(RangeTest, EqualityOperatorTakesCString) {
+  ASSERT_TRUE(Range("abc") == "abc");
+  ASSERT_FALSE(Range("bc") == "abc");
 }
 
-TEST(BytesTest, EqualityOperatorTakesStdString) {
-  ASSERT_TRUE(Bytes("abc") == std::string("abc"));
-  ASSERT_FALSE(Bytes("bc") == std::string("abc"));
+TEST(RangeTest, EqualityOperatorTakesStdString) {
+  ASSERT_TRUE(Range("abc") == std::string("abc"));
+  ASSERT_FALSE(Range("bc") == std::string("abc"));
 }
 
-TEST(BytesTest, InequalityOperator) {
-  ASSERT_TRUE(Bytes("abc") != Bytes("bc"));
-  ASSERT_FALSE(Bytes("bc") != Bytes("bc"));
+TEST(RangeTest, InequalityOperator) {
+  ASSERT_TRUE(Range("abc") != Range("bc"));
+  ASSERT_FALSE(Range("bc") != Range("bc"));
 }
 
-TEST(BytesTest, InequalityOperatorTakesCString) {
-  ASSERT_TRUE(Bytes("abc") != "bc");
-  ASSERT_FALSE(Bytes("bc") != "bc");
+TEST(RangeTest, InequalityOperatorTakesCString) {
+  ASSERT_TRUE(Range("abc") != "bc");
+  ASSERT_FALSE(Range("bc") != "bc");
 }
 
-TEST(BytesTest, InequalityOperatorTakesStdString) {
-  ASSERT_TRUE(Bytes("abc") != std::string("bc"));
-  ASSERT_FALSE(Bytes("bc") != std::string("bc"));
+TEST(RangeTest, InequalityOperatorTakesStdString) {
+  ASSERT_TRUE(Range("abc") != std::string("bc"));
+  ASSERT_FALSE(Range("bc") != std::string("bc"));
 }
 
-TEST(BytesTest, LessThanOperator) {
-  ASSERT_TRUE(Bytes("abc") < Bytes("abcd"));
-  ASSERT_FALSE(Bytes("bc") < Bytes("abcd"));
+TEST(RangeTest, LessThanOperator) {
+  ASSERT_TRUE(Range("abc") < Range("abcd"));
+  ASSERT_FALSE(Range("bc") < Range("abcd"));
 }
 
-TEST(BytesTest, LessThanOperatorTakesCString) {
-  ASSERT_TRUE(Bytes("abc") < "abcd");
-  ASSERT_FALSE(Bytes("bc") < "abcd");
+TEST(RangeTest, LessThanOperatorTakesCString) {
+  ASSERT_TRUE(Range("abc") < "abcd");
+  ASSERT_FALSE(Range("bc") < "abcd");
 }
 
-TEST(BytesTest, LessThanOperatorTakesStdString) {
-  ASSERT_TRUE(Bytes("abc") < std::string("abcd"));
-  ASSERT_FALSE(Bytes("bc") < std::string("abcd"));
+TEST(RangeTest, LessThanOperatorTakesStdString) {
+  ASSERT_TRUE(Range("abc") < std::string("abcd"));
+  ASSERT_FALSE(Range("bc") < std::string("abcd"));
 }
 
 }  // namespace multimap

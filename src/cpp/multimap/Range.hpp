@@ -22,7 +22,6 @@
 #ifndef MULTIMAP_RANGE_HPP_INCLUDED
 #define MULTIMAP_RANGE_HPP_INCLUDED
 
-#include <cstring>
 #include <functional>
 #include "multimap/thirdparty/mt/mt.hpp"
 #include "multimap/thirdparty/xxhash/xxhash.h"
@@ -37,6 +36,8 @@ class Range {
   Range(const char* cstr) : Range(cstr, std::strlen(cstr)) {}
 
   Range(const Bytes& bytes) : Range(bytes.data(), bytes.size()) {}
+
+  Range(const std::string& str) : Range(str.data(), str.size()) {}
 
   Range(const void* data, size_t size)
       : Range(static_cast<const byte*>(data),
@@ -69,6 +70,10 @@ class Range {
     return Range(data, count);
   }
 
+  std::string toString() const {
+    return std::string(reinterpret_cast<const char*>(begin_), size());
+  }
+
   // I/O Support
   // ---------------------------------------------------------------------------
   // Writing Range objects to a buffer or file stream is self-describing, i.e.
@@ -97,25 +102,21 @@ class Range {
   // faulty user behavior, e.g. someone deleted the file, or due to reaching
   // certain system limits, e.g. the device has no more space left.
 
-  bool operator==(const Range& other) const {
-    return (size() == other.size())
-               ? std::memcmp(begin_, other.begin_, size()) == 0
-               : false;
-  }
-
-  bool operator!=(const Range& other) const { return !(*this == other); }
-
-  bool operator<(const Range& other) const {
-    const size_t min_size = mt::min(size(), other.size());
-    const int result = std::memcmp(begin_, other.begin_, min_size);
-    return (result == 0) ? (size() < other.size()) : (result < 0);
-  }
-
  private:
   static constexpr const byte* EMPTY = reinterpret_cast<const byte*>("");
   const byte* begin_ = EMPTY;
   const byte* end_ = EMPTY;
 };
+
+inline bool operator==(const Range& a, const Range& b) {
+  return internal::equal(a.begin(), a.size(), b.begin(), b.size());
+}
+
+inline bool operator!=(const Range& a, const Range& b) { return !(a == b); }
+
+inline bool operator<(const Range& a, const Range& b) {
+  return internal::less(a.begin(), a.size(), b.begin(), b.size());
+}
 
 }  // namespace multimap
 

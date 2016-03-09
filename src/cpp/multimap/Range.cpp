@@ -24,16 +24,16 @@ namespace multimap {
 
 Range Range::readFromBuffer(const byte* buffer) {
   uint32_t size = 0;
-  buffer = internal::Varint::readUint32FromBuffer(buffer, &size);
+  buffer = internal::Varint::readFromBuffer(buffer, &size);
   return Range(buffer, size);
 }
 
 Range Range::readFromStream(std::FILE* stream,
                             std::function<byte*(size_t)> allocate) {
   uint32_t size = 0;
-  if (internal::Varint::readUint32FromStream(stream, &size)) {
+  if (internal::Varint::readFromStream(stream, &size)) {
     byte* data = allocate(size);
-    mt::fread(stream, data, size);
+    mt::read(stream, data, size);
     // The stream is expected to contain valid encodings of Bytes objects.
     // Hence, after successfully reading the size field, mt::fread() will
     // throw, if the data field could not be read to signal an invalid stream.
@@ -46,7 +46,7 @@ byte* Range::writeToBuffer(byte* begin, byte* end) const {
   MT_REQUIRE_LE(begin, end);
   const size_t count = size();
   MT_ASSERT_LE(count, internal::Varint::Limits::MAX_N4);
-  byte* new_begin = internal::Varint::writeUint32ToBuffer(begin, end, count);
+  byte* new_begin = internal::Varint::writeToBuffer(begin, end, count);
   if ((new_begin != begin) && (static_cast<size_t>(end - new_begin) >= count)) {
     std::memcpy(new_begin, begin_, count);
     new_begin += count;
@@ -58,8 +58,8 @@ byte* Range::writeToBuffer(byte* begin, byte* end) const {
 void Range::writeToStream(std::FILE* stream) const {
   const size_t count = size();
   MT_ASSERT_LE(count, internal::Varint::Limits::MAX_N4);
-  internal::Varint::writeUint32ToStream(stream, count);
-  mt::fwrite(stream, begin_, count);
+  internal::Varint::writeToStream(stream, count);
+  mt::write(stream, begin_, count);
 }
 
 }  // namespace multimap
