@@ -45,7 +45,7 @@ Store::Store(const boost::filesystem::path& filename, const Options& options)
   if (!options.readonly) {
     mt::Check::isZero(options.buffer_size % getBlockSize(),
                       "Store: buffer size must be a multiple of block size");
-    buffer_.data.reset(new uint8_t[options.buffer_size]);
+    buffer_.data.reset(new byte[options.buffer_size]);
     buffer_.size = options.buffer_size;
   }
 }
@@ -125,7 +125,7 @@ void Store::replaceUnlocked(uint32_t id, const byte* block) {
   std::memcpy(getAddressOf(id), block, getBlockSize());
 }
 
-uint8_t* Store::getAddressOf(uint32_t id) const {
+byte* Store::getAddressOf(uint32_t id) const {
   MT_REQUIRE_LT(id, getNumBlocksUnlocked());
 
   const auto num_blocks_mapped = mapped_.getNumBlocks(getBlockSize());

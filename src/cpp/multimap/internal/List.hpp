@@ -296,7 +296,7 @@ class List {
           arena_.deallocateAll();
           blocks_.reserve(BLOCK_CACHE_SIZE);
           while (blocks_.size() < BLOCK_CACHE_SIZE && !block_ids_.empty()) {
-            uint8_t* block_data = arena_.allocate(block_size);
+            byte* block_data = arena_.allocate(block_size);
             blocks_.emplace_back(block_data, block_size, block_ids_.back());
             block_ids_.pop_back();
           }
@@ -312,7 +312,7 @@ class List {
           std::vector<ExtendedReadWriteBlock> blocks;
           blocks.reserve(BLOCK_CACHE_SIZE);
           while (blocks.size() < BLOCK_CACHE_SIZE && !block_ids_.empty()) {
-            uint8_t* block_data = arena_.allocate(block_size);
+            byte* block_data = arena_.allocate(block_size);
             blocks.emplace_back(block_data, block_size, block_ids_.back());
             block_ids_.pop_back();
           }

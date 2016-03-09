@@ -44,9 +44,9 @@ namespace internal {
 Mph::Mph(const boost::filesystem::path& filename)
     : cmph_(cmph_load(mt::open(filename.string(), "r").get())) {}
 
-Mph Mph::build(const uint8_t** keys, size_t nkeys, const Options& options) {
+Mph Mph::build(const byte** keys, size_t nkeys, const Options& options) {
   std::unique_ptr<cmph_io_adapter_t> source(
-      cmph_io_byte_vector_adapter(const_cast<uint8_t**>(keys), nkeys));
+      cmph_io_byte_vector_adapter(const_cast<byte**>(keys), nkeys));
   std::unique_ptr<cmph_config_t> config(cmph_config_new(source.get()));
 
   cmph_config_set_algo(config.get(), options.algorithm);
@@ -62,10 +62,10 @@ Mph Mph::build(const uint8_t** keys, size_t nkeys, const Options& options) {
 Mph Mph::build(const boost::filesystem::path& keys, const Options& options) {
   Arena arena;
   uint32_t keylen;
-  std::vector<const uint8_t*> keydata;
+  std::vector<const byte*> keydata;
   const auto stream = mt::open(keys.string(), "r");
   while (mt::tryRead(stream.get(), &keylen, sizeof keylen)) {
-    uint8_t* key = arena.allocate(sizeof keylen + keylen);
+    byte* key = arena.allocate(sizeof keylen + keylen);
     std::memcpy(key, &keylen, sizeof keylen);
     mt::read(stream.get(), key + sizeof keylen, keylen);
     keydata.push_back(key);
