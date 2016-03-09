@@ -40,18 +40,18 @@ TEST(ListTest, IsNotCopyConstructibleOrAssignable) {
   ASSERT_FALSE(std::is_copy_assignable<List>::value);
 }
 
-TEST(ListTest, IsNotMoveConstructibleOrAssignable) {
-  ASSERT_FALSE(std::is_move_constructible<List>::value);
-  ASSERT_FALSE(std::is_move_assignable<List>::value);
+TEST(ListTest, IsMoveConstructibleAndAssignable) {
+  ASSERT_TRUE(std::is_move_constructible<List>::value);
+  ASSERT_TRUE(std::is_move_assignable<List>::value);
 }
 
 TEST(ListTest, DefaultConstructedHasProperState) {
   List list;
   const auto stats = list.getStatsUnlocked();
-  ASSERT_THAT(stats.num_values_removed, Eq(0));
-  ASSERT_THAT(stats.num_values_total, Eq(0));
-  ASSERT_THAT(list.empty(), Eq(true));
-  ASSERT_THAT(list.size(), Eq(0));
+  ASSERT_EQ(stats.num_values_removed, 0);
+  ASSERT_EQ(stats.num_values_total, 0);
+  ASSERT_EQ(list.empty(), true);
+  ASSERT_EQ(list.size(), 0);
 }
 
 // -----------------------------------------------------------------------------
@@ -122,7 +122,7 @@ TEST(ListTest, WriterBlocksReader) {
 
   // Writer
   std::thread writer([&] {
-    list.removeFirstMatch([](const Bytes & /* value */) {
+    list.removeFirstMatch([](const Range& /* value */) {
       std::this_thread::sleep_for(std::chrono::milliseconds(1000));
       return false;
     }, &store);
@@ -155,7 +155,7 @@ TEST(ListTest, WriterBlocksReader2) {
 
   // Writer
   std::thread writer([&] {
-    list.removeFirstMatch([](const Bytes & /* value */) {
+    list.removeFirstMatch([](const Range& /* value */) {
       std::this_thread::sleep_for(std::chrono::milliseconds(1000));
       return false;
     }, &store);
@@ -180,7 +180,7 @@ TEST(ListTest, WriterBlocksWriter) {
 
   // First writer
   std::thread writer1([&] {
-    const auto removed = list.removeFirstMatch([](const Bytes & /* value */) {
+    const auto removed = list.removeFirstMatch([](const Range& /* value */) {
       std::this_thread::sleep_for(std::chrono::milliseconds(1000));
       return false;
     }, &store);
@@ -191,7 +191,7 @@ TEST(ListTest, WriterBlocksWriter) {
   bool second_writer_has_finished = false;
   std::thread writer2([&] {
     const auto removed = list.removeFirstMatch(
-        [](const Bytes & /* value */) { return false; }, &store);
+        [](const Range& /* value */) { return false; }, &store);
     ASSERT_FALSE(removed);
     second_writer_has_finished = true;
   });
@@ -357,7 +357,7 @@ TEST_P(ListTestWithParam, RemoveEvery23thValue) {
     list.append(std::to_string(i), getStore(), getArena());
   }
 
-  const auto num_removed = list.removeAllMatches([](const Bytes &value) {
+  const auto num_removed = list.removeAllMatches([](const Range& value) {
     return std::stoi(value.toString()) % 23 == 0;
   }, getStore());
 
