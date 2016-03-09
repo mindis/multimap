@@ -87,8 +87,8 @@ TEST(ReadWriteBlockTest, ConstructedWithDataHasProperState) {
   ASSERT_EQ(ReadWriteBlock(buf, sizeof buf).remaining(), sizeof buf);
 }
 
-TEST(ReadWriteBlockTest, WriteToDefaultConstructedThrows) {
-  ASSERT_THROW(ReadWriteBlock().writeData("x"), mt::AssertionError);
+TEST(ReadWriteBlockTest, WriteToDefaultReturnsZero) {
+  ASSERT_EQ(ReadWriteBlock().writeData("x"), 0);
 }
 
 TEST(ReadWriteBlockTest, WriteValuesSmallerThanBlockSize) {
@@ -163,9 +163,9 @@ TEST(ReadWriteBlockTest, WriteValuesAndIterateOnce) {
     block.readSizeWithFlag(&size, &flag);
     ASSERT_EQ(size, expected.size());
     ASSERT_EQ(flag, i % 2);
-    AutoBytes actual(size);
-    block.readData(actual.data(), size);
-    ASSERT_EQ(Bytes(actual), expected);
+    Bytes actual(size);
+    block.readData(size, actual.data());
+    ASSERT_EQ(Range(expected), actual);
   }
 }
 
@@ -201,9 +201,9 @@ TEST(ReadWriteBlockTest, WriteValuesAndFlipFlags) {
     block.readSizeWithFlag(&size, &flag);
     ASSERT_EQ(size, expected.size());
     ASSERT_EQ(flag, !(i % 2));
-    AutoBytes actual(size);
-    block.readData(actual.data(), size);
-    ASSERT_EQ(Bytes(actual), expected);
+    Bytes actual(size);
+    block.readData(size, actual.data());
+    ASSERT_EQ(Range(expected), actual);
   }
 }
 
