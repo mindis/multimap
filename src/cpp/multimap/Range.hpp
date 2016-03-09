@@ -51,6 +51,8 @@ class Range {
 
   size_t size() const { return end_ - begin_; }
 
+  bool empty() const { return begin_ == end_; }
+
   void copyTo(Bytes* target) const {
     target->resize(size());
     std::memcpy(target->data(), begin_, target->size());
