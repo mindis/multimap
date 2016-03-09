@@ -224,7 +224,7 @@ class Partition : public mt::Resource {
     Store store(getNameOfStoreFile(prefix), store_options);
     store.adviseAccessPattern(Store::AccessPattern::WILLNEED);
     const auto stats = Stats::readFromFile(getNameOfStatsFile(prefix));
-    const auto stream = mt::fopen(getNameOfMapFile(prefix), "r");
+    const auto stream = mt::open(getNameOfMapFile(prefix), "r");
     for (size_t i = 0; i != stats.num_keys_valid; ++i) {
       MT_ASSERT_TRUE(readBytesFromStream(stream.get(), &key));
       const List list = List::readFromStream(stream.get());
@@ -246,28 +246,6 @@ class Partition : public mt::Resource {
    private:
     const Range value_;
   };
-
-//  static void readBytesFromStream(std::FILE* stream, std::vector<char>* bytes) {
-//    uint32_t size;
-//    mt::fread(stream, &size, sizeof size);
-//    bytes->resize(size);
-//    mt::fread(stream, bytes->data(), bytes->size());
-//  }
-
-//  template <typename Allocate>
-//  static Bytes readBytesFromStream(std::FILE* stream, Allocate allocate) {
-//    uint32_t size;
-//    mt::fread(stream, &size, sizeof size);
-//    uint8_t* data = allocate(size);
-//    mt::fread(stream, data, size);
-//    return Bytes(data, size);
-//  }
-
-//  void writeBytesToStream(const Bytes& bytes, std::FILE* stream) const {
-//    const uint32_t size = bytes.size();
-//    mt::fwrite(stream, &size, sizeof size);
-//    mt::fwrite(stream, bytes.data(), bytes.size());
-//  }
 
   List* getList(const Range& key) const {
     ReaderLockGuard<boost::shared_mutex> lock(mutex_);
