@@ -1,7 +1,7 @@
 CONFIG -= qt
 CONFIG += c++11
 DEFINES -= QT_WEBKIT
-VERSION = 0.5.0
+VERSION = 0.6.0
 
 QMAKE_LFLAGS += -rdynamic     # for GNU backtrace
 QMAKE_CFLAGS += -std=c99      # for Qt4 compatibility
@@ -23,7 +23,7 @@ HEADERS += \
     src/cpp/multimap/internal/SharedMutex.hpp \
     src/cpp/multimap/internal/Stats.hpp \
     src/cpp/multimap/internal/Store.hpp \
-    src/cpp/multimap/internal/Uint32Vector.hpp \
+    src/cpp/multimap/internal/UintVector.hpp \
     src/cpp/multimap/internal/Varint.hpp \
     src/cpp/multimap/thirdparty/cmph/bdz.h \
     src/cpp/multimap/thirdparty/cmph/bdz_ph.h \
@@ -82,7 +82,7 @@ SOURCES += \
     src/cpp/multimap/internal/SharedMutex.cpp \
     src/cpp/multimap/internal/Stats.cpp \
     src/cpp/multimap/internal/Store.cpp \
-    src/cpp/multimap/internal/Uint32Vector.cpp \
+    src/cpp/multimap/internal/UintVector.cpp \
     src/cpp/multimap/internal/Varint.cpp \
     src/cpp/multimap/thirdparty/cmph/bdz.c \
     src/cpp/multimap/thirdparty/cmph/bdz_ph.c \
