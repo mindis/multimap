@@ -18,6 +18,7 @@
 #include "multimap/ImmutableMap.hpp"
 
 #include <boost/filesystem/operations.hpp>
+#include "multimap/internal/Arena.hpp"
 #include "multimap/internal/TsvFileReader.hpp"
 #include "multimap/internal/TsvFileWriter.hpp"
 #include "multimap/internal/Varint.hpp"
@@ -239,9 +240,26 @@ void ImmutableMap::exportToBase64(const boost::filesystem::path& directory,
       mt::log() << "Exporting partition " << (i + 1) << " of "
                 << map.tables_.size() << std::endl;
     }
-    map.tables_[i].forEachEntry([&writer](const Range& key, Iterator* iter) {
-      writer.write(key, iter);
-    });
+    if (options.compare) {
+      internal::Arena arena;
+      std::vector<Range> values;
+      map.tables_[i].forEachEntry([&writer, &arena, &options, &values](
+          const Range& key, Iterator* iter) {
+        values.clear();
+        arena.deallocateAll();
+        while (iter->hasNext()) {
+          values.push_back(iter->next().makeCopy(
+              [&arena](size_t size) { return arena.allocate(size); }));
+        }
+        std::sort(values.begin(), values.end(), options.compare);
+        auto range_iter = makeRangeIterator(values.begin(), values.end());
+        writer.write(key, &range_iter);
+      });
+    } else {
+      map.tables_[i].forEachEntry([&writer](const Range& key, Iterator* iter) {
+        writer.write(key, iter);
+      });
+    }
   }
 }
 
