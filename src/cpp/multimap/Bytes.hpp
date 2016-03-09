@@ -23,6 +23,8 @@
 #define MULTIMAP_BYTES_HPP_INCLUDED
 
 #include <cstdio>
+#include <cstring>
+#include <string>
 #include <vector>
 
 namespace multimap {
@@ -30,11 +32,49 @@ namespace multimap {
 typedef unsigned char byte;
 typedef std::vector<byte> Bytes;
 
+Bytes makeBytes(const char* cstr);
+
+Bytes makeBytes(const std::string& str);
+
 const byte* readBytesFromBuffer(const byte* buffer, Bytes* output);
 
 bool readBytesFromStream(std::FILE* stream, Bytes* output);
 
 void writeBytesToStream(std::FILE* stream, const Bytes& input);
+
+namespace internal {
+
+inline bool equal(const byte* a, size_t alen, const byte* b, size_t blen) {
+  return (alen == blen) ? (std::memcmp(a, b, alen) == 0) : false;
+}
+
+inline bool less(const byte* a, size_t alen, const byte* b, size_t blen) {
+  const size_t minlen = alen < blen ? alen : blen;
+  const int result = std::memcmp(a, b, minlen);
+  return (result == 0) ? (alen < blen) : (result < 0);
+}
+
+}  // namespace internal
+
+struct Equal {
+  bool operator()(const Bytes& a, const Bytes& b) const {
+    return internal::equal(a.data(), a.size(), b.data(), b.size());
+  }
+};
+
+struct Less {
+  // Comparator to be used with std::sort or similar functions.
+  // We don't specialize operator "<" for Bytes, because doing so would require
+  // to add this specialization to namespace std where class vector is defined.
+  // Overriding behavior in namespace std is a very bad thing.
+  //
+  // Not using this comparator in std::sort or related functions, will trigger
+  // std::lexicographical_compare, which works similar, but may be slower.
+
+  bool operator()(const Bytes& a, const Bytes& b) const {
+    return internal::less(a.data(), a.size(), b.data(), b.size());
+  }
+};
 
 }  // namespace multimap
 

@@ -17,9 +17,18 @@
 
 #include "multimap/Bytes.hpp"
 
+#include <cstring>
 #include "multimap/Range.hpp"
 
 namespace multimap {
+
+Bytes makeBytes(const char* cstr) {
+  Bytes bytes(std::strlen(cstr));
+  std::memcpy(bytes.data(), cstr, bytes.size());
+  return bytes;
+}
+
+Bytes makeBytes(const std::string& str) { return makeBytes(str.c_str()); }
 
 const byte* readBytesFromBuffer(const byte* buffer, Bytes* output) {
   const Range bytes = Range::readFromBuffer(buffer);
