@@ -100,14 +100,14 @@ Stats Stats::max(const std::vector<Stats>& stats) {
 
 Stats Stats::readFromFile(const boost::filesystem::path& filename) {
   Stats stats;
-  const auto stream = mt::fopen(filename.string(), "r");
-  mt::fread(stream.get(), &stats, sizeof stats);
+  const auto stream = mt::open(filename.string(), "r");
+  mt::read(stream.get(), &stats, sizeof stats);
   return stats;
 }
 
 void Stats::writeToFile(const boost::filesystem::path& filename) const {
-  const auto stream = mt::fopen(filename.c_str(), "w");
-  mt::fwrite(stream.get(), this, sizeof *this);
+  const auto stream = mt::open(filename.c_str(), "w");
+  mt::write(stream.get(), this, sizeof *this);
 }
 
 std::vector<uint64_t> Stats::toVector() const {
