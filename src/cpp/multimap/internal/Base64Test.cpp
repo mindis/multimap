@@ -24,28 +24,28 @@ namespace multimap {
 namespace internal {
 
 // https://en.wikipedia.org/wiki/Base64
-const std::string TEST_STRING_A_BINARY = "any carnal pleasure.";
-const std::string TEST_STRING_A_BASE64 = "YW55IGNhcm5hbCBwbGVhc3VyZS4=";
+const char* TEST_STRING_A_BINARY = "any carnal pleasure.";
+const char* TEST_STRING_A_BASE64 = "YW55IGNhcm5hbCBwbGVhc3VyZS4=";
 
-const std::string TEST_STRING_B_BINARY = "any carnal pleasure";
-const std::string TEST_STRING_B_BASE64 = "YW55IGNhcm5hbCBwbGVhc3VyZQ==";
+const char* TEST_STRING_B_BINARY = "any carnal pleasure";
+const char* TEST_STRING_B_BASE64 = "YW55IGNhcm5hbCBwbGVhc3VyZQ==";
 
-const std::string TEST_STRING_C_BINARY = "any carnal pleasur";
-const std::string TEST_STRING_C_BASE64 = "YW55IGNhcm5hbCBwbGVhc3Vy";
+const char* TEST_STRING_C_BINARY = "any carnal pleasur";
+const char* TEST_STRING_C_BASE64 = "YW55IGNhcm5hbCBwbGVhc3Vy";
 
-const std::string TEST_STRING_D_BINARY = "any carnal pleasu";
-const std::string TEST_STRING_D_BASE64 = "YW55IGNhcm5hbCBwbGVhc3U=";
+const char* TEST_STRING_D_BINARY = "any carnal pleasu";
+const char* TEST_STRING_D_BASE64 = "YW55IGNhcm5hbCBwbGVhc3U=";
 
-const std::string TEST_STRING_E_BINARY = "any carnal pleas";
-const std::string TEST_STRING_E_BASE64 = "YW55IGNhcm5hbCBwbGVhcw==";
+const char* TEST_STRING_E_BINARY = "any carnal pleas";
+const char* TEST_STRING_E_BASE64 = "YW55IGNhcm5hbCBwbGVhcw==";
 
-const std::string TEST_STRING_F_BINARY =
+const char* TEST_STRING_F_BINARY =
     "Man is distinguished, not only by his reason, but by this singular "
     "passion from other animals, which is a lust of the mind, that by a "
     "perseverance of delight in the continued and indefatigable generation of "
     "knowledge, exceeds the short vehemence of any carnal pleasure.";
 
-const std::string TEST_STRING_F_BASE64 =
+const char* TEST_STRING_F_BASE64 =
     "TWFuIGlzIGRpc3Rpbmd1aXNoZWQsIG5vdCBvbmx5IGJ5IGhpcyByZWFzb24sIGJ1dCBieSB0aG"
     "lzIHNpbmd1bGFyIHBhc3Npb24gZnJvbSBvdGhlciBhbmltYWxzLCB3aGljaCBpcyBhIGx1c3Qg"
     "b2YgdGhlIG1pbmQsIHRoYXQgYnkgYSBwZXJzZXZlcmFuY2Ugb2YgZGVsaWdodCBpbiB0aGUgY2"
@@ -57,13 +57,13 @@ TEST(Base64Test, IsNotDefaultConstructible) {
 }
 
 TEST(Base64Test, EncodeZeroBytesReturnsEmptyString) {
-  Bytes binary;
+  Range bytes;
   std::string base64;
-  Base64::encode(binary, &base64);
+  Base64::encode(bytes, &base64);
   ASSERT_TRUE(base64.empty());
 
   base64 = "nonempty";
-  Base64::encode(binary, &base64);
+  Base64::encode(bytes, &base64);
   ASSERT_TRUE(base64.empty());
 }
 
@@ -104,50 +104,49 @@ TEST(Base64Test, EncodeTestStringF) {
 }
 
 TEST(Base64Test, DecodeEmptyStringReturnsZeroBytes) {
-  std::string base64;
-  std::string binary;
-  Base64::decode(base64, &binary);
-  ASSERT_TRUE(binary.empty());
+  Bytes bytes;
+  Base64::decode("", &bytes);
+  ASSERT_TRUE(bytes.empty());
 
-  binary = "\x12\x34\x56";
-  Base64::decode(base64, &binary);
-  ASSERT_TRUE(binary.empty());
+  bytes = makeBytes("old content");
+  Base64::decode("", &bytes);
+  ASSERT_TRUE(bytes.empty());
 }
 
 TEST(Base64Test, DecodeTestStringA) {
-  std::string binary;
-  Base64::decode(TEST_STRING_A_BASE64, &binary);
-  ASSERT_EQ(binary, TEST_STRING_A_BINARY);
+  Bytes bytes;
+  Base64::decode(TEST_STRING_A_BASE64, &bytes);
+  ASSERT_EQ(bytes, Range(TEST_STRING_A_BINARY));
 }
 
 TEST(Base64Test, DecodeTestStringB) {
-  std::string binary;
-  Base64::decode(TEST_STRING_B_BASE64, &binary);
-  ASSERT_EQ(binary, TEST_STRING_B_BINARY);
+  Bytes bytes;
+  Base64::decode(TEST_STRING_B_BASE64, &bytes);
+  ASSERT_EQ(bytes, Range(TEST_STRING_B_BINARY));
 }
 
 TEST(Base64Test, DecodeTestStringC) {
-  std::string binary;
-  Base64::decode(TEST_STRING_C_BASE64, &binary);
-  ASSERT_EQ(binary, TEST_STRING_C_BINARY);
+  Bytes bytes;
+  Base64::decode(TEST_STRING_C_BASE64, &bytes);
+  ASSERT_EQ(bytes, Range(TEST_STRING_C_BINARY));
 }
 
 TEST(Base64Test, DecodeTestStringD) {
-  std::string binary;
-  Base64::decode(TEST_STRING_D_BASE64, &binary);
-  ASSERT_EQ(binary, TEST_STRING_D_BINARY);
+  Bytes bytes;
+  Base64::decode(TEST_STRING_D_BASE64, &bytes);
+  ASSERT_EQ(bytes, Range(TEST_STRING_D_BINARY));
 }
 
 TEST(Base64Test, DecodeTestStringE) {
-  std::string binary;
-  Base64::decode(TEST_STRING_E_BASE64, &binary);
-  ASSERT_EQ(binary, TEST_STRING_E_BINARY);
+  Bytes bytes;
+  Base64::decode(TEST_STRING_E_BASE64, &bytes);
+  ASSERT_EQ(bytes, Range(TEST_STRING_E_BINARY));
 }
 
 TEST(Base64Test, DecodeTestStringF) {
-  std::string binary;
-  Base64::decode(TEST_STRING_F_BASE64, &binary);
-  ASSERT_EQ(binary, TEST_STRING_F_BINARY);
+  Bytes bytes;
+  Base64::decode(TEST_STRING_F_BASE64, &bytes);
+  ASSERT_EQ(bytes, Range(TEST_STRING_F_BINARY));
 }
 
 }  // namespace internal
