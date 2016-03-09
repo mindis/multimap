@@ -122,7 +122,7 @@ class List {
     std::vector<Bytes> replaced_values;
     ExclusiveIterator iter(this, store);
     while (iter.hasNext()) {
-      auto replaced_value = map(iter.next());
+      Bytes replaced_value = map(iter.next());
       if (!replaced_value.empty()) {
         replaced_values.push_back(std::move(replaced_value));
         iter.remove();
