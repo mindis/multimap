@@ -18,6 +18,7 @@
 #ifndef MULTIMAP_ITERATOR_HPP_INCLUDED
 #define MULTIMAP_ITERATOR_HPP_INCLUDED
 
+#include <iterator>
 #include <memory>
 #include "multimap/Range.hpp"
 
@@ -37,6 +38,29 @@ class Iterator {
 
   virtual Range peekNext() = 0;
 };
+
+template <typename InputIter>
+class RangeIterator : public Iterator {
+ public:
+  RangeIterator(InputIter begin, InputIter end) : begin_(begin), end_(end) {}
+
+  size_t available() const override { return std::distance(begin_, end_); }
+
+  bool hasNext() const override { return begin_ != end_; }
+
+  Range next() override { return *begin_++; }
+
+  Range peekNext() override { return *begin_; }
+
+ private:
+  InputIter begin_;
+  InputIter end_;
+};
+
+template <typename InputIter>
+RangeIterator<InputIter> makeRangeIterator(InputIter begin, InputIter end) {
+  return RangeIterator<InputIter>(begin, end);
+}
 
 }  // namespace multimap
 
