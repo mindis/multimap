@@ -49,15 +49,15 @@ ImmutableMap::Id ImmutableMap::Id::readFromDirectory(
 ImmutableMap::Id ImmutableMap::Id::readFromFile(
     const boost::filesystem::path& filename) {
   Id id;
-  const auto stream = mt::fopen(filename.string(), "r");
-  mt::fread(stream.get(), &id, sizeof id);
+  const auto stream = mt::open(filename.string(), "r");
+  mt::read(stream.get(), &id, sizeof id);
   return id;
 }
 
 void ImmutableMap::Id::writeToFile(
     const boost::filesystem::path& filename) const {
-  const auto stream = mt::fopen(filename.string(), "w");
-  mt::fwrite(stream.get(), this, sizeof *this);
+  const auto stream = mt::open(filename.string(), "w");
+  mt::write(stream.get(), this, sizeof *this);
 }
 
 uint32_t ImmutableMap::Limits::maxKeySize() {
@@ -79,7 +79,7 @@ ImmutableMap::Builder::Builder(const boost::filesystem::path& directory,
   for (size_t i = 0; i != buckets_.size(); i++) {
     auto& bucket = buckets_[i];
     bucket.filename = directory / getPrefix(i);
-    bucket.stream = mt::fopen(bucket.filename.string(), "w+");
+    bucket.stream = mt::open(bucket.filename.string(), "w+");
   }
 }
 
@@ -98,12 +98,12 @@ void ImmutableMap::Builder::put(const Range& key, const Range& value) {
     for (size_t i = 0; i != new_buckets.size(); i++) {
       auto& new_bucket = new_buckets[i];
       new_bucket.filename = dlock_.directory() / (getPrefix(i) + ".new");
-      new_bucket.stream = mt::fopen(new_bucket.filename.string(), "w+");
+      new_bucket.stream = mt::open(new_bucket.filename.string(), "w+");
     }
     Bytes old_key;
     Bytes old_value;
     for (auto& bucket : buckets_) {
-      mt::fseek(bucket.stream.get(), 0, SEEK_SET);
+      mt::seek(bucket.stream.get(), 0, SEEK_SET);
       while (readBytesFromStream(bucket.stream.get(), &old_key) &&
              readBytesFromStream(bucket.stream.get(), &old_value)) {
         Bucket& new_bucket = select(new_buckets, old_key);
