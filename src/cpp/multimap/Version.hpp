@@ -22,7 +22,7 @@ namespace multimap {
 
 struct Version {
   static const int MAJOR = 0;
-  static const int MINOR = 5;
+  static const int MINOR = 6;
   static const int PATCH = 0;
 
   static void checkCompatibility(int extern_major, int extern_minor);
