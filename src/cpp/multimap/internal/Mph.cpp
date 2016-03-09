@@ -42,7 +42,7 @@ namespace multimap {
 namespace internal {
 
 Mph::Mph(const boost::filesystem::path& filename)
-    : cmph_(cmph_load(mt::fopen(filename.string(), "r").get())) {}
+    : cmph_(cmph_load(mt::open(filename.string(), "r").get())) {}
 
 Mph Mph::build(const uint8_t** keys, size_t nkeys, const Options& options) {
   std::unique_ptr<cmph_io_adapter_t> source(
@@ -63,18 +63,18 @@ Mph Mph::build(const boost::filesystem::path& keys, const Options& options) {
   Arena arena;
   uint32_t keylen;
   std::vector<const uint8_t*> keydata;
-  const auto stream = mt::fopen(keys.string(), "r");
-  while (mt::freadMaybe(stream.get(), &keylen, sizeof keylen)) {
+  const auto stream = mt::open(keys.string(), "r");
+  while (mt::tryRead(stream.get(), &keylen, sizeof keylen)) {
     uint8_t* key = arena.allocate(sizeof keylen + keylen);
     std::memcpy(key, &keylen, sizeof keylen);
-    mt::fread(stream.get(), key + sizeof keylen, keylen);
+    mt::read(stream.get(), key + sizeof keylen, keylen);
     keydata.push_back(key);
   }
   return build(keydata.data(), keydata.size(), options);
 }
 
 void Mph::dump(const boost::filesystem::path& filename) const {
-  const auto stream = mt::fopen(filename.string(), "w");
+  const auto stream = mt::open(filename.string(), "w");
   mt::Check::notZero(cmph_dump(cmph_.get(), stream.get()),
                      "cmph_dump() failed");
 }
