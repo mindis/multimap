@@ -289,13 +289,27 @@ DirectoryLockGuard::~DirectoryLockGuard() {
   }
 }
 
-Files::Bytes Files::readAllBytes(const boost::filesystem::path& filename) {
-  std::ifstream input(filename.string());
-  mt::check(input.is_open(), "Could not open '%s'", filename.c_str());
+std::vector<boost::filesystem::path> Files::list(
+    const boost::filesystem::path& directory) {
+  const auto is_hidden = [](const boost::filesystem::path& path) {
+    return path.empty() ? false : (path.filename().string().front() == '.');
+  };
 
+  std::vector<boost::filesystem::path> files;
+  boost::filesystem::directory_iterator end;
+  for (boost::filesystem::directory_iterator it(directory); it != end; ++it) {
+    const auto& path = it->path();
+    if (boost::filesystem::is_regular_file(path) && !is_hidden(path)) {
+      files.push_back(path);
+    }
+  }
+  return files;
+}
+
+Files::Bytes Files::readAllBytes(const boost::filesystem::path& filename) {
   Bytes bytes(boost::filesystem::file_size(filename));
-  input.read(bytes.data(), bytes.size());
-  MT_ENSURE_EQ(static_cast<size_t>(input.gcount()), bytes.size());
+  const auto fd = open(filename, O_RDONLY);
+  read(fd.get(), bytes.data(), bytes.size());
   return bytes;
 }
 

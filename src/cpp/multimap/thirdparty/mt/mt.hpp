@@ -45,7 +45,7 @@
 
 namespace mt {
 
-static const uint32_t VERSION = 20160308;
+static const uint32_t VERSION = 20160309;
 
 // -----------------------------------------------------------------------------
 // COMMON
@@ -509,7 +509,10 @@ class DirectoryLockGuard : public Resource {
 };
 
 struct Files {
-  typedef std::vector<char> Bytes;
+  typedef std::vector<unsigned char> Bytes;
+
+  static std::vector<boost::filesystem::path> list(
+      const boost::filesystem::path& directory);
 
   static Bytes readAllBytes(const boost::filesystem::path& filename);
 
