@@ -43,20 +43,9 @@
 #include <vector>
 #include <boost/filesystem/path.hpp>
 
-namespace std {
-
-template <>
-struct default_delete<std::FILE> {
-  void operator()(std::FILE* stream) const {
-    if (stream) std::fclose(stream);
-  }
-};
-
-}  // namespace std
-
 namespace mt {
 
-static const uint32_t VERSION = 20160305;
+static const uint32_t VERSION = 20160308;
 
 // -----------------------------------------------------------------------------
 // COMMON
@@ -342,30 +331,29 @@ class AutoCloseFd {
   int fd_ = INVALID;
 };
 
-inline AutoCloseFd openIfExists(const boost::filesystem::path& filename,
-                                int flags) {
+inline AutoCloseFd tryOpen(const boost::filesystem::path& filename, int flags) {
   return AutoCloseFd(::open(filename.c_str(), flags));
 }
 
 inline AutoCloseFd open(const boost::filesystem::path& filename, int flags) {
-  auto fd = openIfExists(filename, flags);
+  auto fd = tryOpen(filename, flags);
   Check::notEqual(fd.get(), AutoCloseFd::INVALID,
-                  "openIfExists() failed for '%s' because of '%s'",
-                  filename.c_str(), errnostr());
+                  "tryOpen() failed for '%s' because of '%s'", filename.c_str(),
+                  errnostr());
   return fd;
 }
 
-inline AutoCloseFd openIfExists(const boost::filesystem::path& filename,
-                                int flags, mode_t mode) {
+inline AutoCloseFd tryOpen(const boost::filesystem::path& filename, int flags,
+                           mode_t mode) {
   return AutoCloseFd(::open(filename.c_str(), flags, mode));
 }
 
 inline AutoCloseFd open(const boost::filesystem::path& filename, int flags,
                         mode_t mode) {
-  auto fd = openIfExists(filename, flags, mode);
+  auto fd = tryOpen(filename, flags, mode);
   Check::notEqual(fd.get(), AutoCloseFd::INVALID,
-                  "openIfExists() failed for '%s' because of '%s'",
-                  filename.c_str(), errnostr());
+                  "tryOpen() failed for '%s' because of '%s'", filename.c_str(),
+                  errnostr());
   return fd;
 }
 
@@ -378,12 +366,12 @@ inline AutoCloseFd create(const boost::filesystem::path& filename,
   return fd;
 }
 
-inline bool readMaybe(int fd, void* buf, size_t len) {
+inline bool tryRead(int fd, void* buf, size_t len) {
   return static_cast<size_t>(::read(fd, buf, len)) == len;
 }
 
 inline void read(int fd, void* buf, size_t len) {
-  Check::isTrue(readMaybe(fd, buf, len), "readMaybe() failed");
+  Check::isTrue(tryRead(fd, buf, len), "tryRead() failed");
 }
 
 inline void pread(int fd, void* buf, size_t len, uint64_t offset) {
@@ -432,57 +420,71 @@ inline uint8_t* mremap(uint8_t* old_addr, uint64_t old_size, uint64_t new_size,
 }
 #endif
 
+}  // namespace mt
+
+namespace std {
+
+template <>
+struct default_delete<std::FILE> {
+  void operator()(std::FILE* stream) const {
+    if (stream) std::fclose(stream);
+  }
+};
+
+}  // namespace std
+
+namespace mt {
+
 typedef std::unique_ptr<std::FILE> AutoCloseFile;
 
-inline AutoCloseFile fopenIfExists(const boost::filesystem::path& filename,
-                                   const char* mode) {
+inline AutoCloseFile tryOpen(const boost::filesystem::path& filename,
+                             const char* mode) {
   return AutoCloseFile(std::fopen(filename.c_str(), mode));
 }
 
-inline AutoCloseFile fopen(const boost::filesystem::path& filename,
-                           const char* mode) {
-  auto stream = fopenIfExists(filename, mode);
-  Check::notNull(stream.get(),
-                 "fopenIfExists() failed for '%s' because of '%s'",
+inline AutoCloseFile open(const boost::filesystem::path& filename,
+                          const char* mode) {
+  auto stream = tryOpen(filename, mode);
+  Check::notNull(stream.get(), "tryOpen() failed for '%s' because of '%s'",
                  filename.c_str(), errnostr());
   return stream;
 }
 
-inline bool fgetMaybe(std::FILE* stream, uint8_t* byte) {
+inline bool tryGet(std::FILE* stream, uint8_t* byte) {
   const auto result = std::fgetc(stream);
   if (result == EOF) return false;
   *byte = result;
   return true;
 }
 
-inline uint8_t fget(std::FILE* stream) {
+inline uint8_t get(std::FILE* stream) {
   uint8_t byte = 0;
-  Check::isTrue(fgetMaybe(stream, &byte), "fgetMaybe() failed");
+  Check::isTrue(tryGet(stream, &byte), "tryGet() failed");
   return byte;
 }
 
-inline void fput(std::FILE* stream, uint8_t byte) {
+inline void put(std::FILE* stream, uint8_t byte) {
   Check::notEqual(std::fputc(byte, stream), EOF, "fputc() failed");
 }
 
-inline bool freadMaybe(std::FILE* stream, void* buf, size_t len) {
+inline bool tryRead(std::FILE* stream, void* buf, size_t len) {
   return std::fread(buf, sizeof(char), len, stream) == len;
 }
 
-inline void fread(std::FILE* stream, void* buf, size_t len) {
-  Check::isTrue(freadMaybe(stream, buf, len), "freadMaybe() failed");
+inline void read(std::FILE* stream, void* buf, size_t len) {
+  Check::isTrue(tryRead(stream, buf, len), "tryRead() failed");
 }
 
-inline void fwrite(std::FILE* stream, const void* buf, size_t len) {
+inline void write(std::FILE* stream, const void* buf, size_t len) {
   Check::isEqual(std::fwrite(buf, sizeof(char), len, stream), len,
                  "fwrite() failed");
 }
 
-inline void fseek(std::FILE* stream, long offset, int origin) {
+inline void seek(std::FILE* stream, long offset, int origin) {
   Check::isZero(std::fseek(stream, offset, origin), "fseek() failed");
 }
 
-inline uint64_t ftell(std::FILE* stream) {
+inline uint64_t tell(std::FILE* stream) {
   const auto offset = std::ftell(stream);
   Check::notEqual(offset, -1, "ftell() failed");
   return offset;
