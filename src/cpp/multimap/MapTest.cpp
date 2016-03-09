@@ -24,14 +24,14 @@ namespace multimap {
 
 using testing::Eq;
 
-const auto NULL_PROCEDURE = [](const Bytes &) {};
-const auto TRUE_PREDICATE = [](const Bytes &) { return true; };
-const auto FALSE_PREDICATE = [](const Bytes &) { return false; };
-const auto EMPTY_FUNCTION = [](const Bytes &) { return std::string(); };
-const auto NULL_BINARY_PROCEDURE = [](const Bytes &, Iterator *) {};
-const auto IS_ODD = [](const Bytes &b) { return std::stoul(b.toString()) % 2; };
+const auto NULL_PROCEDURE = [](const Range&) {};
+const auto TRUE_PREDICATE = [](const Range&) { return true; };
+const auto FALSE_PREDICATE = [](const Range&) { return false; };
+const auto EMPTY_FUNCTION = [](const Range&) { return Bytes(); };
+const auto NULL_BINARY_PROCEDURE = [](const Range&, Iterator*) {};
+const auto IS_ODD = [](const Range& b) { return std::stoi(b.toString()) % 2; };
 
-std::unique_ptr<Map> openOrCreateMap(const boost::filesystem::path &directory) {
+std::unique_ptr<Map> openOrCreateMap(const boost::filesystem::path& directory) {
   Map::Options options;
   options.create_if_missing = true;
   return std::unique_ptr<Map>(new Map(directory, options));
