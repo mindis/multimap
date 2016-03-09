@@ -26,8 +26,8 @@ namespace internal {
 TsvFileReader::TsvFileReader(const boost::filesystem::path& filename)
     : stream_(filename.string()) {
   mt::check(stream_.is_open(), "Could not open '%s'", filename.c_str());
-  stream_ >> key_;
-  Base64::decode(key_, &decoded_key_);
+  stream_ >> base64_key_;
+  Base64::decode(base64_key_, &current_key_);
 }
 
 bool TsvFileReader::read(Bytes* key, Bytes* value) {
@@ -35,8 +35,8 @@ bool TsvFileReader::read(Bytes* key, Bytes* value) {
     switch (stream_.peek()) {
       case '\n':
       case '\r':
-        stream_ >> key_;
-        Base64::decode(key_, &decoded_key_);
+        stream_ >> base64_key_;
+        Base64::decode(base64_key_, &current_key_);
         break;
       case '\f':
       case '\t':
@@ -45,9 +45,9 @@ bool TsvFileReader::read(Bytes* key, Bytes* value) {
         stream_.ignore();
         break;
       default:
-        stream_ >> value_;
-        Base64::decode(value_, value);
-        *key = decoded_key_;
+        stream_ >> base64_value_;
+        Base64::decode(base64_value_, value);
+        *key = current_key_;
         return true;
     }
   }

@@ -34,9 +34,9 @@ class TsvFileReader {
 
  private:
   std::ifstream stream_;
-  std::string key_;
-  std::string value_;
-  Bytes decoded_key_;
+  std::string base64_key_;
+  std::string base64_value_;
+  Bytes current_key_;
 };
 
 }  // namespace internal
