@@ -18,6 +18,7 @@
 #include "multimap/ImmutableMap.hpp"
 
 #include <boost/filesystem/operations.hpp>
+#include "multimap/internal/TsvFileReader.hpp"
 #include "multimap/internal/Varint.hpp"
 
 namespace multimap {
@@ -208,7 +209,10 @@ void ImmutableMap::buildFromBase64(const boost::filesystem::path& directory,
   Bytes value;
   Builder builder(directory, options);
   for (const auto& file : files) {
-    TsvFileReader reader(file);
+    if (!options.quiet) {
+      mt::log() << "Importing " << file.string() << std::endl;
+    }
+    internal::TsvFileReader reader(file);
     while (reader.read(&key, &value)) {
       builder.put(key, value);
     }
