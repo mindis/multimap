@@ -48,9 +48,11 @@ class Mph {
     double c = 0;    // 0 means use default value.
   };
 
-  Mph() = default;
-
   explicit Mph(const boost::filesystem::path& filename);
+
+  Mph(Mph&&) = default;
+
+  Mph& operator=(Mph&&) = default;
 
   static Mph build(const byte** keys, size_t nkeys, const Options& options);
   // A key in `keys` points to memory which is encoded like this:
