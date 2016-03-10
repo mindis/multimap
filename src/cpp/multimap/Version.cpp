@@ -17,8 +17,6 @@
 
 #include "multimap/Version.hpp"
 
-#include "multimap/thirdparty/mt/mt.hpp"
-
 namespace multimap {
 
 void Version::checkCompatibility(int extern_major, int extern_minor) {
@@ -34,6 +32,30 @@ bool Version::isCompatible(int extern_major, int extern_minor,
   if (extern_major != library_major) return false;
   if (extern_minor > library_minor) return false;
   return true;
+}
+
+const char* Meta::DEFAULT_FILENAME = "multimap.meta";
+
+Meta Meta::readFromDirectory(const boost::filesystem::path& directory,
+                             const char* filename) {
+  return readFromFile(directory / filename);
+}
+
+Meta Meta::readFromFile(const boost::filesystem::path& filename) {
+  Meta meta;
+  const auto stream = mt::open(filename, "r");
+  mt::read(stream.get(), &meta, sizeof meta);
+  return meta;
+}
+
+void Meta::writeToDirectory(const boost::filesystem::path& directory,
+                            const char* filename) const {
+  writeToFile(directory / filename);
+}
+
+void Meta::writeToFile(const boost::filesystem::path& filename) const {
+  const auto stream = mt::open(filename, "w");
+  mt::write(stream.get(), this, sizeof *this);
 }
 
 }  // namespace multimap
