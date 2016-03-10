@@ -25,7 +25,6 @@
 #include <memory>
 #include <vector>
 #include "multimap/internal/Partition.hpp"
-#include "multimap/Version.hpp"
 
 namespace multimap {
 
@@ -34,20 +33,6 @@ class Map : public mt::Resource {
   // ---------------------------------------------------------------------------
   // Member types
   // ---------------------------------------------------------------------------
-
-  struct Id {
-    uint64_t block_size = 0;
-    uint64_t num_partitions = 0;
-    uint64_t major_version = Version::MAJOR;
-    uint64_t minor_version = Version::MINOR;
-
-    static Id readFromDirectory(const boost::filesystem::path& directory);
-    static Id readFromFile(const boost::filesystem::path& filename);
-    void writeToFile(const boost::filesystem::path& filename) const;
-  };
-
-  static_assert(mt::hasExpectedSize<Id>(32, 32),
-                "struct Map::Id does not have expected size");
 
   struct Limits {
     static uint32_t maxKeySize();
@@ -79,8 +64,6 @@ class Map : public mt::Resource {
   explicit Map(const boost::filesystem::path& directory);
 
   Map(const boost::filesystem::path& directory, const Options& options);
-
-  ~Map();
 
   void put(const Range& key, const Range& value) {
     getPartition(key)->put(key, value);
