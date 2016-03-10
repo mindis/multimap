@@ -42,7 +42,6 @@ class Map {
   struct Options {
     uint32_t block_size = 512;
     uint32_t num_partitions = 23;
-    uint32_t buffer_size = mt::MiB(1);
 
     bool create_if_missing = false;
     bool error_if_exists = false;

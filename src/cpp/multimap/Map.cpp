@@ -58,7 +58,6 @@ std::string getNameOfValuesFile(size_t index) {
 template <typename Procedure>
 // Required interface:
 // void process(const std::string& partition_prefix,
-//              const internal::Partition::Options& partition_options,
 //              size_t partition_index, size_t num_partitions);
 void forEachPartition(const boost::filesystem::path& directory,
                       Procedure process) {
@@ -66,12 +65,9 @@ void forEachPartition(const boost::filesystem::path& directory,
   const auto meta = internal::Meta::readFromDirectory(directory);
   Version::checkCompatibility(meta.major_version, meta.minor_version);
 
-  internal::Partition::Options options;
-  options.readonly = true;
-
   for (size_t i = 0; i != meta.num_partitions; i++) {
     const auto prefix = directory / getPartitionPrefix(i);
-    process(prefix.string(), options, i, meta.num_partitions);
+    process(prefix.string(), i, meta.num_partitions);
   }
 }
 
@@ -94,7 +90,6 @@ Map::Map(const boost::filesystem::path& directory, const Options& options)
   internal::Partition::Options part_options;
   part_options.readonly = options.readonly;
   part_options.block_size = options.block_size;
-  part_options.buffer_size = options.buffer_size;
   const auto meta_filename = directory / internal::getNameOfMetaFile();
   if (boost::filesystem::is_regular_file(meta_filename)) {
     mt::Check::isFalse(options.error_if_exists, "Map in '%s' already exists",
@@ -186,7 +181,6 @@ void Map::exportToBase64(const boost::filesystem::path& directory,
 
   const auto process =
       [&](const std::string& partition_prefix,
-          const internal::Partition::Options& partition_options,
           size_t partition_index, size_t num_partitions) {
 
         if (!options.quiet) {
@@ -199,7 +193,7 @@ void Map::exportToBase64(const boost::filesystem::path& directory,
         if (options.compare) {
           std::vector<Bytes> values;
           internal::Partition::forEachEntry(
-              partition_prefix, partition_options,
+              partition_prefix,
               [&](const Range& key, Iterator* iter) {
                 values.clear();
                 values.reserve(iter->available());
@@ -218,7 +212,7 @@ void Map::exportToBase64(const boost::filesystem::path& directory,
               });
         } else {
           internal::Partition::forEachEntry(
-              partition_prefix, partition_options,
+              partition_prefix,
               [&](const Range& key, Iterator* iter) {
                 internal::Base64::encode(key, &base64_key);
                 stream << base64_key;
@@ -259,7 +253,6 @@ void Map::optimize(const boost::filesystem::path& directory,
 
   forEachPartition(
       directory, [&](const std::string& partition_prefix,
-                     const internal::Partition::Options& partition_options,
                      size_t partition_index, size_t num_partitions) {
         if (!options.quiet) {
           mt::log(std::cout) << "Optimizing partition " << (partition_index + 1)
@@ -268,7 +261,7 @@ void Map::optimize(const boost::filesystem::path& directory,
         if (options.compare) {
           std::vector<Bytes> values;
           internal::Partition::forEachEntry(
-              partition_prefix, partition_options,
+              partition_prefix,
               [&](const Range& key, Iterator* iter) {
                 values.clear();
                 values.reserve(iter->available());
@@ -282,7 +275,7 @@ void Map::optimize(const boost::filesystem::path& directory,
               });
         } else {
           internal::Partition::forEachEntry(
-              partition_prefix, partition_options,
+              partition_prefix,
               [&](const Range& key, Iterator* iter) {
                 while (iter->hasNext()) {
                   new_map.put(key, iter->next());

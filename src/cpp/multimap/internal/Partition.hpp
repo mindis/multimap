@@ -48,7 +48,6 @@ class Partition {
 
   struct Options {
     uint32_t block_size = 512;
-    uint32_t buffer_size = mt::MiB(1);
     bool readonly = false;
   };
 
@@ -214,14 +213,12 @@ class Partition {
   // ---------------------------------------------------------------------------
 
   template <typename BinaryProcedure>
-  static void forEachEntry(const std::string& prefix, const Options& options,
-                           BinaryProcedure process) {
+  static void forEachEntry(const std::string& prefix, BinaryProcedure process) {
     const auto stats = Stats::readFromFile(getNameOfStatsFile(prefix));
 
     Store::Options store_options;
     store_options.readonly = true;
     store_options.block_size = stats.block_size;
-    store_options.buffer_size = options.buffer_size;
     Store store(getNameOfStoreFile(prefix), store_options);
     store.adviseAccessPattern(Store::AccessPattern::WILLNEED);
 

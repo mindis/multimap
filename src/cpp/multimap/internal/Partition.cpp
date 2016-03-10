@@ -42,7 +42,6 @@ Partition::Partition(const std::string& prefix, const Options& options)
   Store::Options store_options;
   store_options.readonly = options.readonly;
   store_options.block_size = options.block_size;
-  store_options.buffer_size = options.buffer_size;
   const auto map_filename = getNameOfMapFile(prefix);
   if (boost::filesystem::is_regular_file(map_filename)) {
     Bytes key;
