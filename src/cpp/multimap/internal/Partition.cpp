@@ -50,7 +50,7 @@ Partition::Partition(const std::string& prefix, const Options& options)
     const auto stats_filename = getNameOfStatsFile(prefix);
     stats_ = Stats::readFromFile(stats_filename);
     store_options.block_size = stats_.block_size;
-    for (size_t i = 0; i != stats_.num_keys_valid; ++i) {
+    for (size_t i = 0; i != stats_.num_keys_valid; i++) {
       MT_ASSERT_TRUE(readBytesFromStream(map_stream.get(), &key));
       const Range new_key = Range(key).makeCopy(
           [this](size_t size) { return arena_.allocate(size); });

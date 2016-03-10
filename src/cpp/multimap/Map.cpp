@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <iostream>
 #include <boost/filesystem/operations.hpp>
+#include "multimap/internal/Base64.hpp"
 #include "multimap/internal/TsvFileReader.hpp"
 #include "multimap/Version.hpp"
 
@@ -65,13 +66,12 @@ void forEachPartition(const boost::filesystem::path& directory,
   const auto meta = internal::Meta::readFromDirectory(directory);
   Version::checkCompatibility(meta.major_version, meta.minor_version);
 
-  internal::Partition::Options partition_options;
-  partition_options.block_size = meta.block_size;
-  partition_options.readonly = true;
+  internal::Partition::Options options;
+  options.readonly = true;
 
-  for (size_t i = 0; i != meta.num_partitions; ++i) {
-    const auto partition_prefix = (directory / getPartitionPrefix(i)).string();
-    process(partition_prefix, partition_options, i, meta.num_partitions);
+  for (size_t i = 0; i != meta.num_partitions; i++) {
+    const auto prefix = directory / getPartitionPrefix(i);
+    process(prefix.string(), options, i, meta.num_partitions);
   }
 }
 
@@ -108,7 +108,6 @@ Map::Map(const boost::filesystem::path& directory, const Options& options)
                       boost::filesystem::absolute(directory).c_str());
     partitions_.resize(mt::nextPrime(options.num_partitions));
     internal::Meta meta;
-    meta.block_size = options.block_size;
     meta.num_partitions = partitions_.size();
     meta.writeToFile(meta_filename);
   }
@@ -246,11 +245,12 @@ void Map::optimize(const boost::filesystem::path& directory,
                    const boost::filesystem::path& target,
                    const Options& options) {
   const auto meta = internal::Meta::readFromDirectory(directory);
+  const auto stats = Stats::readFromFile(directory / getNameOfStatsFile(0));
   Options new_options = options;
   new_options.error_if_exists = true;
   new_options.create_if_missing = true;
   if (options.block_size == 0) {
-    new_options.block_size = meta.block_size;
+    new_options.block_size = stats.block_size;
   }
   if (options.num_partitions == 0) {
     new_options.num_partitions = meta.num_partitions;

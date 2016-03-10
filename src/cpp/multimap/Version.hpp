@@ -43,7 +43,6 @@ const std::string& getNameOfLockFile();
 const std::string& getNameOfMetaFile();
 
 struct Meta {
-  uint64_t block_size = 0;  // TODO remove
   uint64_t num_partitions = 0;
   uint64_t major_version = Version::MAJOR;
   uint64_t minor_version = Version::MINOR;
@@ -61,7 +60,7 @@ struct Meta {
   void writeToFile(const boost::filesystem::path& filename) const;
 };
 
-static_assert(mt::hasExpectedSize<Meta>(32, 32),
+static_assert(mt::hasExpectedSize<Meta>(24, 24),
               "struct Meta does not have expected size");
 
 }  // namespace internal

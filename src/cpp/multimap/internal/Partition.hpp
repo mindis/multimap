@@ -216,16 +216,18 @@ class Partition : public mt::Resource {
   template <typename BinaryProcedure>
   static void forEachEntry(const std::string& prefix, const Options& options,
                            BinaryProcedure process) {
-    Bytes key;
+    const auto stats = Stats::readFromFile(getNameOfStatsFile(prefix));
+
     Store::Options store_options;
     store_options.readonly = true;
-    store_options.block_size = options.block_size;
+    store_options.block_size = stats.block_size;
     store_options.buffer_size = options.buffer_size;
     Store store(getNameOfStoreFile(prefix), store_options);
     store.adviseAccessPattern(Store::AccessPattern::WILLNEED);
-    const auto stats = Stats::readFromFile(getNameOfStatsFile(prefix));
+
+    Bytes key;
     const auto stream = mt::open(getNameOfMapFile(prefix), "r");
-    for (size_t i = 0; i != stats.num_keys_valid; ++i) {
+    for (size_t i = 0; i != stats.num_keys_valid; i++) {
       MT_ASSERT_TRUE(readBytesFromStream(stream.get(), &key));
       const List list = List::readFromStream(stream.get());
       const auto iter = list.newIterator(store);
