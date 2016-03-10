@@ -20,7 +20,6 @@
 #include <algorithm>
 #include <iostream>
 #include <boost/filesystem/operations.hpp>
-#include "multimap/internal/Base64.hpp"
 #include "multimap/internal/TsvFileReader.hpp"
 #include "multimap/Version.hpp"
 
@@ -34,9 +33,10 @@ void checkOptions(const Map::Options& options) {
                     "Map's block size must be a power of two");
 }
 
-std::string getPrefix() { return "multimap.map"; }
-
-std::string getNameOfLockFile() { return getPrefix() + ".lock"; }
+const std::string& getPrefix() {
+  static const auto prefix = internal::getCommonFilePrefix() + ".map";
+  return prefix;
+}
 
 std::string getPartitionPrefix(size_t index) {
   return getPrefix() + '.' + std::to_string(index);
@@ -61,8 +61,8 @@ template <typename Procedure>
 //              size_t partition_index, size_t num_partitions);
 void forEachPartition(const boost::filesystem::path& directory,
                       Procedure process) {
-  mt::DirectoryLockGuard lock(directory, getNameOfLockFile());
-  const auto meta = Meta::readFromDirectory(directory);
+  mt::DirectoryLockGuard lock(directory, internal::getNameOfLockFile());
+  const auto meta = internal::Meta::readFromDirectory(directory);
   Version::checkCompatibility(meta.major_version, meta.minor_version);
 
   internal::Partition::Options partition_options;
@@ -89,17 +89,17 @@ Map::Map(const boost::filesystem::path& directory)
     : Map(directory, Options()) {}
 
 Map::Map(const boost::filesystem::path& directory, const Options& options)
-    : dlock_(directory, getNameOfLockFile()) {
+    : dlock_(directory, internal::getNameOfLockFile()) {
   checkOptions(options);
   internal::Partition::Options part_options;
   part_options.readonly = options.readonly;
   part_options.block_size = options.block_size;
   part_options.buffer_size = options.buffer_size;
-  const auto meta_filename = directory / Meta::DEFAULT_FILENAME;
+  const auto meta_filename = directory / internal::getNameOfMetaFile();
   if (boost::filesystem::is_regular_file(meta_filename)) {
     mt::Check::isFalse(options.error_if_exists, "Map in '%s' already exists",
                        boost::filesystem::absolute(directory).c_str());
-    const auto meta = Meta::readFromFile(meta_filename);
+    const auto meta = internal::Meta::readFromFile(meta_filename);
     Version::checkCompatibility(meta.major_version, meta.minor_version);
     partitions_.resize(meta.num_partitions);
 
@@ -107,7 +107,7 @@ Map::Map(const boost::filesystem::path& directory, const Options& options)
     mt::Check::isTrue(options.create_if_missing, "Map in '%s' does not exist",
                       boost::filesystem::absolute(directory).c_str());
     partitions_.resize(mt::nextPrime(options.num_partitions));
-    Meta meta;
+    internal::Meta meta;
     meta.block_size = options.block_size;
     meta.num_partitions = partitions_.size();
     meta.writeToFile(meta_filename);
@@ -131,8 +131,8 @@ Map::Stats Map::getTotalStats() const { return Stats::total(getStats()); }
 bool Map::isReadOnly() const { return partitions_.front()->isReadOnly(); }
 
 std::vector<Map::Stats> Map::stats(const boost::filesystem::path& directory) {
-  mt::DirectoryLockGuard lock(directory.string(), getNameOfLockFile());
-  const auto meta = Meta::readFromDirectory(directory);
+  mt::DirectoryLockGuard lock(directory, internal::getNameOfLockFile());
+  const auto meta = internal::Meta::readFromDirectory(directory);
   Version::checkCompatibility(meta.major_version, meta.minor_version);
   std::vector<Stats> stats;
   for (size_t i = 0; i != meta.num_partitions; i++) {
@@ -245,7 +245,7 @@ void Map::optimize(const boost::filesystem::path& directory,
 void Map::optimize(const boost::filesystem::path& directory,
                    const boost::filesystem::path& target,
                    const Options& options) {
-  const auto meta = Meta::readFromDirectory(directory);
+  const auto meta = internal::Meta::readFromDirectory(directory);
   Options new_options = options;
   new_options.error_if_exists = true;
   new_options.create_if_missing = true;

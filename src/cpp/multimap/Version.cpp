@@ -34,10 +34,25 @@ bool Version::isCompatible(int extern_major, int extern_minor,
   return true;
 }
 
-const char* Meta::DEFAULT_FILENAME = "multimap.meta";
+namespace internal {
+
+const std::string& getCommonFilePrefix() {
+  static const std::string prefix = "multimap";
+  return prefix;
+}
+
+const std::string& getNameOfLockFile() {
+  static const std::string filename = getCommonFilePrefix() + ".lock";
+  return filename;
+}
+
+const std::string& getNameOfMetaFile() {
+  static const std::string filename = getCommonFilePrefix() + ".meta";
+  return filename;
+}
 
 Meta Meta::readFromDirectory(const boost::filesystem::path& directory,
-                             const char* filename) {
+                             const std::string& filename) {
   return readFromFile(directory / filename);
 }
 
@@ -49,7 +64,7 @@ Meta Meta::readFromFile(const boost::filesystem::path& filename) {
 }
 
 void Meta::writeToDirectory(const boost::filesystem::path& directory,
-                            const char* filename) const {
+                            const std::string& filename) const {
   writeToFile(directory / filename);
 }
 
@@ -58,4 +73,5 @@ void Meta::writeToFile(const boost::filesystem::path& filename) const {
   mt::write(stream.get(), this, sizeof *this);
 }
 
+}  // namespace internal
 }  // namespace multimap

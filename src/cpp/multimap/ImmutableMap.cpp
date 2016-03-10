@@ -21,18 +21,18 @@
 #include "multimap/internal/Arena.hpp"
 #include "multimap/internal/TsvFileReader.hpp"
 #include "multimap/internal/TsvFileWriter.hpp"
-#include "multimap/internal/Varint.hpp"
 #include "multimap/Version.hpp"
 
 namespace multimap {
 
 namespace {
 
-std::string getPrefix() { return "multimap.immutablemap"; }
+const std::string& getPrefix() {
+  static const auto prefix = internal::getCommonFilePrefix() + ".immutablemap";
+  return prefix;
+}
 
-std::string getNameOfLockFile() { return getPrefix() + ".lock"; }
-
-std::string getPrefix(size_t index) {
+std::string getPartitionPrefix(size_t index) {
   return getPrefix() + '.' + std::to_string(index);
 }
 
@@ -58,7 +58,7 @@ uint32_t ImmutableMap::Limits::maxValueSize() {
 
 ImmutableMap::Builder::Builder(const boost::filesystem::path& directory,
                                const Options& options)
-    : options_(options), dlock_(directory, getNameOfLockFile()) {
+    : options_(options), dlock_(directory, internal::getNameOfLockFile()) {
   mt::Check::isEqual(
       std::distance(boost::filesystem::directory_iterator(directory),
                     boost::filesystem::directory_iterator()),
@@ -66,7 +66,7 @@ ImmutableMap::Builder::Builder(const boost::filesystem::path& directory,
   buckets_.resize(mt::nextPrime(options.num_buckets));
   for (size_t i = 0; i != buckets_.size(); i++) {
     auto& bucket = buckets_[i];
-    bucket.filename = directory / getPrefix(i);
+    bucket.filename = directory / getPartitionPrefix(i);
     bucket.stream = mt::open(bucket.filename, "w+");
   }
 }
@@ -85,7 +85,7 @@ void ImmutableMap::Builder::put(const Range& key, const Range& value) {
                 << bucket.filename.string() << std::endl;
     for (size_t i = 0; i != new_buckets.size(); i++) {
       auto& new_bucket = new_buckets[i];
-      new_bucket.filename = dlock_.directory() / (getPrefix(i) + ".new");
+      new_bucket.filename = dlock_.directory() / (getPartitionPrefix(i) + ".~");
       new_bucket.stream = mt::open(new_bucket.filename, "w+");
     }
     Bytes old_key;
@@ -125,7 +125,7 @@ std::vector<ImmutableMap::Stats> ImmutableMap::Builder::build() {
     boost::filesystem::remove(bucket.filename);
   }
 
-  Meta meta;
+  internal::Meta meta;
   meta.num_partitions = buckets_.size();
   meta.writeToDirectory(dlock_.directory());
 
@@ -134,10 +134,10 @@ std::vector<ImmutableMap::Stats> ImmutableMap::Builder::build() {
 
 ImmutableMap::ImmutableMap(const boost::filesystem::path& directory)
     : dlock_(directory) {
-  const auto meta = Meta::readFromDirectory(directory);
+  const auto meta = internal::Meta::readFromDirectory(directory);
   Version::checkCompatibility(meta.major_version, meta.minor_version);
   for (size_t i = 0; i != meta.num_partitions; i++) {
-    const auto full_prefix = directory / getPrefix(i);
+    const auto full_prefix = directory / getPartitionPrefix(i);
     tables_.push_back(internal::MphTable(full_prefix.string()));
   }
 }
@@ -176,10 +176,10 @@ ImmutableMap::Stats ImmutableMap::getTotalStats() const {
 
 std::vector<ImmutableMap::Stats> ImmutableMap::stats(
     const boost::filesystem::path& directory) {
-  const auto meta = Meta::readFromDirectory(directory);
+  const auto meta = internal::Meta::readFromDirectory(directory);
   std::vector<ImmutableMap::Stats> stats(meta.num_partitions);
   for (size_t i = 0; i != meta.num_partitions; i++) {
-    stats[i] = internal::MphTable::stats(getPrefix(i));
+    stats[i] = internal::MphTable::stats(getPartitionPrefix(i));
   }
   return stats;
 }
