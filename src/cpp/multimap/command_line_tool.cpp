@@ -21,6 +21,7 @@
 #include <boost/filesystem/operations.hpp>
 #include <multimap/thirdparty/mt/mt.hpp>
 #include <multimap/Map.hpp>
+#include <multimap/Version.hpp>
 
 // clang-format off
 const auto HELP     = "help";
@@ -106,7 +107,7 @@ CommandLine parseCommandLine(int argc, const char** argv) {
 Map::Options initOptions(const CommandLine& cmd) {
   Map::Options options;
   options.create_if_missing = cmd.options.count(CREATE);
-  options.quiet = cmd.options.count(QUIET);
+  options.verbose = cmd.options.count(QUIET) == 0;
   if (cmd.options.count(BS)) {
     options.block_size = std::stoul(cmd.options.at(BS));
   }
