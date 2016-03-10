@@ -230,6 +230,29 @@ MphTable::MphTable(const std::string& prefix)
       lists_(mapFileIntoMemory(getNameOfListsFile(prefix))),
       stats_(Stats::readFromFile(getNameOfStatsFile(prefix))) {}
 
+MphTable::MphTable(MphTable&& other)
+    : mph_(std::move(other.mph_)),
+      table_(other.table_),
+      lists_(other.lists_),
+      stats_(other.stats_) {
+  other.table_ = Range();
+  other.lists_ = Range();
+  other.stats_ = Stats();
+}
+
+MphTable& MphTable::operator=(MphTable&& other) {
+  if (&other != this) {
+    mph_ = std::move(other.mph_);
+    table_ = other.table_;
+    lists_ = other.lists_;
+    stats_ = other.stats_;
+    other.table_ = Range();
+    other.lists_ = Range();
+    other.stats_ = Stats();
+  }
+  return *this;
+}
+
 MphTable::~MphTable() {
   if (!lists_.empty()) {
     mt::munmap(const_cast<byte*>(lists_.begin()), lists_.size());

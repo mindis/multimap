@@ -47,11 +47,9 @@ class MphTable {
 
   explicit MphTable(const std::string& prefix);
 
-  MphTable(MphTable&&) = delete;
-  MphTable& operator=(MphTable&&) = delete;
+  MphTable(MphTable&& other);
 
-  MphTable(const MphTable&) = delete;
-  MphTable& operator=(const MphTable&) = delete;
+  MphTable& operator=(MphTable&& other);
 
   ~MphTable();
 
@@ -78,10 +76,10 @@ class MphTable {
   static void forEachEntry(const std::string& prefix, BinaryProcedure process);
 
  private:
-  const Mph mph_;
-  const Range table_;
-  const Range lists_;
-  const Stats stats_;
+  Mph mph_;
+  Range table_;
+  Range lists_;
+  Stats stats_;
 };
 
 }  // namespace internal
