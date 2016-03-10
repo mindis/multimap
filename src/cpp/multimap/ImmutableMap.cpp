@@ -126,6 +126,7 @@ std::vector<ImmutableMap::Stats> ImmutableMap::Builder::build() {
   }
 
   internal::Meta meta;
+  meta.type = internal::Meta::IMMUTABLE_MAP;
   meta.num_partitions = buckets_.size();
   meta.writeToDirectory(dlock_.directory());
 
@@ -136,6 +137,7 @@ ImmutableMap::ImmutableMap(const boost::filesystem::path& directory)
     : dlock_(directory) {
   const auto meta = internal::Meta::readFromDirectory(directory);
   Version::checkCompatibility(meta.major_version, meta.minor_version);
+  mt::check(meta.type == internal::Meta::IMMUTABLE_MAP, "Wrong map type");
   for (size_t i = 0; i != meta.num_partitions; i++) {
     const auto full_prefix = directory / getPartitionPrefix(i);
     tables_.push_back(internal::MphTable(full_prefix.string()));

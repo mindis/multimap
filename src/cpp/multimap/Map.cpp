@@ -96,6 +96,7 @@ Map::Map(const boost::filesystem::path& directory, const Options& options)
                        boost::filesystem::absolute(directory).c_str());
     const auto meta = internal::Meta::readFromFile(meta_filename);
     Version::checkCompatibility(meta.major_version, meta.minor_version);
+    mt::check(meta.type == internal::Meta::MAP, "Wrong map type");
     partitions_.resize(meta.num_partitions);
 
   } else {
@@ -103,6 +104,7 @@ Map::Map(const boost::filesystem::path& directory, const Options& options)
                       boost::filesystem::absolute(directory).c_str());
     partitions_.resize(mt::nextPrime(options.num_partitions));
     internal::Meta meta;
+    meta.type = internal::Meta::MAP;
     meta.num_partitions = partitions_.size();
     meta.writeToFile(meta_filename);
   }
