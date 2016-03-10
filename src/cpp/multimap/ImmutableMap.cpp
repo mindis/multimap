@@ -22,14 +22,13 @@
 #include "multimap/internal/TsvFileReader.hpp"
 #include "multimap/internal/TsvFileWriter.hpp"
 #include "multimap/internal/Varint.hpp"
+#include "multimap/Version.hpp"
 
 namespace multimap {
 
 namespace {
 
 std::string getPrefix() { return "multimap.immutablemap"; }
-
-std::string getNameOfIdFile() { return getPrefix() + ".id"; }
 
 std::string getNameOfLockFile() { return getPrefix() + ".lock"; }
 
@@ -49,25 +48,6 @@ const Element& select(const std::vector<Element>& elements, const Range& key) {
 
 }  // namespace
 
-ImmutableMap::Id ImmutableMap::Id::readFromDirectory(
-    const boost::filesystem::path& directory) {
-  return readFromFile(directory / getNameOfIdFile());
-}
-
-ImmutableMap::Id ImmutableMap::Id::readFromFile(
-    const boost::filesystem::path& filename) {
-  Id id;
-  const auto stream = mt::open(filename.string(), "r");
-  mt::read(stream.get(), &id, sizeof id);
-  return id;
-}
-
-void ImmutableMap::Id::writeToFile(
-    const boost::filesystem::path& filename) const {
-  const auto stream = mt::open(filename.string(), "w");
-  mt::write(stream.get(), this, sizeof *this);
-}
-
 uint32_t ImmutableMap::Limits::maxKeySize() {
   return internal::MphTable::Limits::maxKeySize();
 }
@@ -78,7 +58,7 @@ uint32_t ImmutableMap::Limits::maxValueSize() {
 
 ImmutableMap::Builder::Builder(const boost::filesystem::path& directory,
                                const Options& options)
-    : options_(options), dlock_(directory.string(), getNameOfLockFile()) {
+    : options_(options), dlock_(directory, getNameOfLockFile()) {
   mt::Check::isEqual(
       std::distance(boost::filesystem::directory_iterator(directory),
                     boost::filesystem::directory_iterator()),
@@ -87,7 +67,7 @@ ImmutableMap::Builder::Builder(const boost::filesystem::path& directory,
   for (size_t i = 0; i != buckets_.size(); i++) {
     auto& bucket = buckets_[i];
     bucket.filename = directory / getPrefix(i);
-    bucket.stream = mt::open(bucket.filename.string(), "w+");
+    bucket.stream = mt::open(bucket.filename, "w+");
   }
 }
 
@@ -106,7 +86,7 @@ void ImmutableMap::Builder::put(const Range& key, const Range& value) {
     for (size_t i = 0; i != new_buckets.size(); i++) {
       auto& new_bucket = new_buckets[i];
       new_bucket.filename = dlock_.directory() / (getPrefix(i) + ".new");
-      new_bucket.stream = mt::open(new_bucket.filename.string(), "w+");
+      new_bucket.stream = mt::open(new_bucket.filename, "w+");
     }
     Bytes old_key;
     Bytes old_value;
@@ -140,15 +120,26 @@ std::vector<ImmutableMap::Stats> ImmutableMap::Builder::build() {
   std::vector<Stats> stats;
   for (auto& bucket : buckets_) {
     bucket.stream.reset();
-    stats.push_back(internal::MphTable::build(
-        bucket.filename.string(), bucket.filename.string(), options_));
+    stats.push_back(internal::MphTable::build(bucket.filename.string(),
+                                              bucket.filename, options_));
     boost::filesystem::remove(bucket.filename);
   }
+
+  Meta meta;
+  meta.num_partitions = buckets_.size();
+  meta.writeToDirectory(dlock_.directory());
+
   return stats;
 }
 
 ImmutableMap::ImmutableMap(const boost::filesystem::path& directory)
-    : dlock_(directory.string()) {}
+    : dlock_(directory) {
+  const auto meta = Meta::readFromDirectory(directory);
+  Version::checkCompatibility(meta.major_version, meta.minor_version);
+  for (size_t i = 0; i != meta.num_partitions; i++) {
+    tables_.push_back(internal::MphTable(getPrefix(i)));
+  }
+}
 
 std::unique_ptr<Iterator> ImmutableMap::get(const Range& key) const {
   return select(tables_, key).get(key);
@@ -184,9 +175,9 @@ ImmutableMap::Stats ImmutableMap::getTotalStats() const {
 
 std::vector<ImmutableMap::Stats> ImmutableMap::stats(
     const boost::filesystem::path& directory) {
-  const auto id = Id::readFromDirectory(directory);
-  std::vector<ImmutableMap::Stats> stats(id.num_tables);
-  for (size_t i = 0; i != id.num_tables; i++) {
+  const auto meta = Meta::readFromDirectory(directory);
+  std::vector<ImmutableMap::Stats> stats(meta.num_partitions);
+  for (size_t i = 0; i != meta.num_partitions; i++) {
     stats[i] = internal::MphTable::stats(getPrefix(i));
   }
   return stats;
