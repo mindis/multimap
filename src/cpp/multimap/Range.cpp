@@ -48,7 +48,7 @@ byte* Range::writeToBuffer(byte* begin, byte* end) const {
   MT_ASSERT_LE(count, internal::Varint::Limits::MAX_N4);
   byte* new_begin = internal::Varint::writeToBuffer(begin, end, count);
   if ((new_begin != begin) && (static_cast<size_t>(end - new_begin) >= count)) {
-    std::memcpy(new_begin, begin_, count);
+    std::memcpy(new_begin, beg_, count);
     new_begin += count;
     return new_begin;
   }
@@ -59,7 +59,9 @@ void Range::writeToStream(std::FILE* stream) const {
   const size_t count = size();
   MT_ASSERT_LE(count, internal::Varint::Limits::MAX_N4);
   internal::Varint::writeToStream(stream, count);
-  mt::write(stream, begin_, count);
+  mt::write(stream, beg_, count);
 }
+
+const byte* Range::EMPTY = reinterpret_cast<const byte*>("");
 
 }  // namespace multimap

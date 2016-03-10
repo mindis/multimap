@@ -43,19 +43,19 @@ class Range {
       : Range(static_cast<const byte*>(data),
               static_cast<const byte*>(data) + size) {}
 
-  Range(const byte* begin, const byte* end) : begin_(begin), end_(end) {}
+  Range(const byte* begin, const byte* end) : beg_(begin), end_(end) {}
 
-  const byte* begin() const { return begin_; }
+  const byte* begin() const { return beg_; }
 
   const byte* end() const { return end_; }
 
-  size_t size() const { return end_ - begin_; }
+  size_t size() const { return end_ - beg_; }
 
-  bool empty() const { return begin_ == end_; }
+  bool empty() const { return beg_ == end_; }
 
   void copyTo(Bytes* target) const {
     target->resize(size());
-    std::memcpy(target->data(), begin_, target->size());
+    std::memcpy(target->data(), beg_, target->size());
   }
 
   Bytes makeCopy() const {
@@ -68,12 +68,12 @@ class Range {
   Range makeCopy(Allocate allocate) const {
     const size_t count = size();
     byte* data = allocate(count);
-    std::memcpy(data, begin_, count);
+    std::memcpy(data, beg_, count);
     return Range(data, count);
   }
 
   std::string toString() const {
-    return std::string(reinterpret_cast<const char*>(begin_), size());
+    return std::string(reinterpret_cast<const char*>(beg_), size());
   }
 
   // I/O Support
@@ -105,8 +105,8 @@ class Range {
   // certain system limits, e.g. the device has no more space left.
 
  private:
-  static constexpr const byte* EMPTY = reinterpret_cast<const byte*>("");
-  const byte* begin_ = EMPTY;
+  static const byte* EMPTY;
+  const byte* beg_ = EMPTY;
   const byte* end_ = EMPTY;
 };
 
