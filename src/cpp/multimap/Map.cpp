@@ -158,7 +158,7 @@ void Map::importFromBase64(const boost::filesystem::path& directory,
   Bytes key;
   Bytes value;
   for (const auto& file : files) {
-    if (!options.quiet) {
+    if (options.verbose) {
       mt::log() << "Importing " << file << std::endl;
     }
     internal::TsvFileReader reader(file);
@@ -179,51 +179,48 @@ void Map::exportToBase64(const boost::filesystem::path& directory,
   std::ofstream stream(target.string());
   mt::check(stream.is_open(), "Could not create '%s'", target.c_str());
 
-  const auto process =
-      [&](const std::string& partition_prefix,
-          size_t partition_index, size_t num_partitions) {
+  const auto process = [&](const std::string& partition_prefix,
+                           size_t partition_index, size_t num_partitions) {
 
-        if (!options.quiet) {
-          mt::log(std::cout) << "Exporting partition " << (partition_index + 1)
-                             << " of " << num_partitions << std::endl;
-        }
+    if (options.verbose) {
+      mt::log() << "Exporting partition " << (partition_index + 1) << " of "
+                << num_partitions << std::endl;
+    }
 
-        std::string base64_key;
-        std::string base64_value;
-        if (options.compare) {
-          std::vector<Bytes> values;
-          internal::Partition::forEachEntry(
-              partition_prefix,
-              [&](const Range& key, Iterator* iter) {
-                values.clear();
-                values.reserve(iter->available());
-                while (iter->hasNext()) {
-                  values.push_back(iter->next().makeCopy());
-                }
-                std::sort(values.begin(), values.end(), options.compare);
+    std::string base64_key;
+    std::string base64_value;
+    if (options.compare) {
+      std::vector<Bytes> values;
+      internal::Partition::forEachEntry(
+          partition_prefix, [&](const Range& key, Iterator* iter) {
+            values.clear();
+            values.reserve(iter->available());
+            while (iter->hasNext()) {
+              values.push_back(iter->next().makeCopy());
+            }
+            std::sort(values.begin(), values.end(), options.compare);
 
-                internal::Base64::encode(key, &base64_key);
-                stream << base64_key;
-                for (const auto& value : values) {
-                  internal::Base64::encode(value, &base64_value);
-                  stream << ' ' << base64_value;
-                }
-                stream << '\n';
-              });
-        } else {
-          internal::Partition::forEachEntry(
-              partition_prefix,
-              [&](const Range& key, Iterator* iter) {
-                internal::Base64::encode(key, &base64_key);
-                stream << base64_key;
-                while (iter->hasNext()) {
-                  internal::Base64::encode(iter->next(), &base64_value);
-                  stream << ' ' << base64_value;
-                }
-                stream << '\n';
-              });
-        }
-      };
+            internal::Base64::encode(key, &base64_key);
+            stream << base64_key;
+            for (const auto& value : values) {
+              internal::Base64::encode(value, &base64_value);
+              stream << ' ' << base64_value;
+            }
+            stream << '\n';
+          });
+    } else {
+      internal::Partition::forEachEntry(
+          partition_prefix, [&](const Range& key, Iterator* iter) {
+            internal::Base64::encode(key, &base64_key);
+            stream << base64_key;
+            while (iter->hasNext()) {
+              internal::Base64::encode(iter->next(), &base64_value);
+              stream << ' ' << base64_value;
+            }
+            stream << '\n';
+          });
+    }
+  };
   forEachPartition(directory, process);
 }
 
@@ -254,15 +251,14 @@ void Map::optimize(const boost::filesystem::path& directory,
   forEachPartition(
       directory, [&](const std::string& partition_prefix,
                      size_t partition_index, size_t num_partitions) {
-        if (!options.quiet) {
-          mt::log(std::cout) << "Optimizing partition " << (partition_index + 1)
-                             << " of " << num_partitions << std::endl;
+        if (options.verbose) {
+          mt::log() << "Optimizing partition " << (partition_index + 1)
+                    << " of " << num_partitions << std::endl;
         }
         if (options.compare) {
           std::vector<Bytes> values;
           internal::Partition::forEachEntry(
-              partition_prefix,
-              [&](const Range& key, Iterator* iter) {
+              partition_prefix, [&](const Range& key, Iterator* iter) {
                 values.clear();
                 values.reserve(iter->available());
                 while (iter->hasNext()) {
@@ -275,8 +271,7 @@ void Map::optimize(const boost::filesystem::path& directory,
               });
         } else {
           internal::Partition::forEachEntry(
-              partition_prefix,
-              [&](const Range& key, Iterator* iter) {
+              partition_prefix, [&](const Range& key, Iterator* iter) {
                 while (iter->hasNext()) {
                   new_map.put(key, iter->next());
                 }

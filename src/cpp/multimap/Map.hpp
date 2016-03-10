@@ -46,7 +46,7 @@ class Map {
     bool create_if_missing = false;
     bool error_if_exists = false;
     bool readonly = false;
-    bool quiet = false;
+    bool verbose = true;
 
     std::function<bool(const Range&, const Range&)> compare;
 

@@ -70,8 +70,7 @@ class Block {
   bool readSizeWithFlag(uint32_t* size, bool* flag) {
     MT_REQUIRE_NOT_NULL(data_);
     if (pos() != end()) {
-      const byte* new_pos =
-          Varint::readFromBuffer(pos(), size, flag);
+      const byte* new_pos = Varint::readFromBuffer(pos(), size, flag);
       offset_ = new_pos - data_;
       return new_pos != end();
     }

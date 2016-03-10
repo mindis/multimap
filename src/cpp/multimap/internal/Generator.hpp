@@ -65,7 +65,8 @@ class SequenceGenerator : public Generator {
  public:
   SequenceGenerator() = default;
 
-  SequenceGenerator(size_t first_value) : first_value_(first_value), current_value_(first_value) {}
+  SequenceGenerator(size_t first_value)
+      : first_value_(first_value), current_value_(first_value) {}
 
   void reset() override { current_value_ = first_value_; }
 

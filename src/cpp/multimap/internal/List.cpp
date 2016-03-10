@@ -27,9 +27,9 @@ uint32_t List::Limits::maxValueSize() {
 List List::readFromStream(std::FILE* stream) {
   List list;
   mt::read(stream, &list.stats_.num_values_total,
-            sizeof list.stats_.num_values_total);
+           sizeof list.stats_.num_values_total);
   mt::read(stream, &list.stats_.num_values_removed,
-            sizeof list.stats_.num_values_removed);
+           sizeof list.stats_.num_values_removed);
   list.block_ids_ = UintVector::readFromStream(stream);
   return std::move(list);
 }
@@ -38,7 +38,7 @@ void List::writeToStream(std::FILE* stream) const {
   ReaderLockGuard<SharedMutex> lock(mutex_);
   mt::write(stream, &stats_.num_values_total, sizeof stats_.num_values_total);
   mt::write(stream, &stats_.num_values_removed,
-             sizeof stats_.num_values_removed);
+            sizeof stats_.num_values_removed);
   block_ids_.writeToStream(stream);
 }
 
