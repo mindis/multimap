@@ -22,6 +22,7 @@
 #include <boost/filesystem/operations.hpp>
 #include "multimap/internal/Base64.hpp"
 #include "multimap/internal/TsvFileReader.hpp"
+#include "multimap/Version.hpp"
 
 namespace multimap {
 
@@ -34,8 +35,6 @@ void checkOptions(const Map::Options& options) {
 }
 
 std::string getPrefix() { return "multimap.map"; }
-
-std::string getNameOfIdFile() { return getPrefix() + ".id"; }
 
 std::string getNameOfLockFile() { return getPrefix() + ".lock"; }
 
@@ -62,37 +61,21 @@ template <typename Procedure>
 //              size_t partition_index, size_t num_partitions);
 void forEachPartition(const boost::filesystem::path& directory,
                       Procedure process) {
-  mt::DirectoryLockGuard lock(directory.string(), getNameOfLockFile());
-  const auto id = Map::Id::readFromDirectory(directory);
-  Version::checkCompatibility(id.major_version, id.minor_version);
+  mt::DirectoryLockGuard lock(directory, getNameOfLockFile());
+  const auto meta = Meta::readFromDirectory(directory);
+  Version::checkCompatibility(meta.major_version, meta.minor_version);
 
   internal::Partition::Options partition_options;
-  partition_options.block_size = id.block_size;
+  partition_options.block_size = meta.block_size;
   partition_options.readonly = true;
 
-  for (size_t i = 0; i != id.num_partitions; ++i) {
+  for (size_t i = 0; i != meta.num_partitions; ++i) {
     const auto partition_prefix = (directory / getPartitionPrefix(i)).string();
-    process(partition_prefix, partition_options, i, id.num_partitions);
+    process(partition_prefix, partition_options, i, meta.num_partitions);
   }
 }
 
 }  // namespace
-
-Map::Id Map::Id::readFromDirectory(const boost::filesystem::path& directory) {
-  return readFromFile(directory / getNameOfIdFile());
-}
-
-Map::Id Map::Id::readFromFile(const boost::filesystem::path& filename) {
-  Id id;
-  const auto stream = mt::open(filename.string(), "r");
-  mt::read(stream.get(), &id, sizeof id);
-  return id;
-}
-
-void Map::Id::writeToFile(const boost::filesystem::path& filename) const {
-  const auto stream = mt::open(filename.string(), "w");
-  mt::write(stream.get(), this, sizeof *this);
-}
 
 uint32_t Map::Limits::maxKeySize() {
   return internal::Partition::Limits::maxKeySize();
@@ -106,37 +89,32 @@ Map::Map(const boost::filesystem::path& directory)
     : Map(directory, Options()) {}
 
 Map::Map(const boost::filesystem::path& directory, const Options& options)
-    : dlock_(directory.string(), getNameOfLockFile()) {
+    : dlock_(directory, getNameOfLockFile()) {
   checkOptions(options);
   internal::Partition::Options part_options;
   part_options.readonly = options.readonly;
   part_options.block_size = options.block_size;
   part_options.buffer_size = options.buffer_size;
-  const auto id_filename = directory / getNameOfIdFile();
-  if (boost::filesystem::is_regular_file(id_filename)) {
+  const auto meta_filename = directory / Meta::DEFAULT_FILENAME;
+  if (boost::filesystem::is_regular_file(meta_filename)) {
     mt::Check::isFalse(options.error_if_exists, "Map in '%s' already exists",
                        boost::filesystem::absolute(directory).c_str());
-    const auto id = Id::readFromFile(id_filename);
-    Version::checkCompatibility(id.major_version, id.minor_version);
-    partitions_.resize(id.num_partitions);
+    const auto meta = Meta::readFromFile(meta_filename);
+    Version::checkCompatibility(meta.major_version, meta.minor_version);
+    partitions_.resize(meta.num_partitions);
 
   } else {
     mt::Check::isTrue(options.create_if_missing, "Map in '%s' does not exist",
                       boost::filesystem::absolute(directory).c_str());
     partitions_.resize(mt::nextPrime(options.num_partitions));
+    Meta meta;
+    meta.block_size = options.block_size;
+    meta.num_partitions = partitions_.size();
+    meta.writeToFile(meta_filename);
   }
-  for (size_t i = 0; i != partitions_.size(); ++i) {
+  for (size_t i = 0; i != partitions_.size(); i++) {
     const auto prefix = (directory / getPartitionPrefix(i)).string();
     partitions_[i].reset(new internal::Partition(prefix, part_options));
-  }
-}
-
-Map::~Map() {
-  if (!partitions_.empty()) {
-    Id id;
-    id.num_partitions = partitions_.size();
-    id.block_size = partitions_.front()->getBlockSize();
-    id.writeToFile(dlock_.directory() / getNameOfIdFile());
   }
 }
 
@@ -154,10 +132,10 @@ bool Map::isReadOnly() const { return partitions_.front()->isReadOnly(); }
 
 std::vector<Map::Stats> Map::stats(const boost::filesystem::path& directory) {
   mt::DirectoryLockGuard lock(directory.string(), getNameOfLockFile());
-  const auto id = Id::readFromDirectory(directory);
-  Version::checkCompatibility(id.major_version, id.minor_version);
+  const auto meta = Meta::readFromDirectory(directory);
+  Version::checkCompatibility(meta.major_version, meta.minor_version);
   std::vector<Stats> stats;
-  for (size_t i = 0; i != id.num_partitions; ++i) {
+  for (size_t i = 0; i != meta.num_partitions; i++) {
     const auto stats_file = directory / getNameOfStatsFile(i);
     stats.push_back(Stats::readFromFile(stats_file));
   }
@@ -187,7 +165,7 @@ void Map::importFromBase64(const boost::filesystem::path& directory,
   Bytes value;
   for (const auto& file : files) {
     if (!options.quiet) {
-      mt::log() << "Importing " << file.string() << std::endl;
+      mt::log() << "Importing " << file << std::endl;
     }
     internal::TsvFileReader reader(file);
     while (reader.read(&key, &value)) {
@@ -267,15 +245,15 @@ void Map::optimize(const boost::filesystem::path& directory,
 void Map::optimize(const boost::filesystem::path& directory,
                    const boost::filesystem::path& target,
                    const Options& options) {
-  const auto id = Id::readFromDirectory(directory);
+  const auto meta = Meta::readFromDirectory(directory);
   Options new_options = options;
   new_options.error_if_exists = true;
   new_options.create_if_missing = true;
   if (options.block_size == 0) {
-    new_options.block_size = id.block_size;
+    new_options.block_size = meta.block_size;
   }
   if (options.num_partitions == 0) {
-    new_options.num_partitions = id.num_partitions;
+    new_options.num_partitions = meta.num_partitions;
   }
   Map new_map(target, new_options);
 
