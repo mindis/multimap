@@ -239,8 +239,9 @@ void ImmutableMap::exportToBase64(const boost::filesystem::path& directory,
       std::vector<Range> values;
       map.tables_[i].forEachEntry([&writer, &arena, &options, &values](
           const Range& key, Iterator* iter) {
-        values.clear();
         arena.deallocateAll();
+        values.reserve(iter->available());
+        values.clear();
         while (iter->hasNext()) {
           values.push_back(iter->next().makeCopy(
               [&arena](size_t size) { return arena.allocate(size); }));
