@@ -29,10 +29,10 @@ const auto IMPORT   = "import";
 const auto EXPORT   = "export";
 const auto OPTIMIZE = "optimize";
 
-const auto BS     = "-bs";
-const auto CREATE = "-create";
-const auto NPARTS = "-nparts";
-const auto QUIET  = "-quiet";
+const auto BS       = "-bs";
+const auto CREATE   = "-create";
+const auto NPARTS   = "-nparts";
+const auto QUIET    = "-quiet";
 // clang-format on
 
 const auto COMMANDS = {HELP, STATS, IMPORT, EXPORT, OPTIMIZE};
