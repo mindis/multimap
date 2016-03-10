@@ -31,8 +31,7 @@ struct Version {
   static void checkCompatibility(int extern_major, int extern_minor);
 
   static bool isCompatible(int extern_major, int extern_minor,
-                           int library_major = MAJOR,
-                           int library_minor = MINOR);
+                           int lib_major = MAJOR, int lib_minor = MINOR);
 
   Version() = delete;
 };
