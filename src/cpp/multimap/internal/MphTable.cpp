@@ -112,7 +112,7 @@ Mph buildMphFromKeys(const Map& map, const MphTable::Options& options) {
   }
   Mph::Options mph_options;
   mph_options.algorithm = CMPH_BDZ;
-  mph_options.quiet = options.quiet;
+  mph_options.verbose = options.verbose;
   return Mph::build(keys.data(), keys.size(), mph_options);
 }
 
@@ -317,7 +317,7 @@ void MphTable::forEachEntry(BinaryProcedure process) const {
 MphTable::Stats MphTable::build(const std::string& prefix,
                                 const boost::filesystem::path& source,
                                 const Options& options) {
-  if (!options.quiet) mt::log() << "Reading " << source.string() << std::endl;
+  if (options.verbose) mt::log() << "Reading " << source.string() << std::endl;
   auto map_and_arena = readRecordsFromFile(source);
   Map& map = map_and_arena.first;
   if (options.compare) {
@@ -326,7 +326,7 @@ MphTable::Stats MphTable::build(const std::string& prefix,
     }
   }
   const Mph mph = buildMphFromKeys(map, options);
-  return writeMap(prefix, map, mph, !options.quiet);
+  return writeMap(prefix, map, mph, options.verbose);
 }
 
 MphTable::Stats MphTable::stats(const std::string& prefix) {

@@ -79,7 +79,7 @@ void ImmutableMap::Builder::put(const Range& key, const Range& value) {
   if (bucket.size > options_.max_bucket_size && !bucket.is_large) {
     // Double number of buckets and rehash all records.
     std::vector<Bucket> new_buckets(mt::nextPrime(buckets_.size() * 2));
-    if (!options_.quiet)
+    if (options_.verbose)
       mt::log() << "Rehashing from " << buckets_.size() << " to "
                 << new_buckets.size() << " buckets triggered by "
                 << bucket.filename.string() << std::endl;
@@ -112,7 +112,7 @@ void ImmutableMap::Builder::put(const Range& key, const Range& value) {
       }
     }
     buckets_ = std::move(new_buckets);
-    if (!options_.quiet) mt::log() << "Rehashing finished" << std::endl;
+    if (options_.verbose) mt::log() << "Rehashing finished" << std::endl;
   }
 }
 
@@ -206,7 +206,7 @@ void ImmutableMap::buildFromBase64(const boost::filesystem::path& directory,
   Bytes key;
   Bytes value;
   for (const auto& file : files) {
-    if (!options.quiet) {
+    if (options.verbose) {
       mt::log() << "Importing " << file.string() << std::endl;
     }
     internal::TsvFileReader reader(file);
@@ -228,7 +228,7 @@ void ImmutableMap::exportToBase64(const boost::filesystem::path& directory,
   ImmutableMap map(directory);
   internal::TsvFileWriter writer(target);
   for (size_t i = 0; i != map.tables_.size(); i++) {
-    if (!options.quiet) {
+    if (options.verbose) {
       mt::log() << "Exporting partition " << (i + 1) << " of "
                 << map.tables_.size() << std::endl;
     }

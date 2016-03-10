@@ -37,7 +37,7 @@ class MphTable {
   };
 
   struct Options {
-    bool quiet = false;
+    bool verbose = true;
     std::function<bool(const Range&, const Range&)> compare;
   };
 
