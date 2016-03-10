@@ -137,7 +137,7 @@ ImmutableMap::ImmutableMap(const boost::filesystem::path& directory)
   const auto meta = Meta::readFromDirectory(directory);
   Version::checkCompatibility(meta.major_version, meta.minor_version);
   for (size_t i = 0; i != meta.num_partitions; i++) {
-    tables_.push_back(internal::MphTable(getPrefix(i)));
+    tables_.push_back(internal::MphTable(directory / getPrefix(i)));
   }
 }
 
