@@ -33,7 +33,7 @@
 namespace multimap {
 namespace internal {
 
-class Partition : public mt::Resource {
+class Partition {
   static const char* ATTEMPT_TO_MODIFY_READ_ONLY_PARTITION;
 
  public:

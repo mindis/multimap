@@ -27,7 +27,7 @@
 namespace multimap {
 namespace internal {
 
-class Store : public mt::Resource {
+class Store {
  public:
   struct Options {
     uint32_t block_size = 512;

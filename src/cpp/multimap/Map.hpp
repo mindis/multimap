@@ -28,7 +28,7 @@
 
 namespace multimap {
 
-class Map : public mt::Resource {
+class Map {
  public:
   // ---------------------------------------------------------------------------
   // Member types

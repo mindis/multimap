@@ -45,7 +45,7 @@
 
 namespace mt {
 
-static const uint32_t VERSION = 20160309;
+static const uint32_t VERSION = 20160310;
 
 // -----------------------------------------------------------------------------
 // COMMON
@@ -73,17 +73,6 @@ constexpr bool is32BitSystem() { return sizeof(void*) == 4; }
 constexpr bool is64BitSystem() { return sizeof(void*) == 8; }
 
 uint64_t currentResidentMemory();
-
-struct Resource {
-  // Types representing resources are not copyable or moveable.
-  // To enforce this rule such types should derive from this class.
-
-  Resource() = default;
-  Resource(const Resource&) = delete;
-  Resource& operator=(const Resource&) = delete;
-
-  // Move construction and assignment are implicitly disabled.
-};
 
 // -----------------------------------------------------------------------------
 // ALGORITHM
@@ -490,12 +479,15 @@ inline uint64_t tell(std::FILE* stream) {
   return offset;
 }
 
-class DirectoryLockGuard : public Resource {
+class DirectoryLockGuard {
  public:
   static const char* DEFAULT_FILENAME;
 
   DirectoryLockGuard(const boost::filesystem::path& directory,
                      const std::string& filename = DEFAULT_FILENAME);
+
+  DirectoryLockGuard(const DirectoryLockGuard&) = delete;
+  DirectoryLockGuard& operator=(const DirectoryLockGuard&) = delete;
 
   ~DirectoryLockGuard();
 

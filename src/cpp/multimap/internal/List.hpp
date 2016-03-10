@@ -203,7 +203,7 @@ class List {
  private:
   template <bool IsMutable>
   class Iter : public Iterator {
-    class Stream : public mt::Resource {
+    class Stream {
      public:
       static const uint32_t BLOCK_CACHE_SIZE = 1024;
 
