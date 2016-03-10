@@ -81,7 +81,7 @@ class Range {
   // Writing Range objects to a buffer or file stream is self-describing, i.e.
   // the size of the range in number of bytes is part of the serialization and
   // does not need to be maintained separately. This way ranges can be restored
-  // by parsing the buffer or file stream, which can be done via class Bytes.
+  // parsing the buffer or file stream. The latter can be done via class Bytes.
   // The encoding is as follows: [number of bytes as varint][actual data bytes]
 
   static Range readFromBuffer(const byte* buffer);
