@@ -25,7 +25,6 @@
 #include <memory>
 #include <vector>
 #include "multimap/internal/MphTable.hpp"
-#include "multimap/Version.hpp"
 
 namespace multimap {
 
@@ -33,19 +32,6 @@ class ImmutableMap {
   // This class is read-only and does not need external locking.
 
  public:
-  struct Id {
-    uint64_t num_tables = 0;
-    uint64_t major_version = Version::MAJOR;
-    uint64_t minor_version = Version::MINOR;
-
-    static Id readFromDirectory(const boost::filesystem::path& directory);
-    static Id readFromFile(const boost::filesystem::path& filename);
-    void writeToFile(const boost::filesystem::path& filename) const;
-  };
-
-  static_assert(mt::hasExpectedSize<Id>(24, 24),
-                "struct ImmutableMap::Id does not have expected size");
-
   struct Limits {
     static uint32_t maxKeySize();
     static uint32_t maxValueSize();
