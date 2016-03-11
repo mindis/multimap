@@ -195,12 +195,10 @@ class Map {
 
  private:
   internal::Partition* getPartition(const Range& key) {
-    //    const auto hash = mt::fnv1aHash(key.data(), key.size());
     return partitions_[std::hash<Range>()(key) % partitions_.size()].get();
   }
 
   const internal::Partition* getPartition(const Range& key) const {
-    //    const auto hash = mt::fnv1aHash(key.data(), key.size());
     return partitions_[std::hash<Range>()(key) % partitions_.size()].get();
   }
 
