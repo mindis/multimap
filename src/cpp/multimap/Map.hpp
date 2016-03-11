@@ -24,6 +24,7 @@
 
 #include <memory>
 #include <vector>
+#include "multimap/internal/Locks.hpp"
 #include "multimap/internal/Partition.hpp"
 
 namespace multimap {
@@ -203,7 +204,7 @@ class Map {
   }
 
   std::vector<std::unique_ptr<internal::Partition> > partitions_;
-  mt::DirectoryLockGuard dlock_;
+  internal::DirectoryLock dlock_;
 };
 
 }  // namespace multimap
