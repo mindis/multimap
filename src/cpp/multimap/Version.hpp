@@ -18,9 +18,6 @@
 #ifndef MULTIMAP_VERSION_HPP_INCLUDED
 #define MULTIMAP_VERSION_HPP_INCLUDED
 
-#include <boost/filesystem/path.hpp>
-#include "multimap/thirdparty/mt/mt.hpp"
-
 namespace multimap {
 
 struct Version {
@@ -36,37 +33,6 @@ struct Version {
   Version() = delete;
 };
 
-namespace internal {
-
-const std::string& getCommonFilePrefix();
-const std::string& getNameOfLockFile();
-const std::string& getNameOfMetaFile();
-
-struct Meta {
-  enum Type { NONE, MAP, IMMUTABLE_MAP };
-
-  uint64_t major_version = Version::MAJOR;
-  uint64_t minor_version = Version::MINOR;
-  uint64_t num_partitions = 0;
-  uint64_t type = NONE;
-
-  static Meta readFromDirectory(
-      const boost::filesystem::path& directory,
-      const std::string& filename = getNameOfMetaFile());
-
-  static Meta readFromFile(const boost::filesystem::path& filename);
-
-  void writeToDirectory(
-      const boost::filesystem::path& directory,
-      const std::string& filename = getNameOfMetaFile()) const;
-
-  void writeToFile(const boost::filesystem::path& filename) const;
-};
-
-static_assert(mt::hasExpectedSize<Meta>(32, 32),
-              "struct Meta does not have expected size");
-
-}  // namespace internal
 }  // namespace multimap
 
 #endif  // MULTIMAP_VERSION_HPP_INCLUDED

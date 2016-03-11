@@ -17,6 +17,8 @@
 
 #include "multimap/Version.hpp"
 
+#include "multimap/thirdparty/mt/mt.hpp"
+
 namespace multimap {
 
 void Version::checkCompatibility(int extern_major, int extern_minor) {
@@ -34,44 +36,4 @@ bool Version::isCompatible(int extern_major, int extern_minor,
   return true;
 }
 
-namespace internal {
-
-const std::string& getCommonFilePrefix() {
-  static const std::string prefix = "multimap";
-  return prefix;
-}
-
-const std::string& getNameOfLockFile() {
-  static const std::string filename = getCommonFilePrefix() + ".lock";
-  return filename;
-}
-
-const std::string& getNameOfMetaFile() {
-  static const std::string filename = getCommonFilePrefix() + ".meta";
-  return filename;
-}
-
-Meta Meta::readFromDirectory(const boost::filesystem::path& directory,
-                             const std::string& filename) {
-  return readFromFile(directory / filename);
-}
-
-Meta Meta::readFromFile(const boost::filesystem::path& filename) {
-  Meta meta;
-  const auto stream = mt::open(filename, "r");
-  mt::read(stream.get(), &meta, sizeof meta);
-  return meta;
-}
-
-void Meta::writeToDirectory(const boost::filesystem::path& directory,
-                            const std::string& filename) const {
-  writeToFile(directory / filename);
-}
-
-void Meta::writeToFile(const boost::filesystem::path& filename) const {
-  const auto stream = mt::open(filename, "w");
-  mt::write(stream.get(), this, sizeof *this);
-}
-
-}  // namespace internal
 }  // namespace multimap

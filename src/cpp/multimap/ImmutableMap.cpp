@@ -19,9 +19,9 @@
 
 #include <boost/filesystem/operations.hpp>
 #include "multimap/internal/Arena.hpp"
+#include "multimap/internal/Descriptor.hpp"
 #include "multimap/internal/TsvFileReader.hpp"
 #include "multimap/internal/TsvFileWriter.hpp"
-#include "multimap/Version.hpp"
 
 namespace multimap {
 
@@ -125,20 +125,20 @@ std::vector<ImmutableMap::Stats> ImmutableMap::Builder::build() {
     boost::filesystem::remove(bucket.filename);
   }
 
-  internal::Meta meta;
-  meta.type = internal::Meta::IMMUTABLE_MAP;
-  meta.num_partitions = buckets_.size();
-  meta.writeToDirectory(dlock_.directory());
+  internal::Descriptor desc;
+  desc.type = internal::Descriptor::IMMUTABLE_MAP;
+  desc.num_partitions = buckets_.size();
+  desc.writeToDirectory(dlock_.directory());
 
   return stats;
 }
 
 ImmutableMap::ImmutableMap(const boost::filesystem::path& directory)
     : dlock_(directory) {
-  const auto meta = internal::Meta::readFromDirectory(directory);
-  Version::checkCompatibility(meta.major_version, meta.minor_version);
-  mt::check(meta.type == internal::Meta::IMMUTABLE_MAP, "Wrong map type");
-  for (size_t i = 0; i != meta.num_partitions; i++) {
+  const auto desc = internal::Descriptor::readFromDirectory(directory);
+  Version::checkCompatibility(desc.major_version, desc.minor_version);
+  mt::check(desc.type == internal::Descriptor::IMMUTABLE_MAP, "Wrong map type");
+  for (size_t i = 0; i != desc.num_partitions; i++) {
     const auto full_prefix = directory / getPartitionPrefix(i);
     tables_.push_back(internal::MphTable(full_prefix.string()));
   }
@@ -178,9 +178,9 @@ ImmutableMap::Stats ImmutableMap::getTotalStats() const {
 
 std::vector<ImmutableMap::Stats> ImmutableMap::stats(
     const boost::filesystem::path& directory) {
-  const auto meta = internal::Meta::readFromDirectory(directory);
-  std::vector<ImmutableMap::Stats> stats(meta.num_partitions);
-  for (size_t i = 0; i != meta.num_partitions; i++) {
+  const auto desc = internal::Descriptor::readFromDirectory(directory);
+  std::vector<ImmutableMap::Stats> stats(desc.num_partitions);
+  for (size_t i = 0; i != desc.num_partitions; i++) {
     stats[i] = internal::MphTable::stats(getPartitionPrefix(i));
   }
   return stats;

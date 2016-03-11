@@ -20,9 +20,9 @@
 #include <algorithm>
 #include <iostream>
 #include <boost/filesystem/operations.hpp>
+#include "multimap/internal/Descriptor.hpp"
 #include "multimap/internal/TsvFileWriter.hpp"
 #include "multimap/internal/TsvFileReader.hpp"
-#include "multimap/Version.hpp"
 
 namespace multimap {
 
@@ -62,12 +62,12 @@ template <typename Procedure>
 void forEachPartition(const boost::filesystem::path& directory,
                       Procedure process) {
   mt::DirectoryLockGuard lock(directory, internal::getNameOfLockFile());
-  const auto meta = internal::Meta::readFromDirectory(directory);
-  Version::checkCompatibility(meta.major_version, meta.minor_version);
+  const auto desc = internal::Descriptor::readFromDirectory(directory);
+  Version::checkCompatibility(desc.major_version, desc.minor_version);
 
-  for (size_t i = 0; i != meta.num_partitions; i++) {
+  for (size_t i = 0; i != desc.num_partitions; i++) {
     const auto prefix = directory / getPartitionPrefix(i);
-    process(prefix.string(), i, meta.num_partitions);
+    process(prefix.string(), i, desc.num_partitions);
   }
 }
 
@@ -94,19 +94,19 @@ Map::Map(const boost::filesystem::path& directory, const Options& options)
   if (boost::filesystem::is_regular_file(meta_filename)) {
     mt::Check::isFalse(options.error_if_exists, "Map in '%s' already exists",
                        boost::filesystem::absolute(directory).c_str());
-    const auto meta = internal::Meta::readFromFile(meta_filename);
-    Version::checkCompatibility(meta.major_version, meta.minor_version);
-    mt::check(meta.type == internal::Meta::MAP, "Wrong map type");
-    partitions_.resize(meta.num_partitions);
+    const auto desc = internal::Descriptor::readFromFile(meta_filename);
+    Version::checkCompatibility(desc.major_version, desc.minor_version);
+    mt::check(desc.type == internal::Descriptor::MAP, "Wrong map type");
+    partitions_.resize(desc.num_partitions);
 
   } else {
     mt::Check::isTrue(options.create_if_missing, "Map in '%s' does not exist",
                       boost::filesystem::absolute(directory).c_str());
     partitions_.resize(mt::nextPrime(options.num_partitions));
-    internal::Meta meta;
-    meta.type = internal::Meta::MAP;
-    meta.num_partitions = partitions_.size();
-    meta.writeToFile(meta_filename);
+    internal::Descriptor desc;
+    desc.type = internal::Descriptor::MAP;
+    desc.num_partitions = partitions_.size();
+    desc.writeToFile(meta_filename);
   }
   for (size_t i = 0; i != partitions_.size(); i++) {
     const auto prefix = (directory / getPartitionPrefix(i)).string();
@@ -128,10 +128,10 @@ bool Map::isReadOnly() const { return partitions_.front()->isReadOnly(); }
 
 std::vector<Map::Stats> Map::stats(const boost::filesystem::path& directory) {
   mt::DirectoryLockGuard lock(directory, internal::getNameOfLockFile());
-  const auto meta = internal::Meta::readFromDirectory(directory);
-  Version::checkCompatibility(meta.major_version, meta.minor_version);
+  const auto desc = internal::Descriptor::readFromDirectory(directory);
+  Version::checkCompatibility(desc.major_version, desc.minor_version);
   std::vector<Stats> stats;
-  for (size_t i = 0; i != meta.num_partitions; i++) {
+  for (size_t i = 0; i != desc.num_partitions; i++) {
     const auto stats_file = directory / getNameOfStatsFile(i);
     stats.push_back(Stats::readFromFile(stats_file));
   }
@@ -179,16 +179,16 @@ void Map::exportToBase64(const boost::filesystem::path& directory,
                          const boost::filesystem::path& target,
                          const Options& options) {
   mt::DirectoryLockGuard lock(directory, internal::getNameOfLockFile());
-  const auto meta = internal::Meta::readFromDirectory(directory);
-  Version::checkCompatibility(meta.major_version, meta.minor_version);
-  mt::check(meta.type == internal::Meta::MAP, "Wrong map type");
+  const auto desc = internal::Descriptor::readFromDirectory(directory);
+  Version::checkCompatibility(desc.major_version, desc.minor_version);
+  mt::check(desc.type == internal::Descriptor::MAP, "Wrong map type");
   internal::TsvFileWriter writer(target);
 
-  for (size_t i = 0; i != meta.num_partitions; i++) {
+  for (size_t i = 0; i != desc.num_partitions; i++) {
     const auto prefix = directory / getPartitionPrefix(i);
     if (options.verbose) {
       mt::log() << "Exporting partition " << (i + 1) << " of "
-                << meta.num_partitions << std::endl;
+                << desc.num_partitions << std::endl;
     }
     if (options.compare) {
       internal::Arena arena;
@@ -227,7 +227,7 @@ void Map::optimize(const boost::filesystem::path& directory,
 void Map::optimize(const boost::filesystem::path& directory,
                    const boost::filesystem::path& target,
                    const Options& options) {
-  const auto meta = internal::Meta::readFromDirectory(directory);
+  const auto desc = internal::Descriptor::readFromDirectory(directory);
   const auto stats = Stats::readFromFile(directory / getNameOfStatsFile(0));
   Options new_options = options;
   new_options.error_if_exists = true;
@@ -236,7 +236,7 @@ void Map::optimize(const boost::filesystem::path& directory,
     new_options.block_size = stats.block_size;
   }
   if (options.num_partitions == 0) {
-    new_options.num_partitions = meta.num_partitions;
+    new_options.num_partitions = desc.num_partitions;
   }
   Map new_map(target, new_options);
 

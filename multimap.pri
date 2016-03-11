@@ -15,6 +15,7 @@ HEADERS += \
     src/cpp/multimap/internal/Arena.hpp \
     src/cpp/multimap/internal/Base64.hpp \
     src/cpp/multimap/internal/Block.hpp \
+    src/cpp/multimap/internal/Descriptor.hpp \
     src/cpp/multimap/internal/List.hpp \
     src/cpp/multimap/internal/Locks.hpp \
     src/cpp/multimap/internal/Mph.hpp \
@@ -77,6 +78,7 @@ HEADERS += \
 SOURCES += \
     src/cpp/multimap/internal/Arena.cpp \
     src/cpp/multimap/internal/Base64.cpp \
+    src/cpp/multimap/internal/Descriptor.cpp \
     src/cpp/multimap/internal/List.cpp \
     src/cpp/multimap/internal/Mph.cpp \
     src/cpp/multimap/internal/MphTable.cpp \
