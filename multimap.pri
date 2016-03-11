@@ -22,7 +22,6 @@ HEADERS += \
     src/cpp/multimap/internal/MphTable.hpp \
     src/cpp/multimap/internal/Partition.hpp \
     src/cpp/multimap/internal/SharedMutex.hpp \
-    src/cpp/multimap/internal/Stats.hpp \
     src/cpp/multimap/internal/Store.hpp \
     src/cpp/multimap/internal/TsvFileReader.hpp \
     src/cpp/multimap/internal/TsvFileWriter.hpp \
@@ -73,6 +72,7 @@ HEADERS += \
     src/cpp/multimap/Iterator.hpp \
     src/cpp/multimap/Map.hpp \
     src/cpp/multimap/Range.hpp \
+    src/cpp/multimap/Stats.hpp \
     src/cpp/multimap/Version.hpp
 
 SOURCES += \
@@ -84,7 +84,6 @@ SOURCES += \
     src/cpp/multimap/internal/MphTable.cpp \
     src/cpp/multimap/internal/Partition.cpp \
     src/cpp/multimap/internal/SharedMutex.cpp \
-    src/cpp/multimap/internal/Stats.cpp \
     src/cpp/multimap/internal/Store.cpp \
     src/cpp/multimap/internal/TsvFileReader.cpp \
     src/cpp/multimap/internal/TsvFileWriter.cpp \
@@ -120,6 +119,7 @@ SOURCES += \
     src/cpp/multimap/Iterator.cpp \
     src/cpp/multimap/Map.cpp \
     src/cpp/multimap/Range.cpp \
+    src/cpp/multimap/Stats.cpp \
     src/cpp/multimap/Version.cpp
 
 unix:!macx: LIBS += -lboost_filesystem -lboost_system -lboost_thread -lpthread
