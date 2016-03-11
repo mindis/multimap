@@ -34,25 +34,31 @@ void checkOptions(const Map::Options& options) {
                     "Map's block size must be a power of two");
 }
 
-const std::string& getPrefix() {
-  static const auto prefix = internal::getCommonFilePrefix() + ".map";
-  return prefix;
+std::string getFilePrefix(const boost::filesystem::path& basedir) {
+  return internal::Descriptor::getFullFilePrefix(basedir) + ".map";
 }
 
-std::string getPartitionPrefix(size_t index) {
-  return getPrefix() + '.' + std::to_string(index);
+std::string getPartitionPrefix(const boost::filesystem::path& basedir,
+                               size_t index) {
+  return getFilePrefix(basedir) + '.' + std::to_string(index);
 }
 
-std::string getNameOfKeysFile(size_t index) {
-  return internal::Partition::getNameOfMapFile(getPartitionPrefix(index));
+std::string getNameOfKeysFile(const boost::filesystem::path& basedir,
+                              size_t index) {
+  return internal::Partition::getNameOfMapFile(
+      getPartitionPrefix(basedir, index));
 }
 
-std::string getNameOfStatsFile(size_t index) {
-  return internal::Partition::getNameOfStatsFile(getPartitionPrefix(index));
+std::string getNameOfStatsFile(const boost::filesystem::path& basedir,
+                               size_t index) {
+  return internal::Partition::getNameOfStatsFile(
+      getPartitionPrefix(basedir, index));
 }
 
-std::string getNameOfValuesFile(size_t index) {
-  return internal::Partition::getNameOfStoreFile(getPartitionPrefix(index));
+std::string getNameOfValuesFile(const boost::filesystem::path& basedir,
+                                size_t index) {
+  return internal::Partition::getNameOfStoreFile(
+      getPartitionPrefix(basedir, index));
 }
 
 }  // namespace
@@ -69,35 +75,33 @@ Map::Map(const boost::filesystem::path& directory)
     : Map(directory, Options()) {}
 
 Map::Map(const boost::filesystem::path& directory, const Options& options)
-    : dlock_(directory, internal::getNameOfLockFile()) {
+    : dlock_(directory) {
   checkOptions(options);
   internal::Partition::Options part_options;
   part_options.readonly = options.readonly;
   part_options.block_size = options.block_size;
-  const auto desc_filename = directory / internal::getNameOfDescriptorFile();
-  if (boost::filesystem::is_regular_file(desc_filename)) {
+  internal::Descriptor descriptor;
+  if (internal::Descriptor::tryReadFromDirectory(
+          directory, internal::Descriptor::MAP, &descriptor)) {
     mt::Check::isFalse(options.error_if_exists, "Map in '%s' already exists",
                        boost::filesystem::absolute(directory).c_str());
-    const auto desc = internal::Descriptor::readFromFile(
-        desc_filename, internal::Descriptor::MAP);
-    partitions_.resize(desc.num_partitions);
+    partitions_.resize(descriptor.num_partitions);
 
   } else {
     mt::Check::isTrue(options.create_if_missing, "Map in '%s' does not exist",
                       boost::filesystem::absolute(directory).c_str());
     partitions_.resize(mt::nextPrime(options.num_partitions));
-    internal::Descriptor desc;
-    desc.type = internal::Descriptor::MAP;
-    desc.num_partitions = partitions_.size();
-    desc.writeToFile(desc_filename);
+    descriptor.type = internal::Descriptor::MAP;
+    descriptor.num_partitions = partitions_.size();
+    descriptor.writeToDirectory(directory);
   }
   for (size_t i = 0; i != partitions_.size(); i++) {
-    const auto prefix = (directory / getPartitionPrefix(i)).string();
+    const auto prefix = getPartitionPrefix(directory, i);
     partitions_[i].reset(new internal::Partition(prefix, part_options));
   }
 }
 
-std::vector<Map::Stats> Map::getStats() const {
+std::vector<Stats> Map::getStats() const {
   std::vector<Stats> stats;
   for (const auto& partition : partitions_) {
     stats.push_back(partition->getStats());
@@ -105,18 +109,18 @@ std::vector<Map::Stats> Map::getStats() const {
   return stats;
 }
 
-Map::Stats Map::getTotalStats() const { return Stats::total(getStats()); }
+Stats Map::getTotalStats() const { return Stats::total(getStats()); }
 
 bool Map::isReadOnly() const { return partitions_.front()->isReadOnly(); }
 
-std::vector<Map::Stats> Map::stats(const boost::filesystem::path& directory) {
-  mt::DirectoryLockGuard lock(directory, internal::getNameOfLockFile());
-  const auto desc = internal::Descriptor::readFromDirectory(
+std::vector<Stats> Map::stats(const boost::filesystem::path& directory) {
+  internal::DirectoryLock lock(directory);
+  const auto descriptor = internal::Descriptor::readFromDirectory(
       directory, internal::Descriptor::MAP);
   std::vector<Stats> stats;
-  for (size_t i = 0; i != desc.num_partitions; i++) {
-    const auto stats_file = directory / getNameOfStatsFile(i);
-    stats.push_back(Stats::readFromFile(stats_file));
+  for (size_t i = 0; i != descriptor.num_partitions; i++) {
+    const auto filename = getNameOfStatsFile(directory, i);
+    stats.push_back(Stats::readFromFile(filename));
   }
   return stats;
 }
@@ -161,23 +165,23 @@ void Map::exportToBase64(const boost::filesystem::path& directory,
 void Map::exportToBase64(const boost::filesystem::path& directory,
                          const boost::filesystem::path& target,
                          const Options& options) {
-  mt::DirectoryLockGuard lock(directory, internal::getNameOfLockFile());
-  const auto desc = internal::Descriptor::readFromDirectory(
+  internal::DirectoryLock lock(directory);
+  const auto descriptor = internal::Descriptor::readFromDirectory(
       directory, internal::Descriptor::MAP);
   internal::TsvFileWriter writer(target);
 
-  for (size_t i = 0; i != desc.num_partitions; i++) {
-    const auto prefix = directory / getPartitionPrefix(i);
+  for (size_t i = 0; i != descriptor.num_partitions; i++) {
+    const auto prefix = getPartitionPrefix(directory, i);
     if (options.verbose) {
       mt::log() << "Exporting partition " << (i + 1) << " of "
-                << desc.num_partitions << std::endl;
+                << descriptor.num_partitions << std::endl;
     }
     if (options.compare) {
       internal::Arena arena;
       std::vector<Range> values;
       internal::Partition::forEachEntry(
-          prefix.string(), [&writer, &arena, &options, &values](
-                               const Range& key, Iterator* iter) {
+          prefix, [&writer, &arena, &options, &values](const Range& key,
+                                                       Iterator* iter) {
             arena.deallocateAll();
             values.reserve(iter->available());
             values.clear();
@@ -191,7 +195,7 @@ void Map::exportToBase64(const boost::filesystem::path& directory,
           });
     } else {
       internal::Partition::forEachEntry(
-          prefix.string(), [&writer](const Range& key, Iterator* iter) {
+          prefix, [&writer](const Range& key, Iterator* iter) {
             writer.write(key, iter);
           });
     }
@@ -209,9 +213,9 @@ void Map::optimize(const boost::filesystem::path& directory,
 void Map::optimize(const boost::filesystem::path& directory,
                    const boost::filesystem::path& target,
                    const Options& options) {
-  const auto desc = internal::Descriptor::readFromDirectory(
+  const auto descriptor = internal::Descriptor::readFromDirectory(
       directory, internal::Descriptor::MAP);
-  const auto stats = Stats::readFromFile(directory / getNameOfStatsFile(0));
+  const auto stats = Stats::readFromFile(getNameOfStatsFile(directory, 0));
   Options new_options = options;
   new_options.error_if_exists = true;
   new_options.create_if_missing = true;
@@ -219,22 +223,22 @@ void Map::optimize(const boost::filesystem::path& directory,
     new_options.block_size = stats.block_size;
   }
   if (options.num_partitions == 0) {
-    new_options.num_partitions = desc.num_partitions;
+    new_options.num_partitions = descriptor.num_partitions;
   }
   Map new_map(target, new_options);
 
-  for (size_t i = 0; i != desc.num_partitions; i++) {
-    const auto prefix = directory / getPartitionPrefix(i);
+  for (size_t i = 0; i != descriptor.num_partitions; i++) {
+    const auto prefix = getPartitionPrefix(directory, i);
     if (options.verbose) {
       mt::log() << "Optimizing partition " << (i + 1) << " of "
-                << desc.num_partitions << std::endl;
+                << descriptor.num_partitions << std::endl;
     }
     if (options.compare) {
       internal::Arena arena;
       std::vector<Range> values;
       internal::Partition::forEachEntry(
-          prefix.string(), [&new_map, &arena, &options, &values](
-                               const Range& key, Iterator* iter) {
+          prefix, [&new_map, &arena, &options, &values](const Range& key,
+                                                        Iterator* iter) {
             arena.deallocateAll();
             values.reserve(iter->available());
             values.clear();
@@ -249,7 +253,7 @@ void Map::optimize(const boost::filesystem::path& directory,
           });
     } else {
       internal::Partition::forEachEntry(
-          prefix.string(), [&new_map](const Range& key, Iterator* iter) {
+          prefix, [&new_map](const Range& key, Iterator* iter) {
             while (iter->hasNext()) {
               new_map.put(key, iter->next());
             }

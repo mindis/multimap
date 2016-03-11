@@ -25,10 +25,6 @@
 namespace multimap {
 namespace internal {
 
-const std::string& getCommonFilePrefix();
-const std::string& getNameOfDescriptorFile();
-const std::string& getNameOfLockFile();
-
 struct Descriptor {
   enum Type { NONE, MAP, IMMUTABLE_MAP };
 
@@ -37,17 +33,23 @@ struct Descriptor {
   uint64_t num_partitions = 0;
   uint64_t type = NONE;
 
-  static std::string toString(Type type);
+  static std::string getFilename();
+
+  static std::string getFilePrefix();
+
+  static std::string getFullFilename(const boost::filesystem::path& base);
+
+  static std::string getFullFilePrefix(const boost::filesystem::path& base);
 
   static Descriptor readFromDirectory(const boost::filesystem::path& directory,
                                       Type expected_type);
 
-  static Descriptor readFromFile(const boost::filesystem::path& filename,
-                                 Type expected_type);
+  static bool tryReadFromDirectory(const boost::filesystem::path& directory,
+                                   Type expected_type, Descriptor* output);
 
   void writeToDirectory(const boost::filesystem::path& directory) const;
 
-  void writeToFile(const boost::filesystem::path& filename) const;
+  static std::string toString(Type type);
 };
 
 static_assert(mt::hasExpectedSize<Descriptor>(32, 32),

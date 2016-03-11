@@ -24,6 +24,7 @@
 
 #include <memory>
 #include <vector>
+#include "multimap/internal/Locks.hpp"
 #include "multimap/internal/MphTable.hpp"
 
 namespace multimap {
@@ -42,7 +43,6 @@ class ImmutableMap {
     uint32_t num_buckets = 23;
   };
 
-  typedef internal::MphTable::Stats Stats;
   typedef internal::MphTable::Procedure Procedure;
   typedef internal::MphTable::BinaryProcedure BinaryProcedure;
 
@@ -64,7 +64,7 @@ class ImmutableMap {
 
     const Options options_;
     std::vector<Bucket> buckets_;
-    mt::DirectoryLockGuard dlock_;
+    internal::DirectoryLock dlock_;
   };
 
   explicit ImmutableMap(const boost::filesystem::path& directory);
@@ -103,7 +103,7 @@ class ImmutableMap {
 
  private:
   std::vector<internal::MphTable> tables_;
-  mt::DirectoryLockGuard dlock_;
+  internal::DirectoryLock dlock_;
 };
 
 }  // namespace multimap

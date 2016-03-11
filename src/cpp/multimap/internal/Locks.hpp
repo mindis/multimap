@@ -21,6 +21,8 @@
 #include <boost/thread/lock_guard.hpp>
 #include <boost/thread/lock_types.hpp>
 #include <boost/thread/shared_lock_guard.hpp>
+#include "multimap/internal/Descriptor.hpp"
+#include "multimap/thirdparty/mt/mt.hpp"
 
 namespace multimap {
 namespace internal {
@@ -38,6 +40,21 @@ template <typename SharedMutex>
 using WriterLockGuard = boost::lock_guard<SharedMutex>;
 
 constexpr boost::try_to_lock_t TRY_TO_LOCK{};
+
+struct DirectoryLock {
+ public:
+  DirectoryLock(const boost::filesystem::path& directory)
+      : dlock_(directory, Descriptor::getFilePrefix() + ".lock") {}
+
+  const boost::filesystem::path& directory() const {
+    return dlock_.directory();
+  }
+
+  const std::string& filename() const { return dlock_.filename(); }
+
+ private:
+  mt::DirectoryLockGuard dlock_;
+};
 
 }  // namespace internal
 }  // namespace multimap

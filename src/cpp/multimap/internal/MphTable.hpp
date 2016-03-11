@@ -21,8 +21,8 @@
 #include <functional>
 #include <boost/filesystem/path.hpp>
 #include "multimap/internal/Mph.hpp"
-#include "multimap/internal/Stats.hpp"
 #include "multimap/Iterator.hpp"
+#include "multimap/Stats.hpp"
 
 namespace multimap {
 namespace internal {
@@ -41,7 +41,6 @@ class MphTable {
     std::function<bool(const Range&, const Range&)> compare;
   };
 
-  typedef internal::Stats Stats;
   typedef std::function<void(const Range&)> Procedure;
   typedef std::function<void(const Range&, Iterator*)> BinaryProcedure;
 

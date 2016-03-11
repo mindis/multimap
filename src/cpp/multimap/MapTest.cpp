@@ -174,7 +174,7 @@ TEST_P(MapTestWithParam, GetTotalStatsReturnsCorrectValuesAfterPuttingValues) {
 }
 
 TEST_P(MapTestWithParam, GetTotalStatsReturnsCorrectValuesAfterRemovingKeys) {
-  Map::Stats stats_backup;
+  Stats stats_backup;
   {
     auto map = openOrCreateMap(directory);
     for (auto k = 0; k != GetParam(); ++k) {
@@ -210,7 +210,7 @@ TEST_P(MapTestWithParam, GetTotalStatsReturnsCorrectValuesAfterRemovingKeys) {
 }
 
 TEST_P(MapTestWithParam, GetTotalStatsReturnsCorrectValuesAfterRemovingValues) {
-  Map::Stats stats_backup;
+  Stats stats_backup;
   {
     auto map = openOrCreateMap(directory);
     for (auto k = 0; k != GetParam(); ++k) {

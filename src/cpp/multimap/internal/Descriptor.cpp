@@ -20,19 +20,48 @@
 namespace multimap {
 namespace internal {
 
-const std::string& getCommonFilePrefix() {
-  static const std::string prefix = "multimap";
-  return prefix;
+std::string Descriptor::getFilename() { return getFilePrefix() + ".desc"; }
+
+std::string Descriptor::getFilePrefix() { return "multimap"; }
+
+std::string Descriptor::getFullFilename(const boost::filesystem::path& base) {
+  return (base / getFilename()).string();
 }
 
-const std::string& getNameOfLockFile() {
-  static const std::string filename = getCommonFilePrefix() + ".lock";
-  return filename;
+std::string Descriptor::getFullFilePrefix(const boost::filesystem::path& base) {
+  return (base / getFilePrefix()).string();
 }
 
-const std::string& getNameOfMetaFile() {
-  static const std::string filename = getCommonFilePrefix() + ".desc";
-  return filename;
+Descriptor Descriptor::readFromDirectory(
+    const boost::filesystem::path& directory, Type expected_type) {
+  Descriptor descriptor;
+  mt::check(tryReadFromDirectory(directory, expected_type, &descriptor),
+            "Reading descriptor from '%s' failed", directory.c_str());
+  return descriptor;
+}
+
+bool Descriptor::tryReadFromDirectory(const boost::filesystem::path& directory,
+                                      Type expected_type, Descriptor* output) {
+  const auto filename = directory / getFilename();
+  const auto stream = mt::tryOpen(filename, "r");
+  if (stream.get()) {
+    mt::read(stream.get(), output, sizeof *output);
+    Version::checkCompatibility(output->major_version, output->minor_version);
+    mt::check(expected_type == output->type,
+              "Attempt to open an instance of type '%s' from '%s' but the "
+              "actual type found was '%s'",
+              toString(expected_type).c_str(), filename.parent_path().c_str(),
+              toString(static_cast<Type>(output->type)).c_str());
+    return true;
+  }
+  return false;
+}
+
+void Descriptor::writeToDirectory(
+    const boost::filesystem::path& directory) const {
+  MT_REQUIRE_TRUE(type == MAP || type == IMMUTABLE_MAP);
+  const auto stream = mt::open(directory / getFilename(), "w");
+  mt::write(stream.get(), this, sizeof *this);
 }
 
 std::string Descriptor::toString(Type type) {
@@ -44,40 +73,9 @@ std::string Descriptor::toString(Type type) {
     case IMMUTABLE_MAP:
       return "ImmutableMap";
     default:
-      MT_FAIL("Default branch in switch statement reached");
+      MT_FAIL("Reached default branch in switch statement");
   }
   return "";
-}
-
-Descriptor Descriptor::readFromDirectory(
-    const boost::filesystem::path& directory, Type expected_type) {
-  return readFromFile(directory / getNameOfMetaFile(), expected_type);
-}
-
-Descriptor Descriptor::readFromFile(const boost::filesystem::path& filename,
-                                    Type expected_type) {
-  Descriptor desc;
-  const auto stream = mt::open(filename, "r");
-  mt::read(stream.get(), &desc, sizeof desc);
-  Version::checkCompatibility(desc.major_version, desc.minor_version);
-  mt::Check::isEqual(expected_type, desc.type,
-                     "Attempt to open an instance of type '%s' from '%s' but "
-                     "the actual type found was '%s'",
-                     toString(expected_type).c_str(),
-                     filename.parent_path().c_str(),
-                     toString(static_cast<Type>(desc.type)).c_str());
-  return desc;
-}
-
-void Descriptor::writeToDirectory(
-    const boost::filesystem::path& directory) const {
-  writeToFile(directory / getNameOfMetaFile());
-}
-
-void Descriptor::writeToFile(const boost::filesystem::path& filename) const {
-  MT_REQUIRE_TRUE(type == MAP || type == IMMUTABLE_MAP);
-  const auto stream = mt::open(filename, "w");
-  mt::write(stream.get(), this, sizeof *this);
 }
 
 }  // namespace internal

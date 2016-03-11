@@ -26,9 +26,9 @@
 #include "multimap/internal/Arena.hpp"
 #include "multimap/internal/List.hpp"
 #include "multimap/internal/Locks.hpp"
-#include "multimap/internal/Stats.hpp"
 #include "multimap/thirdparty/mt/mt.hpp"
 #include "multimap/Iterator.hpp"
+#include "multimap/Stats.hpp"
 
 namespace multimap {
 namespace internal {

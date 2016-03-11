@@ -116,8 +116,8 @@ Mph buildMphFromKeys(const Map& map, const MphTable::Options& options) {
   return Mph::build(keys.data(), keys.size(), mph_options);
 }
 
-MphTable::Stats writeMap(const std::string& prefix, const Map& map,
-                         const Mph& mph, bool verbose) {
+Stats writeMap(const std::string& prefix, const Map& map, const Mph& mph,
+               bool verbose) {
   Stats stats;
   stats.block_size = 8;
   stats.num_keys_total = map.size();
@@ -314,9 +314,9 @@ void MphTable::forEachEntry(BinaryProcedure process) const {
   }
 }
 
-MphTable::Stats MphTable::build(const std::string& prefix,
-                                const boost::filesystem::path& source,
-                                const Options& options) {
+Stats MphTable::build(const std::string& prefix,
+                      const boost::filesystem::path& source,
+                      const Options& options) {
   if (options.verbose) mt::log() << "Reading " << source.string() << std::endl;
   auto map_and_arena = readRecordsFromFile(source);
   Map& map = map_and_arena.first;
@@ -329,7 +329,7 @@ MphTable::Stats MphTable::build(const std::string& prefix,
   return writeMap(prefix, map, mph, options.verbose);
 }
 
-MphTable::Stats MphTable::stats(const std::string& prefix) {
+Stats MphTable::stats(const std::string& prefix) {
   return Stats::readFromFile(getNameOfStatsFile(prefix));
 }
 
