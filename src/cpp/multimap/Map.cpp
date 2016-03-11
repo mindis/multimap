@@ -55,22 +55,6 @@ std::string getNameOfValuesFile(size_t index) {
   return internal::Partition::getNameOfStoreFile(getPartitionPrefix(index));
 }
 
-template <typename Procedure>
-// Required interface:
-// void process(const std::string& partition_prefix,
-//              size_t partition_index, size_t num_partitions);
-void forEachPartition(const boost::filesystem::path& directory,
-                      Procedure process) {
-  mt::DirectoryLockGuard lock(directory, internal::getNameOfLockFile());
-  const auto desc = internal::Descriptor::readFromDirectory(directory);
-  Version::checkCompatibility(desc.major_version, desc.minor_version);
-
-  for (size_t i = 0; i != desc.num_partitions; i++) {
-    const auto prefix = directory / getPartitionPrefix(i);
-    process(prefix.string(), i, desc.num_partitions);
-  }
-}
-
 }  // namespace
 
 uint32_t Map::Limits::maxKeySize() {
@@ -90,13 +74,12 @@ Map::Map(const boost::filesystem::path& directory, const Options& options)
   internal::Partition::Options part_options;
   part_options.readonly = options.readonly;
   part_options.block_size = options.block_size;
-  const auto meta_filename = directory / internal::getNameOfMetaFile();
-  if (boost::filesystem::is_regular_file(meta_filename)) {
+  const auto desc_filename = directory / internal::getNameOfDescriptorFile();
+  if (boost::filesystem::is_regular_file(desc_filename)) {
     mt::Check::isFalse(options.error_if_exists, "Map in '%s' already exists",
                        boost::filesystem::absolute(directory).c_str());
-    const auto desc = internal::Descriptor::readFromFile(meta_filename);
-    Version::checkCompatibility(desc.major_version, desc.minor_version);
-    mt::check(desc.type == internal::Descriptor::MAP, "Wrong map type");
+    const auto desc = internal::Descriptor::readFromFile(
+        desc_filename, internal::Descriptor::MAP);
     partitions_.resize(desc.num_partitions);
 
   } else {
@@ -106,7 +89,7 @@ Map::Map(const boost::filesystem::path& directory, const Options& options)
     internal::Descriptor desc;
     desc.type = internal::Descriptor::MAP;
     desc.num_partitions = partitions_.size();
-    desc.writeToFile(meta_filename);
+    desc.writeToFile(desc_filename);
   }
   for (size_t i = 0; i != partitions_.size(); i++) {
     const auto prefix = (directory / getPartitionPrefix(i)).string();
@@ -128,8 +111,8 @@ bool Map::isReadOnly() const { return partitions_.front()->isReadOnly(); }
 
 std::vector<Map::Stats> Map::stats(const boost::filesystem::path& directory) {
   mt::DirectoryLockGuard lock(directory, internal::getNameOfLockFile());
-  const auto desc = internal::Descriptor::readFromDirectory(directory);
-  Version::checkCompatibility(desc.major_version, desc.minor_version);
+  const auto desc = internal::Descriptor::readFromDirectory(
+      directory, internal::Descriptor::MAP);
   std::vector<Stats> stats;
   for (size_t i = 0; i != desc.num_partitions; i++) {
     const auto stats_file = directory / getNameOfStatsFile(i);
@@ -179,9 +162,8 @@ void Map::exportToBase64(const boost::filesystem::path& directory,
                          const boost::filesystem::path& target,
                          const Options& options) {
   mt::DirectoryLockGuard lock(directory, internal::getNameOfLockFile());
-  const auto desc = internal::Descriptor::readFromDirectory(directory);
-  Version::checkCompatibility(desc.major_version, desc.minor_version);
-  mt::check(desc.type == internal::Descriptor::MAP, "Wrong map type");
+  const auto desc = internal::Descriptor::readFromDirectory(
+      directory, internal::Descriptor::MAP);
   internal::TsvFileWriter writer(target);
 
   for (size_t i = 0; i != desc.num_partitions; i++) {
@@ -227,7 +209,8 @@ void Map::optimize(const boost::filesystem::path& directory,
 void Map::optimize(const boost::filesystem::path& directory,
                    const boost::filesystem::path& target,
                    const Options& options) {
-  const auto desc = internal::Descriptor::readFromDirectory(directory);
+  const auto desc = internal::Descriptor::readFromDirectory(
+      directory, internal::Descriptor::MAP);
   const auto stats = Stats::readFromFile(directory / getNameOfStatsFile(0));
   Options new_options = options;
   new_options.error_if_exists = true;
@@ -240,36 +223,39 @@ void Map::optimize(const boost::filesystem::path& directory,
   }
   Map new_map(target, new_options);
 
-  forEachPartition(
-      directory, [&](const std::string& partition_prefix,
-                     size_t partition_index, size_t num_partitions) {
-        if (options.verbose) {
-          mt::log() << "Optimizing partition " << (partition_index + 1)
-                    << " of " << num_partitions << std::endl;
-        }
-        if (options.compare) {
-          std::vector<Bytes> values;
-          internal::Partition::forEachEntry(
-              partition_prefix, [&](const Range& key, Iterator* iter) {
-                values.clear();
-                values.reserve(iter->available());
-                while (iter->hasNext()) {
-                  values.push_back(iter->next().makeCopy());
-                }
-                std::sort(values.begin(), values.end(), options.compare);
-                for (const auto& value : values) {
-                  new_map.put(key, value);
-                }
-              });
-        } else {
-          internal::Partition::forEachEntry(
-              partition_prefix, [&](const Range& key, Iterator* iter) {
-                while (iter->hasNext()) {
-                  new_map.put(key, iter->next());
-                }
-              });
-        }
-      });
+  for (size_t i = 0; i != desc.num_partitions; i++) {
+    const auto prefix = directory / getPartitionPrefix(i);
+    if (options.verbose) {
+      mt::log() << "Optimizing partition " << (i + 1) << " of "
+                << desc.num_partitions << std::endl;
+    }
+    if (options.compare) {
+      internal::Arena arena;
+      std::vector<Range> values;
+      internal::Partition::forEachEntry(
+          prefix.string(), [&new_map, &arena, &options, &values](
+                               const Range& key, Iterator* iter) {
+            arena.deallocateAll();
+            values.reserve(iter->available());
+            values.clear();
+            while (iter->hasNext()) {
+              values.push_back(iter->next().makeCopy(
+                  [&arena](size_t size) { return arena.allocate(size); }));
+            }
+            std::sort(values.begin(), values.end(), options.compare);
+            for (const auto& value : values) {
+              new_map.put(key, value);
+            }
+          });
+    } else {
+      internal::Partition::forEachEntry(
+          prefix.string(), [&new_map](const Range& key, Iterator* iter) {
+            while (iter->hasNext()) {
+              new_map.put(key, iter->next());
+            }
+          });
+    }
+  }
 }
 
 }  // namespace multimap

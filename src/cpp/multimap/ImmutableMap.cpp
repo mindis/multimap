@@ -135,9 +135,8 @@ std::vector<ImmutableMap::Stats> ImmutableMap::Builder::build() {
 
 ImmutableMap::ImmutableMap(const boost::filesystem::path& directory)
     : dlock_(directory) {
-  const auto desc = internal::Descriptor::readFromDirectory(directory);
-  Version::checkCompatibility(desc.major_version, desc.minor_version);
-  mt::check(desc.type == internal::Descriptor::IMMUTABLE_MAP, "Wrong map type");
+  const auto desc = internal::Descriptor::readFromDirectory(
+      directory, internal::Descriptor::IMMUTABLE_MAP);
   for (size_t i = 0; i != desc.num_partitions; i++) {
     const auto full_prefix = directory / getPartitionPrefix(i);
     tables_.push_back(internal::MphTable(full_prefix.string()));
@@ -178,7 +177,8 @@ ImmutableMap::Stats ImmutableMap::getTotalStats() const {
 
 std::vector<ImmutableMap::Stats> ImmutableMap::stats(
     const boost::filesystem::path& directory) {
-  const auto desc = internal::Descriptor::readFromDirectory(directory);
+  const auto desc = internal::Descriptor::readFromDirectory(
+      directory, internal::Descriptor::IMMUTABLE_MAP);
   std::vector<ImmutableMap::Stats> stats(desc.num_partitions);
   for (size_t i = 0; i != desc.num_partitions; i++) {
     stats[i] = internal::MphTable::stats(getPartitionPrefix(i));

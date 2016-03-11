@@ -35,24 +35,47 @@ const std::string& getNameOfMetaFile() {
   return filename;
 }
 
+std::string Descriptor::toString(Type type) {
+  switch (type) {
+    case NONE:
+      return "None";
+    case MAP:
+      return "Map";
+    case IMMUTABLE_MAP:
+      return "ImmutableMap";
+    default:
+      MT_FAIL("Default branch in switch statement reached");
+  }
+  return "";
+}
+
 Descriptor Descriptor::readFromDirectory(
-    const boost::filesystem::path& directory, const std::string& filename) {
-  return readFromFile(directory / filename);
+    const boost::filesystem::path& directory, Type expected_type) {
+  return readFromFile(directory / getNameOfMetaFile(), expected_type);
 }
 
-Descriptor Descriptor::readFromFile(const boost::filesystem::path& filename) {
-  Descriptor meta;
+Descriptor Descriptor::readFromFile(const boost::filesystem::path& filename,
+                                    Type expected_type) {
+  Descriptor desc;
   const auto stream = mt::open(filename, "r");
-  mt::read(stream.get(), &meta, sizeof meta);
-  return meta;
+  mt::read(stream.get(), &desc, sizeof desc);
+  Version::checkCompatibility(desc.major_version, desc.minor_version);
+  mt::Check::isEqual(expected_type, desc.type,
+                     "Attempt to open an instance of type '%s' from '%s' but "
+                     "the actual type found was '%s'",
+                     toString(expected_type).c_str(),
+                     filename.parent_path().c_str(),
+                     toString(static_cast<Type>(desc.type)).c_str());
+  return desc;
 }
 
-void Descriptor::writeToDirectory(const boost::filesystem::path& directory,
-                                  const std::string& filename) const {
-  writeToFile(directory / filename);
+void Descriptor::writeToDirectory(
+    const boost::filesystem::path& directory) const {
+  writeToFile(directory / getNameOfMetaFile());
 }
 
 void Descriptor::writeToFile(const boost::filesystem::path& filename) const {
+  MT_REQUIRE_TRUE(type == MAP || type == IMMUTABLE_MAP);
   const auto stream = mt::open(filename, "w");
   mt::write(stream.get(), this, sizeof *this);
 }
