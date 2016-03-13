@@ -1,3 +1,3 @@
 # Multimap - 1:n key-value store
 
-Official website: http://multimap.io
+Official website: https://multimap.io
