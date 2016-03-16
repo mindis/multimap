@@ -247,22 +247,7 @@ std::ostream& log(std::ostream& stream) {
 
 std::ostream& log() { return log(std::clog); }
 
-const int AutoCloseFd::INVALID = -1;
-
-AutoCloseFd& AutoCloseFd::operator=(AutoCloseFd&& other) {
-  if (&other != this) {
-    reset(other.fd_);
-    other.fd_ = INVALID;
-  }
-  return *this;
-}
-
-void AutoCloseFd::reset(int fd) {
-  if (fd_ != INVALID) {
-    Check::isZero(::close(fd_), "close() failed because of '%s'", errnostr());
-  }
-  fd_ = fd;
-}
+const int AutoCloseFd::NONE = -1;
 
 const char* DirectoryLockGuard::DEFAULT_FILENAME = ".lock";
 
@@ -324,6 +309,13 @@ std::vector<std::string> Files::readAllLines(
     lines.push_back(line);
   }
   return lines;
+}
+
+AutoUnmapMemory mmap(uint64_t len, int prot, int flags, int fd, off_t offset) {
+  const auto result = ::mmap(nullptr, len, prot, flags, fd, offset);
+  Check::notEqual(result, MAP_FAILED, "mmap() failed because of '%s'",
+                  errnostr());
+  return AutoUnmapMemory(static_cast<uint8_t*>(result), len);
 }
 
 Properties readPropertiesFromFile(const boost::filesystem::path& filename) {

@@ -22,46 +22,39 @@
 
 namespace multimap {
 
-Slice Slice::readFromBuffer(const byte* buffer) {
+std::pair<Slice, size_t> Slice::readFromBuffer(const byte* buffer) {
   uint32_t size = 0;
-  buffer += internal::Varint::readFromBuffer(buffer, &size);
-  return Slice(buffer, size);
+  const size_t nbytes = internal::Varint::readFromBuffer(buffer, &size);
+  return std::make_pair(Slice(buffer + nbytes, size), nbytes + size);
 }
 
-Slice Slice::readFromStream(std::FILE* stream,
-                            std::function<byte*(size_t)> allocate) {
+std::pair<Slice, size_t> Slice::readFromStream(
+    std::FILE* stream, std::function<byte*(size_t)> allocate) {
   uint32_t size = 0;
-  if (internal::Varint::readFromStream(stream, &size)) {
-    byte* data = allocate(size);
-    mt::read(stream, data, size);
-    // The stream is expected to contain valid encodings of Bytes objects.
-    // Hence, after successfully reading the size field, mt::fread() will
-    // throw, if the data field could not be read to signal an invalid stream.
-    return Slice(data, size);
-  }
-  return Slice();
+  const size_t nbytes = internal::Varint::readFromStream(stream, &size);
+  if (nbytes == 0) return std::make_pair(Slice(), 0);
+  byte* data = allocate(size);
+  mt::read(stream, data, size);
+  // The stream is expected to contain valid encodings of Bytes objects.
+  // Hence, after successfully reading the size field, mt::read() will
+  // throw, if the data field could not be read to signal an invalid stream.
+  return std::make_pair(Slice(data, size), nbytes + size);
 }
 
-byte* Slice::writeToBuffer(byte* begin, byte* end) const {
+size_t Slice::writeToBuffer(byte* begin, byte* end) const {
   MT_REQUIRE_LE(begin, end);
-  const size_t count = size();
-  MT_ASSERT_LE(count, internal::Varint::Limits::MAX_N4);
-  byte* pos = begin + internal::Varint::writeToBuffer(begin, end, count);
-  if ((pos != begin) && (static_cast<size_t>(end - pos) >= count)) {
-    std::memcpy(pos, beg_, count);
-    pos += count;
-    return pos;
-  }
-  return begin;
+  MT_REQUIRE_LE(size_, internal::Varint::Limits::MAX_N4);
+  byte* pos = begin + internal::Varint::writeToBuffer(begin, end, size_);
+  if ((pos == begin) || (static_cast<size_t>(end - pos) < size_)) return 0;
+  std::memcpy(pos, data_, size_);
+  return (pos + size_) - begin;
 }
 
-void Slice::writeToStream(std::FILE* stream) const {
-  const size_t count = size();
-  MT_ASSERT_LE(count, internal::Varint::Limits::MAX_N4);
-  internal::Varint::writeToStream(stream, count);
-  mt::write(stream, beg_, count);
+size_t Slice::writeToStream(std::FILE* stream) const {
+  MT_REQUIRE_LE(size_, internal::Varint::Limits::MAX_N4);
+  const size_t nbytes = internal::Varint::writeToStream(stream, size_);
+  mt::write(stream, data_, size_);
+  return nbytes + size_;
 }
-
-const byte* Slice::EMPTY = reinterpret_cast<const byte*>("");
 
 }  // namespace multimap

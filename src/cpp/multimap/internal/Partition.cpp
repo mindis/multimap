@@ -48,13 +48,16 @@ Partition::Partition(const std::string& prefix, const Options& options)
     stats_ = Stats::readFromFile(stats_filename);
     store_options.block_size = stats_.block_size;
     for (size_t i = 0; i != stats_.num_keys_valid; i++) {
-      MT_ASSERT_TRUE(parseBytesFromStream(map_stream.get(), &key));
+      MT_ASSERT_TRUE(readBytesFromStream(map_stream.get(), &key));
       const Slice new_key = Slice(key).makeCopy(
           [this](size_t size) { return arena_.allocate(size); });
-//      SharedList list = SharedList::readFromStream(map_stream.get());
-//      stats_.num_values_total -= list.getStatsUnlocked().num_values_total;
-//      stats_.num_values_valid -= list.getStatsUnlocked().num_values_valid();
-//      map_.emplace(new_key, std::unique_ptr<SharedList>(new SharedList(std::move(list))));
+      //      SharedList list = SharedList::readFromStream(map_stream.get());
+      //      stats_.num_values_total -=
+      //      list.getStatsUnlocked().num_values_total;
+      //      stats_.num_values_valid -=
+      //      list.getStatsUnlocked().num_values_valid();
+      //      map_.emplace(new_key, std::unique_ptr<SharedList>(new
+      //      SharedList(std::move(list))));
     }
 
     // Reset stats, but preserve number of total and valid values.
@@ -67,96 +70,96 @@ Partition::Partition(const std::string& prefix, const Options& options)
 }
 
 Partition::~Partition() {
-//  if (store_->options().readonly) return;
+  //  if (store_->options().readonly) return;
 
-//  const auto map_filename = getNameOfMapFile(prefix_);
-//  const auto map_filename_old = map_filename + ".old";
-//  if (boost::filesystem::is_regular_file(map_filename)) {
-//    boost::filesystem::rename(map_filename, map_filename_old);
-//  }
+  //  const auto map_filename = getNameOfMapFile(prefix_);
+  //  const auto map_filename_old = map_filename + ".old";
+  //  if (boost::filesystem::is_regular_file(map_filename)) {
+  //    boost::filesystem::rename(map_filename, map_filename_old);
+  //  }
 
-//  SharedList::Stats list_stats;
-//  const auto map_stream = mt::open(map_filename, "w");
-//  for (const auto& entry : map_) {
-//    auto& key = entry.first;
-//    auto& list = *entry.second;
-//    if (list.tryFlush(store_.get(), &list_stats)) {
-//      // Ok, everything is fine.
-//    } else {
-//      const auto key_as_base64 = Base64::encode(key);
-//      mt::log() << "The list with the key " << key_as_base64
-//                << " (Base64) was still locked when shutting down.\n"
-//                << " The last known state of the list has been safed,"
-//                << " but ongoing updates, if any, may be lost.\n";
-//      list.flushUnlocked(store_.get(), &list_stats);
-//    }
-//    stats_.num_values_total += list_stats.num_values_total;
-//    stats_.num_values_valid += list_stats.num_values_valid();
-//    const auto list_size = list_stats.num_values_valid();
-//    if (list_size != 0) {
-//      ++stats_.num_keys_valid;
-//      stats_.key_size_avg += key.size();
-//      stats_.key_size_max = mt::max(stats_.key_size_max, key.size());
-//      stats_.key_size_min = stats_.key_size_min
-//                                ? mt::min(stats_.key_size_min, key.size())
-//                                : key.size();
-//      stats_.list_size_avg += list_size;
-//      stats_.list_size_max = mt::max(stats_.list_size_max, list_size);
-//      stats_.list_size_min = stats_.list_size_min
-//                                 ? mt::min(stats_.list_size_min, list_size)
-//                                 : list_size;
-//      key.writeToStream(map_stream.get());
-//      list.writeToStream(map_stream.get());
-//    }
-//  }
-//  if (stats_.num_keys_valid) {
-//    stats_.key_size_avg /= stats_.num_keys_valid;
-//    stats_.list_size_avg /= stats_.num_keys_valid;
-//  }
-//  stats_.block_size = store_->getBlockSize();
-//  stats_.num_blocks = store_->getNumBlocks();
-//  stats_.num_keys_total = map_.size();
+  //  SharedList::Stats list_stats;
+  //  const auto map_stream = mt::open(map_filename, "w");
+  //  for (const auto& entry : map_) {
+  //    auto& key = entry.first;
+  //    auto& list = *entry.second;
+  //    if (list.tryFlush(store_.get(), &list_stats)) {
+  //      // Ok, everything is fine.
+  //    } else {
+  //      const auto key_as_base64 = Base64::encode(key);
+  //      mt::log() << "The list with the key " << key_as_base64
+  //                << " (Base64) was still locked when shutting down.\n"
+  //                << " The last known state of the list has been safed,"
+  //                << " but ongoing updates, if any, may be lost.\n";
+  //      list.flushUnlocked(store_.get(), &list_stats);
+  //    }
+  //    stats_.num_values_total += list_stats.num_values_total;
+  //    stats_.num_values_valid += list_stats.num_values_valid();
+  //    const auto list_size = list_stats.num_values_valid();
+  //    if (list_size != 0) {
+  //      ++stats_.num_keys_valid;
+  //      stats_.key_size_avg += key.size();
+  //      stats_.key_size_max = mt::max(stats_.key_size_max, key.size());
+  //      stats_.key_size_min = stats_.key_size_min
+  //                                ? mt::min(stats_.key_size_min, key.size())
+  //                                : key.size();
+  //      stats_.list_size_avg += list_size;
+  //      stats_.list_size_max = mt::max(stats_.list_size_max, list_size);
+  //      stats_.list_size_min = stats_.list_size_min
+  //                                 ? mt::min(stats_.list_size_min, list_size)
+  //                                 : list_size;
+  //      key.writeToStream(map_stream.get());
+  //      list.writeToStream(map_stream.get());
+  //    }
+  //  }
+  //  if (stats_.num_keys_valid) {
+  //    stats_.key_size_avg /= stats_.num_keys_valid;
+  //    stats_.list_size_avg /= stats_.num_keys_valid;
+  //  }
+  //  stats_.block_size = store_->getBlockSize();
+  //  stats_.num_blocks = store_->getNumBlocks();
+  //  stats_.num_keys_total = map_.size();
 
-//  stats_.writeToFile(getNameOfStatsFile(prefix_));
+  //  stats_.writeToFile(getNameOfStatsFile(prefix_));
 
-//  if (boost::filesystem::is_regular_file(map_filename_old)) {
-//    const auto status = boost::filesystem::remove(map_filename_old);
-//    MT_ASSERT_TRUE(status);
-//  }
+  //  if (boost::filesystem::is_regular_file(map_filename_old)) {
+  //    const auto status = boost::filesystem::remove(map_filename_old);
+  //    MT_ASSERT_TRUE(status);
+  //  }
 }
 
 Stats Partition::getStats() const {
   boost::shared_lock<boost::shared_mutex> lock(mutex_);
   Stats stats = stats_;
-//  SharedList::Stats list_stats;
-//  for (const auto& entry : map_) {
-//    if (entry.second->tryGetStats(&list_stats)) {
-//      stats.num_values_total += list_stats.num_values_total;
-//      stats.num_values_valid += list_stats.num_values_valid();
-//      const auto list_size = list_stats.num_values_valid();
-//      if (list_size != 0) {
-//        const auto& key = entry.first;
-//        stats.num_keys_valid++;
-//        stats.key_size_avg += key.size();
-//        stats.key_size_max = mt::max(stats.key_size_max, key.size());
-//        stats.key_size_min = stats.key_size_min
-//                                 ? mt::min(stats.key_size_min, key.size())
-//                                 : key.size();
-//        stats.list_size_avg += list_size;
-//        stats.list_size_max = mt::max(stats.list_size_max, list_size);
-//        stats.list_size_min = stats.list_size_min
-//                                  ? mt::min(stats.list_size_min, list_size)
-//                                  : list_size;
-//      }
-//    }
-//  }
-//  if (stats.num_keys_valid) {
-//    stats.key_size_avg /= stats.num_keys_valid;
-//    stats.list_size_avg /= stats.num_keys_valid;
-//  }
-//  stats.block_size = store_->getBlockSize();
-//  stats.num_blocks = store_->getNumBlocks();
-//  stats.num_keys_total = map_.size();
+  //  SharedList::Stats list_stats;
+  //  for (const auto& entry : map_) {
+  //    if (entry.second->tryGetStats(&list_stats)) {
+  //      stats.num_values_total += list_stats.num_values_total;
+  //      stats.num_values_valid += list_stats.num_values_valid();
+  //      const auto list_size = list_stats.num_values_valid();
+  //      if (list_size != 0) {
+  //        const auto& key = entry.first;
+  //        stats.num_keys_valid++;
+  //        stats.key_size_avg += key.size();
+  //        stats.key_size_max = mt::max(stats.key_size_max, key.size());
+  //        stats.key_size_min = stats.key_size_min
+  //                                 ? mt::min(stats.key_size_min, key.size())
+  //                                 : key.size();
+  //        stats.list_size_avg += list_size;
+  //        stats.list_size_max = mt::max(stats.list_size_max, list_size);
+  //        stats.list_size_min = stats.list_size_min
+  //                                  ? mt::min(stats.list_size_min, list_size)
+  //                                  : list_size;
+  //      }
+  //    }
+  //  }
+  //  if (stats.num_keys_valid) {
+  //    stats.key_size_avg /= stats.num_keys_valid;
+  //    stats.list_size_avg /= stats.num_keys_valid;
+  //  }
+  //  stats.block_size = store_->getBlockSize();
+  //  stats.num_blocks = store_->getNumBlocks();
+  //  stats.num_keys_total = map_.size();
   return stats;
 }
 

@@ -60,10 +60,9 @@ class Store {
       const uint64_t old_filesize = mt::seek(fd_.get(), 0, SEEK_END);
       const uint64_t new_filesize = old_filesize + options_.mmap_segment_size;
       mt::truncate(fd_.get(), new_filesize);
-      mappings_.emplace_back(
-          mt::mmap(options_.mmap_segment_size, PROT_READ | PROT_WRITE,
-                   MAP_SHARED, fd_.get(), old_filesize),
-          options_.mmap_segment_size);
+      mappings_.push_back(mt::mmap(options_.mmap_segment_size,
+                                   PROT_READ | PROT_WRITE, MAP_SHARED,
+                                   fd_.get(), old_filesize));
     }
     mappings_.back().append(block);
     return numBlocksUsed() - 1;
@@ -86,32 +85,29 @@ class Store {
 
   class Mapping {
    public:
-    Mapping(byte* data, uint32_t size) : data_(data), size_(size) {}
-
-    //    ~Mapping() {
-    //      mt::munmap(data_, size_);
-    //    }
+    Mapping(mt::AutoUnmapMemory memory) : memory_(std::move(memory)) {}
 
     void append(const Block& block) {
       MT_REQUIRE_FALSE(isFull());
-      std::memcpy(data_ + offset_, block.data, block.size);
+      std::memcpy(memory_.addr() + offset_, block.data, block.size);
       offset_ += block.size;
     }
 
-    bool isFull() const { return offset_ == size_; }
+    bool isFull() const { return offset_ == memory_.length(); }
 
-    int numBlocksAllocated(int block_size) const { return size_ / block_size; }
+    int numBlocksAllocated(int block_size) const {
+      return memory_.length() / block_size;
+    }
 
     int numBlocksUsed(int block_size) const { return offset_ / block_size; }
 
     int numBlocksFree(int block_size) const {
-      return (size_ - offset_) / block_size;
+      return (memory_.length() - offset_) / block_size;
     }
 
    private:
-    byte* data_ = nullptr;
+    mt::AutoUnmapMemory memory_;
     uint32_t offset_ = 0;
-    uint32_t size_ = 0;
   };
 
   mutable std::mutex mutex_;

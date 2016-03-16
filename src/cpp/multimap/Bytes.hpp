@@ -30,19 +30,20 @@
 namespace multimap {
 
 typedef unsigned char byte;
+
 typedef std::vector<byte> Bytes;
 
 Bytes makeBytes(const char* cstr);
 
 Bytes makeBytes(const std::string& str);
 
-const byte* parseBytesFromBuffer(const byte* buffer, Bytes* output);
+size_t readBytesFromBuffer(const byte* buffer, Bytes* output);
 
-bool parseBytesFromStream(std::FILE* stream, Bytes* output);
+size_t readBytesFromStream(std::FILE* stream, Bytes* output);
 
-byte* serializeBytesToBuffer(byte* begin, byte* end, const Bytes& input);
+size_t writeBytesToBuffer(byte* begin, byte* end, const Bytes& input);
 
-void serializeBytesToStream(std::FILE* stream, const Bytes& input);
+size_t writeBytesToStream(std::FILE* stream, const Bytes& input);
 
 namespace internal {
 

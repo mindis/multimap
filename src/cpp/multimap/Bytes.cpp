@@ -30,25 +30,27 @@ Bytes makeBytes(const char* cstr) {
 
 Bytes makeBytes(const std::string& str) { return makeBytes(str.c_str()); }
 
-const byte* parseBytesFromBuffer(const byte* buffer, Bytes* output) {
-  const Slice bytes = Slice::readFromBuffer(buffer);
-  bytes.copyTo(output);
-  return bytes.end();
+size_t readBytesFromBuffer(const byte* buffer, Bytes* output) {
+  const auto slice_and_nbytes = Slice::readFromBuffer(buffer);
+  slice_and_nbytes.first.copyTo(output);
+  return slice_and_nbytes.second;
 }
 
-bool parseBytesFromStream(std::FILE* stream, Bytes* output) {
-  return Slice::readFromStream(stream, [output](size_t size) {
-    output->resize(size);
-    return output->data();
-  }).size() != 0;
+size_t readBytesFromStream(std::FILE* stream, Bytes* output) {
+  const auto slice_and_nbytes =
+      Slice::readFromStream(stream, [output](size_t size) {
+        output->resize(size);
+        return output->data();
+      });
+  return slice_and_nbytes.second;
 }
 
-byte* serializeBytesToBuffer(byte* begin, byte* end, const Bytes& input) {
+size_t writeBytesToBuffer(byte* begin, byte* end, const Bytes& input) {
   return Slice(input).writeToBuffer(begin, end);
 }
 
-void serializeBytesToStream(std::FILE* stream, const Bytes& input) {
-  Slice(input).writeToStream(stream);
+size_t writeBytesToStream(std::FILE* stream, const Bytes& input) {
+  return Slice(input).writeToStream(stream);
 }
 
 }  // namespace multimap

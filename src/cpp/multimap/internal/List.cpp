@@ -25,9 +25,11 @@ uint32_t List::Limits::maxValueSize() {
   return Varint::Limits::MAX_N4_WITH_FLAG;
 }
 
-//void SharedList::appendUnlocked(const Range& value, Store* store, Arena* arena) {
+// void SharedList::appendUnlocked(const Range& value, Store* store, Arena*
+// arena) {
 //  MT_REQUIRE_LE(value.size(), Limits::maxValueSize());
-//  MT_REQUIRE_LT(stats_.num_values_total, std::numeric_limits<uint32_t>::max());
+//  MT_REQUIRE_LT(stats_.num_values_total,
+//  std::numeric_limits<uint32_t>::max());
 
 //  if (!block_.hasData()) {
 //    const auto block_size = store->getBlockSize();

@@ -46,12 +46,6 @@ class MphTable {
 
   explicit MphTable(const std::string& prefix);
 
-  MphTable(MphTable&& other);
-
-  MphTable& operator=(MphTable&& other);
-
-  ~MphTable();
-
   std::unique_ptr<Iterator> get(const Slice& key) const;
 
   void forEachKey(Procedure process) const;
@@ -76,8 +70,8 @@ class MphTable {
 
  private:
   Mph mph_;
-  Slice table_;
-  Slice lists_;
+  mt::AutoUnmapMemory table_;
+  mt::AutoUnmapMemory lists_;
   Stats stats_;
 };
 

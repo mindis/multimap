@@ -39,18 +39,18 @@ class List {
       block_.data = arena->allocate(block_.size);
       std::memset(block_.data, 0, block_.size);
     }
-    byte* pos = value.writeToBuffer(block_.current(), block_.end());
-    if (pos == block_.current()) {
+    size_t nbytes = value.writeToBuffer(block_.current(), block_.end());
+    if (nbytes == 0) {
       block_ids_.add(store->put(block_));
       std::memset(block_.data, 0, block_.size);
       block_.offset = 0;
-      pos = value.writeToBuffer(block_.current(), block_.end());
-      MT_ASSERT_NE(pos, block_.current());
+      nbytes = value.writeToBuffer(block_.current(), block_.end());
+      MT_ASSERT_NOT_ZERO(nbytes);
     }
-    block_.offset = pos - block_.begin();
+    block_.offset += nbytes;
   }
 
-private:
+ private:
   mutable SharedMutex mutex_;
   uint32_t num_values_total_ = 0;
   uint32_t num_values_removed_ = 0;

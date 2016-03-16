@@ -45,7 +45,7 @@
 
 namespace mt {
 
-static const uint32_t VERSION = 20160310;
+static const uint32_t VERSION = 20160316;
 
 // -----------------------------------------------------------------------------
 // COMMON
@@ -300,24 +300,39 @@ inline const char* errnostr() { return std::strerror(errno); }
 
 class AutoCloseFd {
  public:
-  static const int INVALID;
+  static const int NONE;
 
   AutoCloseFd() = default;
 
   explicit AutoCloseFd(int fd) : fd_(fd) {}
 
-  AutoCloseFd(AutoCloseFd&& other) : fd_(other.fd_) { other.fd_ = INVALID; }
+  AutoCloseFd(AutoCloseFd&& other) : fd_(other.release()) {}
 
   ~AutoCloseFd() { reset(); }
 
-  AutoCloseFd& operator=(AutoCloseFd&& other);
+  AutoCloseFd& operator=(AutoCloseFd&& other) {
+    reset(other.release());
+    return *this;
+  }
 
   int get() const { return fd_; }
 
-  void reset(int fd = INVALID);
+  int release() {
+    int fd = fd_;
+    fd_ = NONE;
+    return fd;
+  }
+
+  void reset(int fd = NONE) {
+    if (fd_ != NONE) {
+      const auto result = ::close(fd_);
+      Check::isZero(result, "close() failed because of '%s'", errnostr());
+    }
+    fd_ = fd;
+  }
 
  private:
-  int fd_ = INVALID;
+  int fd_ = NONE;
 };
 
 inline AutoCloseFd tryOpen(const boost::filesystem::path& filename, int flags) {
@@ -326,7 +341,7 @@ inline AutoCloseFd tryOpen(const boost::filesystem::path& filename, int flags) {
 
 inline AutoCloseFd open(const boost::filesystem::path& filename, int flags) {
   auto fd = tryOpen(filename, flags);
-  Check::notEqual(fd.get(), AutoCloseFd::INVALID,
+  Check::notEqual(fd.get(), AutoCloseFd::NONE,
                   "tryOpen() failed for '%s' because of '%s'", filename.c_str(),
                   errnostr());
   return fd;
@@ -340,7 +355,7 @@ inline AutoCloseFd tryOpen(const boost::filesystem::path& filename, int flags,
 inline AutoCloseFd open(const boost::filesystem::path& filename, int flags,
                         mode_t mode) {
   auto fd = tryOpen(filename, flags, mode);
-  Check::notEqual(fd.get(), AutoCloseFd::INVALID,
+  Check::notEqual(fd.get(), AutoCloseFd::NONE,
                   "tryOpen() failed for '%s' because of '%s'", filename.c_str(),
                   errnostr());
   return fd;
@@ -349,7 +364,7 @@ inline AutoCloseFd open(const boost::filesystem::path& filename, int flags,
 inline AutoCloseFd create(const boost::filesystem::path& filename,
                           mode_t mode) {
   AutoCloseFd fd(::creat(filename.c_str(), mode));
-  Check::notEqual(fd.get(), AutoCloseFd::INVALID,
+  Check::notEqual(fd.get(), AutoCloseFd::NONE,
                   "creat() failed for '%s' because of '%s'", filename.c_str(),
                   errnostr());
   return fd;
@@ -387,44 +402,15 @@ inline void truncate(int fd, uint64_t length) {
   Check::isZero(::ftruncate(fd, length), "ftruncate() failed");
 }
 
-inline uint8_t* mmap(uint64_t length, int prot, int flags, int fd, off_t off) {
-  const auto result = ::mmap(nullptr, length, prot, flags, fd, off);
-  Check::notEqual(result, MAP_FAILED, "mmap() failed because of '%s'",
-                  errnostr());
-  return reinterpret_cast<uint8_t*>(result);
-}
+class AutoCloseFile
+    : public std::unique_ptr<std::FILE, decltype(std::fclose)*> {
+  typedef std::unique_ptr<std::FILE, decltype(std::fclose)*> Base;
 
-inline void munmap(uint8_t* addr, uint64_t length) {
-  const auto result = ::munmap(addr, length);
-  Check::isZero(result, "munmap() failed because of '%s'", errnostr());
-}
+ public:
+  AutoCloseFile() : AutoCloseFile(nullptr) {}
 
-#ifdef _GNU_SOURCE
-inline uint8_t* mremap(uint8_t* old_addr, uint64_t old_size, uint64_t new_size,
-                       int flags) {
-  const auto result = ::mremap(old_addr, old_size, new_size, flags);
-  Check::notEqual(result, MAP_FAILED, "mremap() failed because of '%s'",
-                  errnostr());
-  return reinterpret_cast<uint8_t*>(result);
-}
-#endif
-
-}  // namespace mt
-
-namespace std {
-
-template <>
-struct default_delete<std::FILE> {
-  void operator()(std::FILE* stream) const {
-    if (stream) std::fclose(stream);
-  }
+  AutoCloseFile(std::FILE* stream) : Base(stream, std::fclose) {}
 };
-
-}  // namespace std
-
-namespace mt {
-
-typedef std::unique_ptr<std::FILE> AutoCloseFile;
 
 inline AutoCloseFile tryOpen(const boost::filesystem::path& filename,
                              const char* mode) {
@@ -511,6 +497,55 @@ struct Files {
   static std::vector<std::string> readAllLines(
       const boost::filesystem::path& filename);
 };
+
+// -----------------------------------------------------------------------------
+// MEMORY
+// -----------------------------------------------------------------------------
+
+class AutoUnmapMemory {
+ public:
+  typedef std::pair<uint8_t*, size_t> Memory;
+
+  AutoUnmapMemory() = default;
+
+  AutoUnmapMemory(Memory memory) : memory_(memory) {}
+
+  AutoUnmapMemory(uint8_t* addr, size_t length) : memory_(addr, length) {}
+
+  AutoUnmapMemory(AutoUnmapMemory&& other) : memory_(other.release()) {}
+
+  ~AutoUnmapMemory() { reset(); }
+
+  AutoUnmapMemory& operator=(AutoUnmapMemory&& other) {
+    reset(other.release());
+    return *this;
+  }
+
+  const Memory& get() const { return memory_; }
+
+  uint8_t* addr() const { return memory_.first; }
+
+  size_t length() const { return memory_.second; }
+
+  Memory release() {
+    const auto memory = memory_;
+    memory_ = Memory();
+    return memory;
+  }
+
+  void reset(Memory memory = Memory()) {
+    if (memory_.first != nullptr) {
+      const auto result = ::munmap(memory_.first, memory_.second);
+      Check::isZero(result, "munmap() failed because of '%s'", errnostr());
+    }
+    memory_ = memory;
+  }
+
+ private:
+  Memory memory_;
+};
+
+AutoUnmapMemory mmap(uint64_t len, int prot, int flags, int fd, off_t offset);
 
 // -----------------------------------------------------------------------------
 // CONFIGURATION

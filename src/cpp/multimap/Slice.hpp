@@ -40,22 +40,21 @@ class Slice {
   Slice(const std::string& str) : Slice(str.data(), str.size()) {}
 
   Slice(const void* data, size_t size)
-      : Slice(static_cast<const byte*>(data),
-              static_cast<const byte*>(data) + size) {}
+      : data_(static_cast<const byte*>(data)), size_(size) {}
 
-  Slice(const byte* begin, const byte* end) : beg_(begin), end_(end) {}
+  const byte* data() const { return data_; }
 
-  const byte* begin() const { return beg_; }
+  size_t size() const { return size_; }
 
-  const byte* end() const { return end_; }
+  bool empty() const { return size_ == 0; }
 
-  size_t size() const { return end_ - beg_; }
+  const byte* begin() const { return data_; }
 
-  bool empty() const { return beg_ == end_; }
+  const byte* end() const { return data_ + size_; }
 
   void copyTo(Bytes* target) const {
-    target->resize(size());
-    std::memcpy(target->data(), beg_, target->size());
+    target->resize(size_);
+    std::memcpy(target->data(), data_, size_);
   }
 
   Bytes makeCopy() const {
@@ -66,56 +65,53 @@ class Slice {
 
   template <typename Allocate>
   Slice makeCopy(Allocate allocate) const {
-    const size_t count = size();
-    byte* data = allocate(count);
-    std::memcpy(data, beg_, count);
-    return Slice(data, count);
+    byte* new_data = allocate(size_);
+    std::memcpy(new_data, data_, size_);
+    return Slice(new_data, size_);
   }
 
   std::string toString() const {
-    return std::string(reinterpret_cast<const char*>(beg_), size());
+    return std::string(reinterpret_cast<const char*>(data_), size_);
   }
 
   // I/O Support
   // ---------------------------------------------------------------------------
   // Writing Slice objects to a buffer or file stream is self-describing, i.e.
-  // the size of the range in number of bytes is part of the serialization and
-  // does not need to be maintained separately. This way ranges can be restored
+  // the size of the slice in number of bytes is part of the serialization and
+  // does not need to be maintained separately. This way slices can be restored
   // parsing the buffer or file stream. The latter can be done via class Bytes.
   // The encoding is as follows: [number of bytes as varint][actual data bytes]
 
-  static Slice readFromBuffer(const byte* buffer);
+  static std::pair<Slice, size_t> readFromBuffer(const byte* buffer);
 
-  static Slice readFromStream(std::FILE* stream,
-                              std::function<byte*(size_t)> allocate);
+  static std::pair<Slice, size_t> readFromStream(
+      std::FILE* stream, std::function<byte*(size_t)> allocate);
 
-  byte* writeToBuffer(byte* begin, byte* end) const;
-  // Writes the bytes to the buffer starting at `begin`. Returns a pointer into
-  // the buffer past the last byte written which can be used for further write
-  // operations. If there is no sufficient space in the buffer to write the
-  // whole range, `begin` is returned.
+  size_t writeToBuffer(byte* begin, byte* end) const;
+  // Writes the slice to the buffer starting at `begin`. Returns the number
+  // of bytes written, which may be zero if there was not sufficient space.
 
-  void writeToStream(std::FILE* stream) const;
-  // Writes the bytes to a file stream or throws an exception if that was not
+  size_t writeToStream(std::FILE* stream) const;
+  // Writes the slice to a file stream or throws an exception if that was not
   // possible for some reason. In Multimap's I/O policy an unsuccessful write
   // to a file stream is considered a fatal error which only happens due to
   // faulty user behavior, e.g. someone deleted the file, or due to reaching
   // certain system limits, e.g. the device has no more space left.
+  // Returns the number of bytes written.
 
  private:
-  static const byte* EMPTY;
-  const byte* beg_ = EMPTY;
-  const byte* end_ = EMPTY;
+  const byte* data_ = reinterpret_cast<const byte*>("");
+  size_t size_ = 0;
 };
 
 inline bool operator==(const Slice& a, const Slice& b) {
-  return internal::equal(a.begin(), a.size(), b.begin(), b.size());
+  return internal::equal(a.data(), a.size(), b.data(), b.size());
 }
 
 inline bool operator!=(const Slice& a, const Slice& b) { return !(a == b); }
 
 inline bool operator<(const Slice& a, const Slice& b) {
-  return internal::less(a.begin(), a.size(), b.begin(), b.size());
+  return internal::less(a.data(), a.size(), b.data(), b.size());
 }
 
 }  // namespace multimap
@@ -125,8 +121,8 @@ namespace std {
 template <>
 struct hash< ::multimap::Slice> {
   size_t operator()(const ::multimap::Slice& range) const {
-    return mt::is64BitSystem() ? XXH64(range.begin(), range.size(), 0)
-                               : XXH32(range.begin(), range.size(), 0);
+    return mt::is64BitSystem() ? XXH64(range.data(), range.size(), 0)
+                               : XXH32(range.data(), range.size(), 0);
   }
 };
 

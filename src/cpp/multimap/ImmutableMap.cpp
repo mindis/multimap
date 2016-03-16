@@ -92,11 +92,11 @@ void ImmutableMap::Builder::put(const Slice& key, const Slice& value) {
     Bytes old_value;
     for (auto& bucket : buckets_) {
       mt::seek(bucket.stream.get(), 0, SEEK_SET);
-      while (parseBytesFromStream(bucket.stream.get(), &old_key) &&
-             parseBytesFromStream(bucket.stream.get(), &old_value)) {
+      while (readBytesFromStream(bucket.stream.get(), &old_key) &&
+             readBytesFromStream(bucket.stream.get(), &old_value)) {
         Bucket& new_bucket = select(new_buckets, old_key);
-        serializeBytesToStream(new_bucket.stream.get(), old_key);
-        serializeBytesToStream(new_bucket.stream.get(), old_value);
+        writeBytesToStream(new_bucket.stream.get(), old_key);
+        writeBytesToStream(new_bucket.stream.get(), old_value);
         new_bucket.size += old_value.size();
       }
       bucket.stream.reset();
