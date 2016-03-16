@@ -28,7 +28,7 @@ TsvFileWriter::TsvFileWriter(const boost::filesystem::path& filename)
   mt::check(stream_.is_open(), "Could not create '%s'", filename.c_str());
 }
 
-void TsvFileWriter::write(const Range& key, const Range& value) {
+void TsvFileWriter::write(const Slice& key, const Slice& value) {
   MT_REQUIRE_FALSE(key.empty());
   MT_REQUIRE_FALSE(value.empty());
   if (key != current_key_) {
@@ -43,7 +43,7 @@ void TsvFileWriter::write(const Range& key, const Range& value) {
   stream_ << '\t' << base64_value_;
 }
 
-void TsvFileWriter::write(const Range& key, Iterator* iter) {
+void TsvFileWriter::write(const Slice& key, Iterator* iter) {
   MT_REQUIRE_FALSE(key.empty());
   MT_REQUIRE_NOT_ZERO(iter->available());
   if (key != current_key_) {

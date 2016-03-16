@@ -22,62 +22,62 @@
 namespace multimap {
 
 TEST(RangeTest, IsDefaultConstructible) {
-  ASSERT_TRUE(std::is_default_constructible<Range>::value);
+  ASSERT_TRUE(std::is_default_constructible<Slice>::value);
 }
 
 TEST(RangeTest, IsCopyConstructibleAndAssignable) {
-  ASSERT_TRUE(std::is_copy_constructible<Range>::value);
-  ASSERT_TRUE(std::is_copy_assignable<Range>::value);
+  ASSERT_TRUE(std::is_copy_constructible<Slice>::value);
+  ASSERT_TRUE(std::is_copy_assignable<Slice>::value);
 }
 
 TEST(RangeTest, IsMoveConstructibleAndAssignable) {
-  ASSERT_TRUE(std::is_move_constructible<Range>::value);
-  ASSERT_TRUE(std::is_move_assignable<Range>::value);
+  ASSERT_TRUE(std::is_move_constructible<Slice>::value);
+  ASSERT_TRUE(std::is_move_assignable<Slice>::value);
 }
 
 TEST(RangeTest, EqualityOperator) {
-  ASSERT_TRUE(Range("abc") == Range("abc"));
-  ASSERT_FALSE(Range("bc") == Range("abc"));
+  ASSERT_TRUE(Slice("abc") == Slice("abc"));
+  ASSERT_FALSE(Slice("bc") == Slice("abc"));
 }
 
 TEST(RangeTest, EqualityOperatorTakesCString) {
-  ASSERT_TRUE(Range("abc") == "abc");
-  ASSERT_FALSE(Range("bc") == "abc");
+  ASSERT_TRUE(Slice("abc") == "abc");
+  ASSERT_FALSE(Slice("bc") == "abc");
 }
 
 TEST(RangeTest, EqualityOperatorTakesStdString) {
-  ASSERT_TRUE(Range("abc") == std::string("abc"));
-  ASSERT_FALSE(Range("bc") == std::string("abc"));
+  ASSERT_TRUE(Slice("abc") == std::string("abc"));
+  ASSERT_FALSE(Slice("bc") == std::string("abc"));
 }
 
 TEST(RangeTest, InequalityOperator) {
-  ASSERT_TRUE(Range("abc") != Range("bc"));
-  ASSERT_FALSE(Range("bc") != Range("bc"));
+  ASSERT_TRUE(Slice("abc") != Slice("bc"));
+  ASSERT_FALSE(Slice("bc") != Slice("bc"));
 }
 
 TEST(RangeTest, InequalityOperatorTakesCString) {
-  ASSERT_TRUE(Range("abc") != "bc");
-  ASSERT_FALSE(Range("bc") != "bc");
+  ASSERT_TRUE(Slice("abc") != "bc");
+  ASSERT_FALSE(Slice("bc") != "bc");
 }
 
 TEST(RangeTest, InequalityOperatorTakesStdString) {
-  ASSERT_TRUE(Range("abc") != std::string("bc"));
-  ASSERT_FALSE(Range("bc") != std::string("bc"));
+  ASSERT_TRUE(Slice("abc") != std::string("bc"));
+  ASSERT_FALSE(Slice("bc") != std::string("bc"));
 }
 
 TEST(RangeTest, LessThanOperator) {
-  ASSERT_TRUE(Range("abc") < Range("abcd"));
-  ASSERT_FALSE(Range("bc") < Range("abcd"));
+  ASSERT_TRUE(Slice("abc") < Slice("abcd"));
+  ASSERT_FALSE(Slice("bc") < Slice("abcd"));
 }
 
 TEST(RangeTest, LessThanOperatorTakesCString) {
-  ASSERT_TRUE(Range("abc") < "abcd");
-  ASSERT_FALSE(Range("bc") < "abcd");
+  ASSERT_TRUE(Slice("abc") < "abcd");
+  ASSERT_FALSE(Slice("bc") < "abcd");
 }
 
 TEST(RangeTest, LessThanOperatorTakesStdString) {
-  ASSERT_TRUE(Range("abc") < std::string("abcd"));
-  ASSERT_FALSE(Range("bc") < std::string("abcd"));
+  ASSERT_TRUE(Slice("abc") < std::string("abcd"));
+  ASSERT_FALSE(Slice("bc") < std::string("abcd"));
 }
 
 }  // namespace multimap

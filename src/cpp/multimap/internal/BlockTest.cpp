@@ -165,7 +165,7 @@ TEST(ReadWriteBlockTest, WriteValuesAndIterateOnce) {
     ASSERT_EQ(flag, i % 2);
     Bytes actual(size);
     block.readData(size, actual.data());
-    ASSERT_EQ(Range(expected), actual);
+    ASSERT_EQ(Slice(expected), actual);
   }
 }
 
@@ -203,7 +203,7 @@ TEST(ReadWriteBlockTest, WriteValuesAndFlipFlags) {
     ASSERT_EQ(flag, !(i % 2));
     Bytes actual(size);
     block.readData(size, actual.data());
-    ASSERT_EQ(Range(expected), actual);
+    ASSERT_EQ(Slice(expected), actual);
   }
 }
 

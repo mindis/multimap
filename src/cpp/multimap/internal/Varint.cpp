@@ -42,48 +42,76 @@ const uint32_t Varint::Limits::MAX_N2_WITH_FLAG = (1 << 13) - 1;
 const uint32_t Varint::Limits::MAX_N3_WITH_FLAG = (1 << 21) - 1;
 const uint32_t Varint::Limits::MAX_N4_WITH_FLAG = (1 << 29) - 1;
 
-const byte* Varint::readFromBuffer(const byte* buffer, uint32_t* value) {
+size_t Varint::readFromBuffer(const byte* buffer, uint32_t* value) {
   const auto length = *buffer & 0xC0;  // 11000000
   switch (length) {
     case 0x00:  // 00000000
       *value = *buffer++;
-      break;
+      return 1;
     case 0x40:  // 01000000
       *value = (*buffer++ & 0x3F) << 8;
       *value += *buffer++;
-      break;
+      return 2;
     case 0x80:  // 10000000
       *value = (*buffer++ & 0x3F) << 16;
       *value += *buffer++ << 8;
       *value += *buffer++;
-      break;
+      return 3;
     case 0xC0:  // 11000000
       *value = (*buffer++ & 0x3F) << 24;
       *value += *buffer++ << 16;
       *value += *buffer++ << 8;
       *value += *buffer++;
-      break;
+      return 4;
     default:
       MT_FAIL("Reached default branch in switch statement");
   }
-  return buffer;
+  return 0;
+}
+
+size_t Varint::readFromBuffer(const byte* buffer, uint32_t* value, bool* flag) {
+  *flag = *buffer & 0x20;              // 00100000
+  const auto length = *buffer & 0xC0;  // 11000000
+  switch (length) {
+    case 0x00:  // 00000000
+      *value = *buffer++ & 0x1F;
+      return 1;
+    case 0x40:  // 01000000
+      *value = (*buffer++ & 0x1F) << 8;
+      *value += *buffer++;
+      return 2;
+    case 0x80:  // 10000000
+      *value = (*buffer++ & 0x1F) << 16;
+      *value += *buffer++ << 8;
+      *value += *buffer++;
+      return 3;
+    case 0xC0:  // 11000000
+      *value = (*buffer++ & 0x1F) << 24;
+      *value += *buffer++ << 16;
+      *value += *buffer++ << 8;
+      *value += *buffer++;
+      return 4;
+    default:
+      MT_FAIL("Reached default branch in switch statement");
+  }
+  return 0;
 }
 
 // TODO Micro-benchmark this compared to byte[4].
-bool Varint::readFromStream(std::FILE* stream, uint32_t* value) {
+size_t Varint::readFromStream(std::FILE* stream, uint32_t* value) {
   byte b0 = 0;
   if (mt::tryGet(stream, &b0)) {
     const auto length = b0 & 0xC0;  // 11000000
     switch (length) {
       case 0x00: {  // 00000000
         *value = b0;
-        return true;
+        return 1;
       }
       case 0x40: {  // 01000000
         const byte b1 = mt::get(stream);
         *value = (b0 & 0x3F) << 8;
         *value += b1;
-        return true;
+        return 2;
       }
       case 0x80: {  // 10000000
         const byte b1 = mt::get(stream);
@@ -91,7 +119,7 @@ bool Varint::readFromStream(std::FILE* stream, uint32_t* value) {
         *value = (b0 & 0x3F) << 16;
         *value += b1 << 8;
         *value += b2;
-        return true;
+        return 3;
       }
       case 0xC0: {  // 11000000
         const byte b1 = mt::get(stream);
@@ -101,89 +129,93 @@ bool Varint::readFromStream(std::FILE* stream, uint32_t* value) {
         *value += b1 << 16;
         *value += b2 << 8;
         *value += b3;
-        return true;
+        return 4;
       }
       default:
         MT_FAIL("Reached default branch in switch statement");
     }
   }
-  return false;
+  return 0;
 }
 
-const byte* Varint::readFromBuffer(const byte* buffer, uint32_t* value,
-                                   bool* flag) {
-  *flag = *buffer & 0x20;              // 00100000
-  const auto length = *buffer & 0xC0;  // 11000000
-  switch (length) {
-    case 0x00:  // 00000000
-      *value = *buffer++ & 0x1F;
-      break;
-    case 0x40:  // 01000000
-      *value = (*buffer++ & 0x1F) << 8;
-      *value += *buffer++;
-      break;
-    case 0x80:  // 10000000
-      *value = (*buffer++ & 0x1F) << 16;
-      *value += *buffer++ << 8;
-      *value += *buffer++;
-      break;
-    case 0xC0:  // 11000000
-      *value = (*buffer++ & 0x1F) << 24;
-      *value += *buffer++ << 16;
-      *value += *buffer++ << 8;
-      *value += *buffer++;
-      break;
-    default:
-      MT_FAIL("Reached default branch in switch statement");
-  }
-  return buffer;
-}
-
-byte* Varint::writeToBuffer(byte* begin, byte* end, uint32_t value) {
+size_t Varint::writeToBuffer(byte* begin, byte* end, uint32_t value) {
+  const auto remaining = end - begin;
   if (value < 0x00000040) {  // 00000000 00000000 00000000 01000000
-    if (end - begin < 1) return end;
+    if (remaining < 1) return 0;
     *begin++ = value;
-    return begin;
+    return 1;
   }
   if (value < 0x00004000) {  // 00000000 00000000 01000000 00000000
-    if (end - begin < 2) return end;
+    if (remaining < 2) return 0;
     *begin++ = (value >> 8) | 0x40;
     *begin++ = (value);
-    return begin;
+    return 2;
   }
   if (value < 0x00400000) {  // 00000000 01000000 00000000 00000000
-    if (end - begin < 3) return end;
+    if (remaining < 3) return 0;
     *begin++ = (value >> 16) | 0x80;
     *begin++ = (value >> 8);
     *begin++ = (value);
-    return begin;
+    return 3;
   }
   if (value < 0x40000000) {  // 01000000 00000000 00000000 00000000
-    if (end - begin < 4) return end;
+    if (remaining < 4) return 0;
     *begin++ = (value >> 24) | 0xC0;
     *begin++ = (value >> 16);
     *begin++ = (value >> 8);
     *begin++ = (value);
-    return begin;
+    return 4;
   }
-  mt::fail("writeToBuffer() failed. Too big value: %d", value);
-  return begin;
+  mt::fail("Varint::writeToBuffer() failed. Too big value: %d", value);
+  return 0;
 }
 
-void Varint::writeToStream(std::FILE* stream, uint32_t value) {
-  // TODO Make b0, b1, b2, b3 an array.
+size_t Varint::writeToBuffer(byte* begin, byte* end, uint32_t value,
+                             bool flag) {
+  const auto remaining = end - begin;
+  if (value < 0x00000020) {  // 00000000 00000000 00000000 00100000
+    if (remaining < 1) return 0;
+    *begin++ = value | (flag ? 0x20 : 0x00);
+    return 1;
+  }
+  if (value < 0x00002000) {  // 00000000 00000000 00100000 00000000
+    if (remaining < 2) return 0;
+    *begin++ = (value >> 8) | (flag ? 0x60 : 0x40);
+    *begin++ = (value);
+    return 2;
+  }
+  if (value < 0x00200000) {  // 00000000 00100000 00000000 00000000
+    if (remaining < 3) return 0;
+    *begin++ = (value >> 16) | (flag ? 0xA0 : 0x80);
+    *begin++ = (value >> 8);
+    *begin++ = (value);
+    return 3;
+  }
+  if (value < 0x20000000) {  // 00100000 00000000 00000000 00000000
+    if (remaining < 4) return 0;
+    *begin++ = (value >> 24) | (flag ? 0xE0 : 0xC0);
+    *begin++ = (value >> 16);
+    *begin++ = (value >> 8);
+    *begin++ = (value);
+    return 4;
+  }
+  mt::fail("Varint::writeToBuffer() failed. Too big value: %d", value);
+  return 0;
+}
+
+size_t Varint::writeToStream(std::FILE* stream, uint32_t value) {
   byte b0, b1, b2, b3;
   if (value < 0x00000040) {  // 00000000 00000000 00000000 01000000
     b0 = value;
     mt::put(stream, b0);
-    return;
+    return 1;
   }
   if (value < 0x00004000) {  // 00000000 00000000 01000000 00000000
     b0 = (value >> 8) | 0x40;
     b1 = (value);
     mt::put(stream, b0);
     mt::put(stream, b1);
-    return;
+    return 2;
   }
   if (value < 0x00400000) {  // 00000000 01000000 00000000 00000000
     b0 = (value >> 16) | 0x80;
@@ -192,7 +224,7 @@ void Varint::writeToStream(std::FILE* stream, uint32_t value) {
     mt::put(stream, b0);
     mt::put(stream, b1);
     mt::put(stream, b2);
-    return;
+    return 3;
   }
   if (value < 0x40000000) {  // 01000000 00000000 00000000 00000000
     b0 = (value >> 24) | 0xC0;
@@ -203,40 +235,10 @@ void Varint::writeToStream(std::FILE* stream, uint32_t value) {
     mt::put(stream, b1);
     mt::put(stream, b2);
     mt::put(stream, b3);
-    return;
+    return 4;
   }
-  mt::fail("writeToStream() failed. Too big value: %d", value);
-}
-
-byte* Varint::writeToBuffer(byte* begin, byte* end, uint32_t value, bool flag) {
-  if (value < 0x00000020) {  // 00000000 00000000 00000000 00100000
-    if (end - begin < 1) return end;
-    *begin++ = value | (flag ? 0x20 : 0x00);
-    return begin;
-  }
-  if (value < 0x00002000) {  // 00000000 00000000 00100000 00000000
-    if (end - begin < 2) return end;
-    *begin++ = (value >> 8) | (flag ? 0x60 : 0x40);
-    *begin++ = (value);
-    return begin;
-  }
-  if (value < 0x00200000) {  // 00000000 00100000 00000000 00000000
-    if (end - begin < 3) return end;
-    *begin++ = (value >> 16) | (flag ? 0xA0 : 0x80);
-    *begin++ = (value >> 8);
-    *begin++ = (value);
-    return begin;
-  }
-  if (value < 0x20000000) {  // 00100000 00000000 00000000 00000000
-    if (end - begin < 4) return end;
-    *begin++ = (value >> 24) | (flag ? 0xE0 : 0xC0);
-    *begin++ = (value >> 16);
-    *begin++ = (value >> 8);
-    *begin++ = (value);
-    return begin;
-  }
-  mt::fail("writeToBuffer() failed. Too big value: %d", value);
-  return begin;
+  mt::fail("Varint::writeToStream() failed. Too big value: %d", value);
+  return 0;
 }
 
 void Varint::setFlagInBuffer(byte* buffer, bool flag) {

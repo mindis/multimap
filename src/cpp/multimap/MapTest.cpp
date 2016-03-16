@@ -24,12 +24,12 @@ namespace multimap {
 
 using testing::Eq;
 
-const auto NULL_PROCEDURE = [](const Range&) {};
-const auto TRUE_PREDICATE = [](const Range&) { return true; };
-const auto FALSE_PREDICATE = [](const Range&) { return false; };
-const auto EMPTY_FUNCTION = [](const Range&) { return Bytes(); };
-const auto NULL_BINARY_PROCEDURE = [](const Range&, Iterator*) {};
-const auto IS_ODD = [](const Range& b) { return std::stoi(b.toString()) % 2; };
+const auto NULL_PROCEDURE = [](const Slice&) {};
+const auto TRUE_PREDICATE = [](const Slice&) { return true; };
+const auto FALSE_PREDICATE = [](const Slice&) { return false; };
+const auto EMPTY_FUNCTION = [](const Slice&) { return Bytes(); };
+const auto NULL_BINARY_PROCEDURE = [](const Slice&, Iterator*) {};
+const auto IS_ODD = [](const Slice& b) { return std::stoi(b.toString()) % 2; };
 
 std::unique_ptr<Map> openOrCreateMap(const boost::filesystem::path& directory) {
   Map::Options options;

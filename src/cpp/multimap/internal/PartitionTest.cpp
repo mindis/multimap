@@ -194,7 +194,7 @@ TEST_F(PartitionTestFixture, RemoveFirstMatchRemovesFirstMatchingKey) {
   for (const auto& key : keys) {
     partition->put(key, values.begin(), values.end());
   }
-  auto is_k1_or_k2 = [&](const Range& key) { return key == k1 || key == k2; };
+  auto is_k1_or_k2 = [&](const Slice& key) { return key == k1 || key == k2; };
   ASSERT_THAT(partition->removeFirstMatch(is_k1_or_k2), Eq(values.size()));
   if (partition->get(k1)->hasNext()) {
     ASSERT_THAT(partition->get(k1)->available(), Eq(values.size()));
@@ -212,7 +212,7 @@ TEST_F(PartitionTestFixture, RemoveAllMatchesRemovesAllMatchingKeys) {
   partition->put(k1, v1);
   partition->put(k2, v1);
   partition->put(k3, v1);
-  auto is_k1_or_k2 = [&](const Range& key) { return key == k1 || key == k2; };
+  auto is_k1_or_k2 = [&](const Slice& key) { return key == k1 || key == k2; };
   auto result = partition->removeAllMatches(is_k1_or_k2);
   ASSERT_THAT(result.first, Eq(2));
   ASSERT_THAT(result.second, Eq(2));
@@ -226,7 +226,7 @@ TEST_F(PartitionTestFixture, RemoveFirstMatchInListRemovesFirstMatchingValue) {
   partition->put(k1, v1);
   partition->put(k1, v2);
   partition->put(k1, v3);
-  auto is_any = [&](const Range& /* value */) { return true; };
+  auto is_any = [&](const Slice& /* value */) { return true; };
   ASSERT_TRUE(partition->removeFirstMatch(k1, is_any));
   auto iter = partition->get(k1);
   ASSERT_THAT(iter->next(), Eq(v2));
@@ -237,7 +237,7 @@ TEST_F(PartitionTestFixture, RemoveFirstMatchInListRemovesFirstMatchingValue) {
   partition->put(k2, v2);
   partition->put(k2, v3);
   auto is_v2_or_v3 =
-      [&](const Range& value) { return value == v2 || value == v3; };
+      [&](const Slice& value) { return value == v2 || value == v3; };
   ASSERT_TRUE(partition->removeFirstMatch(k2, is_v2_or_v3));
   iter = partition->get(k2);
   ASSERT_THAT(iter->next(), Eq(v1));
@@ -250,7 +250,7 @@ TEST_F(PartitionTestFixture, RemoveAllMatchesInListRemovesAllMatchingValues) {
   partition->put(k1, v1);
   partition->put(k1, v2);
   partition->put(k1, v3);
-  auto is_any = [&](const Range& /* value */) { return true; };
+  auto is_any = [&](const Slice& /* value */) { return true; };
   ASSERT_THAT(partition->removeAllMatches(k1, is_any), Eq(3));
   auto iter = partition->get(k1);
   ASSERT_FALSE(iter->hasNext());
@@ -259,7 +259,7 @@ TEST_F(PartitionTestFixture, RemoveAllMatchesInListRemovesAllMatchingValues) {
   partition->put(k2, v2);
   partition->put(k2, v3);
   auto is_v2_or_v3 =
-      [&](const Range& value) { return value == v2 || value == v3; };
+      [&](const Slice& value) { return value == v2 || value == v3; };
   ASSERT_TRUE(partition->removeAllMatches(k2, is_v2_or_v3));
   iter = partition->get(k2);
   ASSERT_THAT(iter->next(), Eq(v1));
@@ -271,7 +271,7 @@ TEST_F(PartitionTestFixture, ReplaceFirstMatchReplacesFirstMatchingValue) {
   partition->put(k1, v1);
   partition->put(k1, v2);
   partition->put(k1, v3);
-  auto rotate = [&](const Range& value) {
+  auto rotate = [&](const Slice& value) {
     if (value == v1) return v2;
     if (value == v2) return v3;
     if (value == v3) return v1;
@@ -287,7 +287,7 @@ TEST_F(PartitionTestFixture, ReplaceFirstMatchReplacesFirstMatchingValue) {
   partition->put(k2, v1);
   partition->put(k2, v2);
   partition->put(k2, v3);
-  auto rotate_v2_or_v3 = [&](const Range& value) {
+  auto rotate_v2_or_v3 = [&](const Slice& value) {
     if (value == v2) return v3;
     if (value == v3) return v1;
     return Bytes();
@@ -305,7 +305,7 @@ TEST_F(PartitionTestFixture, ReplaceAllMatchesReplacesAllMatchingValues) {
   for (const auto& key : keys) {
     partition->put(key, values.begin(), values.end());
   }
-  auto rotate = [&](const Range& value) {
+  auto rotate = [&](const Slice& value) {
     if (value == v1) return v2;
     if (value == v2) return v3;
     if (value == v3) return v1;
@@ -318,7 +318,7 @@ TEST_F(PartitionTestFixture, ReplaceAllMatchesReplacesAllMatchingValues) {
   ASSERT_THAT(iter->next(), Eq(v1));  // v3 replacement
   ASSERT_FALSE(iter->hasNext());
 
-  auto rotate_v2_or_v3 = [&](const Range& value) {
+  auto rotate_v2_or_v3 = [&](const Slice& value) {
     if (value == v2) return v3;
     if (value == v3) return v1;
     return Bytes();
@@ -337,7 +337,7 @@ TEST_F(PartitionTestFixture, ForEachKeyIgnoresEmptyLists) {
   partition->put(k2, v1);
   partition->put(k3, v1);
   std::vector<Bytes> keys;
-  auto collect = [&](const Range& key) { keys.push_back(key.makeCopy()); };
+  auto collect = [&](const Slice& key) { keys.push_back(key.makeCopy()); };
   partition->forEachKey(collect);
   ASSERT_THAT(keys, UnorderedElementsAre(k1, k2, k3));
 
@@ -362,7 +362,7 @@ TEST_F(PartitionTestFixture, ForEachKeyIgnoresEmptyLists) {
   partition->forEachKey(collect);
   ASSERT_THAT(keys, UnorderedElementsAre(k1, k2, k3));
 
-  auto is_any = [](const Range& /* value */) { return true; };
+  auto is_any = [](const Slice& /* value */) { return true; };
 
   keys.clear();
   partition->removeAllMatches(k1, is_any);
@@ -387,7 +387,7 @@ TEST_F(PartitionTestFixture, ForEachValueVisitsAllValues) {
   partition->put(k2, v2);
   std::vector<Bytes> values;
   auto collect =
-      [&](const Range& value) { values.push_back(value.makeCopy()); };
+      [&](const Slice& value) { values.push_back(value.makeCopy()); };
   partition->forEachValue(k1, collect);
   ASSERT_THAT(values, UnorderedElementsAre(v1));
 
@@ -409,7 +409,7 @@ TEST_F(PartitionTestFixture, ForEachEntryIgnoresEmptyLists) {
   partition->put(k3, v2);
   partition->put(k3, v3);
   std::map<Bytes, std::vector<Bytes>, Less> mapping;
-  auto collect = [&](const Range& key, Iterator* iter) {
+  auto collect = [&](const Slice& key, Iterator* iter) {
     while (iter->hasNext()) {
       mapping[key.makeCopy()].push_back(iter->next().makeCopy());
     }
@@ -422,7 +422,7 @@ TEST_F(PartitionTestFixture, ForEachEntryIgnoresEmptyLists) {
 
   mapping.clear();
   partition->removeAllMatches(k2,
-                              [](const Range& /* value */) { return true; });
+                              [](const Slice& /* value */) { return true; });
   partition->forEachEntry(collect);
   ASSERT_THAT(mapping.size(), Eq(2));
   ASSERT_THAT(mapping.at(k1), ElementsAre(v1));
@@ -497,7 +497,7 @@ TEST_F(PartitionTestFixture, GetStatsReturnsCorrectValuesAfterRemovingKeys) {
     partition->put("kkkkk", "v");
 
     partition->remove("k");
-    partition->removeFirstMatch([](const Range& key) { return key == "kk"; });
+    partition->removeFirstMatch([](const Slice& key) { return key == "kk"; });
 
     const auto stats = partition->getStats();
     ASSERT_THAT(stats.num_keys_total, Eq(5));
@@ -575,14 +575,14 @@ TEST_F(PartitionTestFixture, RemoveThrowsIfOpenedAsReadOnly) {
 TEST_F(PartitionTestFixture, RemoveFirstMatchThrowsIfOpenedAsReadOnly) {
   auto partition = openOrCreatePartitionAsReadOnly(prefix);
   ASSERT_THROW(
-      partition->removeFirstMatch([](const Range& /* key */) { return true; }),
+      partition->removeFirstMatch([](const Slice& /* key */) { return true; }),
       std::runtime_error);
 }
 
 TEST_F(PartitionTestFixture, RemoveAllMatchesThrowsIfOpenedAsReadOnly) {
   auto partition = openOrCreatePartitionAsReadOnly(prefix);
   ASSERT_THROW(
-      partition->removeAllMatches([](const Range& /* key */) { return true; }),
+      partition->removeAllMatches([](const Slice& /* key */) { return true; }),
       std::runtime_error);
 }
 
@@ -658,7 +658,7 @@ TEST_P(PartitionTestWithParam, PutDataThenReadAll) {
 }
 
 TEST_P(PartitionTestWithParam, PutDataThenRemoveSomeThenReadAll) {
-  auto is_odd = [](const Range& b) { return std::stoul(b.toString()) % 2; };
+  auto is_odd = [](const Slice& b) { return std::stoul(b.toString()) % 2; };
   {
     auto partition = openOrCreatePartition(prefix);
     for (auto k = 0; k != GetParam(); ++k) {
@@ -733,9 +733,9 @@ INSTANTIATE_TEST_CASE_P(Parameterized, PartitionTestWithParam,
 // class Partition / Concurrency
 // -----------------------------------------------------------------------------
 
-const auto NULL_PROCEDURE = [](const Range&) {};
-const auto TRUE_PREDICATE = [](const Range&) { return true; };
-const auto EMPTY_FUNCTION = [](const Range&) { return Bytes(); };
+const auto NULL_PROCEDURE = [](const Slice&) {};
+const auto TRUE_PREDICATE = [](const Slice&) { return true; };
+const auto EMPTY_FUNCTION = [](const Slice&) { return Bytes(); };
 
 TEST_F(PartitionTestFixture, GetDifferentListsDoesNotBlock) {
   auto partition = openOrCreatePartition(prefix);
@@ -920,7 +920,7 @@ TEST_F(PartitionTestFixture, ForEachEntryDoesNotBlockIfListIsLocked) {
   partition->put(k1, v1);
   auto thread_is_running = true;
   std::thread thread([&] {
-    partition->forEachEntry([](const Range&, Iterator*) {});
+    partition->forEachEntry([](const Slice&, Iterator*) {});
     thread_is_running = false;
   });
   thread.detach();

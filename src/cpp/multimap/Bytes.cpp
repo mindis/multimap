@@ -18,7 +18,7 @@
 #include "multimap/Bytes.hpp"
 
 #include <cstring>
-#include "multimap/Range.hpp"
+#include "multimap/Slice.hpp"
 
 namespace multimap {
 
@@ -30,21 +30,25 @@ Bytes makeBytes(const char* cstr) {
 
 Bytes makeBytes(const std::string& str) { return makeBytes(str.c_str()); }
 
-const byte* readBytesFromBuffer(const byte* buffer, Bytes* output) {
-  const Range bytes = Range::readFromBuffer(buffer);
+const byte* parseBytesFromBuffer(const byte* buffer, Bytes* output) {
+  const Slice bytes = Slice::readFromBuffer(buffer);
   bytes.copyTo(output);
   return bytes.end();
 }
 
-bool readBytesFromStream(std::FILE* stream, Bytes* output) {
-  return Range::readFromStream(stream, [output](size_t size) {
+bool parseBytesFromStream(std::FILE* stream, Bytes* output) {
+  return Slice::readFromStream(stream, [output](size_t size) {
     output->resize(size);
     return output->data();
   }).size() != 0;
 }
 
-void writeBytesToStream(std::FILE* stream, const Bytes& input) {
-  Range(input).writeToStream(stream);
+byte* serializeBytesToBuffer(byte* begin, byte* end, const Bytes& input) {
+  return Slice(input).writeToBuffer(begin, end);
+}
+
+void serializeBytesToStream(std::FILE* stream, const Bytes& input) {
+  Slice(input).writeToStream(stream);
 }
 
 }  // namespace multimap

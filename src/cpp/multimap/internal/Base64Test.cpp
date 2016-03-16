@@ -57,7 +57,7 @@ TEST(Base64Test, IsNotDefaultConstructible) {
 }
 
 TEST(Base64Test, EncodeZeroBytesReturnsEmptyString) {
-  Range bytes;
+  Slice bytes;
   std::string base64;
   Base64::encode(bytes, &base64);
   ASSERT_TRUE(base64.empty());
@@ -116,37 +116,37 @@ TEST(Base64Test, DecodeEmptyStringReturnsZeroBytes) {
 TEST(Base64Test, DecodeTestStringA) {
   Bytes bytes;
   Base64::decode(TEST_STRING_A_BASE64, &bytes);
-  ASSERT_EQ(bytes, Range(TEST_STRING_A_BINARY));
+  ASSERT_EQ(bytes, Slice(TEST_STRING_A_BINARY));
 }
 
 TEST(Base64Test, DecodeTestStringB) {
   Bytes bytes;
   Base64::decode(TEST_STRING_B_BASE64, &bytes);
-  ASSERT_EQ(bytes, Range(TEST_STRING_B_BINARY));
+  ASSERT_EQ(bytes, Slice(TEST_STRING_B_BINARY));
 }
 
 TEST(Base64Test, DecodeTestStringC) {
   Bytes bytes;
   Base64::decode(TEST_STRING_C_BASE64, &bytes);
-  ASSERT_EQ(bytes, Range(TEST_STRING_C_BINARY));
+  ASSERT_EQ(bytes, Slice(TEST_STRING_C_BINARY));
 }
 
 TEST(Base64Test, DecodeTestStringD) {
   Bytes bytes;
   Base64::decode(TEST_STRING_D_BASE64, &bytes);
-  ASSERT_EQ(bytes, Range(TEST_STRING_D_BINARY));
+  ASSERT_EQ(bytes, Slice(TEST_STRING_D_BINARY));
 }
 
 TEST(Base64Test, DecodeTestStringE) {
   Bytes bytes;
   Base64::decode(TEST_STRING_E_BASE64, &bytes);
-  ASSERT_EQ(bytes, Range(TEST_STRING_E_BINARY));
+  ASSERT_EQ(bytes, Slice(TEST_STRING_E_BINARY));
 }
 
 TEST(Base64Test, DecodeTestStringF) {
   Bytes bytes;
   Base64::decode(TEST_STRING_F_BASE64, &bytes);
-  ASSERT_EQ(bytes, Range(TEST_STRING_F_BINARY));
+  ASSERT_EQ(bytes, Slice(TEST_STRING_F_BINARY));
 }
 
 }  // namespace internal

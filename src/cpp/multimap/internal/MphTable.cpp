@@ -37,17 +37,17 @@ class ListIter : public Iterator {
 
   bool hasNext() const override { return num_values_ != 0; }
 
-  Range next() override {
+  Slice next() override {
     MT_REQUIRE_TRUE(hasNext());
-    const Range value = peekNext();
+    const Slice value = peekNext();
     data_ = value.end();
     num_values_--;
     return value;
   }
 
-  Range peekNext() override {
+  Slice peekNext() override {
     MT_REQUIRE_TRUE(hasNext());
-    return Range::readFromBuffer(data_);
+    return Slice::readFromBuffer(data_);
   }
 
  private:
@@ -55,8 +55,8 @@ class ListIter : public Iterator {
   uint32_t num_values_ = 0;
 };
 
-typedef std::vector<Range> List;
-typedef std::unordered_map<Range, List> Map;
+typedef std::vector<Slice> List;
+typedef std::unordered_map<Slice, List> Map;
 typedef std::vector<uint32_t> Table;
 
 std::string getNameOfListsFile(const std::string& prefix) {
@@ -83,8 +83,8 @@ std::pair<Map, Arena> readRecordsFromFile(
   Arena arena;
   uint32_t key_size;
   const auto stream = mt::open(filename, "r");
-  while (readBytesFromStream(stream.get(), &key) &&
-         readBytesFromStream(stream.get(), &value)) {
+  while (parseBytesFromStream(stream.get(), &key) &&
+         parseBytesFromStream(stream.get(), &value)) {
     auto iter = map.find(key);
     if (iter == map.end()) {
       key_size = key.size();
@@ -92,7 +92,7 @@ std::pair<Map, Arena> readRecordsFromFile(
       std::memcpy(new_full_key, &key_size, sizeof key_size);
       byte* new_key_data = new_full_key + sizeof key_size;
       std::memcpy(new_key_data, key.data(), key_size);
-      iter = map.emplace(Range(new_key_data, key_size), List()).first;
+      iter = map.emplace(Slice(new_key_data, key_size), List()).first;
       // New keys are stored in a way that they serve as input for CMPH.
     }
     byte* new_value_data = arena.allocate(value.size());
@@ -137,13 +137,13 @@ Stats writeMap(const std::string& prefix, const Map& map, const Mph& mph,
       offset += padding;
     }
 
-    const Range& key = entry.first;
+    const Slice& key = entry.first;
     const List& list = entry.second;
     table[mph(key)] = offset / stats.block_size;
     key.writeToStream(lists_stream.get());
     const uint32_t num_values = list.size();
     mt::write(lists_stream.get(), &num_values, sizeof num_values);
-    for (const Range& value : list) {
+    for (const Slice& value : list) {
       value.writeToStream(lists_stream.get());
     }
 
@@ -188,27 +188,27 @@ Stats writeMap(const std::string& prefix, const Map& map, const Mph& mph,
   return stats;
 }
 
-Range mapFileIntoMemory(const boost::filesystem::path& filename) {
+Slice mapFileIntoMemory(const boost::filesystem::path& filename) {
   const auto fd = mt::open(filename, O_RDONLY);
   const auto filesize = boost::filesystem::file_size(filename);
   const auto data = mt::mmap(filesize, PROT_READ, MAP_SHARED, fd.get(), 0);
-  return Range(data, filesize);
+  return Slice(data, filesize);
 }
 
-const byte* getList(const Range& lists, uint32_t block_id, size_t block_size) {
+const byte* getList(const Slice& lists, uint32_t block_id, size_t block_size) {
   return lists.begin() + block_id * block_size;
 }
 
-uint32_t getTableEntry(const Range& table, uint32_t index) {
+uint32_t getTableEntry(const Slice& table, uint32_t index) {
   return *reinterpret_cast<const Table::value_type*>(
              table.begin() + index * sizeof(Table::value_type));
 }
 
-size_t getTableSize(const Range& table) {
+size_t getTableSize(const Slice& table) {
   return table.size() / sizeof(Table::value_type);
 }
 
-Table makeCopy(const Range& table) {
+Table makeCopy(const Slice& table) {
   Table copy(getTableSize(table));
   std::memcpy(copy.data(), table.begin(), table.size());
   return copy;
@@ -235,8 +235,8 @@ MphTable::MphTable(MphTable&& other)
       table_(other.table_),
       lists_(other.lists_),
       stats_(other.stats_) {
-  other.table_ = Range();
-  other.lists_ = Range();
+  other.table_ = Slice();
+  other.lists_ = Slice();
   other.stats_ = Stats();
 }
 
@@ -246,8 +246,8 @@ MphTable& MphTable::operator=(MphTable&& other) {
     table_ = other.table_;
     lists_ = other.lists_;
     stats_ = other.stats_;
-    other.table_ = Range();
-    other.lists_ = Range();
+    other.table_ = Slice();
+    other.lists_ = Slice();
     other.stats_ = Stats();
   }
   return *this;
@@ -262,13 +262,13 @@ MphTable::~MphTable() {
   }
 }
 
-std::unique_ptr<Iterator> MphTable::get(const Range& key) const {
+std::unique_ptr<Iterator> MphTable::get(const Slice& key) const {
   const uint32_t hash = mph_(key);
   if (hash < getTableSize(table_)) {
     // `hash` may be greater equal than table size for unknown keys.
     const uint32_t block_id = getTableEntry(table_, hash);
     const byte* begin = getList(lists_, block_id, stats_.block_size);
-    const Range actual_key = Range::readFromBuffer(begin);
+    const Slice actual_key = Slice::readFromBuffer(begin);
     if (actual_key == key) {
       uint32_t num_values;
       begin = actual_key.end();
@@ -286,12 +286,12 @@ void MphTable::forEachKey(Procedure process) const {
   // TODO Advise access pattern for lists_.
   for (auto block_id : table_copy) {
     const byte* begin = lists_.begin() + block_id * stats_.block_size;
-    const Range key = Range::readFromBuffer(begin);
+    const Slice key = Slice::readFromBuffer(begin);
     process(key);
   }
 }
 
-void MphTable::forEachValue(const Range& key, Procedure process) const {
+void MphTable::forEachValue(const Slice& key, Procedure process) const {
   const auto iter = get(key);
   while (iter->hasNext()) {
     process(iter->next());
@@ -304,7 +304,7 @@ void MphTable::forEachEntry(BinaryProcedure process) const {
   // TODO Advise access pattern for lists_.
   for (auto block_id : table_copy) {
     const byte* begin = getList(lists_, block_id, stats_.block_size);
-    const Range key = Range::readFromBuffer(begin);
+    const Slice key = Slice::readFromBuffer(begin);
     begin = key.end();
     uint32_t num_values;
     std::memcpy(&num_values, begin, sizeof num_values);

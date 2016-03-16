@@ -37,13 +37,13 @@ std::string getPartitionPrefix(const boost::filesystem::path& basedir,
 }
 
 template <typename Element>
-Element& select(std::vector<Element>& elements, const Range& key) {
-  return elements[std::hash<Range>()(key) % elements.size()];
+Element& select(std::vector<Element>& elements, const Slice& key) {
+  return elements[std::hash<Slice>()(key) % elements.size()];
 }
 
 template <typename Element>
-const Element& select(const std::vector<Element>& elements, const Range& key) {
-  return elements[std::hash<Range>()(key) % elements.size()];
+const Element& select(const std::vector<Element>& elements, const Slice& key) {
+  return elements[std::hash<Slice>()(key) % elements.size()];
 }
 
 }  // namespace
@@ -71,7 +71,7 @@ ImmutableMap::Builder::Builder(const boost::filesystem::path& directory,
   }
 }
 
-void ImmutableMap::Builder::put(const Range& key, const Range& value) {
+void ImmutableMap::Builder::put(const Slice& key, const Slice& value) {
   Bucket& bucket = select(buckets_, key);
   key.writeToStream(bucket.stream.get());
   value.writeToStream(bucket.stream.get());
@@ -92,11 +92,11 @@ void ImmutableMap::Builder::put(const Range& key, const Range& value) {
     Bytes old_value;
     for (auto& bucket : buckets_) {
       mt::seek(bucket.stream.get(), 0, SEEK_SET);
-      while (readBytesFromStream(bucket.stream.get(), &old_key) &&
-             readBytesFromStream(bucket.stream.get(), &old_value)) {
+      while (parseBytesFromStream(bucket.stream.get(), &old_key) &&
+             parseBytesFromStream(bucket.stream.get(), &old_value)) {
         Bucket& new_bucket = select(new_buckets, old_key);
-        writeBytesToStream(new_bucket.stream.get(), old_key);
-        writeBytesToStream(new_bucket.stream.get(), old_value);
+        serializeBytesToStream(new_bucket.stream.get(), old_key);
+        serializeBytesToStream(new_bucket.stream.get(), old_value);
         new_bucket.size += old_value.size();
       }
       bucket.stream.reset();
@@ -143,7 +143,7 @@ ImmutableMap::ImmutableMap(const boost::filesystem::path& directory)
   }
 }
 
-std::unique_ptr<Iterator> ImmutableMap::get(const Range& key) const {
+std::unique_ptr<Iterator> ImmutableMap::get(const Slice& key) const {
   return select(tables_, key).get(key);
 }
 
@@ -153,7 +153,7 @@ void ImmutableMap::forEachKey(Procedure process) const {
   }
 }
 
-void ImmutableMap::forEachValue(const Range& key, Procedure process) const {
+void ImmutableMap::forEachValue(const Slice& key, Procedure process) const {
   select(tables_, key).forEachValue(key, process);
 }
 
@@ -234,9 +234,9 @@ void ImmutableMap::exportToBase64(const boost::filesystem::path& directory,
     }
     if (options.compare) {
       internal::Arena arena;
-      std::vector<Range> values;
+      std::vector<Slice> values;
       map.tables_[i].forEachEntry([&writer, &arena, &options, &values](
-          const Range& key, Iterator* iter) {
+          const Slice& key, Iterator* iter) {
         arena.deallocateAll();
         values.reserve(iter->available());
         values.clear();
@@ -249,7 +249,7 @@ void ImmutableMap::exportToBase64(const boost::filesystem::path& directory,
         writer.write(key, &range_iter);
       });
     } else {
-      map.tables_[i].forEachEntry([&writer](const Range& key, Iterator* iter) {
+      map.tables_[i].forEachEntry([&writer](const Slice& key, Iterator* iter) {
         writer.write(key, iter);
       });
     }

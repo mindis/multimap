@@ -18,9 +18,6 @@
 #ifndef MULTIMAP_INTERNAL_UINT_VECTOR_HPP_INCLUDED
 #define MULTIMAP_INTERNAL_UINT_VECTOR_HPP_INCLUDED
 
-#include <cstdio>
-#include <memory>
-#include <vector>
 #include "multimap/thirdparty/mt/mt.hpp"
 #include "multimap/Bytes.hpp"
 
@@ -35,8 +32,6 @@ class UintVector {
 
   bool empty() const { return offset_ == 0; }
 
-  void clear() { *this = UintVector(); }
-
   static UintVector readFromStream(std::FILE* stream);
 
   void writeToStream(std::FILE* stream) const;
@@ -44,8 +39,10 @@ class UintVector {
  private:
   void allocateMoreIfFull();
 
-  byte* beg() const { return data_.get(); }
-  byte* pos() const { return data_.get() + offset_; }
+  byte* begin() const { return data_.get(); }
+
+  byte* current() const { return data_.get() + offset_; }
+
   byte* end() const { return data_.get() + size_; }
 
   std::unique_ptr<byte[]> data_;

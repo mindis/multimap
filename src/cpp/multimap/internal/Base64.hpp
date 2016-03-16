@@ -19,15 +19,15 @@
 #define MULTIMAP_INTERNAL_BASE64_HPP_INCLUDED
 
 #include <string>
-#include "multimap/Range.hpp"
+#include "multimap/Slice.hpp"
 
 namespace multimap {
 namespace internal {
 
 struct Base64 {
-  static void encode(const Range& bytes, std::string* output);
+  static void encode(const Slice& bytes, std::string* output);
 
-  static std::string encode(const Range& bytes);
+  static std::string encode(const Slice& bytes);
 
   static void decode(const std::string& base64, Bytes* output);
 

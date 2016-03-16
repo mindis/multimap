@@ -20,177 +20,104 @@
 
 #include <memory>
 #include <mutex>
+#include <unordered_map>
 #include <boost/filesystem/path.hpp>
-#include "multimap/internal/Block.hpp"
-#include "multimap/thirdparty/mt/mt.hpp"
+#include "multimap/internal/UintVector.hpp"
+#include "multimap/Slice.hpp"
 
 namespace multimap {
 namespace internal {
 
+class List;
+
 class Store {
  public:
   struct Options {
-    uint32_t block_size = 512;
-    uint32_t buffer_size = mt::MiB(1);
+    uint32_t block_size = 128;  // 512
+    uint32_t mmap_segment_size = mt::MiB(10);
     bool readonly = false;
+  };
+
+  struct Block {
+    byte* data = nullptr;
+    uint32_t offset = 0;
+    uint32_t size = 0;
+
+    byte* begin() const { return data; }
+
+    byte* current() const { return data + offset; }
+
+    byte* end() const { return data + size; }
   };
 
   Store() = default;
 
   Store(const boost::filesystem::path& file, const Options& options);
 
-  ~Store();
-
-  // ---------------------------------------------------------------------------
-  // Public thread-safe interface, no external synchronization needed.
-  // ---------------------------------------------------------------------------
-
-  template <bool IsMutable>
-  uint32_t put(const Block<IsMutable>& block) {
-    MT_REQUIRE_EQ(block.size(), getBlockSize());
+  uint32_t put(const Block& block) {
     std::lock_guard<std::mutex> lock(mutex_);
-    return putUnlocked(block.data());
-  }
-
-  template <typename InputIter>
-  // InputIter must point to non-const ExtendedBlock<IsMutable>
-  void put(InputIter first, InputIter last) {
-    if (first != last) {
-      std::lock_guard<std::mutex> lock(mutex_);
-      while (first != last) {
-        if (!first->ignore) {
-          MT_REQUIRE_EQ(first->size(), getBlockSize());
-          first->id = putUnlocked(first->data());
-        }
-        ++first;
-      }
+    if (mappings_.empty() || mappings_.back().isFull()) {
+      const uint64_t old_filesize = mt::seek(fd_.get(), 0, SEEK_END);
+      const uint64_t new_filesize = old_filesize + options_.mmap_segment_size;
+      mt::truncate(fd_.get(), new_filesize);
+      mappings_.emplace_back(
+          mt::mmap(options_.mmap_segment_size, PROT_READ | PROT_WRITE,
+                   MAP_SHARED, fd_.get(), old_filesize),
+          options_.mmap_segment_size);
     }
+    mappings_.back().append(block);
+    return numBlocksUsed() - 1;
   }
 
-  void get(uint32_t id, ReadWriteBlock* block) const {
-    std::lock_guard<std::mutex> lock(mutex_);
-    getUnlocked(id, block->data());
-  }
-
-  void get(ExtendedReadWriteBlock* block) const {
-    std::lock_guard<std::mutex> lock(mutex_);
-    getUnlocked(block->id, block->data());
-  }
-
-  template <typename InputIter>
-  // InputIter must point to non-const ExtendedReadWriteBlock
-  void get(InputIter first, InputIter last) const {
-    if (first != last) {
-      std::lock_guard<std::mutex> lock(mutex_);
-      while (first != last) {
-        if (!first->ignore) {
-          getUnlocked(first->id, first->data());
-        }
-        ++first;
-      }
-    }
-  }
-
-  template <bool IsMutable>
-  void replace(uint32_t id, const Block<IsMutable>& block) {
-    MT_REQUIRE_EQ(block.size(), getBlockSize());
-    std::lock_guard<std::mutex> lock(mutex_);
-    replaceUnlocked(id, block.data());
-  }
-
-  template <bool IsMutable>
-  void replace(const ExtendedBlock<IsMutable>& block) {
-    MT_REQUIRE_EQ(block.size(), getBlockSize());
-    std::lock_guard<std::mutex> lock(mutex_);
-    replaceUnlocked(block.id, block.data());
-  }
-
-  template <typename InputIter>
-  // InputIter must point to ExtendedBlock<IsMutable>
-  void replace(InputIter first, InputIter last) {
-    if (first != last) {
-      std::lock_guard<std::mutex> lock(mutex_);
-      while (first != last) {
-        if (!first->ignore) {
-          MT_REQUIRE_EQ(first->size(), getBlockSize());
-          replaceUnlocked(first->id, first->data());
-        }
-        ++first;
-      }
-    }
-  }
-
-  enum class AccessPattern { NORMAL, WILLNEED };
-  // The names are borrowed from `posix_fadvise`.
-
-  void adviseAccessPattern(AccessPattern pattern) const;
-  // TODO Replace by `readAhead()` which uses POSIX readahead().
-
-  bool isReadOnly() const { return buffer_.size == 0; }
-
-  uint64_t getBlockSize() const { return options_.block_size; }
-  // uint64 is used to promote uint64 conversion
-  // of other operands in arithmetic expressions.
-
-  uint64_t getNumBlocks() const {
-    std::lock_guard<std::mutex> lock(mutex_);
-    return getNumBlocksUnlocked();
-  }
+  uint32_t getBlockSize() const { return options_.block_size; }
 
  private:
-  // ---------------------------------------------------------------------------
-  // Private non-thread-safe interface, needs external synchronization.
-  // ---------------------------------------------------------------------------
-
-  uint32_t putUnlocked(const byte* block);
-
-  void getUnlocked(uint32_t id, byte* block) const;
-
-  void replaceUnlocked(uint32_t id, const byte* block);
-
-  byte* getAddressOf(uint32_t id) const;
-
-  uint64_t getNumBlocksUnlocked() const {
-    return mapped_.getNumBlocks(options_.block_size) +
-           buffer_.getNumBlocks(options_.block_size);
+  uint32_t numBlocksAllocated() const {
+    const uint64_t allocated = mappings_.size() * options_.mmap_segment_size;
+    return allocated / options_.block_size;
   }
 
-  struct Mapped {
-    byte* data = nullptr;
-    uint64_t size = 0;
+  uint32_t numBlocksUsed() const {
+    return !mappings_.empty()
+               ? (numBlocksAllocated() -
+                  mappings_.back().numBlocksFree(options_.block_size))
+               : 0;
+  }
 
-    // Requires: `block_size` != 0
-    uint64_t getNumBlocks(uint32_t block_size) const {
-      return size / block_size;
+  class Mapping {
+   public:
+    Mapping(byte* data, uint32_t size) : data_(data), size_(size) {}
+
+    //    ~Mapping() {
+    //      mt::munmap(data_, size_);
+    //    }
+
+    void append(const Block& block) {
+      MT_REQUIRE_FALSE(isFull());
+      std::memcpy(data_ + offset_, block.data, block.size);
+      offset_ += block.size;
     }
-  };
 
-  struct Buffer {
-    std::unique_ptr<byte[]> data;
-    uint64_t offset = 0;
-    uint64_t size = 0;
+    bool isFull() const { return offset_ == size_; }
 
-    void flushTo(int fd) {
-      mt::write(fd, data.get(), offset);
-      offset = 0;
+    int numBlocksAllocated(int block_size) const { return size_ / block_size; }
+
+    int numBlocksUsed(int block_size) const { return offset_ / block_size; }
+
+    int numBlocksFree(int block_size) const {
+      return (size_ - offset_) / block_size;
     }
 
-    bool full() const { return offset == size; }
-
-    bool empty() const { return offset == 0; }
-
-    // Requires: `block_size` != 0
-    uint64_t getNumBlocks(uint32_t block_size) const {
-      return offset / block_size;
-    }
+   private:
+    byte* data_ = nullptr;
+    uint32_t offset_ = 0;
+    uint32_t size_ = 0;
   };
 
   mutable std::mutex mutex_;
-  mutable bool fill_page_cache_ = false;
+  std::vector<Mapping> mappings_;
   mt::AutoCloseFd fd_;
   Options options_;
-  Mapped mapped_;
-  Buffer buffer_;
 };
 
 }  // namespace internal

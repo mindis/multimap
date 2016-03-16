@@ -17,6 +17,7 @@
 
 #include "multimap/internal/UintVector.hpp"
 
+#include <cstring>
 #include "multimap/internal/Varint.hpp"
 
 namespace multimap {
@@ -39,16 +40,17 @@ inline byte* writeUint32ToBuffer(byte* buffer, uint32_t value) {
 void UintVector::add(uint32_t value) {
   allocateMoreIfFull();
   if (empty()) {
-    offset_ = Varint::writeToBuffer(pos(), end(), value) - beg();
+    offset_ += Varint::writeToBuffer(begin(), end(), value);
   } else {
-    uint32_t prev_value;
-    offset_ -= sizeof prev_value;
-    readUint32FromBuffer(pos(), &prev_value);
-    MT_ASSERT_LT(prev_value, value);
-    const uint32_t delta = value - prev_value;
-    offset_ = Varint::writeToBuffer(pos(), end(), delta) - beg();
+    uint32_t absolute_value;
+    readUint32FromBuffer(current(), &absolute_value);
+    MT_ASSERT_LT(absolute_value, value);
+    const uint32_t delta = value - absolute_value;
+    offset_ += Varint::writeToBuffer(current(), end(), delta);
   }
-  offset_ = writeUint32ToBuffer(pos(), value) - beg();
+  // The new offset points past the last delta encoded value
+  // which is also right before the trailing absolute value.
+  writeUint32ToBuffer(current(), value);
 }
 
 std::vector<uint32_t> UintVector::unpack() const {
@@ -56,10 +58,10 @@ std::vector<uint32_t> UintVector::unpack() const {
   if (!empty()) {
     uint32_t delta = 0;
     uint32_t value = 0;
-    const byte* ptr = beg();
-    const byte* end_of_deltas = pos() - sizeof value;
-    while (ptr != end_of_deltas) {
-      ptr = Varint::readFromBuffer(ptr, &delta);
+    const byte* pos = begin();
+    const byte* end = current();
+    while (pos != end) {
+      pos += Varint::readFromBuffer(pos, &delta);
       values.push_back(value + delta);
       value = values.back();
     }
@@ -69,25 +71,26 @@ std::vector<uint32_t> UintVector::unpack() const {
 
 UintVector UintVector::readFromStream(std::FILE* stream) {
   UintVector vector;
-  mt::read(stream, &vector.offset_, sizeof vector.offset_);
-  vector.data_.reset(new byte[vector.offset_]);
-  mt::read(stream, vector.beg(), vector.offset_);
-  vector.size_ = vector.offset_;
+  mt::read(stream, &vector.size_, sizeof vector.size_);
+  vector.data_.reset(new byte[vector.size_]);
+  mt::read(stream, vector.data_.get(), vector.size_);
+  vector.offset_ = vector.size_;
   return vector;
 }
 
 void UintVector::writeToStream(std::FILE* stream) const {
   mt::write(stream, &offset_, sizeof offset_);
-  mt::write(stream, beg(), offset_);
+  mt::write(stream, data_.get(), offset_);
 }
 
 void UintVector::allocateMoreIfFull() {
-  const uint32_t required_size = sizeof(uint32_t) * 2;
-  if (required_size > size_ - offset_) {
-    const uint32_t new_end_offset = size_ * 1.5;
-    const auto new_size = std::max(new_end_offset, required_size);
+  const uint32_t nbytes_required = sizeof(uint32_t) * 2;
+  // Required are at most 4 bytes for the next varint-encoded
+  // delta plus exactly 4 bytes for the trailing absolute value.
+  if (nbytes_required > size_ - offset_) {
+    const uint32_t new_size = mt::max(size_ * 2, nbytes_required);
     std::unique_ptr<byte[]> new_data(new byte[new_size]);
-    std::memcpy(new_data.get(), beg(), offset_);
+    std::memcpy(new_data.get(), data_.get(), size_);
     data_ = std::move(new_data);
     size_ = new_size;
   }

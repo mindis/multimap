@@ -20,7 +20,7 @@
 
 #include <iterator>
 #include <memory>
-#include "multimap/Range.hpp"
+#include "multimap/Slice.hpp"
 
 namespace multimap {
 
@@ -34,9 +34,9 @@ class Iterator {
 
   virtual bool hasNext() const = 0;
 
-  virtual Range next() = 0;
+  virtual Slice next() = 0;
 
-  virtual Range peekNext() = 0;
+  virtual Slice peekNext() = 0;
 };
 
 template <typename InputIter>
@@ -48,9 +48,9 @@ class RangeIterator : public Iterator {
 
   bool hasNext() const override { return begin_ != end_; }
 
-  Range next() override { return *begin_++; }
+  Slice next() override { return *begin_++; }
 
-  Range peekNext() override { return *begin_; }
+  Slice peekNext() override { return *begin_; }
 
  private:
   InputIter begin_;

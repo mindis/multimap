@@ -38,11 +38,11 @@ class MphTable {
 
   struct Options {
     bool verbose = true;
-    std::function<bool(const Range&, const Range&)> compare;
+    std::function<bool(const Slice&, const Slice&)> compare;
   };
 
-  typedef std::function<void(const Range&)> Procedure;
-  typedef std::function<void(const Range&, Iterator*)> BinaryProcedure;
+  typedef std::function<void(const Slice&)> Procedure;
+  typedef std::function<void(const Slice&, Iterator*)> BinaryProcedure;
 
   explicit MphTable(const std::string& prefix);
 
@@ -52,11 +52,11 @@ class MphTable {
 
   ~MphTable();
 
-  std::unique_ptr<Iterator> get(const Range& key) const;
+  std::unique_ptr<Iterator> get(const Slice& key) const;
 
   void forEachKey(Procedure process) const;
 
-  void forEachValue(const Range& key, Procedure process) const;
+  void forEachValue(const Slice& key, Procedure process) const;
 
   void forEachEntry(BinaryProcedure process) const;
 
@@ -76,8 +76,8 @@ class MphTable {
 
  private:
   Mph mph_;
-  Range table_;
-  Range lists_;
+  Slice table_;
+  Slice lists_;
   Stats stats_;
 };
 

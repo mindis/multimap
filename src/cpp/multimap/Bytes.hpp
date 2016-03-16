@@ -36,11 +36,13 @@ Bytes makeBytes(const char* cstr);
 
 Bytes makeBytes(const std::string& str);
 
-const byte* readBytesFromBuffer(const byte* buffer, Bytes* output);
+const byte* parseBytesFromBuffer(const byte* buffer, Bytes* output);
 
-bool readBytesFromStream(std::FILE* stream, Bytes* output);
+bool parseBytesFromStream(std::FILE* stream, Bytes* output);
 
-void writeBytesToStream(std::FILE* stream, const Bytes& input);
+byte* serializeBytesToBuffer(byte* begin, byte* end, const Bytes& input);
+
+void serializeBytesToStream(std::FILE* stream, const Bytes& input);
 
 namespace internal {
 

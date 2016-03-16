@@ -15,20 +15,20 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "multimap/Range.hpp"
+#include "multimap/Slice.hpp"
 
 #include "multimap/thirdparty/mt/mt.hpp"
 #include "multimap/internal/Varint.hpp"
 
 namespace multimap {
 
-Range Range::readFromBuffer(const byte* buffer) {
+Slice Slice::readFromBuffer(const byte* buffer) {
   uint32_t size = 0;
-  buffer = internal::Varint::readFromBuffer(buffer, &size);
-  return Range(buffer, size);
+  buffer += internal::Varint::readFromBuffer(buffer, &size);
+  return Slice(buffer, size);
 }
 
-Range Range::readFromStream(std::FILE* stream,
+Slice Slice::readFromStream(std::FILE* stream,
                             std::function<byte*(size_t)> allocate) {
   uint32_t size = 0;
   if (internal::Varint::readFromStream(stream, &size)) {
@@ -37,31 +37,31 @@ Range Range::readFromStream(std::FILE* stream,
     // The stream is expected to contain valid encodings of Bytes objects.
     // Hence, after successfully reading the size field, mt::fread() will
     // throw, if the data field could not be read to signal an invalid stream.
-    return Range(data, size);
+    return Slice(data, size);
   }
-  return Range();
+  return Slice();
 }
 
-byte* Range::writeToBuffer(byte* begin, byte* end) const {
+byte* Slice::writeToBuffer(byte* begin, byte* end) const {
   MT_REQUIRE_LE(begin, end);
   const size_t count = size();
   MT_ASSERT_LE(count, internal::Varint::Limits::MAX_N4);
-  byte* new_begin = internal::Varint::writeToBuffer(begin, end, count);
-  if ((new_begin != begin) && (static_cast<size_t>(end - new_begin) >= count)) {
-    std::memcpy(new_begin, beg_, count);
-    new_begin += count;
-    return new_begin;
+  byte* pos = begin + internal::Varint::writeToBuffer(begin, end, count);
+  if ((pos != begin) && (static_cast<size_t>(end - pos) >= count)) {
+    std::memcpy(pos, beg_, count);
+    pos += count;
+    return pos;
   }
   return begin;
 }
 
-void Range::writeToStream(std::FILE* stream) const {
+void Slice::writeToStream(std::FILE* stream) const {
   const size_t count = size();
   MT_ASSERT_LE(count, internal::Varint::Limits::MAX_N4);
   internal::Varint::writeToStream(stream, count);
   mt::write(stream, beg_, count);
 }
 
-const byte* Range::EMPTY = reinterpret_cast<const byte*>("");
+const byte* Slice::EMPTY = reinterpret_cast<const byte*>("");
 
 }  // namespace multimap

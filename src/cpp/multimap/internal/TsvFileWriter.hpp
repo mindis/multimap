@@ -21,8 +21,8 @@
 #include <fstream>
 #include <string>
 #include <boost/filesystem/path.hpp>
-#include "multimap/Range.hpp"
 #include "multimap/Iterator.hpp"
+#include "multimap/Slice.hpp"
 
 namespace multimap {
 namespace internal {
@@ -31,9 +31,9 @@ class TsvFileWriter {
  public:
   TsvFileWriter(const boost::filesystem::path& filename);
 
-  void write(const Range& key, const Range& value);
+  void write(const Slice& key, const Slice& value);
 
-  void write(const Range& key, Iterator* iter);
+  void write(const Slice& key, Iterator* iter);
 
  private:
   std::ofstream stream_;

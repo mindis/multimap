@@ -111,8 +111,6 @@ std::vector<Stats> Map::getStats() const {
 
 Stats Map::getTotalStats() const { return Stats::total(getStats()); }
 
-bool Map::isReadOnly() const { return partitions_.front()->isReadOnly(); }
-
 std::vector<Stats> Map::stats(const boost::filesystem::path& directory) {
   internal::DirectoryLock lock(directory);
   const auto descriptor = internal::Descriptor::readFromDirectory(
@@ -178,9 +176,9 @@ void Map::exportToBase64(const boost::filesystem::path& directory,
     }
     if (options.compare) {
       internal::Arena arena;
-      std::vector<Range> values;
+      std::vector<Slice> values;
       internal::Partition::forEachEntry(
-          prefix, [&writer, &arena, &options, &values](const Range& key,
+          prefix, [&writer, &arena, &options, &values](const Slice& key,
                                                        Iterator* iter) {
             arena.deallocateAll();
             values.reserve(iter->available());
@@ -195,7 +193,7 @@ void Map::exportToBase64(const boost::filesystem::path& directory,
           });
     } else {
       internal::Partition::forEachEntry(
-          prefix, [&writer](const Range& key, Iterator* iter) {
+          prefix, [&writer](const Slice& key, Iterator* iter) {
             writer.write(key, iter);
           });
     }
@@ -235,9 +233,9 @@ void Map::optimize(const boost::filesystem::path& directory,
     }
     if (options.compare) {
       internal::Arena arena;
-      std::vector<Range> values;
+      std::vector<Slice> values;
       internal::Partition::forEachEntry(
-          prefix, [&new_map, &arena, &options, &values](const Range& key,
+          prefix, [&new_map, &arena, &options, &values](const Slice& key,
                                                         Iterator* iter) {
             arena.deallocateAll();
             values.reserve(iter->available());
@@ -253,7 +251,7 @@ void Map::optimize(const boost::filesystem::path& directory,
           });
     } else {
       internal::Partition::forEachEntry(
-          prefix, [&new_map](const Range& key, Iterator* iter) {
+          prefix, [&new_map](const Slice& key, Iterator* iter) {
             while (iter->hasNext()) {
               new_map.put(key, iter->next());
             }

@@ -50,7 +50,7 @@ class ImmutableMap {
    public:
     Builder(const boost::filesystem::path& directory, const Options& options);
 
-    void put(const Range& key, const Range& value);
+    void put(const Slice& key, const Slice& value);
 
     std::vector<Stats> build();
 
@@ -69,11 +69,11 @@ class ImmutableMap {
 
   explicit ImmutableMap(const boost::filesystem::path& directory);
 
-  std::unique_ptr<Iterator> get(const Range& key) const;
+  std::unique_ptr<Iterator> get(const Slice& key) const;
 
   void forEachKey(Procedure process) const;
 
-  void forEachValue(const Range& key, Procedure process) const;
+  void forEachValue(const Slice& key, Procedure process) const;
 
   void forEachEntry(BinaryProcedure process) const;
 

@@ -21,7 +21,7 @@
 #include <memory>
 #include <boost/filesystem/path.hpp>
 #include "multimap/thirdparty/cmph/cmph.h"
-#include "multimap/Range.hpp"
+#include "multimap/Slice.hpp"
 
 namespace std {
 
@@ -63,7 +63,7 @@ class Mph {
 
   void dump(const boost::filesystem::path& filename) const;
 
-  uint32_t operator()(const Range& key) const {
+  uint32_t operator()(const Slice& key) const {
     return cmph_search(cmph_.get(), reinterpret_cast<const char*>(key.begin()),
                        key.size());
   }

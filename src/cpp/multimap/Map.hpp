@@ -49,7 +49,7 @@ class Map {
     bool readonly = false;
     bool verbose = true;
 
-    std::function<bool(const Range&, const Range&)> compare;
+    std::function<bool(const Slice&, const Slice&)> compare;
 
     void keepNumPartitions() { num_partitions = 0; }
     void keepBlockSize() { block_size = 0; }
@@ -63,35 +63,35 @@ class Map {
 
   Map(const boost::filesystem::path& directory, const Options& options);
 
-  void put(const Range& key, const Range& value) {
+  void put(const Slice& key, const Slice& value) {
     getPartition(key)->put(key, value);
   }
 
   template <typename InputIter>
-  void put(const Range& key, InputIter first, InputIter last) {
+  void put(const Slice& key, InputIter first, InputIter last) {
     getPartition(key)->put(key, first, last);
   }
 
-  std::unique_ptr<Iterator> get(const Range& key) const {
+  std::unique_ptr<Iterator> get(const Slice& key) const {
     return getPartition(key)->get(key);
   }
 
-  bool contains(const Range& key) const {
+  bool contains(const Slice& key) const {
     return getPartition(key)->contains(key);
   }
 
-  uint32_t remove(const Range& key) { return getPartition(key)->remove(key); }
+  uint32_t remove(const Slice& key) { return getPartition(key)->remove(key); }
 
-  bool removeFirstEqual(const Range& key, const Range& value) {
+  bool removeFirstEqual(const Slice& key, const Slice& value) {
     return getPartition(key)->removeFirstEqual(key, value);
   }
 
-  uint32_t removeAllEqual(const Range& key, const Range& value) {
+  uint32_t removeAllEqual(const Slice& key, const Slice& value) {
     return getPartition(key)->removeAllEqual(key, value);
   }
 
   template <typename Predicate>
-  bool removeFirstMatch(const Range& key, Predicate predicate) {
+  bool removeFirstMatch(const Slice& key, Predicate predicate) {
     return getPartition(key)->removeFirstMatch(key, predicate);
   }
 
@@ -106,7 +106,7 @@ class Map {
   }
 
   template <typename Predicate>
-  uint32_t removeAllMatches(const Range& key, Predicate predicate) {
+  uint32_t removeAllMatches(const Slice& key, Predicate predicate) {
     return getPartition(key)->removeAllMatches(key, predicate);
   }
 
@@ -122,23 +122,23 @@ class Map {
     return {num_keys_removed, num_values_removed};
   }
 
-  bool replaceFirstEqual(const Range& key, const Range& old_value,
-                         const Range& new_value) {
+  bool replaceFirstEqual(const Slice& key, const Slice& old_value,
+                         const Slice& new_value) {
     return getPartition(key)->replaceFirstEqual(key, old_value, new_value);
   }
 
-  uint32_t replaceAllEqual(const Range& key, const Range& old_value,
-                           const Range& new_value) {
+  uint32_t replaceAllEqual(const Slice& key, const Slice& old_value,
+                           const Slice& new_value) {
     return getPartition(key)->replaceAllEqual(key, old_value, new_value);
   }
 
   template <typename Function>
-  bool replaceFirstMatch(const Range& key, Function map) {
+  bool replaceFirstMatch(const Slice& key, Function map) {
     return getPartition(key)->replaceFirstMatch(key, map);
   }
 
   template <typename Function>
-  uint32_t replaceAllMatches(const Range& key, Function map) {
+  uint32_t replaceAllMatches(const Slice& key, Function map) {
     return getPartition(key)->replaceAllMatches(key, map);
   }
 
@@ -150,7 +150,7 @@ class Map {
   }
 
   template <typename Procedure>
-  void forEachValue(const Range& key, Procedure process) const {
+  void forEachValue(const Slice& key, Procedure process) const {
     getPartition(key)->forEachValue(key, process);
   }
 
@@ -164,8 +164,6 @@ class Map {
   std::vector<Stats> getStats() const;
 
   Stats getTotalStats() const;
-
-  bool isReadOnly() const;
 
   // ---------------------------------------------------------------------------
   // Static member functions
@@ -195,12 +193,12 @@ class Map {
                        const Options& options);
 
  private:
-  internal::Partition* getPartition(const Range& key) {
-    return partitions_[std::hash<Range>()(key) % partitions_.size()].get();
+  internal::Partition* getPartition(const Slice& key) {
+    return partitions_[std::hash<Slice>()(key) % partitions_.size()].get();
   }
 
-  const internal::Partition* getPartition(const Range& key) const {
-    return partitions_[std::hash<Range>()(key) % partitions_.size()].get();
+  const internal::Partition* getPartition(const Slice& key) const {
+    return partitions_[std::hash<Slice>()(key) % partitions_.size()].get();
   }
 
   std::vector<std::unique_ptr<internal::Partition> > partitions_;

@@ -103,7 +103,7 @@ class Block {
   void fillUpWithZeros() { std::memset(pos(), 0, remaining()); }
 
   MT_DISABLE_IF(IsReadOnly)
-  size_t writeData(const Range& bytes) {
+  size_t writeData(const Slice& bytes) {
     const auto nbytes = std::min(bytes.size(), remaining());
     std::memcpy(pos(), bytes.begin(), nbytes);
     offset_ += nbytes;

@@ -27,9 +27,9 @@ class EmptyIter : public Iterator {
 
   bool hasNext() const override { return false; }
 
-  Range next() override { return Range(); }
+  Slice next() override { return Slice(); }
 
-  Range peekNext() override { return Range(); }
+  Slice peekNext() override { return Slice(); }
 };
 
 }  // namespace

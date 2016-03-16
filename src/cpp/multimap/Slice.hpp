@@ -16,11 +16,11 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // -----------------------------------------------------------------------------
-// Documentation:  http://multimap.io/cppreference/#rangehpp
+// Documentation:  http://multimap.io/cppreference/#slicehpp
 // -----------------------------------------------------------------------------
 
-#ifndef MULTIMAP_RANGE_HPP_INCLUDED
-#define MULTIMAP_RANGE_HPP_INCLUDED
+#ifndef MULTIMAP_SLICE_HPP_INCLUDED
+#define MULTIMAP_SLICE_HPP_INCLUDED
 
 #include <functional>
 #include "multimap/thirdparty/mt/mt.hpp"
@@ -29,21 +29,21 @@
 
 namespace multimap {
 
-class Range {
+class Slice {
  public:
-  Range() = default;
+  Slice() = default;
 
-  Range(const char* cstr) : Range(cstr, std::strlen(cstr)) {}
+  Slice(const char* cstr) : Slice(cstr, std::strlen(cstr)) {}
 
-  Range(const Bytes& bytes) : Range(bytes.data(), bytes.size()) {}
+  Slice(const Bytes& bytes) : Slice(bytes.data(), bytes.size()) {}
 
-  Range(const std::string& str) : Range(str.data(), str.size()) {}
+  Slice(const std::string& str) : Slice(str.data(), str.size()) {}
 
-  Range(const void* data, size_t size)
-      : Range(static_cast<const byte*>(data),
+  Slice(const void* data, size_t size)
+      : Slice(static_cast<const byte*>(data),
               static_cast<const byte*>(data) + size) {}
 
-  Range(const byte* begin, const byte* end) : beg_(begin), end_(end) {}
+  Slice(const byte* begin, const byte* end) : beg_(begin), end_(end) {}
 
   const byte* begin() const { return beg_; }
 
@@ -65,11 +65,11 @@ class Range {
   }
 
   template <typename Allocate>
-  Range makeCopy(Allocate allocate) const {
+  Slice makeCopy(Allocate allocate) const {
     const size_t count = size();
     byte* data = allocate(count);
     std::memcpy(data, beg_, count);
-    return Range(data, count);
+    return Slice(data, count);
   }
 
   std::string toString() const {
@@ -78,15 +78,15 @@ class Range {
 
   // I/O Support
   // ---------------------------------------------------------------------------
-  // Writing Range objects to a buffer or file stream is self-describing, i.e.
+  // Writing Slice objects to a buffer or file stream is self-describing, i.e.
   // the size of the range in number of bytes is part of the serialization and
   // does not need to be maintained separately. This way ranges can be restored
   // parsing the buffer or file stream. The latter can be done via class Bytes.
   // The encoding is as follows: [number of bytes as varint][actual data bytes]
 
-  static Range readFromBuffer(const byte* buffer);
+  static Slice readFromBuffer(const byte* buffer);
 
-  static Range readFromStream(std::FILE* stream,
+  static Slice readFromStream(std::FILE* stream,
                               std::function<byte*(size_t)> allocate);
 
   byte* writeToBuffer(byte* begin, byte* end) const;
@@ -94,8 +94,6 @@ class Range {
   // the buffer past the last byte written which can be used for further write
   // operations. If there is no sufficient space in the buffer to write the
   // whole range, `begin` is returned.
-
-  byte* writePartialToBuffer(byte* begin, byte* end) const;
 
   void writeToStream(std::FILE* stream) const;
   // Writes the bytes to a file stream or throws an exception if that was not
@@ -110,13 +108,13 @@ class Range {
   const byte* end_ = EMPTY;
 };
 
-inline bool operator==(const Range& a, const Range& b) {
+inline bool operator==(const Slice& a, const Slice& b) {
   return internal::equal(a.begin(), a.size(), b.begin(), b.size());
 }
 
-inline bool operator!=(const Range& a, const Range& b) { return !(a == b); }
+inline bool operator!=(const Slice& a, const Slice& b) { return !(a == b); }
 
-inline bool operator<(const Range& a, const Range& b) {
+inline bool operator<(const Slice& a, const Slice& b) {
   return internal::less(a.begin(), a.size(), b.begin(), b.size());
 }
 
@@ -125,8 +123,8 @@ inline bool operator<(const Range& a, const Range& b) {
 namespace std {
 
 template <>
-struct hash< ::multimap::Range> {
-  size_t operator()(const ::multimap::Range& range) const {
+struct hash< ::multimap::Slice> {
+  size_t operator()(const ::multimap::Slice& range) const {
     return mt::is64BitSystem() ? XXH64(range.begin(), range.size(), 0)
                                : XXH32(range.begin(), range.size(), 0);
   }
@@ -134,4 +132,4 @@ struct hash< ::multimap::Range> {
 
 }  // namespace std
 
-#endif  // MULTIMAP_RANGE_HPP_INCLUDED
+#endif  // MULTIMAP_SLICE_HPP_INCLUDED
