@@ -108,7 +108,7 @@ TEST(Base64Test, DecodeEmptyStringReturnsZeroBytes) {
   Base64::decode("", &bytes);
   ASSERT_TRUE(bytes.empty());
 
-  bytes = makeBytes("old content");
+  bytes = toBytes("old content");
   Base64::decode("", &bytes);
   ASSERT_TRUE(bytes.empty());
 }

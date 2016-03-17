@@ -14,8 +14,8 @@ INCLUDEPATH += \
 HEADERS += \
     src/cpp/multimap/internal/Arena.hpp \
     src/cpp/multimap/internal/Base64.hpp \
-    src/cpp/multimap/internal/Block.hpp \
     src/cpp/multimap/internal/Descriptor.hpp \
+    src/cpp/multimap/internal/List.hpp \
     src/cpp/multimap/internal/Locks.hpp \
     src/cpp/multimap/internal/Mph.hpp \
     src/cpp/multimap/internal/MphTable.hpp \
@@ -67,18 +67,20 @@ HEADERS += \
     src/cpp/multimap/thirdparty/mt/mt.hpp \
     src/cpp/multimap/thirdparty/xxhash/xxhash.h \
     src/cpp/multimap/Bytes.hpp \
+    src/cpp/multimap/callables.hpp \
     src/cpp/multimap/ImmutableMap.hpp \
     src/cpp/multimap/Iterator.hpp \
     src/cpp/multimap/Map.hpp \
-    src/cpp/multimap/Stats.hpp \
-    src/cpp/multimap/Version.hpp \
+    src/cpp/multimap/Options.hpp \
     src/cpp/multimap/Slice.hpp \
-    src/cpp/multimap/internal/List.hpp
+    src/cpp/multimap/Stats.hpp \
+    src/cpp/multimap/Version.hpp
 
 SOURCES += \
     src/cpp/multimap/internal/Arena.cpp \
     src/cpp/multimap/internal/Base64.cpp \
     src/cpp/multimap/internal/Descriptor.cpp \
+    src/cpp/multimap/internal/List.cpp \
     src/cpp/multimap/internal/Mph.cpp \
     src/cpp/multimap/internal/MphTable.cpp \
     src/cpp/multimap/internal/Partition.cpp \
@@ -117,10 +119,9 @@ SOURCES += \
     src/cpp/multimap/ImmutableMap.cpp \
     src/cpp/multimap/Iterator.cpp \
     src/cpp/multimap/Map.cpp \
-    src/cpp/multimap/Stats.cpp \
-    src/cpp/multimap/Version.cpp \
     src/cpp/multimap/Slice.cpp \
-    src/cpp/multimap/internal/List.cpp
+    src/cpp/multimap/Stats.cpp \
+    src/cpp/multimap/Version.cpp
 
 unix:!macx: LIBS += -lboost_filesystem -lboost_system -lboost_thread -lpthread
 

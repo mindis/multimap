@@ -22,6 +22,7 @@
 #include <boost/filesystem/path.hpp>
 #include "multimap/internal/Mph.hpp"
 #include "multimap/Iterator.hpp"
+#include "multimap/Options.hpp"
 #include "multimap/Stats.hpp"
 
 namespace multimap {
@@ -34,11 +35,6 @@ class MphTable {
   struct Limits {
     static uint32_t maxKeySize();
     static uint32_t maxValueSize();
-  };
-
-  struct Options {
-    bool verbose = true;
-    std::function<bool(const Slice&, const Slice&)> compare;
   };
 
   typedef std::function<void(const Slice&)> Procedure;

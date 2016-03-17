@@ -40,21 +40,6 @@ class Map {
     static uint32_t maxValueSize();
   };
 
-  struct Options {
-    uint32_t block_size = 512;
-    uint32_t num_partitions = 23;
-
-    bool create_if_missing = false;
-    bool error_if_exists = false;
-    bool readonly = false;
-    bool verbose = true;
-
-    std::function<bool(const Slice&, const Slice&)> compare;
-
-    void keepNumPartitions() { num_partitions = 0; }
-    void keepBlockSize() { block_size = 0; }
-  };
-
   // ---------------------------------------------------------------------------
   // Member functions
   // ---------------------------------------------------------------------------
@@ -74,10 +59,6 @@ class Map {
 
   std::unique_ptr<Iterator> get(const Slice& key) const {
     return getPartition(key)->get(key);
-  }
-
-  bool contains(const Slice& key) const {
-    return getPartition(key)->contains(key);
   }
 
   uint32_t remove(const Slice& key) { return getPartition(key)->remove(key); }

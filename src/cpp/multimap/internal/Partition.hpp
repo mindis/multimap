@@ -18,16 +18,8 @@
 #ifndef MULTIMAP_INTERNAL_PARTITION_HPP_INCLUDED
 #define MULTIMAP_INTERNAL_PARTITION_HPP_INCLUDED
 
-#include <memory>
 #include <unordered_map>
-#include <vector>
-#include <boost/filesystem/path.hpp>
-#include <boost/thread/shared_mutex.hpp>
-#include "multimap/internal/Arena.hpp"
 #include "multimap/internal/List.hpp"
-#include "multimap/internal/Locks.hpp"
-#include "multimap/thirdparty/mt/mt.hpp"
-#include "multimap/Iterator.hpp"
 #include "multimap/Stats.hpp"
 
 namespace multimap {
@@ -35,23 +27,12 @@ namespace internal {
 
 class Partition {
  public:
-  // ---------------------------------------------------------------------------
-  // Member types
-  // ---------------------------------------------------------------------------
-
   struct Limits {
-    static uint32_t maxKeySize();
-    static uint32_t maxValueSize();
+    static size_t maxKeySize();
+    static size_t maxValueSize();
   };
 
-  struct Options {
-    uint32_t block_size = 512;
-    bool readonly = false;
-  };
-
-  // ---------------------------------------------------------------------------
-  // Member functions
-  // ---------------------------------------------------------------------------
+  typedef List::Slices Slices;
 
   explicit Partition(const std::string& prefix);
 
@@ -59,207 +40,54 @@ class Partition {
 
   ~Partition();
 
-  void put(const Slice& key, const Slice& value) {
-    getListOrCreate(key)->append(value, store_.get(), &arena_);
-  }
+  void put(const Slice& key, const Slice& value);
 
-  template <typename InputIter>
-  void put(const Slice& key, InputIter first, InputIter last) {
-    getListOrCreate(key)->append(first, last, store_.get(), &arena_);
-  }
+  void put(const Slice& key, const Slices& values);
 
-  std::unique_ptr<Iterator> get(const Slice& key) const {
-    //    const auto list = getList(key);
-    //    return list ? list->newIterator(*store_) :
-    //    Iterator::newEmptyInstance();
-    return Iterator::newEmptyInstance();
-  }
+  std::unique_ptr<Iterator> get(const Slice& key) const;
 
-  bool contains(const Slice& key) const {
-    //    const auto list = getList(key);
-    //    return list ? !list->empty() : false;
-    return false;
-  }
+  size_t remove(const Slice& key);
 
-  uint32_t remove(const Slice& key) {
-    //    const auto list = getList(key);
-    //    return list ? list->clear() : 0;
-    return 0;
-  }
+  bool removeFirstEqual(const Slice& key, const Slice& value);
 
-  bool removeFirstEqual(const Slice& key, const Slice& value) {
-    return removeFirstMatch(key, Equal(value));
-  }
+  size_t removeAllEqual(const Slice& key, const Slice& value);
 
-  uint32_t removeAllEqual(const Slice& key, const Slice& value) {
-    return removeAllMatches(key, Equal(value));
-  }
+  bool removeFirstMatch(const Slice& key, Predicate predicate);
 
-  template <typename Predicate>
-  bool removeFirstMatch(const Slice& key, Predicate predicate) {
-    //    const auto list = getList(key);
-    //    return list ? list->removeFirstMatch(predicate, store_.get()) : false;
-    return false;
-  }
+  size_t removeFirstMatch(Predicate predicate);
 
-  template <typename Predicate>
-  uint32_t removeFirstMatch(Predicate predicate) {
-    ReaderLockGuard<boost::shared_mutex> lock(mutex_);
-    uint32_t num_values_removed = 0;
-    //    for (const auto& entry : map_) {
-    //      if (predicate(entry.first)) {
-    //        num_values_removed = entry.second->clear();
-    //        if (num_values_removed != 0) break;
-    //      }
-    //    }
-    return num_values_removed;
-  }
+  size_t removeAllMatches(const Slice& key, Predicate predicate);
 
-  template <typename Predicate>
-  uint32_t removeAllMatches(const Slice& key, Predicate predicate) {
-    //    const auto list = getList(key);
-    //    return list ? list->removeAllMatches(predicate, store_.get()) : 0;
-    return 0;
-  }
-
-  template <typename Predicate>
-  std::pair<uint32_t, uint64_t> removeAllMatches(Predicate predicate) {
-    ReaderLockGuard<boost::shared_mutex> lock(mutex_);
-    uint32_t num_keys_removed = 0;
-    uint64_t num_values_removed = 0;
-    //    for (const auto& entry : map_) {
-    //      if (predicate(entry.first)) {
-    //        const auto old_size = entry.second->clear();
-    //        if (old_size != 0) {
-    //          num_values_removed += old_size;
-    //          num_keys_removed++;
-    //        }
-    //      }
-    //    }
-    return std::make_pair(num_keys_removed, num_values_removed);
-  }
+  std::pair<size_t, size_t> removeAllMatches(Predicate predicate);
 
   bool replaceFirstEqual(const Slice& key, const Slice& old_value,
-                         const Slice& new_value) {
-    return replaceFirstMatch(key, [&old_value, &new_value](const Slice& value) {
-      return (value == old_value) ? new_value.makeCopy() : Bytes();
-    });
-  }
+                         const Slice& new_value);
 
-  uint32_t replaceAllEqual(const Slice& key, const Slice& old_value,
-                           const Slice& new_value) {
-    return replaceAllMatches(key, [&old_value, &new_value](const Slice& value) {
-      return (value == old_value) ? new_value.makeCopy() : Bytes();
-    });
-  }
+  size_t replaceAllEqual(const Slice& key, const Slice& old_value,
+                         const Slice& new_value);
 
-  template <typename Function>
-  bool replaceFirstMatch(const Slice& key, Function map) {
-    //    const auto list = getList(key);
-    //    return list ? list->replaceFirstMatch(map, store_.get(), &arena_) :
-    //    false;
-    return false;
-  }
+  bool replaceFirstMatch(const Slice& key, Function map);
 
-  template <typename Function>
-  uint32_t replaceAllMatches(const Slice& key, Function map) {
-    //    const auto list = getList(key);
-    //    return list ? list->replaceAllMatches(map, store_.get(), &arena_) : 0;
-    return 0;
-  }
+  size_t replaceAllMatches(const Slice& key, Function map);
 
-  template <typename Procedure>
-  void forEachKey(Procedure process) const {
-    ReaderLockGuard<boost::shared_mutex> lock(mutex_);
-    //    for (const auto& entry : map_) {
-    //      if (!entry.second->empty()) {
-    //        process(entry.first);
-    //      }
-    //    }
-  }
+  void forEachKey(Procedure process) const;
 
-  template <typename Procedure>
-  void forEachValue(const Slice& key, Procedure process) const {
-    //    if (auto list = getList(key)) {
-    //      list->forEachValue(process, *store_);
-    //    }
-  }
+  void forEachValue(const Slice& key, Procedure process) const;
 
-  template <typename BinaryProcedure>
-  void forEachEntry(BinaryProcedure process) const {
-    ReaderLockGuard<boost::shared_mutex> lock(mutex_);
-    //    store_->adviseAccessPattern(Store::AccessPattern::WILLNEED);
-    //    for (const auto& entry : map_) {
-    //      auto iter = entry.second->newIterator(*store_);
-    //      if (iter->hasNext()) {
-    //        process(entry.first, iter.get());
-    //      }
-    //    }
-    //    store_->adviseAccessPattern(Store::AccessPattern::NORMAL);
-  }
+  void forEachEntry(BinaryProcedure process) const;
 
   Stats getStats() const;
   // Returns various statistics about the partition.
   // The data is collected upon request and triggers a full partition scan.
 
-  //  uint32_t getBlockSize() const { return store_->options().block_size; }
+  static void forEachEntry(const std::string& prefix, BinaryProcedure process);
 
-  // ---------------------------------------------------------------------------
-  // Static member functions
-  // ---------------------------------------------------------------------------
-
-  template <typename BinaryProcedure>
-  static void forEachEntry(const std::string& prefix, BinaryProcedure process) {
-    //    const auto stats = Stats::readFromFile(getNameOfStatsFile(prefix));
-
-    //    Store::Options store_options;
-    //    store_options.readonly = true;
-    //    store_options.block_size = stats.block_size;
-    //    Store store(getNameOfStoreFile(prefix), store_options);
-    //    store.adviseAccessPattern(Store::AccessPattern::WILLNEED);
-
-    //    Bytes key;
-    //    const auto stream = mt::open(getNameOfMapFile(prefix), "r");
-    //    for (size_t i = 0; i != stats.num_keys_valid; i++) {
-    //      MT_ASSERT_TRUE(readBytesFromStream(stream.get(), &key));
-    //      const List list = List::readFromStream(stream.get());
-    //      const auto iter = list.newIterator(store);
-    //      process(key, iter.get());
-    //    }
-  }
-
-  static std::string getNameOfMapFile(const std::string& prefix);
-  static std::string getNameOfStatsFile(const std::string& prefix);
-  static std::string getNameOfStoreFile(const std::string& prefix);
+  static Stats stats(const std::string& prefix);
 
  private:
-  struct Equal {
-    explicit Equal(const Slice& value) : value_(value) {}
+  List* getList(const Slice& key) const;
 
-    bool operator()(const Slice& other) const { return other == value_; }
-
-   private:
-    const Slice value_;
-  };
-
-  List* getList(const Slice& key) const {
-    ReaderLockGuard<boost::shared_mutex> lock(mutex_);
-    const auto iter = map_.find(key);
-    return (iter != map_.end()) ? iter->second.get() : nullptr;
-  }
-
-  List* getListOrCreate(const Slice& key) {
-    MT_REQUIRE_LE(key.size(), Limits::maxKeySize());
-    WriterLockGuard<boost::shared_mutex> lock(mutex_);
-    auto iter = map_.find(key);
-    if (iter == map_.end()) {
-      iter = map_.emplace(key.makeCopy([this](size_t size) {
-        return arena_.allocate(size);
-      }),
-                          std::unique_ptr<List>(new List())).first;
-    }
-    return iter->second.get();
-  }
+  List* getListOrCreate(const Slice& key);
 
   mutable boost::shared_mutex mutex_;
   std::unordered_map<Slice, std::unique_ptr<List>> map_;

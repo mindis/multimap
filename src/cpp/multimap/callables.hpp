@@ -15,40 +15,29 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTIMAP_INTERNAL_ARENA_HPP_INCLUDED
-#define MULTIMAP_INTERNAL_ARENA_HPP_INCLUDED
+// -----------------------------------------------------------------------------
+// Documentation:  http://multimap.io/cppreference/#callableshpp
+// -----------------------------------------------------------------------------
 
-#include <memory>
-#include <mutex>
-#include <vector>
-#include "multimap/thirdparty/mt/mt.hpp"
-#include "multimap/Bytes.hpp"
+#ifndef MULTIMAP_CALLABLES_HPP_INCLUDED
+#define MULTIMAP_CALLABLES_HPP_INCLUDED
+
+#include <functional>
+#include "multimap/Iterator.hpp"
+#include "multimap/Slice.hpp"
 
 namespace multimap {
-namespace internal {
 
-class Arena {
- public:
-  static const size_t DEFAULT_BLOCK_SIZE = mt::KiB(4);
+typedef std::function<bool(const Slice&)> Predicate;
 
-  explicit Arena(size_t block_size = DEFAULT_BLOCK_SIZE);
+typedef std::function<void(const Slice&)> Procedure;
 
-  byte* allocate(size_t nbytes);
+typedef std::function<bool(const Slice&, Bytes*)> Function;
 
-  size_t allocated() const;
+typedef std::function<bool(const Slice&, const Slice&)> Compare;
 
-  void deallocateAll();
+typedef std::function<void(const Slice&, Iterator*)> BinaryProcedure;
 
- private:
-  std::unique_ptr<std::mutex> mutex_;
-  std::vector<std::unique_ptr<byte[]> > blocks_;
-  std::vector<std::unique_ptr<byte[]> > blobs_;
-  size_t block_offset_ = 0;
-  size_t block_size_ = 0;
-  size_t allocated_ = 0;
-};
-
-}  // namespace internal
 }  // namespace multimap
 
-#endif  // MULTIMAP_INTERNAL_ARENA_HPP_INCLUDED
+#endif  // MULTIMAP_CALLABLES_HPP_INCLUDED

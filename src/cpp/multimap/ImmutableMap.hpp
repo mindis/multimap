@@ -38,7 +38,8 @@ class ImmutableMap {
     static uint32_t maxValueSize();
   };
 
-  struct Options : public internal::MphTable::Options {
+  // TODO Remove
+  struct Options : public multimap::Options {
     uint64_t max_bucket_size = mt::GiB(1);
     uint32_t num_buckets = 23;
   };

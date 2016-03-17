@@ -67,7 +67,6 @@ HEADERS += \
 SOURCES += \
     src/cpp/multimap/internal/ArenaTest.cpp \
     src/cpp/multimap/internal/Base64Test.cpp \
-    src/cpp/multimap/internal/BlockTest.cpp \
     src/cpp/multimap/internal/ListTest.cpp \
     src/cpp/multimap/internal/PartitionTest.cpp \
     src/cpp/multimap/internal/StoreTest.cpp \
@@ -87,7 +86,7 @@ SOURCES += \
     src/cpp/multimap/thirdparty/googletest/src/gtest-typed-test.cc \
     src/cpp/multimap/thirdparty/googletest/src/gtest.cc \
     src/cpp/multimap/MapTest.cpp \
-    src/cpp/multimap/RangeTest.cpp \
+    src/cpp/multimap/SliceTest.cpp \
     src/cpp/multimap/VersionTest.cpp
 
 # Only enable for memory leak checking with Google Address Sanitizer.

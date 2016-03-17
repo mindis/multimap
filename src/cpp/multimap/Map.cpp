@@ -28,7 +28,7 @@ namespace multimap {
 
 namespace {
 
-void checkOptions(const Map::Options& options) {
+void checkOptions(const Options& options) {
   mt::Check::notZero(options.block_size, "Map's block size must be positive");
   mt::Check::isTrue(mt::isPowerOfTwo(options.block_size),
                     "Map's block size must be a power of two");
@@ -43,23 +43,23 @@ std::string getPartitionPrefix(const boost::filesystem::path& basedir,
   return getFilePrefix(basedir) + '.' + std::to_string(index);
 }
 
-std::string getNameOfKeysFile(const boost::filesystem::path& basedir,
-                              size_t index) {
-  return internal::Partition::getNameOfMapFile(
-      getPartitionPrefix(basedir, index));
-}
+// std::string getNameOfKeysFile(const boost::filesystem::path& basedir,
+//                              size_t index) {
+//  return internal::Partition::getNameOfMapFile(
+//      getPartitionPrefix(basedir, index));
+//}
 
-std::string getNameOfStatsFile(const boost::filesystem::path& basedir,
-                               size_t index) {
-  return internal::Partition::getNameOfStatsFile(
-      getPartitionPrefix(basedir, index));
-}
+// std::string getNameOfStatsFile(const boost::filesystem::path& basedir,
+//                               size_t index) {
+//  return internal::Partition::getNameOfStatsFile(
+//      getPartitionPrefix(basedir, index));
+//}
 
-std::string getNameOfValuesFile(const boost::filesystem::path& basedir,
-                                size_t index) {
-  return internal::Partition::getNameOfStoreFile(
-      getPartitionPrefix(basedir, index));
-}
+// std::string getNameOfValuesFile(const boost::filesystem::path& basedir,
+//                                size_t index) {
+//  return internal::Partition::getNameOfStoreFile(
+//      getPartitionPrefix(basedir, index));
+//}
 
 }  // namespace
 
@@ -77,9 +77,9 @@ Map::Map(const boost::filesystem::path& directory)
 Map::Map(const boost::filesystem::path& directory, const Options& options)
     : dlock_(directory) {
   checkOptions(options);
-  internal::Partition::Options part_options;
-  part_options.readonly = options.readonly;
-  part_options.block_size = options.block_size;
+  Options partition_options;
+  partition_options.readonly = options.readonly;
+  partition_options.block_size = options.block_size;
   internal::Descriptor descriptor;
   if (internal::Descriptor::tryReadFromDirectory(
           directory, internal::Descriptor::MAP, &descriptor)) {
@@ -97,7 +97,7 @@ Map::Map(const boost::filesystem::path& directory, const Options& options)
   }
   for (size_t i = 0; i != partitions_.size(); i++) {
     const auto prefix = getPartitionPrefix(directory, i);
-    partitions_[i].reset(new internal::Partition(prefix, part_options));
+    partitions_[i].reset(new internal::Partition(prefix, partition_options));
   }
 }
 
@@ -117,8 +117,8 @@ std::vector<Stats> Map::stats(const boost::filesystem::path& directory) {
       directory, internal::Descriptor::MAP);
   std::vector<Stats> stats;
   for (size_t i = 0; i != descriptor.num_partitions; i++) {
-    const auto filename = getNameOfStatsFile(directory, i);
-    stats.push_back(Stats::readFromFile(filename));
+    const auto prefix = getPartitionPrefix(directory, i);
+    stats.push_back(internal::Partition::stats(prefix));
   }
   return stats;
 }
@@ -213,7 +213,8 @@ void Map::optimize(const boost::filesystem::path& directory,
                    const Options& options) {
   const auto descriptor = internal::Descriptor::readFromDirectory(
       directory, internal::Descriptor::MAP);
-  const auto stats = Stats::readFromFile(getNameOfStatsFile(directory, 0));
+  auto prefix = getPartitionPrefix(directory, 0);
+  const Stats stats = internal::Partition::stats(prefix);
   Options new_options = options;
   new_options.error_if_exists = true;
   new_options.create_if_missing = true;
@@ -226,7 +227,7 @@ void Map::optimize(const boost::filesystem::path& directory,
   Map new_map(target, new_options);
 
   for (size_t i = 0; i != descriptor.num_partitions; i++) {
-    const auto prefix = getPartitionPrefix(directory, i);
+    prefix = getPartitionPrefix(directory, i);
     if (options.verbose) {
       mt::log() << "Optimizing partition " << (i + 1) << " of "
                 << descriptor.num_partitions << std::endl;

@@ -17,65 +17,65 @@
 
 #include <type_traits>
 #include "gmock/gmock.h"
-#include "multimap/Range.hpp"
+#include "multimap/Slice.hpp"
 
 namespace multimap {
 
-TEST(RangeTest, IsDefaultConstructible) {
+TEST(SliceTest, IsDefaultConstructible) {
   ASSERT_TRUE(std::is_default_constructible<Slice>::value);
 }
 
-TEST(RangeTest, IsCopyConstructibleAndAssignable) {
+TEST(SliceTest, IsCopyConstructibleAndAssignable) {
   ASSERT_TRUE(std::is_copy_constructible<Slice>::value);
   ASSERT_TRUE(std::is_copy_assignable<Slice>::value);
 }
 
-TEST(RangeTest, IsMoveConstructibleAndAssignable) {
+TEST(SliceTest, IsMoveConstructibleAndAssignable) {
   ASSERT_TRUE(std::is_move_constructible<Slice>::value);
   ASSERT_TRUE(std::is_move_assignable<Slice>::value);
 }
 
-TEST(RangeTest, EqualityOperator) {
+TEST(SliceTest, EqualityOperator) {
   ASSERT_TRUE(Slice("abc") == Slice("abc"));
   ASSERT_FALSE(Slice("bc") == Slice("abc"));
 }
 
-TEST(RangeTest, EqualityOperatorTakesCString) {
+TEST(SliceTest, EqualityOperatorTakesCString) {
   ASSERT_TRUE(Slice("abc") == "abc");
   ASSERT_FALSE(Slice("bc") == "abc");
 }
 
-TEST(RangeTest, EqualityOperatorTakesStdString) {
+TEST(SliceTest, EqualityOperatorTakesStdString) {
   ASSERT_TRUE(Slice("abc") == std::string("abc"));
   ASSERT_FALSE(Slice("bc") == std::string("abc"));
 }
 
-TEST(RangeTest, InequalityOperator) {
+TEST(SliceTest, InequalityOperator) {
   ASSERT_TRUE(Slice("abc") != Slice("bc"));
   ASSERT_FALSE(Slice("bc") != Slice("bc"));
 }
 
-TEST(RangeTest, InequalityOperatorTakesCString) {
+TEST(SliceTest, InequalityOperatorTakesCString) {
   ASSERT_TRUE(Slice("abc") != "bc");
   ASSERT_FALSE(Slice("bc") != "bc");
 }
 
-TEST(RangeTest, InequalityOperatorTakesStdString) {
+TEST(SliceTest, InequalityOperatorTakesStdString) {
   ASSERT_TRUE(Slice("abc") != std::string("bc"));
   ASSERT_FALSE(Slice("bc") != std::string("bc"));
 }
 
-TEST(RangeTest, LessThanOperator) {
+TEST(SliceTest, LessThanOperator) {
   ASSERT_TRUE(Slice("abc") < Slice("abcd"));
   ASSERT_FALSE(Slice("bc") < Slice("abcd"));
 }
 
-TEST(RangeTest, LessThanOperatorTakesCString) {
+TEST(SliceTest, LessThanOperatorTakesCString) {
   ASSERT_TRUE(Slice("abc") < "abcd");
   ASSERT_FALSE(Slice("bc") < "abcd");
 }
 
-TEST(RangeTest, LessThanOperatorTakesStdString) {
+TEST(SliceTest, LessThanOperatorTakesStdString) {
   ASSERT_TRUE(Slice("abc") < std::string("abcd"));
   ASSERT_FALSE(Slice("bc") < std::string("abcd"));
 }

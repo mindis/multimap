@@ -20,14 +20,40 @@
 #include <cmath>
 #include <boost/filesystem/operations.hpp>
 #include "multimap/internal/Base64.hpp"
+#include "multimap/internal/Locks.hpp"
 #include "multimap/internal/Varint.hpp"
 
 namespace multimap {
 namespace internal {
 
-uint32_t Partition::Limits::maxKeySize() { return Varint::Limits::MAX_N4; }
+namespace {
 
-uint32_t Partition::Limits::maxValueSize() {
+struct Equal {
+  explicit Equal(const Slice& value) : value_(value) {}
+
+  bool operator()(const Slice& other) const { return other == value_; }
+
+ private:
+  const Slice value_;
+};
+
+std::string getNameOfMapFile(const std::string& prefix) {
+  return prefix + ".map";
+}
+
+std::string getNameOfStatsFile(const std::string& prefix) {
+  return prefix + ".stats";
+}
+
+std::string getNameOfStoreFile(const std::string& prefix) {
+  return prefix + ".store";
+}
+
+}  // namespace
+
+size_t Partition::Limits::maxKeySize() { return Varint::Limits::MAX_N4; }
+
+size_t Partition::Limits::maxValueSize() {
   return List::Limits::maxValueSize();
 }
 
@@ -37,7 +63,7 @@ Partition::Partition(const std::string& prefix)
 Partition::Partition(const std::string& prefix, const Options& options)
     : prefix_(prefix) {
   MT_REQUIRE_FALSE(prefix.empty());
-  Store::Options store_options;
+  Options store_options;
   store_options.readonly = options.readonly;
   store_options.block_size = options.block_size;
   const auto map_filename = getNameOfMapFile(prefix);
@@ -70,62 +96,187 @@ Partition::Partition(const std::string& prefix, const Options& options)
 }
 
 Partition::~Partition() {
-  //  if (store_->options().readonly) return;
+  if (store_->getOptions().readonly) return;
 
-  //  const auto map_filename = getNameOfMapFile(prefix_);
-  //  const auto map_filename_old = map_filename + ".old";
-  //  if (boost::filesystem::is_regular_file(map_filename)) {
-  //    boost::filesystem::rename(map_filename, map_filename_old);
-  //  }
+  const auto map_filename = getNameOfMapFile(prefix_);
+  const auto map_filename_old = map_filename + ".old";
+  if (boost::filesystem::is_regular_file(map_filename)) {
+    boost::filesystem::rename(map_filename, map_filename_old);
+  }
 
-  //  SharedList::Stats list_stats;
-  //  const auto map_stream = mt::open(map_filename, "w");
-  //  for (const auto& entry : map_) {
-  //    auto& key = entry.first;
-  //    auto& list = *entry.second;
-  //    if (list.tryFlush(store_.get(), &list_stats)) {
-  //      // Ok, everything is fine.
-  //    } else {
-  //      const auto key_as_base64 = Base64::encode(key);
-  //      mt::log() << "The list with the key " << key_as_base64
-  //                << " (Base64) was still locked when shutting down.\n"
-  //                << " The last known state of the list has been safed,"
-  //                << " but ongoing updates, if any, may be lost.\n";
-  //      list.flushUnlocked(store_.get(), &list_stats);
-  //    }
-  //    stats_.num_values_total += list_stats.num_values_total;
-  //    stats_.num_values_valid += list_stats.num_values_valid();
-  //    const auto list_size = list_stats.num_values_valid();
-  //    if (list_size != 0) {
-  //      ++stats_.num_keys_valid;
-  //      stats_.key_size_avg += key.size();
-  //      stats_.key_size_max = mt::max(stats_.key_size_max, key.size());
-  //      stats_.key_size_min = stats_.key_size_min
-  //                                ? mt::min(stats_.key_size_min, key.size())
-  //                                : key.size();
-  //      stats_.list_size_avg += list_size;
-  //      stats_.list_size_max = mt::max(stats_.list_size_max, list_size);
-  //      stats_.list_size_min = stats_.list_size_min
-  //                                 ? mt::min(stats_.list_size_min, list_size)
-  //                                 : list_size;
-  //      key.writeToStream(map_stream.get());
-  //      list.writeToStream(map_stream.get());
-  //    }
-  //  }
-  //  if (stats_.num_keys_valid) {
-  //    stats_.key_size_avg /= stats_.num_keys_valid;
-  //    stats_.list_size_avg /= stats_.num_keys_valid;
-  //  }
-  //  stats_.block_size = store_->getBlockSize();
-  //  stats_.num_blocks = store_->getNumBlocks();
-  //  stats_.num_keys_total = map_.size();
+  List::Stats list_stats;
+  mt::AutoCloseFile map_stream = mt::open(map_filename, "w");
+  for (const auto& entry : map_) {
+    auto& key = entry.first;
+    auto& list = *entry.second;
+    if (list.tryFlush(store_.get(), &list_stats)) {
+      // Ok, everything is fine.
+    } else {
+      const auto key_as_base64 = Base64::encode(key);
+      mt::log() << "The list with the key " << key_as_base64
+                << " (Base64) was still locked when shutting down.\n"
+                << " The last known state of the list has been safed,"
+                << " but ongoing updates, if any, may be lost.\n";
+      list.flushUnlocked(store_.get(), &list_stats);
+    }
+    stats_.num_values_total += list_stats.num_values_total;
+    stats_.num_values_valid += list_stats.num_values_valid();
+    const auto list_size = list_stats.num_values_valid();
+    if (list_size != 0) {
+      ++stats_.num_keys_valid;
+      stats_.key_size_avg += key.size();
+      stats_.key_size_max = mt::max(stats_.key_size_max, key.size());
+      stats_.key_size_min = stats_.key_size_min
+                                ? mt::min(stats_.key_size_min, key.size())
+                                : key.size();
+      stats_.list_size_avg += list_size;
+      stats_.list_size_max = mt::max(stats_.list_size_max, list_size);
+      stats_.list_size_min = stats_.list_size_min
+                                 ? mt::min(stats_.list_size_min, list_size)
+                                 : list_size;
+      key.writeToStream(map_stream.get());
+      list.writeToStream(map_stream.get());
+    }
+  }
+  if (stats_.num_keys_valid) {
+    stats_.key_size_avg /= stats_.num_keys_valid;
+    stats_.list_size_avg /= stats_.num_keys_valid;
+  }
+  stats_.block_size = store_->getOptions().block_size;
+  stats_.num_blocks = store_->getNumBlocks();
+  stats_.num_keys_total = map_.size();
 
-  //  stats_.writeToFile(getNameOfStatsFile(prefix_));
+  stats_.writeToFile(getNameOfStatsFile(prefix_));
 
-  //  if (boost::filesystem::is_regular_file(map_filename_old)) {
-  //    const auto status = boost::filesystem::remove(map_filename_old);
-  //    MT_ASSERT_TRUE(status);
-  //  }
+  if (boost::filesystem::is_regular_file(map_filename_old)) {
+    const auto status = boost::filesystem::remove(map_filename_old);
+    MT_ASSERT_TRUE(status);
+  }
+}
+
+void Partition::put(const Slice& key, const Slice& value) {
+  getListOrCreate(key)->append(value, store_.get(), &arena_);
+}
+
+void Partition::put(const Slice& key, const Slices& values) {
+  getListOrCreate(key)->append(values, store_.get(), &arena_);
+}
+
+std::unique_ptr<Iterator> Partition::get(const Slice& key) const {
+  const List* list = getList(key);
+  return list ? list->newIterator(*store_) : Iterator::newEmptyInstance();
+}
+
+size_t Partition::remove(const Slice& key) {
+  List* list = getList(key);
+  return list ? list->clear() : 0;
+}
+
+bool Partition::removeFirstEqual(const Slice& key, const Slice& value) {
+  return removeFirstMatch(key, Equal(value));
+}
+
+size_t Partition::removeAllEqual(const Slice& key, const Slice& value) {
+  return removeAllMatches(key, Equal(value));
+}
+
+bool Partition::removeFirstMatch(const Slice& key, Predicate predicate) {
+  List* list = getList(key);
+  return list ? list->removeFirstMatch(predicate, store_.get()) : false;
+}
+
+size_t Partition::removeFirstMatch(Predicate predicate) {
+  ReaderLockGuard<boost::shared_mutex> lock(mutex_);
+  size_t num_values_removed = 0;
+  for (const auto& entry : map_) {
+    if (predicate(entry.first)) {
+      num_values_removed = entry.second->clear();
+      if (num_values_removed != 0) break;
+    }
+  }
+  return num_values_removed;
+}
+
+size_t Partition::removeAllMatches(const Slice& key, Predicate predicate) {
+  List* list = getList(key);
+  return list ? list->removeAllMatches(predicate, store_.get()) : 0;
+}
+
+std::pair<size_t, size_t> Partition::removeAllMatches(Predicate predicate) {
+  ReaderLockGuard<boost::shared_mutex> lock(mutex_);
+  size_t num_keys_removed = 0;
+  size_t num_values_removed = 0;
+  for (const auto& entry : map_) {
+    if (predicate(entry.first)) {
+      const size_t old_size = entry.second->clear();
+      if (old_size != 0) {
+        num_values_removed += old_size;
+        num_keys_removed++;
+      }
+    }
+  }
+  return std::make_pair(num_keys_removed, num_values_removed);
+}
+
+bool Partition::replaceFirstEqual(const Slice& key, const Slice& old_value,
+                                  const Slice& new_value) {
+  return replaceFirstMatch(
+      key, [&old_value, &new_value](const Slice& value, Bytes* output) {
+        if (value == old_value) {
+          new_value.copyTo(output);
+          return true;
+        }
+        return false;
+      });
+}
+
+size_t Partition::replaceAllEqual(const Slice& key, const Slice& old_value,
+                                  const Slice& new_value) {
+  return replaceAllMatches(
+      key, [&old_value, &new_value](const Slice& value, Bytes* output) {
+        if (value == old_value) {
+          new_value.copyTo(output);
+          return true;
+        }
+        return false;
+      });
+}
+
+bool Partition::replaceFirstMatch(const Slice& key, Function map) {
+  List* list = getList(key);
+  return list ? list->replaceFirstMatch(map, store_.get(), &arena_) : false;
+}
+
+size_t Partition::replaceAllMatches(const Slice& key, Function map) {
+  List* list = getList(key);
+  return list ? list->replaceAllMatches(map, store_.get(), &arena_) : 0;
+}
+
+void Partition::forEachKey(Procedure process) const {
+  ReaderLockGuard<boost::shared_mutex> lock(mutex_);
+  for (const auto& entry : map_) {
+    if (!entry.second->empty()) {
+      process(entry.first);
+    }
+  }
+}
+
+void Partition::forEachValue(const Slice& key, Procedure process) const {
+  if (const List* list = getList(key)) {
+    list->forEachValue(process, *store_);
+  }
+}
+
+void Partition::forEachEntry(BinaryProcedure process) const {
+  ReaderLockGuard<boost::shared_mutex> lock(mutex_);
+  //        store_->adviseAccessPattern(Store::AccessPattern::WILLNEED);
+  for (const auto& entry : map_) {
+    auto iter = entry.second->newIterator(*store_);
+    if (iter->hasNext()) {
+      process(entry.first, iter.get());
+    }
+  }
+  //        store_->adviseAccessPattern(Store::AccessPattern::NORMAL);
 }
 
 Stats Partition::getStats() const {
@@ -163,16 +314,46 @@ Stats Partition::getStats() const {
   return stats;
 }
 
-std::string Partition::getNameOfMapFile(const std::string& prefix) {
-  return prefix + ".map";
+void Partition::forEachEntry(const std::string& prefix,
+                             BinaryProcedure process) {
+  const auto stats = Stats::readFromFile(getNameOfStatsFile(prefix));
+
+  Options store_options;
+  store_options.readonly = true;
+  store_options.block_size = stats.block_size;
+  Store store(getNameOfStoreFile(prefix), store_options);
+  //        store.adviseAccessPattern(Store::AccessPattern::WILLNEED);
+
+  Bytes key;
+  const auto stream = mt::open(getNameOfMapFile(prefix), "r");
+  for (size_t i = 0; i != stats.num_keys_valid; i++) {
+    MT_ASSERT_TRUE(readBytesFromStream(stream.get(), &key));
+    const List list = List::readFromStream(stream.get());
+    const auto iter = list.newIterator(store);
+    process(key, iter.get());
+  }
 }
 
-std::string Partition::getNameOfStatsFile(const std::string& prefix) {
-  return prefix + ".stats";
+Stats stats(const std::string& prefix) {
+  return Stats::readFromFile(getNameOfStatsFile(prefix));
 }
 
-std::string Partition::getNameOfStoreFile(const std::string& prefix) {
-  return prefix + ".store";
+List* Partition::getList(const Slice& key) const {
+  ReaderLockGuard<boost::shared_mutex> lock(mutex_);
+  const auto iter = map_.find(key);
+  return (iter != map_.end()) ? iter->second.get() : nullptr;
+}
+
+List* Partition::getListOrCreate(const Slice& key) {
+  MT_REQUIRE_LE(key.size(), Limits::maxKeySize());
+  WriterLockGuard<boost::shared_mutex> lock(mutex_);
+  auto iter = map_.find(key);
+  if (iter == map_.end()) {
+    const Slice new_key =
+        key.makeCopy([this](size_t size) { return arena_.allocate(size); });
+    iter = map_.emplace(new_key, std::unique_ptr<List>(new List())).first;
+  }
+  return iter->second.get();
 }
 
 }  // namespace internal

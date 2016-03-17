@@ -16,62 +16,213 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "multimap/internal/List.hpp"
+
+#include "multimap/internal/Locks.hpp"
 #include "multimap/internal/Varint.hpp"
 
 namespace multimap {
 namespace internal {
 
-uint32_t List::Limits::maxValueSize() {
-  return Varint::Limits::MAX_N4_WITH_FLAG;
+namespace {
+
+class ExclusiveIterator : public Iterator {
+ public:
+  ExclusiveIterator(List* list, Store* store) {}
+
+  size_t available() const override { return 0; }
+
+  bool hasNext() const override { return false; }
+
+  Slice next() override { return Slice(); }
+
+  Slice peekNext() override { return Slice(); }
+
+  void remove() {}
+};
+
+class SharedIterator : public Iterator {
+ public:
+  SharedIterator(const List& list, const Store& store) {}
+
+  size_t available() const override { return 0; }
+
+  bool hasNext() const override { return false; }
+
+  Slice next() override { return Slice(); }
+
+  Slice peekNext() override { return Slice(); }
+};
+
+}  // namespace
+
+size_t List::Limits::maxValueSize() { return Varint::Limits::MAX_N4_WITH_FLAG; }
+
+void List::append(const Slice& value, Store* store, Arena* arena) {
+  WriterLockGuard<SharedMutex> lock(mutex_);
+  appendUnlocked(value, store, arena);
 }
 
-// void SharedList::appendUnlocked(const Range& value, Store* store, Arena*
-// arena) {
-//  MT_REQUIRE_LE(value.size(), Limits::maxValueSize());
-//  MT_REQUIRE_LT(stats_.num_values_total,
-//  std::numeric_limits<uint32_t>::max());
+void List::append(const Slices& values, Store* store, Arena* arena) {
+  WriterLockGuard<SharedMutex> lock(mutex_);
+  for (const auto& value : values) {
+    appendUnlocked(value, store, arena);
+  }
+}
 
-//  if (!block_.hasData()) {
-//    const auto block_size = store->getBlockSize();
-//    byte* data = arena->allocate(block_size);
-//    block_ = ReadWriteBlock(data, block_size);
-//  }
+std::unique_ptr<Iterator> List::newIterator(const Store& store) const {
+  return Iterator::newEmptyInstance();
+}
 
-//  // Write value's metadata.
-//  if (!block_.writeSizeWithFlag(value.size(), false)) {
-//    flushUnlocked(store);
-//    MT_ASSERT_TRUE(block_.writeSizeWithFlag(value.size(), false));
-//  }
+void List::forEachValue(Procedure process, const Store& store) const {
+  SharedIterator iter(*this, store);
+  while (iter.hasNext()) {
+    process(iter.next());
+  }
+}
 
-//  // Write value's data.
-//  auto nbytes = block_.writeData(value);
-//  if (nbytes < value.size()) {
-//    flushUnlocked(store);
+bool List::removeFirstMatch(Predicate predicate, Store* store) {
+  ExclusiveIterator iter(this, store);
+  while (iter.hasNext()) {
+    if (predicate(iter.next())) {
+      iter.remove();
+      return true;
+    }
+  }
+  return false;
+}
 
-//    // The value does not fit into the local block as a whole.
-//    // Write the remaining bytes which cover entire blocks directly
-//    // to the block file.  Write the rest into the local block.
+size_t List::removeAllMatches(Predicate predicate, Store* store) {
+  size_t num_removed = 0;
+  ExclusiveIterator iter(this, store);
+  while (iter.hasNext()) {
+    if (predicate(iter.next())) {
+      iter.remove();
+      num_removed++;
+    }
+  }
+  return num_removed;
+}
 
-//    std::vector<ExtendedReadOnlyBlock> blocks;
-//    const size_t block_size = block_.size();
-//    const byte* tail_data = value.begin() + nbytes;
-//    uint32_t remaining = value.size() - nbytes;
-//    while (remaining >= block_size) {
-//      blocks.emplace_back(tail_data, block_size);
-//      tail_data += block_size;
-//      remaining -= block_size;
-//    }
-//    store->put(blocks.begin(), blocks.end());
-//    for (const auto& block : blocks) {
-//      block_ids_.add(block.id);
-//    }
-//    if (remaining != 0) {
-//      nbytes = block_.writeData(Range(tail_data, remaining));
-//      MT_ASSERT_EQ(nbytes, remaining);
-//    }
-//  }
-//  stats_.num_values_total++;
-//}
+bool List::replaceFirstMatch(Function map, Store* store, Arena* arena) {
+  Bytes new_value;
+  ExclusiveIterator iter(this, store);
+  while (iter.hasNext()) {
+    if (map(iter.next(), &new_value)) {
+      appendUnlocked(new_value, store, arena);
+      // `iter` keeps the list in locked state.
+      iter.remove();
+      return true;
+    }
+  }
+  return false;
+}
+
+size_t List::replaceAllMatches(Function map, Store* store, Arena* arena) {
+  Bytes new_value;
+  std::vector<Bytes> new_values;
+  ExclusiveIterator iter(this, store);
+  while (iter.hasNext()) {
+    if (map(iter.next(), &new_value)) {
+      new_values.push_back(new_value);
+      iter.remove();
+    }
+  }
+  for (const auto& value : new_values) {
+    appendUnlocked(value, store, arena);
+    // `iter` keeps the list in locked state.
+  }
+  return new_values.size();
+}
+
+void List::appendUnlocked(const Slice& value, Store* store, Arena* arena) {
+  MT_REQUIRE_LE(value.size(), Limits::maxValueSize());
+  MT_REQUIRE_LT(stats_.num_values_total, std::numeric_limits<uint32_t>::max());
+
+  if (block_.data == nullptr) {
+    block_.size = store->getOptions().block_size;
+    block_.data = arena->allocate(block_.size);
+    std::memset(block_.data, 0, block_.size);
+  }
+
+  // Write value's size and removed-flag into the block.
+  const bool removed = false;
+  size_t bytes_written = Varint::writeToBuffer(block_.current(), block_.end(),
+                                               value.size(), removed);
+  if (bytes_written == 0) {
+    flushUnlocked(store);
+    bytes_written = Varint::writeToBuffer(block_.current(), block_.end(),
+                                          value.size(), removed);
+    MT_ASSERT_NOT_ZERO(bytes_written);
+  }
+  block_.offset += bytes_written;
+
+  // Write value's data into the block.
+  bytes_written = 0;
+  while (bytes_written != value.size()) {
+    const size_t count =
+        mt::min(value.size() - bytes_written, block_.end() - block_.current());
+    if (count == 0) {
+      flushUnlocked(store);
+      continue;
+    }
+    MT_ASSERT_NOT_ZERO(count);
+    std::memcpy(block_.current(), value.data() + bytes_written, count);
+    bytes_written += count;
+    block_.offset += count;
+  }
+  stats_.num_values_total++;
+}
+
+bool List::tryGetStats(Stats* stats) const {
+  ReaderLock<SharedMutex> lock(mutex_, TRY_TO_LOCK);
+  return lock ? (*stats = stats_, true) : false;
+}
+
+bool List::tryFlush(Store* store, Stats* stats) {
+  WriterLock<SharedMutex> lock(mutex_, TRY_TO_LOCK);
+  return lock ? (flushUnlocked(store, stats), true) : false;
+}
+
+void List::flushUnlocked(Store* store, Stats* stats) {
+  if (block_.offset != 0) {
+    block_ids_.add(store->put(block_));
+    std::memset(block_.data, 0, block_.size);
+    block_.offset = 0;
+  }
+  if (stats) *stats = stats_;
+}
+
+bool List::empty() const {
+  ReaderLockGuard<SharedMutex> lock(mutex_);
+  return stats_.num_values_valid() == 0;
+}
+
+size_t List::clear() {
+  WriterLockGuard<SharedMutex> lock(mutex_);
+  block_.offset = 0;
+  block_ids_ = UintVector();
+  const size_t num_removed = stats_.num_values_valid();
+  stats_.num_values_removed = stats_.num_values_total;
+  return num_removed;
+}
+
+List List::readFromStream(std::FILE* stream) {
+  List list;
+  mt::read(stream, &list.stats_.num_values_total,
+           sizeof list.stats_.num_values_total);
+  mt::read(stream, &list.stats_.num_values_removed,
+           sizeof list.stats_.num_values_removed);
+  list.block_ids_ = UintVector::readFromStream(stream);
+  return std::move(list);
+}
+
+void List::writeToStream(std::FILE* stream) const {
+  ReaderLockGuard<SharedMutex> lock(mutex_);
+  mt::write(stream, &stats_.num_values_total, sizeof stats_.num_values_total);
+  mt::write(stream, &stats_.num_values_removed,
+            sizeof stats_.num_values_removed);
+  block_ids_.writeToStream(stream);
+}
 
 }  // namespace internal
 }  // namespace multimap

@@ -20,10 +20,14 @@
 #include <cstdio>
 #include <boost/filesystem/operations.hpp>
 
-#include "multimap/thirdparty/mt/mt.hpp"
-
 namespace multimap {
 namespace internal {
+
+namespace {
+
+const size_t SEGMENT_SIZE = mt::MiB(2);
+
+}  // namespace
 
 Store::Store(const boost::filesystem::path& filename, const Options& options)
     : options_(options) {
@@ -47,6 +51,44 @@ Store::Store(const boost::filesystem::path& filename, const Options& options)
   } else {
     fd_ = mt::open(filename, O_RDWR | O_CREAT, 0644);
   }
+}
+
+Store::~Store() {
+  if (fd_.get() && !options_.readonly) {
+    const uint64_t file_size = getNumBlocksUnlocked() * options_.block_size;
+    mt::truncate(fd_.get(), file_size);
+  }
+}
+
+uint32_t Store::put(const Block& block) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  if (segments_.empty() || segments_.back().isFull()) {
+    const uint64_t old_filesize = mt::seek(fd_.get(), 0, SEEK_END);
+    const uint64_t new_filesize = old_filesize + SEGMENT_SIZE;
+    mt::truncate(fd_.get(), new_filesize);
+    segments_.push_back(mt::mmap(SEGMENT_SIZE, PROT_READ | PROT_WRITE,
+                                 MAP_SHARED, fd_.get(), old_filesize));
+  }
+  segments_.back().append(block);
+  return getNumBlocksUnlocked() - 1;
+}
+
+size_t Store::getNumBlocksUnlocked() const {
+  const auto num_segments = segments_.size();
+  const auto blocks_per_segment = SEGMENT_SIZE / options_.block_size;
+  return (num_segments != 0)
+             ? ((num_segments - 1) * blocks_per_segment +
+                segments_.back().getNumBlocks(options_.block_size))
+             : 0;
+}
+
+Store::Segment::Segment(mt::AutoUnmapMemory memory)
+    : memory_(std::move(memory)) {}
+
+void Store::Segment::append(const Block& block) {
+  MT_REQUIRE_FALSE(isFull());
+  std::memcpy(memory_.addr() + offset_, block.data, block.size);
+  offset_ += block.size;
 }
 
 }  // namespace internal

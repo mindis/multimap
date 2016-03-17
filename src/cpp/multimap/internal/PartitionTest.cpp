@@ -29,18 +29,17 @@ using testing::ElementsAre;
 using testing::UnorderedElementsAre;
 
 std::unique_ptr<Partition> openPartition(const std::string& prefix,
-                                         const Partition::Options& options) {
+                                         const Options& options) {
   return std::unique_ptr<Partition>(new Partition(prefix, options));
 }
 
 std::unique_ptr<Partition> openOrCreatePartition(const std::string& prefix) {
-  Partition::Options options;
-  return std::unique_ptr<Partition>(new Partition(prefix, options));
+  return std::unique_ptr<Partition>(new Partition(prefix, Options()));
 }
 
 std::unique_ptr<Partition> openOrCreatePartitionAsReadOnly(
     const std::string& prefix) {
-  Partition::Options options;
+  Options options;
   options.readonly = true;
   return std::unique_ptr<Partition>(new Partition(prefix, options));
 }
@@ -69,12 +68,12 @@ struct PartitionTestFixture : public testing::Test {
 
   const std::string directory = "/tmp/multimap.PartitionTestFixture";
   const std::string prefix = directory + "/partition";
-  const Bytes k1 = makeBytes("k1");
-  const Bytes k2 = makeBytes("k2");
-  const Bytes k3 = makeBytes("k3");
-  const Bytes v1 = makeBytes("v1");
-  const Bytes v2 = makeBytes("v2");
-  const Bytes v3 = makeBytes("v3");
+  const Bytes k1 = toBytes("k1");
+  const Bytes k2 = toBytes("k2");
+  const Bytes k3 = toBytes("k3");
+  const Bytes v1 = toBytes("v1");
+  const Bytes v2 = toBytes("v2");
+  const Bytes v3 = toBytes("v3");
   const std::vector<Bytes> keys = {k1, k2, k3};
   const std::vector<Bytes> values = {v1, v2, v3};
 };
@@ -133,7 +132,7 @@ TEST_F(PartitionTestFixture, PutTooBigValueThrows) {
 
 TEST_F(PartitionTestFixture, PutValuesAndReopenInBetween) {
   {
-    Partition::Options options;
+    Options options;
     options.block_size = 128;
     auto partition = openPartition(prefix, options);
     partition->put(k1, v1);
@@ -448,7 +447,7 @@ TEST_F(PartitionTestFixture, GetStatsReturnsCorrectValues) {
   partition->put("kkkkk", "v");
 
   auto stats = partition->getStats();
-  ASSERT_THAT(stats.block_size, Eq(Partition::Options().block_size));
+  ASSERT_THAT(stats.block_size, Eq(Options().block_size));
   ASSERT_THAT(stats.key_size_avg, Eq(3));
   ASSERT_THAT(stats.key_size_max, Eq(5));
   ASSERT_THAT(stats.key_size_min, Eq(1));
@@ -463,7 +462,7 @@ TEST_F(PartitionTestFixture, GetStatsReturnsCorrectValues) {
 
   partition->remove("kkkkk");
   stats = partition->getStats();
-  ASSERT_THAT(stats.block_size, Eq(Partition::Options().block_size));
+  ASSERT_THAT(stats.block_size, Eq(Options().block_size));
   ASSERT_THAT(stats.key_size_avg, Eq(2));
   ASSERT_THAT(stats.key_size_max, Eq(4));
   ASSERT_THAT(stats.key_size_min, Eq(1));
@@ -551,17 +550,6 @@ TEST_F(PartitionTestFixture, GetStatsReturnsCorrectValuesAfterRemovingValues) {
   ASSERT_THAT(stats.num_values_valid, Eq(12));
 }
 
-TEST_F(PartitionTestFixture, IsReadOnlyReturnsCorrectValue) {
-  {
-    auto partition = openOrCreatePartition(prefix);
-    ASSERT_FALSE(partition->isReadOnly());
-  }
-  {
-    auto partition = openOrCreatePartitionAsReadOnly(prefix);
-    ASSERT_TRUE(partition->isReadOnly());
-  }
-}
-
 TEST_F(PartitionTestFixture, PutThrowsIfOpenedAsReadOnly) {
   auto partition = openOrCreatePartitionAsReadOnly(prefix);
   ASSERT_THROW(partition->put(k1, v1), std::runtime_error);
@@ -604,11 +592,6 @@ TEST_F(PartitionTestFixture, ReplaceFirstEqualThrowsIfOpenedAsReadOnly) {
 TEST_F(PartitionTestFixture, ReplaceAllEqualThrowsIfOpenedAsReadOnly) {
   auto partition = openOrCreatePartitionAsReadOnly(prefix);
   ASSERT_THROW(partition->replaceAllEqual(k1, v1, v2), std::runtime_error);
-}
-
-TEST_F(PartitionTestFixture, GetBlockSizeReturnsCorrectValue) {
-  auto partition = openOrCreatePartition(prefix);
-  ASSERT_THAT(partition->getBlockSize(), Eq(Partition::Options().block_size));
 }
 
 // -----------------------------------------------------------------------------

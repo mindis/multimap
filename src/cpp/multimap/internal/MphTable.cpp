@@ -102,7 +102,7 @@ std::pair<Map, Arena> readRecordsFromFile(
   return std::make_pair(std::move(map), std::move(arena));
 }
 
-Mph buildMphFromKeys(const Map& map, const MphTable::Options& options) {
+Mph buildMphFromKeys(const Map& map, const Options& options) {
   uint32_t key_size;
   auto iter = map.begin();
   std::vector<const byte*> keys(map.size());

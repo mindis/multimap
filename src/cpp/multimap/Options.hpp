@@ -15,40 +15,33 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTIMAP_INTERNAL_ARENA_HPP_INCLUDED
-#define MULTIMAP_INTERNAL_ARENA_HPP_INCLUDED
+// -----------------------------------------------------------------------------
+// Documentation:  http://multimap.io/cppreference/#struct-options
+// -----------------------------------------------------------------------------
 
-#include <memory>
-#include <mutex>
-#include <vector>
-#include "multimap/thirdparty/mt/mt.hpp"
-#include "multimap/Bytes.hpp"
+#ifndef MULTIMAP_OPTIONS_HPP_INCLUDED
+#define MULTIMAP_OPTIONS_HPP_INCLUDED
+
+#include <functional>
+#include "multimap/Slice.hpp"
 
 namespace multimap {
-namespace internal {
 
-class Arena {
- public:
-  static const size_t DEFAULT_BLOCK_SIZE = mt::KiB(4);
+struct Options {
+  uint32_t block_size = 512;
+  uint32_t num_partitions = 23;
 
-  explicit Arena(size_t block_size = DEFAULT_BLOCK_SIZE);
+  bool create_if_missing = false;
+  bool error_if_exists = false;
+  bool readonly = false;
+  bool verbose = true;
 
-  byte* allocate(size_t nbytes);
+  std::function<bool(const Slice&, const Slice&)> compare;
 
-  size_t allocated() const;
-
-  void deallocateAll();
-
- private:
-  std::unique_ptr<std::mutex> mutex_;
-  std::vector<std::unique_ptr<byte[]> > blocks_;
-  std::vector<std::unique_ptr<byte[]> > blobs_;
-  size_t block_offset_ = 0;
-  size_t block_size_ = 0;
-  size_t allocated_ = 0;
+  void keepNumPartitions() { num_partitions = 0; }
+  void keepBlockSize() { block_size = 0; }
 };
 
-}  // namespace internal
 }  // namespace multimap
 
-#endif  // MULTIMAP_INTERNAL_ARENA_HPP_INCLUDED
+#endif  // MULTIMAP_OPTIONS_HPP_INCLUDED

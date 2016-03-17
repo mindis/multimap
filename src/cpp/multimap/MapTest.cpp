@@ -32,7 +32,7 @@ const auto NULL_BINARY_PROCEDURE = [](const Slice&, Iterator*) {};
 const auto IS_ODD = [](const Slice& b) { return std::stoi(b.toString()) % 2; };
 
 std::unique_ptr<Map> openOrCreateMap(const boost::filesystem::path& directory) {
-  Map::Options options;
+  Options options;
   options.create_if_missing = true;
   return std::unique_ptr<Map>(new Map(directory, options));
 }
@@ -68,26 +68,26 @@ TEST_F(MapTestFixture, ConstructorThrowsIfNotExist) {
 }
 
 TEST_F(MapTestFixture, ConstructorWithDefaultOptionsThrowsIfNotExist) {
-  Map::Options options;
+  Options options;
   ASSERT_THROW(Map(directory, options), std::runtime_error);
 }
 
 TEST_F(MapTestFixture, ConstructorWithCreateIfMissingDoesNotThrow) {
-  Map::Options options;
+  Options options;
   options.create_if_missing = true;
   ASSERT_NO_THROW(Map(directory, options));
 }
 
 TEST_F(MapTestFixture, ConstructorWithErrorIfExistsThrowsIfExists) {
   openOrCreateMap(directory);
-  Map::Options options;
+  Options options;
   options.error_if_exists = true;
   options.create_if_missing = true;
   ASSERT_THROW(Map(directory, options), std::runtime_error);
 }
 
 TEST_F(MapTestFixture, ConstructorThrowsIfBlockSizeIsNotPowerOfTwo) {
-  Map::Options options;
+  Options options;
   options.block_size = 100;
   options.create_if_missing = true;
   ASSERT_THROW(Map(directory, options), std::runtime_error);

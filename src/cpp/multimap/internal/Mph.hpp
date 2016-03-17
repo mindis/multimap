@@ -41,6 +41,7 @@ class Mph {
   // This class is read-only and does not need external locking.
 
  public:
+  // TODO Remove
   struct Options {
     bool verbose = true;
     CMPH_ALGO algorithm = CMPH_BDZ;

@@ -33,9 +33,9 @@ typedef unsigned char byte;
 
 typedef std::vector<byte> Bytes;
 
-Bytes makeBytes(const char* cstr);
+Bytes toBytes(const char* cstr);
 
-Bytes makeBytes(const std::string& str);
+Bytes toBytes(const std::string& str);
 
 size_t readBytesFromBuffer(const byte* buffer, Bytes* output);
 

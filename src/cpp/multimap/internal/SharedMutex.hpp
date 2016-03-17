@@ -65,7 +65,7 @@ class SharedMutex {
 
    private:
     Pool() = default;
-    size_t max_size_ = 1000;
+    size_t max_size_ = 1024;
     std::vector<std::unique_ptr<RefCountedMutex>> mutexes_;
   };
 

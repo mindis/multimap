@@ -47,11 +47,12 @@ TEST(ListTest, IsMoveConstructibleAndAssignable) {
 
 TEST(ListTest, DefaultConstructedHasProperState) {
   List list;
-  const auto stats = list.getStatsUnlocked();
+  List::Stats stats;
+  ASSERT_TRUE(list.tryGetStats(&stats));
   ASSERT_EQ(stats.num_values_removed, 0);
   ASSERT_EQ(stats.num_values_total, 0);
-  ASSERT_EQ(list.empty(), true);
-  ASSERT_EQ(list.size(), 0);
+  //  ASSERT_EQ(list.empty(), true);
+  //  ASSERT_EQ(list.size(), 0);
 }
 
 // -----------------------------------------------------------------------------
@@ -85,8 +86,8 @@ TEST(ListTest, ReaderDoesNotBlockReader2) {
   // Second readers
   List::Stats stats;
   ASSERT_TRUE(list.tryGetStats(&stats));
-  ASSERT_THAT(list.size(), Eq(0));
-  ASSERT_TRUE(list.empty());
+  //  ASSERT_THAT(list.size(), Eq(0));
+  //  ASSERT_TRUE(list.empty());
 }
 
 TEST(ListTest, ReaderBlocksWriter) {
@@ -122,7 +123,7 @@ TEST(ListTest, WriterBlocksReader) {
 
   // Writer
   std::thread writer([&] {
-    list.removeFirstMatch([](const Range & /* value */) {
+    list.removeFirstMatch([](const Slice & /* value */) {
       std::this_thread::sleep_for(std::chrono::milliseconds(1000));
       return false;
     }, &store);
@@ -155,7 +156,7 @@ TEST(ListTest, WriterBlocksReader2) {
 
   // Writer
   std::thread writer([&] {
-    list.removeFirstMatch([](const Range & /* value */) {
+    list.removeFirstMatch([](const Slice & /* value */) {
       std::this_thread::sleep_for(std::chrono::milliseconds(1000));
       return false;
     }, &store);
@@ -180,7 +181,7 @@ TEST(ListTest, WriterBlocksWriter) {
 
   // First writer
   std::thread writer1([&] {
-    const auto removed = list.removeFirstMatch([](const Range & /* value */) {
+    const auto removed = list.removeFirstMatch([](const Slice & /* value */) {
       std::this_thread::sleep_for(std::chrono::milliseconds(1000));
       return false;
     }, &store);
@@ -191,7 +192,7 @@ TEST(ListTest, WriterBlocksWriter) {
   bool second_writer_has_finished = false;
   std::thread writer2([&] {
     const auto removed = list.removeFirstMatch(
-        [](const Range & /* value */) { return false; }, &store);
+        [](const Slice & /* value */) { return false; }, &store);
     ASSERT_FALSE(removed);
     second_writer_has_finished = true;
   });
@@ -216,7 +217,7 @@ struct ListTestWithParam : testing::TestWithParam<uint32_t> {
     boost::filesystem::remove_all(directory);
     MT_ASSERT_TRUE(boost::filesystem::create_directory(directory));
 
-    store.reset(new Store(directory / "store", Store::Options()));
+    store.reset(new Store(directory / "store", Options()));
   }
 
   void TearDown() override {
@@ -235,12 +236,15 @@ struct ListTestWithParam : testing::TestWithParam<uint32_t> {
 
 TEST_P(ListTestWithParam, AppendSmallValuesAndIterateOnce) {
   List list;
+  List::Stats stats;
   for (size_t i = 0; i != GetParam(); ++i) {
     list.append(std::to_string(i), getStore(), getArena());
-    ASSERT_EQ(list.getStatsUnlocked().num_values_removed, 0);
-    ASSERT_EQ(list.getStatsUnlocked().num_values_total, i + 1);
+    ASSERT_TRUE(list.tryGetStats(&stats));
+    ASSERT_EQ(stats.num_values_removed, 0);
+    ASSERT_EQ(stats.num_values_total, i + 1);
   }
-  ASSERT_EQ(list.getStatsUnlocked().num_values_valid(), GetParam());
+  ASSERT_TRUE(list.tryGetStats(&stats));
+  ASSERT_EQ(stats.num_values_valid(), GetParam());
 
   auto iter = list.newIterator(*getStore());
   for (size_t i = 0; i != GetParam(); ++i) {
@@ -254,12 +258,15 @@ TEST_P(ListTestWithParam, AppendSmallValuesAndIterateOnce) {
 
 TEST_P(ListTestWithParam, AppendSmallValuesAndIterateTwice) {
   List list;
+  List::Stats stats;
   for (size_t i = 0; i != GetParam(); ++i) {
     list.append(std::to_string(i), getStore(), getArena());
-    ASSERT_EQ(list.getStatsUnlocked().num_values_removed, 0);
-    ASSERT_EQ(list.getStatsUnlocked().num_values_total, i + 1);
+    ASSERT_TRUE(list.tryGetStats(&stats));
+    ASSERT_EQ(stats.num_values_removed, 0);
+    ASSERT_EQ(stats.num_values_total, i + 1);
   }
-  ASSERT_EQ(list.getStatsUnlocked().num_values_valid(), GetParam());
+  ASSERT_TRUE(list.tryGetStats(&stats));
+  ASSERT_EQ(stats.num_values_valid(), GetParam());
 
   auto iter = list.newIterator(*getStore());
   for (size_t i = 0; i != GetParam(); ++i) {
@@ -282,14 +289,17 @@ TEST_P(ListTestWithParam, AppendSmallValuesAndIterateTwice) {
 
 TEST_P(ListTestWithParam, AppendLargeValuesAndIterateOnce) {
   List list;
+  List::Stats stats;
   SequenceGenerator generator;
-  const size_t size = getStore()->getBlockSize() * 2.5;
+  const size_t size = getStore()->getOptions().block_size * 2.5;
   for (size_t i = 0; i != GetParam(); ++i) {
     list.append(generator.nextof(size), getStore(), getArena());
-    ASSERT_EQ(list.getStatsUnlocked().num_values_removed, 0);
-    ASSERT_EQ(list.getStatsUnlocked().num_values_total, i + 1);
+    ASSERT_TRUE(list.tryGetStats(&stats));
+    ASSERT_EQ(stats.num_values_removed, 0);
+    ASSERT_EQ(stats.num_values_total, i + 1);
   }
-  ASSERT_EQ(list.getStatsUnlocked().num_values_valid(), GetParam());
+  ASSERT_TRUE(list.tryGetStats(&stats));
+  ASSERT_EQ(stats.num_values_valid(), GetParam());
 
   generator.reset();
   auto iter = list.newIterator(*getStore());
@@ -304,14 +314,17 @@ TEST_P(ListTestWithParam, AppendLargeValuesAndIterateOnce) {
 
 TEST_P(ListTestWithParam, AppendLargeValuesAndIterateTwice) {
   List list;
+  List::Stats stats;
   SequenceGenerator generator;
-  const size_t size = getStore()->getBlockSize() * 2.5;
+  const size_t size = getStore()->getOptions().block_size * 2.5;
   for (size_t i = 0; i != GetParam(); ++i) {
     list.append(generator.nextof(size), getStore(), getArena());
-    ASSERT_EQ(list.getStatsUnlocked().num_values_removed, 0);
-    ASSERT_EQ(list.getStatsUnlocked().num_values_total, i + 1);
+    ASSERT_TRUE(list.tryGetStats(&stats));
+    ASSERT_EQ(stats.num_values_removed, 0);
+    ASSERT_EQ(stats.num_values_total, i + 1);
   }
-  ASSERT_EQ(list.getStatsUnlocked().num_values_valid(), GetParam());
+  ASSERT_TRUE(list.tryGetStats(&stats));
+  ASSERT_EQ(stats.num_values_valid(), GetParam());
 
   generator.reset();
   auto iter = list.newIterator(*getStore());
@@ -336,11 +349,13 @@ TEST_P(ListTestWithParam, AppendLargeValuesAndIterateTwice) {
 
 TEST_P(ListTestWithParam, FlushValuesBetweenAppendingAndIterate) {
   List list;
+  List::Stats stats;
   const auto part_size = 1 + GetParam() / 5;
   for (size_t i = 0; i != GetParam(); ++i) {
     list.append(std::to_string(i), getStore(), getArena());
-    if (list.size() % part_size == 0) {
-      list.flush(getStore());
+    ASSERT_TRUE(list.tryGetStats(&stats));
+    if (stats.num_values_valid() % part_size == 0) {
+      ASSERT_TRUE(list.tryFlush(getStore()));
     }
   }
 
@@ -357,7 +372,7 @@ TEST_P(ListTestWithParam, RemoveEvery23thValue) {
     list.append(std::to_string(i), getStore(), getArena());
   }
 
-  const auto num_removed = list.removeAllMatches([](const Range &value) {
+  const auto num_removed = list.removeAllMatches([](const Slice &value) {
     return std::stoi(value.toString()) % 23 == 0;
   }, getStore());
 

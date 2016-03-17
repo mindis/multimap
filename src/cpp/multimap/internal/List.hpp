@@ -19,9 +19,13 @@
 #define MULTIMAP_INTERNAL_LIST_HPP_INCLUDED
 
 #include "multimap/internal/Arena.hpp"
-#include "multimap/internal/Locks.hpp"
 #include "multimap/internal/SharedMutex.hpp"
 #include "multimap/internal/Store.hpp"
+#include "multimap/internal/UintVector.hpp"
+#include "multimap/thirdparty/mt/mt.hpp"
+#include "multimap/callables.hpp"
+#include "multimap/Iterator.hpp"
+#include "multimap/Slice.hpp"
 
 namespace multimap {
 namespace internal {
@@ -29,33 +33,58 @@ namespace internal {
 class List {
  public:
   struct Limits {
-    static uint32_t maxValueSize();
+    static size_t maxValueSize();
   };
 
-  void append(const Slice& value, Store* store, Arena* arena) {
-    WriterLockGuard<SharedMutex> lock(mutex_);
-    if (block_.data == nullptr) {
-      block_.size = store->getBlockSize();
-      block_.data = arena->allocate(block_.size);
-      std::memset(block_.data, 0, block_.size);
+  struct Stats {
+    uint32_t num_values_total = 0;
+    uint32_t num_values_removed = 0;
+
+    uint32_t num_values_valid() const {
+      MT_REQUIRE_GE(num_values_total, num_values_removed);
+      return num_values_total - num_values_removed;
     }
-    size_t nbytes = value.writeToBuffer(block_.current(), block_.end());
-    if (nbytes == 0) {
-      block_ids_.add(store->put(block_));
-      std::memset(block_.data, 0, block_.size);
-      block_.offset = 0;
-      nbytes = value.writeToBuffer(block_.current(), block_.end());
-      MT_ASSERT_NOT_ZERO(nbytes);
-    }
-    block_.offset += nbytes;
-  }
+  };
+
+  typedef std::vector<Slice> Slices;
+
+  void append(const Slice& value, Store* store, Arena* arena);
+
+  void append(const Slices& values, Store* store, Arena* arena);
+
+  std::unique_ptr<Iterator> newIterator(const Store& store) const;
+
+  void forEachValue(Procedure process, const Store& store) const;
+
+  bool removeFirstMatch(Predicate predicate, Store* store);
+
+  size_t removeAllMatches(Predicate predicate, Store* store);
+
+  bool replaceFirstMatch(Function map, Store* store, Arena* arena);
+
+  size_t replaceAllMatches(Function map, Store* store, Arena* arena);
+
+  bool tryGetStats(Stats* stats) const;
+
+  bool tryFlush(Store* store, Stats* stats = nullptr);
+
+  void flushUnlocked(Store* store, Stats* stats = nullptr);
+
+  bool empty() const;
+
+  size_t clear();
+
+  static List readFromStream(std::FILE* stream);
+
+  void writeToStream(std::FILE* stream) const;
 
  private:
+  void appendUnlocked(const Slice& value, Store* store, Arena* arena);
+
   mutable SharedMutex mutex_;
-  uint32_t num_values_total_ = 0;
-  uint32_t num_values_removed_ = 0;
   UintVector block_ids_;
   Store::Block block_;
+  Stats stats_;
 };
 
 static_assert(mt::hasExpectedSize<List>(36, 48),

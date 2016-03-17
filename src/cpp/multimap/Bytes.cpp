@@ -22,13 +22,13 @@
 
 namespace multimap {
 
-Bytes makeBytes(const char* cstr) {
+Bytes toBytes(const char* cstr) {
   Bytes bytes(std::strlen(cstr));
   std::memcpy(bytes.data(), cstr, bytes.size());
   return bytes;
 }
 
-Bytes makeBytes(const std::string& str) { return makeBytes(str.c_str()); }
+Bytes toBytes(const std::string& str) { return toBytes(str.c_str()); }
 
 size_t readBytesFromBuffer(const byte* buffer, Bytes* output) {
   const auto slice_and_nbytes = Slice::readFromBuffer(buffer);
