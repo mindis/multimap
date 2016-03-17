@@ -334,7 +334,7 @@ void Partition::forEachEntry(const std::string& prefix,
   }
 }
 
-Stats stats(const std::string& prefix) {
+Stats Partition::stats(const std::string& prefix) {
   return Stats::readFromFile(getNameOfStatsFile(prefix));
 }
 
