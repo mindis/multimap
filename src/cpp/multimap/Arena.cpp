@@ -26,7 +26,7 @@ Arena::Arena(size_t block_size)
 }
 
 byte* Arena::allocate(size_t nbytes) {
-  MT_REQUIRE_NOT_ZERO(nbytes);
+  MT_REQUIRE_NOT_ZERO(nbytes);  // TODO Should we allow zero size?
   std::lock_guard<std::mutex> lock(*mutex_);
 
   byte* result;
