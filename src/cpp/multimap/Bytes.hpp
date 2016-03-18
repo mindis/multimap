@@ -16,7 +16,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // -----------------------------------------------------------------------------
-// Documentation:  http://multimap.io/cppreference/#byteshpp
+// Documentation:  https://multimap.io/cppreference/#byteshpp
 // -----------------------------------------------------------------------------
 
 #ifndef MULTIMAP_BYTES_HPP_INCLUDED

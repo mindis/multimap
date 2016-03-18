@@ -18,10 +18,10 @@
 #include "multimap/ImmutableMap.hpp"
 
 #include <boost/filesystem/operations.hpp>
-#include "multimap/internal/Arena.hpp"
 #include "multimap/internal/Descriptor.hpp"
 #include "multimap/internal/TsvFileReader.hpp"
 #include "multimap/internal/TsvFileWriter.hpp"
+#include "multimap/Arena.hpp"
 
 namespace multimap {
 
@@ -48,11 +48,11 @@ const Element& select(const std::vector<Element>& elements, const Slice& key) {
 
 }  // namespace
 
-uint32_t ImmutableMap::Limits::maxKeySize() {
+size_t ImmutableMap::Limits::maxKeySize() {
   return internal::MphTable::Limits::maxKeySize();
 }
 
-uint32_t ImmutableMap::Limits::maxValueSize() {
+size_t ImmutableMap::Limits::maxValueSize() {
   return internal::MphTable::Limits::maxValueSize();
 }
 
@@ -233,7 +233,7 @@ void ImmutableMap::exportToBase64(const boost::filesystem::path& directory,
                 << map.tables_.size() << std::endl;
     }
     if (options.compare) {
-      internal::Arena arena;
+      Arena arena;
       std::vector<Slice> values;
       map.tables_[i].forEachEntry([&writer, &arena, &options, &values](
           const Slice& key, Iterator* iter) {

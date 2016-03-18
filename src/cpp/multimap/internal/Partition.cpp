@@ -158,10 +158,6 @@ void Partition::put(const Slice& key, const Slice& value) {
   getListOrCreate(key)->append(value, store_.get(), &arena_);
 }
 
-void Partition::put(const Slice& key, const Slices& values) {
-  getListOrCreate(key)->append(values, store_.get(), &arena_);
-}
-
 std::unique_ptr<Iterator> Partition::get(const Slice& key) const {
   const List* list = getList(key);
   return list ? list->newIterator(*store_) : Iterator::newEmptyInstance();
@@ -220,26 +216,16 @@ std::pair<size_t, size_t> Partition::removeAllMatches(Predicate predicate) {
 
 bool Partition::replaceFirstEqual(const Slice& key, const Slice& old_value,
                                   const Slice& new_value) {
-  return replaceFirstMatch(
-      key, [&old_value, &new_value](const Slice& value, Bytes* output) {
-        if (value == old_value) {
-          new_value.copyTo(output);
-          return true;
-        }
-        return false;
-      });
+  return replaceFirstMatch(key, [&old_value, &new_value](const Slice& value) {
+    return (value == old_value) ? new_value.makeCopy() : Bytes();
+  });
 }
 
 size_t Partition::replaceAllEqual(const Slice& key, const Slice& old_value,
                                   const Slice& new_value) {
-  return replaceAllMatches(
-      key, [&old_value, &new_value](const Slice& value, Bytes* output) {
-        if (value == old_value) {
-          new_value.copyTo(output);
-          return true;
-        }
-        return false;
-      });
+  return replaceAllMatches(key, [&old_value, &new_value](const Slice& value) {
+    return (value == old_value) ? new_value.makeCopy() : Bytes();
+  });
 }
 
 bool Partition::replaceFirstMatch(const Slice& key, Function map) {
@@ -248,6 +234,11 @@ bool Partition::replaceFirstMatch(const Slice& key, Function map) {
 }
 
 size_t Partition::replaceAllMatches(const Slice& key, Function map) {
+  List* list = getList(key);
+  return list ? list->replaceAllMatches(map, store_.get(), &arena_) : 0;
+}
+
+size_t Partition::replaceAllMatches(const Slice& key, Function2 map) {
   List* list = getList(key);
   return list ? list->replaceAllMatches(map, store_.get(), &arena_) : 0;
 }

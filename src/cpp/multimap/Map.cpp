@@ -17,12 +17,9 @@
 
 #include "multimap/Map.hpp"
 
-#include <algorithm>
-#include <iostream>
 #include <boost/filesystem/operations.hpp>
-#include "multimap/internal/Descriptor.hpp"
-#include "multimap/internal/TsvFileWriter.hpp"
 #include "multimap/internal/TsvFileReader.hpp"
+#include "multimap/internal/TsvFileWriter.hpp"
 
 namespace multimap {
 
@@ -43,31 +40,13 @@ std::string getPartitionPrefix(const boost::filesystem::path& basedir,
   return getFilePrefix(basedir) + '.' + std::to_string(index);
 }
 
-// std::string getNameOfKeysFile(const boost::filesystem::path& basedir,
-//                              size_t index) {
-//  return internal::Partition::getNameOfMapFile(
-//      getPartitionPrefix(basedir, index));
-//}
-
-// std::string getNameOfStatsFile(const boost::filesystem::path& basedir,
-//                               size_t index) {
-//  return internal::Partition::getNameOfStatsFile(
-//      getPartitionPrefix(basedir, index));
-//}
-
-// std::string getNameOfValuesFile(const boost::filesystem::path& basedir,
-//                                size_t index) {
-//  return internal::Partition::getNameOfStoreFile(
-//      getPartitionPrefix(basedir, index));
-//}
-
 }  // namespace
 
-uint32_t Map::Limits::maxKeySize() {
+size_t Map::Limits::maxKeySize() {
   return internal::Partition::Limits::maxKeySize();
 }
 
-uint32_t Map::Limits::maxValueSize() {
+size_t Map::Limits::maxValueSize() {
   return internal::Partition::Limits::maxValueSize();
 }
 
@@ -98,6 +77,90 @@ Map::Map(const boost::filesystem::path& directory, const Options& options)
   for (size_t i = 0; i != partitions_.size(); i++) {
     const auto prefix = getPartitionPrefix(directory, i);
     partitions_[i].reset(new internal::Partition(prefix, partition_options));
+  }
+}
+
+void Map::put(const Slice& key, const Slice& value) {
+  getPartition(key)->put(key, value);
+}
+
+std::unique_ptr<Iterator> Map::get(const Slice& key) const {
+  return getPartition(key)->get(key);
+}
+
+size_t Map::remove(const Slice& key) { return getPartition(key)->remove(key); }
+
+bool Map::removeFirstEqual(const Slice& key, const Slice& value) {
+  return getPartition(key)->removeFirstEqual(key, value);
+}
+
+size_t Map::removeAllEqual(const Slice& key, const Slice& value) {
+  return getPartition(key)->removeAllEqual(key, value);
+}
+
+bool Map::removeFirstMatch(const Slice& key, Predicate predicate) {
+  return getPartition(key)->removeFirstMatch(key, predicate);
+}
+
+size_t Map::removeFirstMatch(Predicate predicate) {
+  size_t num_values_removed = 0;
+  for (const auto& partition : partitions_) {
+    num_values_removed = partition->removeFirstMatch(predicate);
+    if (num_values_removed != 0) break;
+  }
+  return num_values_removed;
+}
+
+size_t Map::removeAllMatches(const Slice& key, Predicate predicate) {
+  return getPartition(key)->removeAllMatches(key, predicate);
+}
+
+std::pair<size_t, size_t> Map::removeAllMatches(Predicate predicate) {
+  size_t num_keys_removed = 0;
+  size_t num_values_removed = 0;
+  for (const auto& partition : partitions_) {
+    const auto result = partition->removeAllMatches(predicate);
+    num_keys_removed += result.first;
+    num_values_removed += result.second;
+  }
+  return std::make_pair(num_keys_removed, num_values_removed);
+}
+
+bool Map::replaceFirstEqual(const Slice& key, const Slice& old_value,
+                            const Slice& new_value) {
+  return getPartition(key)->replaceFirstEqual(key, old_value, new_value);
+}
+
+size_t Map::replaceAllEqual(const Slice& key, const Slice& old_value,
+                            const Slice& new_value) {
+  return getPartition(key)->replaceAllEqual(key, old_value, new_value);
+}
+
+bool Map::replaceFirstMatch(const Slice& key, Function map) {
+  return getPartition(key)->replaceFirstMatch(key, map);
+}
+
+size_t Map::replaceAllMatches(const Slice& key, Function map) {
+  return getPartition(key)->replaceAllMatches(key, map);
+}
+
+size_t Map::replaceAllMatches(const Slice& key, Function2 map) {
+  return getPartition(key)->replaceAllMatches(key, map);
+}
+
+void Map::forEachKey(Procedure process) const {
+  for (const auto& partition : partitions_) {
+    partition->forEachKey(process);
+  }
+}
+
+void Map::forEachValue(const Slice& key, Procedure process) const {
+  getPartition(key)->forEachValue(key, process);
+}
+
+void Map::forEachEntry(BinaryProcedure process) const {
+  for (const auto& partition : partitions_) {
+    partition->forEachEntry(process);
   }
 }
 
@@ -175,7 +238,7 @@ void Map::exportToBase64(const boost::filesystem::path& directory,
                 << descriptor.num_partitions << std::endl;
     }
     if (options.compare) {
-      internal::Arena arena;
+      Arena arena;
       std::vector<Slice> values;
       internal::Partition::forEachEntry(
           prefix, [&writer, &arena, &options, &values](const Slice& key,
@@ -233,7 +296,7 @@ void Map::optimize(const boost::filesystem::path& directory,
                 << descriptor.num_partitions << std::endl;
     }
     if (options.compare) {
-      internal::Arena arena;
+      Arena arena;
       std::vector<Slice> values;
       internal::Partition::forEachEntry(
           prefix, [&new_map, &arena, &options, &values](const Slice& key,
@@ -259,6 +322,14 @@ void Map::optimize(const boost::filesystem::path& directory,
           });
     }
   }
+}
+
+internal::Partition* Map::getPartition(const Slice& key) {
+  return partitions_[std::hash<Slice>()(key) % partitions_.size()].get();
+}
+
+const internal::Partition* Map::getPartition(const Slice& key) const {
+  return partitions_[std::hash<Slice>()(key) % partitions_.size()].get();
 }
 
 }  // namespace multimap

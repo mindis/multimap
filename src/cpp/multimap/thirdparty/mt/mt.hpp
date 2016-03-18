@@ -45,7 +45,7 @@
 
 namespace mt {
 
-static const uint32_t VERSION = 20160316;
+static const uint32_t VERSION = 20160318;
 
 // -----------------------------------------------------------------------------
 // COMMON
@@ -331,6 +331,8 @@ class AutoCloseFd {
     fd_ = fd;
   }
 
+  explicit operator bool() const { return fd_ != NONE; }
+
  private:
   int fd_ = NONE;
 };
@@ -540,6 +542,8 @@ class AutoUnmapMemory {
     }
     memory_ = memory;
   }
+
+  explicit operator bool() const { return addr() != nullptr; }
 
  private:
   Memory memory_;

@@ -54,7 +54,7 @@ Store::Store(const boost::filesystem::path& filename, const Options& options)
 }
 
 Store::~Store() {
-  if (fd_.get() && !options_.readonly) {
+  if (fd_ && !options_.readonly) {
     const uint64_t file_size = getNumBlocksUnlocked() * options_.block_size;
     mt::truncate(fd_.get(), file_size);
   }

@@ -16,27 +16,27 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // -----------------------------------------------------------------------------
-// Documentation:  http://multimap.io/cppreference/#struct-options
+// Documentation:  https://multimap.io/cppreference/#optionshpp
 // -----------------------------------------------------------------------------
 
 #ifndef MULTIMAP_OPTIONS_HPP_INCLUDED
 #define MULTIMAP_OPTIONS_HPP_INCLUDED
 
 #include <functional>
-#include "multimap/Slice.hpp"
+#include "multimap/callables.hpp"
 
 namespace multimap {
 
 struct Options {
-  uint32_t block_size = 512;
-  uint32_t num_partitions = 23;
+  size_t block_size = 512;
+  size_t num_partitions = 23;
 
   bool create_if_missing = false;
   bool error_if_exists = false;
   bool readonly = false;
   bool verbose = true;
 
-  std::function<bool(const Slice&, const Slice&)> compare;
+  Compare compare;
 
   void keepNumPartitions() { num_partitions = 0; }
   void keepBlockSize() { block_size = 0; }

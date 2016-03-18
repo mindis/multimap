@@ -21,7 +21,8 @@
 #include <limits>
 #include <unordered_map>
 #include <boost/filesystem/operations.hpp>
-#include "multimap/internal/Arena.hpp"
+#include "multimap/internal/Varint.hpp"
+#include "multimap/Arena.hpp"
 
 namespace multimap {
 namespace internal {
@@ -30,7 +31,7 @@ namespace {
 
 class ListIter : public Iterator {
  public:
-  ListIter(const byte* data, uint32_t num_values)
+  ListIter(const byte* data, size_t num_values)
       : data_(data), num_values_(num_values) {}
 
   size_t available() const override { return num_values_; }
@@ -52,7 +53,7 @@ class ListIter : public Iterator {
 
  private:
   const byte* data_ = nullptr;
-  uint32_t num_values_ = 0;
+  size_t num_values_ = 0;
 };
 
 typedef std::vector<Slice> List;
@@ -216,13 +217,9 @@ Table makeCopy(const mt::AutoUnmapMemory& table) {
 
 }  // namespace
 
-uint32_t MphTable::Limits::maxKeySize() {
-  return std::numeric_limits<int32_t>::max();
-}
+size_t MphTable::Limits::maxKeySize() { return Varint::Limits::MAX_N4; }
 
-uint32_t MphTable::Limits::maxValueSize() {
-  return std::numeric_limits<int32_t>::max();
-}
+size_t MphTable::Limits::maxValueSize() { return Varint::Limits::MAX_N4; }
 
 MphTable::MphTable(const std::string& prefix)
     : mph_(getNameOfMphFile(prefix)),

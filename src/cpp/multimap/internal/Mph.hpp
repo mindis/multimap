@@ -64,12 +64,12 @@ class Mph {
 
   void dump(const boost::filesystem::path& filename) const;
 
-  uint32_t operator()(const Slice& key) const {
+  size_t operator()(const Slice& key) const {
     return cmph_search(cmph_.get(), reinterpret_cast<const char*>(key.begin()),
                        key.size());
   }
 
-  uint32_t size() const { return cmph_size(cmph_.get()); }
+  size_t size() const { return cmph_size(cmph_.get()); }
 
  private:
   explicit Mph(std::unique_ptr<cmph_t> cmph);

@@ -12,7 +12,6 @@ INCLUDEPATH += \
     src/cpp/multimap/thirdparty
 
 HEADERS += \
-    src/cpp/multimap/internal/Arena.hpp \
     src/cpp/multimap/internal/Base64.hpp \
     src/cpp/multimap/internal/Descriptor.hpp \
     src/cpp/multimap/internal/List.hpp \
@@ -66,6 +65,7 @@ HEADERS += \
     src/cpp/multimap/thirdparty/cmph/vstack.h \
     src/cpp/multimap/thirdparty/mt/mt.hpp \
     src/cpp/multimap/thirdparty/xxhash/xxhash.h \
+    src/cpp/multimap/Arena.hpp \
     src/cpp/multimap/Bytes.hpp \
     src/cpp/multimap/callables.hpp \
     src/cpp/multimap/ImmutableMap.hpp \
@@ -77,7 +77,6 @@ HEADERS += \
     src/cpp/multimap/Version.hpp
 
 SOURCES += \
-    src/cpp/multimap/internal/Arena.cpp \
     src/cpp/multimap/internal/Base64.cpp \
     src/cpp/multimap/internal/Descriptor.cpp \
     src/cpp/multimap/internal/List.cpp \
@@ -115,6 +114,7 @@ SOURCES += \
     src/cpp/multimap/thirdparty/cmph/vstack.c \
     src/cpp/multimap/thirdparty/mt/mt.cpp \
     src/cpp/multimap/thirdparty/xxhash/xxhash.c \
+    src/cpp/multimap/Arena.cpp \
     src/cpp/multimap/Bytes.cpp \
     src/cpp/multimap/ImmutableMap.cpp \
     src/cpp/multimap/Iterator.cpp \

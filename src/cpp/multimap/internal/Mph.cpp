@@ -17,8 +17,7 @@
 
 #include "multimap/internal/Mph.hpp"
 
-#include "multimap/internal/Arena.hpp"
-#include "multimap/thirdparty/mt/mt.hpp"
+#include "multimap/Arena.hpp"
 
 namespace std {
 

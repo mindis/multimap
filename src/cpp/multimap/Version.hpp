@@ -15,6 +15,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+// -----------------------------------------------------------------------------
+// Documentation:  https://multimap.io/cppreference/#versionhpp
+// -----------------------------------------------------------------------------
+
 #ifndef MULTIMAP_VERSION_HPP_INCLUDED
 #define MULTIMAP_VERSION_HPP_INCLUDED
 

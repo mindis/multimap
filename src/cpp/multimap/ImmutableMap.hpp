@@ -16,7 +16,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // -----------------------------------------------------------------------------
-// Documentation:  http://multimap.io/cppreference/#immutablemaphpp
+// Documentation:  https://multimap.io/cppreference/#immutablemaphpp
 // -----------------------------------------------------------------------------
 
 #ifndef MULTIMAP_IMMUTABLE_MAP_HPP_INCLUDED
@@ -34,18 +34,15 @@ class ImmutableMap {
 
  public:
   struct Limits {
-    static uint32_t maxKeySize();
-    static uint32_t maxValueSize();
+    static size_t maxKeySize();
+    static size_t maxValueSize();
   };
 
   // TODO Remove
   struct Options : public multimap::Options {
-    uint64_t max_bucket_size = mt::GiB(1);
-    uint32_t num_buckets = 23;
+    size_t max_bucket_size = mt::GiB(1);
+    size_t num_buckets = 23;
   };
-
-  typedef internal::MphTable::Procedure Procedure;
-  typedef internal::MphTable::BinaryProcedure BinaryProcedure;
 
   class Builder {
    public:
@@ -60,7 +57,7 @@ class ImmutableMap {
       boost::filesystem::path filename;
       mt::AutoCloseFile stream;
       bool is_large = false;
-      uint64_t size = 0;
+      size_t size = 0;
     };
 
     const Options options_;

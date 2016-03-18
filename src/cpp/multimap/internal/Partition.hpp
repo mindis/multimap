@@ -32,8 +32,6 @@ class Partition {
     static size_t maxValueSize();
   };
 
-  typedef List::Slices Slices;
-
   explicit Partition(const std::string& prefix);
 
   Partition(const std::string& prefix, const Options& options);
@@ -42,7 +40,10 @@ class Partition {
 
   void put(const Slice& key, const Slice& value);
 
-  void put(const Slice& key, const Slices& values);
+  template <typename InputIter>
+  void put(const Slice& key, InputIter begin, InputIter end) {
+    getListOrCreate(key)->append(begin, end, store_.get(), &arena_);
+  }
 
   std::unique_ptr<Iterator> get(const Slice& key) const;
 
@@ -69,6 +70,8 @@ class Partition {
   bool replaceFirstMatch(const Slice& key, Function map);
 
   size_t replaceAllMatches(const Slice& key, Function map);
+
+  size_t replaceAllMatches(const Slice& key, Function2 map);
 
   void forEachKey(Procedure process) const;
 

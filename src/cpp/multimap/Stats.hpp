@@ -16,7 +16,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // -----------------------------------------------------------------------------
-// Documentation:  http://multimap.io/cppreference/#struct-stats
+// Documentation:  https://multimap.io/cppreference/#statshpp
 // -----------------------------------------------------------------------------
 
 #ifndef MULTIMAP_STATS_HPP_INCLUDED

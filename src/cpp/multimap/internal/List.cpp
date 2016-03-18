@@ -17,7 +17,6 @@
 
 #include "multimap/internal/List.hpp"
 
-#include "multimap/internal/Locks.hpp"
 #include "multimap/internal/Varint.hpp"
 
 namespace multimap {
@@ -62,13 +61,6 @@ void List::append(const Slice& value, Store* store, Arena* arena) {
   appendUnlocked(value, store, arena);
 }
 
-void List::append(const Slices& values, Store* store, Arena* arena) {
-  WriterLockGuard<SharedMutex> lock(mutex_);
-  for (const auto& value : values) {
-    appendUnlocked(value, store, arena);
-  }
-}
-
 std::unique_ptr<Iterator> List::newIterator(const Store& store) const {
   return Iterator::newEmptyInstance();
 }
@@ -104,10 +96,10 @@ size_t List::removeAllMatches(Predicate predicate, Store* store) {
 }
 
 bool List::replaceFirstMatch(Function map, Store* store, Arena* arena) {
-  Bytes new_value;
   ExclusiveIterator iter(this, store);
   while (iter.hasNext()) {
-    if (map(iter.next(), &new_value)) {
+    const Bytes new_value = map(iter.next());
+    if (!new_value.empty()) {
       appendUnlocked(new_value, store, arena);
       // `iter` keeps the list in locked state.
       iter.remove();
@@ -118,11 +110,29 @@ bool List::replaceFirstMatch(Function map, Store* store, Arena* arena) {
 }
 
 size_t List::replaceAllMatches(Function map, Store* store, Arena* arena) {
-  Bytes new_value;
   std::vector<Bytes> new_values;
   ExclusiveIterator iter(this, store);
   while (iter.hasNext()) {
-    if (map(iter.next(), &new_value)) {
+    Bytes new_value = map(iter.next());
+    if (!new_value.empty()) {
+      new_values.push_back(std::move(new_value));
+      iter.remove();
+    }
+  }
+  for (const auto& value : new_values) {
+    appendUnlocked(value, store, arena);
+    // `iter` keeps the list in locked state.
+  }
+  return new_values.size();
+}
+
+size_t List::replaceAllMatches(Function2 map, Store* store, Arena* arena) {
+  Arena new_values_arena;
+  std::vector<Slice> new_values;
+  ExclusiveIterator iter(this, store);
+  while (iter.hasNext()) {
+    Slice new_value = map(iter.next(), &new_values_arena);
+    if (!new_value.empty()) {
       new_values.push_back(new_value);
       iter.remove();
     }

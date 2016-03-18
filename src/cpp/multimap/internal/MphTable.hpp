@@ -18,9 +18,9 @@
 #ifndef MULTIMAP_INTERNAL_MPH_TABLE_HPP_INCLUDED
 #define MULTIMAP_INTERNAL_MPH_TABLE_HPP_INCLUDED
 
-#include <functional>
 #include <boost/filesystem/path.hpp>
 #include "multimap/internal/Mph.hpp"
+#include "multimap/callables.hpp"
 #include "multimap/Iterator.hpp"
 #include "multimap/Options.hpp"
 #include "multimap/Stats.hpp"
@@ -33,12 +33,9 @@ class MphTable {
 
  public:
   struct Limits {
-    static uint32_t maxKeySize();
-    static uint32_t maxValueSize();
+    static size_t maxKeySize();
+    static size_t maxValueSize();
   };
-
-  typedef std::function<void(const Slice&)> Procedure;
-  typedef std::function<void(const Slice&, Iterator*)> BinaryProcedure;
 
   explicit MphTable(const std::string& prefix);
 

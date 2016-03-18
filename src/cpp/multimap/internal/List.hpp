@@ -18,11 +18,11 @@
 #ifndef MULTIMAP_INTERNAL_LIST_HPP_INCLUDED
 #define MULTIMAP_INTERNAL_LIST_HPP_INCLUDED
 
-#include "multimap/internal/Arena.hpp"
+#include "multimap/internal/Locks.hpp"
 #include "multimap/internal/SharedMutex.hpp"
 #include "multimap/internal/Store.hpp"
 #include "multimap/internal/UintVector.hpp"
-#include "multimap/thirdparty/mt/mt.hpp"
+#include "multimap/Arena.hpp"
 #include "multimap/callables.hpp"
 #include "multimap/Iterator.hpp"
 #include "multimap/Slice.hpp"
@@ -46,11 +46,16 @@ class List {
     }
   };
 
-  typedef std::vector<Slice> Slices;
-
   void append(const Slice& value, Store* store, Arena* arena);
 
-  void append(const Slices& values, Store* store, Arena* arena);
+  template <typename InputIter>
+  void append(InputIter begin, InputIter end, Store* store, Arena* arena) {
+    WriterLockGuard<SharedMutex> lock(mutex_);
+    while (begin != end) {
+      appendUnlocked(*begin, store, arena);
+      ++begin;
+    }
+  }
 
   std::unique_ptr<Iterator> newIterator(const Store& store) const;
 
@@ -63,6 +68,8 @@ class List {
   bool replaceFirstMatch(Function map, Store* store, Arena* arena);
 
   size_t replaceAllMatches(Function map, Store* store, Arena* arena);
+
+  size_t replaceAllMatches(Function2 map, Store* store, Arena* arena);
 
   bool tryGetStats(Stats* stats) const;
 

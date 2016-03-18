@@ -16,14 +16,12 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // -----------------------------------------------------------------------------
-// Documentation:  http://multimap.io/cppreference/#maphpp
+// Documentation:  https://multimap.io/cppreference/#maphpp
 // -----------------------------------------------------------------------------
 
 #ifndef MULTIMAP_MAP_HPP_INCLUDED
 #define MULTIMAP_MAP_HPP_INCLUDED
 
-#include <memory>
-#include <vector>
 #include "multimap/internal/Locks.hpp"
 #include "multimap/internal/Partition.hpp"
 
@@ -36,8 +34,8 @@ class Map {
   // ---------------------------------------------------------------------------
 
   struct Limits {
-    static uint32_t maxKeySize();
-    static uint32_t maxValueSize();
+    static size_t maxKeySize();
+    static size_t maxValueSize();
   };
 
   // ---------------------------------------------------------------------------
@@ -48,99 +46,46 @@ class Map {
 
   Map(const boost::filesystem::path& directory, const Options& options);
 
-  void put(const Slice& key, const Slice& value) {
-    getPartition(key)->put(key, value);
-  }
+  void put(const Slice& key, const Slice& value);
 
   template <typename InputIter>
-  void put(const Slice& key, InputIter first, InputIter last) {
-    getPartition(key)->put(key, first, last);
+  void put(const Slice& key, InputIter begin, InputIter end) {
+    getPartition(key)->put(key, begin, end);
   }
 
-  std::unique_ptr<Iterator> get(const Slice& key) const {
-    return getPartition(key)->get(key);
-  }
+  std::unique_ptr<Iterator> get(const Slice& key) const;
 
-  uint32_t remove(const Slice& key) { return getPartition(key)->remove(key); }
+  size_t remove(const Slice& key);
 
-  bool removeFirstEqual(const Slice& key, const Slice& value) {
-    return getPartition(key)->removeFirstEqual(key, value);
-  }
+  bool removeFirstEqual(const Slice& key, const Slice& value);
 
-  uint32_t removeAllEqual(const Slice& key, const Slice& value) {
-    return getPartition(key)->removeAllEqual(key, value);
-  }
+  size_t removeAllEqual(const Slice& key, const Slice& value);
 
-  template <typename Predicate>
-  bool removeFirstMatch(const Slice& key, Predicate predicate) {
-    return getPartition(key)->removeFirstMatch(key, predicate);
-  }
+  bool removeFirstMatch(const Slice& key, Predicate predicate);
 
-  template <typename Predicate>
-  uint32_t removeFirstMatch(Predicate predicate) {
-    uint32_t num_values_removed = 0;
-    for (const auto& partition : partitions_) {
-      num_values_removed = partition->removeFirstMatch(predicate);
-      if (num_values_removed != 0) break;
-    }
-    return num_values_removed;
-  }
+  size_t removeFirstMatch(Predicate predicate);
 
-  template <typename Predicate>
-  uint32_t removeAllMatches(const Slice& key, Predicate predicate) {
-    return getPartition(key)->removeAllMatches(key, predicate);
-  }
+  size_t removeAllMatches(const Slice& key, Predicate predicate);
 
-  template <typename Predicate>
-  std::pair<uint32_t, uint64_t> removeAllMatches(Predicate predicate) {
-    uint32_t num_keys_removed = 0;
-    uint64_t num_values_removed = 0;
-    for (const auto& partition : partitions_) {
-      const auto result = partition->removeAllMatches(predicate);
-      num_keys_removed += result.first;
-      num_values_removed += result.second;
-    }
-    return {num_keys_removed, num_values_removed};
-  }
+  std::pair<size_t, size_t> removeAllMatches(Predicate predicate);
 
   bool replaceFirstEqual(const Slice& key, const Slice& old_value,
-                         const Slice& new_value) {
-    return getPartition(key)->replaceFirstEqual(key, old_value, new_value);
-  }
+                         const Slice& new_value);
 
-  uint32_t replaceAllEqual(const Slice& key, const Slice& old_value,
-                           const Slice& new_value) {
-    return getPartition(key)->replaceAllEqual(key, old_value, new_value);
-  }
+  size_t replaceAllEqual(const Slice& key, const Slice& old_value,
+                         const Slice& new_value);
 
-  template <typename Function>
-  bool replaceFirstMatch(const Slice& key, Function map) {
-    return getPartition(key)->replaceFirstMatch(key, map);
-  }
+  bool replaceFirstMatch(const Slice& key, Function map);
 
-  template <typename Function>
-  uint32_t replaceAllMatches(const Slice& key, Function map) {
-    return getPartition(key)->replaceAllMatches(key, map);
-  }
+  size_t replaceAllMatches(const Slice& key, Function map);
 
-  template <typename Procedure>
-  void forEachKey(Procedure process) const {
-    for (const auto& partition : partitions_) {
-      partition->forEachKey(process);
-    }
-  }
+  size_t replaceAllMatches(const Slice& key, Function2 map);
 
-  template <typename Procedure>
-  void forEachValue(const Slice& key, Procedure process) const {
-    getPartition(key)->forEachValue(key, process);
-  }
+  void forEachKey(Procedure process) const;
 
-  template <typename BinaryProcedure>
-  void forEachEntry(BinaryProcedure process) const {
-    for (const auto& partition : partitions_) {
-      partition->forEachEntry(process);
-    }
-  }
+  void forEachValue(const Slice& key, Procedure process) const;
+
+  void forEachEntry(BinaryProcedure process) const;
 
   std::vector<Stats> getStats() const;
 
@@ -174,13 +119,9 @@ class Map {
                        const Options& options);
 
  private:
-  internal::Partition* getPartition(const Slice& key) {
-    return partitions_[std::hash<Slice>()(key) % partitions_.size()].get();
-  }
+  internal::Partition* getPartition(const Slice& key);
 
-  const internal::Partition* getPartition(const Slice& key) const {
-    return partitions_[std::hash<Slice>()(key) % partitions_.size()].get();
-  }
+  const internal::Partition* getPartition(const Slice& key) const;
 
   std::vector<std::unique_ptr<internal::Partition> > partitions_;
   internal::DirectoryLock dlock_;

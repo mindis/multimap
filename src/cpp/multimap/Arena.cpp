@@ -15,12 +15,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "multimap/internal/Arena.hpp"
-
-#include "multimap/thirdparty/mt/mt.hpp"
+#include "multimap/Arena.hpp"
 
 namespace multimap {
-namespace internal {
 
 Arena::Arena(size_t block_size)
     : mutex_(new std::mutex()), block_size_(block_size) {
@@ -68,5 +65,4 @@ void Arena::deallocateAll() {
   allocated_ = 0;
 }
 
-}  // namespace internal
 }  // namespace multimap

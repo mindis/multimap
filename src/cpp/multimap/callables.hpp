@@ -16,13 +16,14 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // -----------------------------------------------------------------------------
-// Documentation:  http://multimap.io/cppreference/#callableshpp
+// Documentation:  https://multimap.io/cppreference/#callableshpp
 // -----------------------------------------------------------------------------
 
 #ifndef MULTIMAP_CALLABLES_HPP_INCLUDED
 #define MULTIMAP_CALLABLES_HPP_INCLUDED
 
 #include <functional>
+#include "multimap/Arena.hpp"
 #include "multimap/Iterator.hpp"
 #include "multimap/Slice.hpp"
 
@@ -32,7 +33,9 @@ typedef std::function<bool(const Slice&)> Predicate;
 
 typedef std::function<void(const Slice&)> Procedure;
 
-typedef std::function<bool(const Slice&, Bytes*)> Function;
+typedef std::function<Bytes(const Slice&)> Function;
+
+typedef std::function<Slice(const Slice&, Arena*)> Function2;
 
 typedef std::function<bool(const Slice&, const Slice&)> Compare;
 

@@ -65,7 +65,6 @@ HEADERS += \
     src/cpp/multimap/thirdparty/googletest/src/gtest-internal-inl.h
 
 SOURCES += \
-    src/cpp/multimap/internal/ArenaTest.cpp \
     src/cpp/multimap/internal/Base64Test.cpp \
     src/cpp/multimap/internal/ListTest.cpp \
     src/cpp/multimap/internal/PartitionTest.cpp \
@@ -85,6 +84,7 @@ SOURCES += \
     src/cpp/multimap/thirdparty/googletest/src/gtest-test-part.cc \
     src/cpp/multimap/thirdparty/googletest/src/gtest-typed-test.cc \
     src/cpp/multimap/thirdparty/googletest/src/gtest.cc \
+    src/cpp/multimap/ArenaTest.cpp \
     src/cpp/multimap/MapTest.cpp \
     src/cpp/multimap/SliceTest.cpp \
     src/cpp/multimap/VersionTest.cpp

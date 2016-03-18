@@ -17,11 +17,9 @@
 
 #include <type_traits>
 #include "gmock/gmock.h"
-#include "multimap/internal/Arena.hpp"
-#include "multimap/thirdparty/mt/mt.hpp"
+#include "multimap/Arena.hpp"
 
 namespace multimap {
-namespace internal {
 
 TEST(ArenaTest, IsDefaultConstructible) {
   ASSERT_TRUE(std::is_default_constructible<Arena>::value);
@@ -56,5 +54,4 @@ TEST(ArenaTest, DefaultConstructedCanAllocateMemory) {
   ASSERT_EQ(arena.allocated(), 5131);
 }
 
-}  // namespace internal
 }  // namespace multimap

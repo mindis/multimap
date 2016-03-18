@@ -16,7 +16,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // -----------------------------------------------------------------------------
-// Documentation:  http://multimap.io/cppreference/#slicehpp
+// Documentation:  https://multimap.io/cppreference/#slicehpp
 // -----------------------------------------------------------------------------
 
 #ifndef MULTIMAP_SLICE_HPP_INCLUDED

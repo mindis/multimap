@@ -15,8 +15,12 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTIMAP_INTERNAL_ARENA_HPP_INCLUDED
-#define MULTIMAP_INTERNAL_ARENA_HPP_INCLUDED
+// -----------------------------------------------------------------------------
+// Documentation:  https://multimap.io/cppreference/#arenahpp
+// -----------------------------------------------------------------------------
+
+#ifndef MULTIMAP_ARENA_HPP_INCLUDED
+#define MULTIMAP_ARENA_HPP_INCLUDED
 
 #include <memory>
 #include <mutex>
@@ -25,7 +29,6 @@
 #include "multimap/Bytes.hpp"
 
 namespace multimap {
-namespace internal {
 
 class Arena {
  public:
@@ -48,7 +51,6 @@ class Arena {
   size_t allocated_ = 0;
 };
 
-}  // namespace internal
 }  // namespace multimap
 
-#endif  // MULTIMAP_INTERNAL_ARENA_HPP_INCLUDED
+#endif  // MULTIMAP_ARENA_HPP_INCLUDED
