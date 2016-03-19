@@ -17,6 +17,8 @@
 
 #include "multimap/internal/List.hpp"
 
+#include <sys/mman.h>
+#include <algorithm>
 #include "multimap/internal/Varint.hpp"
 
 namespace multimap {
@@ -24,35 +26,168 @@ namespace internal {
 
 namespace {
 
+class Stream {
+ public:
+  Stream() = default;
+
+  Stream(const Store::Blocks& blocks, const Store::Block& tail)
+      : blocks_(blocks), tail_(tail) {
+    for (const Store::Block& block : blocks_) {
+      int result = ::posix_madvise(block.data, block.size, POSIX_MADV_WILLNEED);
+      mt::Check::isZero(result, "posix_madvise() failed");
+    }
+    std::reverse(blocks_.begin(), blocks_.end());
+  }
+
+  Slice next() {
+    if (block_.empty()) {
+      block_ = fetchNextBlock();
+    }
+
+    Slice value;
+    size_t nbytes = 0;
+    uint32_t size = 0;
+    bool removed = false;
+    do {
+      // Read value's size and removed-flag.
+      last_value_begin_ = block_.current();
+      nbytes = Varint::readFromBuffer(block_.current(), &size, &removed);
+      if (size == 0) {
+        block_ = fetchNextBlock();
+        last_value_begin_ = block_.current();
+        nbytes = Varint::readFromBuffer(block_.current(), &size, &removed);
+        MT_ASSERT_NOT_ZERO(size);
+      }
+      block_.offset += nbytes;
+
+      // Read value's data.
+      if (size <= (block_.size - block_.offset)) {
+        value = Slice(block_.current(), size);
+        block_.offset += size;
+      } else {
+        nbytes = 0;
+        large_value_.resize(size);
+        while (nbytes != size) {
+          const size_t count =
+              mt::min(size - nbytes, block_.size - block_.offset);
+          if (count == 0) {
+            block_ = fetchNextBlock();
+            continue;
+          }
+          MT_ASSERT_NOT_ZERO(count);
+          if (!removed) {
+            std::memcpy(large_value_.data() + nbytes, block_.current(), count);
+          }
+          block_.offset += count;
+          nbytes += count;
+        }
+        value = Slice(large_value_);
+      }
+    } while (removed);
+    return value;
+  }
+
+  void markLastExtractedValueAsRemoved() {
+    MT_REQUIRE_NOT_NULL(last_value_begin_);
+    Varint::setFlagInBuffer(last_value_begin_, true);
+  }
+
+ private:
+  Store::Block fetchNextBlock() {
+    Store::Block block;
+    if (blocks_.empty()) {
+      block = tail_;
+      tail_.clear();
+    } else {
+      block = blocks_.back();
+      blocks_.pop_back();
+    }
+    MT_ASSERT_FALSE(block.empty());
+    return block;
+  }
+
+  byte* last_value_begin_ = nullptr;
+  Store::Blocks blocks_;
+  Store::Block block_;
+  Store::Block tail_;
+  Bytes large_value_;
+};
+
+}  // namespace
+
 class ExclusiveIterator : public Iterator {
  public:
-  ExclusiveIterator(List* list, Store* store) {}
+  ExclusiveIterator(List* list, Store* store)
+      : list_(list), store_(store), lock_(list->mutex_) {
+    stream_ = Stream(store_->get(list_->block_ids_.unpack()), list_->block_);
+    available_ = list_->stats_.num_values_valid();
+  }
 
-  size_t available() const override { return 0; }
+  size_t available() const override { return available_; }
 
-  bool hasNext() const override { return false; }
+  bool hasNext() const override { return available_ != 0; }
 
-  Slice next() override { return Slice(); }
+  Slice next() override {
+    Slice value = peekNext();
+    value_.clear();
+    available_--;
+    return value;
+  }
 
-  Slice peekNext() override { return Slice(); }
+  Slice peekNext() override {
+    MT_REQUIRE_TRUE(hasNext());
+    if (value_.empty()) {
+      value_ = stream_.next();
+    }
+    return value_;
+  }
 
-  void remove() {}
+  void remove() { stream_.markLastExtractedValueAsRemoved(); }
+
+ private:
+  Slice value_;
+  Stream stream_;
+  size_t available_ = 0;
+  List* list_ = nullptr;
+  Store* store_ = nullptr;
+  WriterLockGuard<SharedMutex> lock_;
 };
 
 class SharedIterator : public Iterator {
  public:
-  SharedIterator(const List& list, const Store& store) {}
+  SharedIterator(const List& list, const Store& store)
+      : list_(&list), store_(&store), lock_(list.mutex_) {
+    stream_ = Stream(store_->get(list_->block_ids_.unpack()), list_->block_);
+    available_ = list_->stats_.num_values_valid();
+  }
 
-  size_t available() const override { return 0; }
+  size_t available() const override { return available_; }
 
-  bool hasNext() const override { return false; }
+  bool hasNext() const override { return available_ != 0; }
 
-  Slice next() override { return Slice(); }
+  Slice next() override {
+    Slice value = peekNext();
+    value_.clear();
+    available_--;
+    return value;
+  }
 
-  Slice peekNext() override { return Slice(); }
+  Slice peekNext() override {
+    MT_REQUIRE_TRUE(hasNext());
+    if (value_.empty()) {
+      value_ = stream_.next();
+    }
+    return value_;
+  }
+
+ private:
+  Slice value_;
+  Stream stream_;
+  size_t available_ = 0;
+  const List* list_ = nullptr;
+  const Store* store_ = nullptr;
+  ReaderLockGuard<SharedMutex> lock_;
 };
-
-}  // namespace
 
 size_t List::Limits::maxValueSize() { return Varint::Limits::MAX_N4_WITH_FLAG; }
 
@@ -156,29 +291,29 @@ void List::appendUnlocked(const Slice& value, Store* store, Arena* arena) {
 
   // Write value's size and removed-flag into the block.
   const bool removed = false;
-  size_t bytes_written = Varint::writeToBuffer(block_.current(), block_.end(),
-                                               value.size(), removed);
-  if (bytes_written == 0) {
+  size_t nbytes = Varint::writeToBuffer(block_.current(), block_.end(),
+                                        value.size(), removed);
+  if (nbytes == 0) {
     flushUnlocked(store);
-    bytes_written = Varint::writeToBuffer(block_.current(), block_.end(),
-                                          value.size(), removed);
-    MT_ASSERT_NOT_ZERO(bytes_written);
+    nbytes = Varint::writeToBuffer(block_.current(), block_.end(), value.size(),
+                                   removed);
+    MT_ASSERT_NOT_ZERO(nbytes);
   }
-  block_.offset += bytes_written;
+  block_.offset += nbytes;
 
   // Write value's data into the block.
-  bytes_written = 0;
-  while (bytes_written != value.size()) {
+  nbytes = 0;
+  while (nbytes != value.size()) {
     const size_t count =
-        mt::min(value.size() - bytes_written, block_.end() - block_.current());
+        mt::min(value.size() - nbytes, block_.size - block_.offset);
     if (count == 0) {
       flushUnlocked(store);
       continue;
     }
     MT_ASSERT_NOT_ZERO(count);
-    std::memcpy(block_.current(), value.data() + bytes_written, count);
-    bytes_written += count;
+    std::memcpy(block_.current(), value.data() + nbytes, count);
     block_.offset += count;
+    nbytes += count;
   }
   stats_.num_values_total++;
 }

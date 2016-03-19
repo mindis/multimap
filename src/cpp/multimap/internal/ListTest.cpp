@@ -51,7 +51,7 @@ TEST(ListTest, DefaultConstructedHasProperState) {
   ASSERT_TRUE(list.tryGetStats(&stats));
   ASSERT_EQ(stats.num_values_removed, 0);
   ASSERT_EQ(stats.num_values_total, 0);
-    ASSERT_EQ(list.empty(), true);
+  ASSERT_EQ(list.empty(), true);
 }
 
 // -----------------------------------------------------------------------------

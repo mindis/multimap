@@ -88,6 +88,9 @@ class List {
  private:
   void appendUnlocked(const Slice& value, Store* store, Arena* arena);
 
+  friend class ExclusiveIterator;
+  friend class SharedIterator;
+
   mutable SharedMutex mutex_;
   UintVector block_ids_;
   Store::Block block_;
