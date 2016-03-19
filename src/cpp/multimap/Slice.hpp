@@ -48,10 +48,7 @@ class Slice {
 
   bool empty() const { return size_ == 0; }
 
-  void clear() {
-    data_ = reinterpret_cast<const byte*>("");
-    size_ = 0;
-  }
+  void clear() { *this = Slice(); }
 
   const byte* begin() const { return data_; }
 
