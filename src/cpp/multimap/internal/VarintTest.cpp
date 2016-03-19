@@ -35,8 +35,8 @@ struct VarintTestFixture : public testing::Test {
   byte b4[4];
   byte b32[32];
 
-  byte* b4end = b4end;
-  byte* b32end = b32end;
+  byte* b4end = std::end(b4);
+  byte* b32end = std::end(b32);
 };
 
 TEST(VarintTest, IsNotDefaultConstructible) {
