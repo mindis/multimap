@@ -45,7 +45,7 @@
 
 namespace mt {
 
-static const uint32_t VERSION = 20160318;
+static const uint32_t VERSION = 20160319;
 
 // -----------------------------------------------------------------------------
 // COMMON
@@ -512,7 +512,7 @@ class AutoUnmapMemory {
 
   AutoUnmapMemory(Memory memory) : memory_(memory) {}
 
-  AutoUnmapMemory(uint8_t* addr, size_t length) : memory_(addr, length) {}
+  AutoUnmapMemory(uint8_t* data, size_t size) : memory_(data, size) {}
 
   AutoUnmapMemory(AutoUnmapMemory&& other) : memory_(other.release()) {}
 
@@ -525,9 +525,13 @@ class AutoUnmapMemory {
 
   const Memory& get() const { return memory_; }
 
-  uint8_t* addr() const { return memory_.first; }
+  uint8_t* data() const { return memory_.first; }
 
-  size_t length() const { return memory_.second; }
+  size_t size() const { return memory_.second; }
+
+  uint8_t* begin() const { return memory_.first; }
+
+  uint8_t* end() const { return memory_.first + memory_.second; }
 
   Memory release() {
     const auto memory = memory_;
@@ -543,7 +547,7 @@ class AutoUnmapMemory {
     memory_ = memory;
   }
 
-  explicit operator bool() const { return addr() != nullptr; }
+  explicit operator bool() const { return data() != nullptr; }
 
  private:
   Memory memory_;
