@@ -28,7 +28,7 @@ namespace internal {
 
 class TsvFileReader {
  public:
-  TsvFileReader(const boost::filesystem::path& filename);
+  explicit TsvFileReader(const boost::filesystem::path& filename);
 
   bool read(Bytes* key, Bytes* value);
 

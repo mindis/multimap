@@ -50,6 +50,8 @@ struct Descriptor {
   void writeToDirectory(const boost::filesystem::path& directory) const;
 
   static std::string toString(Type type);
+
+  Descriptor() = default;
 };
 
 static_assert(mt::hasExpectedSize<Descriptor>(32, 32),

@@ -35,6 +35,8 @@ class MphTable {
   struct Limits {
     static size_t maxKeySize();
     static size_t maxValueSize();
+
+    Limits() = delete;
   };
 
   explicit MphTable(const std::string& prefix);

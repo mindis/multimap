@@ -30,6 +30,8 @@ class Partition {
   struct Limits {
     static size_t maxKeySize();
     static size_t maxValueSize();
+
+    Limits() = delete;
   };
 
   explicit Partition(const std::string& prefix);

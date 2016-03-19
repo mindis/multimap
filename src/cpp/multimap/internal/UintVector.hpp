@@ -26,6 +26,8 @@ namespace internal {
 
 class UintVector {
  public:
+  UintVector() = default;
+
   void add(uint32_t value);
 
   std::vector<uint32_t> unpack() const;

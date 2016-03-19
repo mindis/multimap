@@ -56,6 +56,8 @@ struct Stats {
   void writeToFile(const boost::filesystem::path& filename) const;
 
   std::vector<uint64_t> toVector() const;
+
+  Stats() = default;
 };
 
 static_assert(std::is_standard_layout<Stats>::value,

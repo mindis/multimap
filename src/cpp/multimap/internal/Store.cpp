@@ -37,17 +37,27 @@ Store::Store(const boost::filesystem::path& filename, const Options& options)
     const uint64_t file_size = mt::seek(fd_.get(), 0, SEEK_END);
     mt::Check::isZero(file_size % options.block_size,
                       "Store: block size does not match size of data file");
-    //    if (file_size != 0) {
-    //      auto prot = PROT_READ;
-    //      if (!options.readonly) {
-    //        prot |= PROT_WRITE;
-    //      }
-    //      mapped_.data =
-    //          mt::mmap(file_size, prot, MAP_SHARED, ::fileno(stream_.get()),
-    //          0);
-    //      mapped_.size = file_size;
-    //    }
-
+    const size_t num_full_segments = file_size / SEGMENT_SIZE;
+    const auto prot = options.readonly ? PROT_READ : (PROT_READ | PROT_WRITE);
+    for (size_t i = 0; i != num_full_segments; i++) {
+      segments_.emplace_back(
+          mt::mmap(SEGMENT_SIZE, prot, MAP_SHARED, fd_.get(), SEGMENT_SIZE * i),
+          SEGMENT_SIZE);
+    }
+    const uint64_t offset = SEGMENT_SIZE * num_full_segments;
+    const size_t last_segment_size = file_size % SEGMENT_SIZE;
+    if (last_segment_size != 0) {
+      if (options.readonly) {
+        segments_.emplace_back(
+            mt::mmap(last_segment_size, prot, MAP_SHARED, fd_.get(), offset),
+            last_segment_size);
+      } else {
+        mt::truncate(fd_.get(), SEGMENT_SIZE * (num_full_segments + 1));
+        segments_.emplace_back(
+            mt::mmap(SEGMENT_SIZE, prot, MAP_SHARED, fd_.get(), offset),
+            last_segment_size);
+      }
+    }
   } else {
     fd_ = mt::open(filename, O_RDWR | O_CREAT, 0644);
   }
@@ -63,11 +73,11 @@ Store::~Store() {
 uint32_t Store::put(const Block& block) {
   std::lock_guard<std::mutex> lock(mutex_);
   if (segments_.empty() || segments_.back().isFull()) {
-    const uint64_t old_filesize = mt::seek(fd_.get(), 0, SEEK_END);
-    const uint64_t new_filesize = old_filesize + SEGMENT_SIZE;
-    mt::truncate(fd_.get(), new_filesize);
+    const uint64_t old_file_size = segments_.size() * SEGMENT_SIZE;
+    const uint64_t new_file_size = old_file_size + SEGMENT_SIZE;
+    mt::truncate(fd_.get(), new_file_size);
     segments_.push_back(mt::mmap(SEGMENT_SIZE, PROT_READ | PROT_WRITE,
-                                 MAP_SHARED, fd_.get(), old_filesize));
+                                 MAP_SHARED, fd_.get(), old_file_size));
   }
   segments_.back().append(block);
   return getNumBlocksUnlocked() - 1;
@@ -98,6 +108,11 @@ size_t Store::getNumBlocksUnlocked() const {
 
 Store::Segment::Segment(mt::AutoUnmapMemory memory)
     : memory_(std::move(memory)) {}
+
+Store::Segment::Segment(mt::AutoUnmapMemory memory, size_t offset)
+    : memory_(std::move(memory)), offset_(offset) {
+  MT_REQUIRE_LE(offset_, memory_.size())
+}
 
 void Store::Segment::append(const Block& block) {
   MT_REQUIRE_FALSE(isFull());

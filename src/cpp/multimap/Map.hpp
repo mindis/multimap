@@ -36,6 +36,8 @@ class Map {
   struct Limits {
     static size_t maxKeySize();
     static size_t maxValueSize();
+
+    Limits() = delete;
   };
 
   // ---------------------------------------------------------------------------

@@ -29,7 +29,7 @@ namespace internal {
 
 class TsvFileWriter {
  public:
-  TsvFileWriter(const boost::filesystem::path& filename);
+  explicit TsvFileWriter(const boost::filesystem::path& filename);
 
   void write(const Slice& key, const Slice& value);
 

@@ -32,10 +32,11 @@ class Stream {
 
   Stream(const Store::Blocks& blocks, const Store::Block& tail)
       : blocks_(blocks), tail_(tail) {
-    for (const Store::Block& block : blocks_) {
-      int result = ::posix_madvise(block.data, block.size, POSIX_MADV_WILLNEED);
-      mt::Check::isZero(result, "posix_madvise() failed");
-    }
+    //    for (const Store::Block& block : blocks_) {
+    //      int result = ::posix_madvise(block.data, block.size,
+    //      POSIX_MADV_WILLNEED);
+    //      mt::Check::isZero(result, "posix_madvise() failed");
+    //    }
     std::reverse(blocks_.begin(), blocks_.end());
     tail_.offset = 0;
   }
@@ -145,7 +146,10 @@ class ExclusiveIterator : public Iterator {
     return value_;
   }
 
-  void remove() { stream_.markLastExtractedValueAsRemoved(); }
+  void remove() {
+    stream_.markLastExtractedValueAsRemoved();
+    list_->stats_.num_values_removed++;
+  }
 
  private:
   Slice value_;
@@ -287,7 +291,7 @@ void List::appendUnlocked(const Slice& value, Store* store, Arena* arena) {
   MT_REQUIRE_LT(stats_.num_values_total, std::numeric_limits<uint32_t>::max());
 
   if (block_.data == nullptr) {
-    block_.size = store->getOptions().block_size;
+    block_.size = store->getBlockSize();
     block_.data = arena->allocate(block_.size);
     std::memset(block_.data, 0, block_.size);
   }
@@ -326,7 +330,7 @@ bool List::tryGetStats(Stats* stats) const {
   return lock ? (*stats = stats_, true) : false;
 }
 
-Stats List::getStatsUnlocked() const { return stats_; }
+List::Stats List::getStatsUnlocked() const { return stats_; }
 
 bool List::tryFlush(Store* store, Stats* stats) {
   WriterLock<SharedMutex> lock(mutex_, TRY_TO_LOCK);

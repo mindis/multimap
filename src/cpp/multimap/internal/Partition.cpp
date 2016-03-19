@@ -28,6 +28,8 @@ namespace internal {
 
 namespace {
 
+const char* READ_ONLY_VIOLATION = "Attempt to write to read-only partition";
+
 struct Equal {
   explicit Equal(const Slice& value) : value_(value) {}
 
@@ -93,7 +95,7 @@ Partition::Partition(const std::string& prefix, const Options& options)
 }
 
 Partition::~Partition() {
-  if (store_->getOptions().readonly) return;
+  if (store_->isReadOnly()) return;
 
   const auto map_filename = getNameOfMapFile(prefix_);
   const auto map_filename_old = map_filename + ".old";
@@ -139,7 +141,7 @@ Partition::~Partition() {
     stats_.key_size_avg /= stats_.num_keys_valid;
     stats_.list_size_avg /= stats_.num_keys_valid;
   }
-  stats_.block_size = store_->getOptions().block_size;
+  stats_.block_size = store_->getBlockSize();
   stats_.num_blocks = store_->getNumBlocks();
   stats_.num_keys_total = map_.size();
 
@@ -161,6 +163,7 @@ std::unique_ptr<Iterator> Partition::get(const Slice& key) const {
 }
 
 size_t Partition::remove(const Slice& key) {
+  mt::Check::isFalse(store_->isReadOnly(), READ_ONLY_VIOLATION);
   List* list = getList(key);
   return list ? list->clear() : 0;
 }
@@ -174,11 +177,13 @@ size_t Partition::removeAllEqual(const Slice& key, const Slice& value) {
 }
 
 bool Partition::removeFirstMatch(const Slice& key, Predicate predicate) {
+  mt::Check::isFalse(store_->isReadOnly(), READ_ONLY_VIOLATION);
   List* list = getList(key);
   return list ? list->removeFirstMatch(predicate, store_.get()) : false;
 }
 
 size_t Partition::removeFirstMatch(Predicate predicate) {
+  mt::Check::isFalse(store_->isReadOnly(), READ_ONLY_VIOLATION);
   ReaderLockGuard<boost::shared_mutex> lock(mutex_);
   size_t num_values_removed = 0;
   for (const auto& entry : map_) {
@@ -191,11 +196,13 @@ size_t Partition::removeFirstMatch(Predicate predicate) {
 }
 
 size_t Partition::removeAllMatches(const Slice& key, Predicate predicate) {
+  mt::Check::isFalse(store_->isReadOnly(), READ_ONLY_VIOLATION);
   List* list = getList(key);
   return list ? list->removeAllMatches(predicate, store_.get()) : 0;
 }
 
 std::pair<size_t, size_t> Partition::removeAllMatches(Predicate predicate) {
+  mt::Check::isFalse(store_->isReadOnly(), READ_ONLY_VIOLATION);
   ReaderLockGuard<boost::shared_mutex> lock(mutex_);
   size_t num_keys_removed = 0;
   size_t num_values_removed = 0;
@@ -226,16 +233,19 @@ size_t Partition::replaceAllEqual(const Slice& key, const Slice& old_value,
 }
 
 bool Partition::replaceFirstMatch(const Slice& key, Function map) {
+  mt::Check::isFalse(store_->isReadOnly(), READ_ONLY_VIOLATION);
   List* list = getList(key);
   return list ? list->replaceFirstMatch(map, store_.get(), &arena_) : false;
 }
 
 size_t Partition::replaceAllMatches(const Slice& key, Function map) {
+  mt::Check::isFalse(store_->isReadOnly(), READ_ONLY_VIOLATION);
   List* list = getList(key);
   return list ? list->replaceAllMatches(map, store_.get(), &arena_) : 0;
 }
 
 size_t Partition::replaceAllMatches(const Slice& key, Function2 map) {
+  mt::Check::isFalse(store_->isReadOnly(), READ_ONLY_VIOLATION);
   List* list = getList(key);
   return list ? list->replaceAllMatches(map, store_.get(), &arena_) : 0;
 }
@@ -296,7 +306,7 @@ Stats Partition::getStats() const {
     stats.key_size_avg /= stats.num_keys_valid;
     stats.list_size_avg /= stats.num_keys_valid;
   }
-  stats.block_size = store_->getOptions().block_size;
+  stats.block_size = store_->getBlockSize();
   stats.num_blocks = store_->getNumBlocks();
   stats.num_keys_total = map_.size();
   return stats;
@@ -333,6 +343,7 @@ List* Partition::getList(const Slice& key) const {
 }
 
 List* Partition::getListOrCreate(const Slice& key) {
+  mt::Check::isFalse(store_->isReadOnly(), READ_ONLY_VIOLATION);
   MT_REQUIRE_LE(key.size(), Limits::maxKeySize());
   WriterLockGuard<boost::shared_mutex> lock(mutex_);
   auto iter = map_.find(key);

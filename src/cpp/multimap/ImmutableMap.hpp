@@ -36,12 +36,16 @@ class ImmutableMap {
   struct Limits {
     static size_t maxKeySize();
     static size_t maxValueSize();
+
+    Limits() = delete;
   };
 
   // TODO Remove
   struct Options : public multimap::Options {
     size_t max_bucket_size = mt::GiB(1);
     size_t num_buckets = 23;
+
+    Options() = default;
   };
 
   class Builder {
@@ -58,6 +62,8 @@ class ImmutableMap {
       mt::AutoCloseFile stream;
       bool is_large = false;
       size_t size = 0;
+
+      Bucket() = default;
     };
 
     const Options options_;

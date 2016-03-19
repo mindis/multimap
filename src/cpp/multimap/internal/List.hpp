@@ -34,6 +34,8 @@ class List {
  public:
   struct Limits {
     static size_t maxValueSize();
+
+    Limits() = delete;
   };
 
   struct Stats {
@@ -44,7 +46,11 @@ class List {
       MT_REQUIRE_GE(num_values_total, num_values_removed);
       return num_values_total - num_values_removed;
     }
+
+    Stats() = default;
   };
+
+  List() = default;
 
   void append(const Slice& value, Store* store, Arena* arena);
 

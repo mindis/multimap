@@ -25,14 +25,14 @@ namespace internal {
 
 namespace {
 
-inline const byte* readUint32FromBuffer(const byte* buffer, uint32_t* value) {
-  std::memcpy(value, buffer, sizeof *value);
-  return buffer + sizeof *value;
+void readUint32FromBuffer(const byte* begin, const byte* end, uint32_t* value) {
+  MT_REQUIRE_GE(end - begin, sizeof *value);
+  std::memcpy(value, begin, sizeof *value);
 }
 
-inline byte* writeUint32ToBuffer(byte* buffer, uint32_t value) {
-  std::memcpy(buffer, &value, sizeof value);
-  return buffer + sizeof value;
+void writeUint32ToBuffer(byte* begin, byte* end, uint32_t value) {
+  MT_REQUIRE_GE(end - begin, sizeof value);
+  std::memcpy(begin, &value, sizeof value);
 }
 
 }  // namespace
@@ -42,15 +42,15 @@ void UintVector::add(uint32_t value) {
   if (empty()) {
     offset_ += Varint::writeToBuffer(begin(), end(), value);
   } else {
-    uint32_t absolute_value;
-    readUint32FromBuffer(current(), &absolute_value);
+    uint32_t absolute_value = 0;
+    readUint32FromBuffer(current(), end(), &absolute_value);
     MT_ASSERT_LT(absolute_value, value);
     const uint32_t delta = value - absolute_value;
     offset_ += Varint::writeToBuffer(current(), end(), delta);
   }
   // The new offset points past the last delta encoded value
   // which is also right before the trailing absolute value.
-  writeUint32ToBuffer(current(), value);
+  writeUint32ToBuffer(current(), end(), value);
 }
 
 std::vector<uint32_t> UintVector::unpack() const {
@@ -74,13 +74,14 @@ UintVector UintVector::readFromStream(std::FILE* stream) {
   mt::read(stream, &vector.size_, sizeof vector.size_);
   vector.data_.reset(new byte[vector.size_]);
   mt::read(stream, vector.data_.get(), vector.size_);
-  vector.offset_ = vector.size_;
+  vector.offset_ = vector.size_ - sizeof(uint32_t);
   return vector;
 }
 
 void UintVector::writeToStream(std::FILE* stream) const {
-  mt::write(stream, &offset_, sizeof offset_);
-  mt::write(stream, data_.get(), offset_);
+  const uint32_t offset = offset_ + sizeof(uint32_t);
+  mt::write(stream, &offset, sizeof offset);
+  mt::write(stream, data_.get(), offset);
 }
 
 void UintVector::allocateMoreIfFull() {

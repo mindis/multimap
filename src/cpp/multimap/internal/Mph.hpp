@@ -47,6 +47,8 @@ class Mph {
     CMPH_ALGO algorithm = CMPH_BDZ;
     uint32_t b = 0;  // 0 means use default value.
     double c = 0;    // 0 means use default value.
+
+    Options() = default;
   };
 
   explicit Mph(const boost::filesystem::path& filename);

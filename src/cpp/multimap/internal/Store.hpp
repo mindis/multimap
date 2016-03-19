@@ -33,7 +33,9 @@ class List;
 class Store {
  public:
   struct Block {
-    Block() = default;
+    byte* data = nullptr;
+    uint32_t offset = 0;
+    uint32_t size = 0;
 
     byte* begin() const { return data; }
 
@@ -49,9 +51,7 @@ class Store {
       size = 0;
     }
 
-    byte* data = nullptr;
-    uint32_t offset = 0;
-    uint32_t size = 0;
+    Block() = default;
   };
 
   typedef std::vector<uint32_t> BlockIds;
@@ -67,12 +67,14 @@ class Store {
 
   Blocks get(const BlockIds& block_ids) const;
 
-  const Options& getOptions() const { return options_; }
-
   size_t getNumBlocks() const {
     std::lock_guard<std::mutex> lock(mutex_);
     return getNumBlocksUnlocked();
   }
+
+  size_t getBlockSize() const { return options_.block_size; }
+
+  bool isReadOnly() const { return options_.readonly; }
 
  private:
   size_t getNumBlocksUnlocked() const;
@@ -80,6 +82,8 @@ class Store {
   class Segment {
    public:
     Segment(mt::AutoUnmapMemory memory);
+
+    Segment(mt::AutoUnmapMemory memory, size_t offset);
 
     void append(const Block& block);
 
