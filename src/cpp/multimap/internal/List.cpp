@@ -37,6 +37,7 @@ class Stream {
       mt::Check::isZero(result, "posix_madvise() failed");
     }
     std::reverse(blocks_.begin(), blocks_.end());
+    tail_.offset = 0;
   }
 
   Slice next() {
@@ -199,7 +200,7 @@ void List::append(const Slice& value, Store* store, Arena* arena) {
 }
 
 std::unique_ptr<Iterator> List::newIterator(const Store& store) const {
-  return Iterator::newEmptyInstance();
+  return std::unique_ptr<Iterator>(new SharedIterator(*this, store));
 }
 
 void List::forEachValue(Procedure process, const Store& store) const {
@@ -324,6 +325,8 @@ bool List::tryGetStats(Stats* stats) const {
   ReaderLock<SharedMutex> lock(mutex_, TRY_TO_LOCK);
   return lock ? (*stats = stats_, true) : false;
 }
+
+Stats List::getStatsUnlocked() const { return stats_; }
 
 bool List::tryFlush(Store* store, Stats* stats) {
   WriterLock<SharedMutex> lock(mutex_, TRY_TO_LOCK);

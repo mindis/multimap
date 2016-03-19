@@ -73,6 +73,8 @@ class List {
 
   bool tryGetStats(Stats* stats) const;
 
+  Stats getStatsUnlocked() const;
+
   bool tryFlush(Store* store, Stats* stats = nullptr);
 
   void flushUnlocked(Store* store, Stats* stats = nullptr);
