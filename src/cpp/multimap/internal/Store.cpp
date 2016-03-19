@@ -73,9 +73,23 @@ uint32_t Store::put(const Block& block) {
   return getNumBlocksUnlocked() - 1;
 }
 
+Store::Blocks Store::get(const BlockIds& block_ids) const {
+  Blocks blocks;
+  blocks.reserve(block_ids.size());
+  const size_t blocks_per_segment = SEGMENT_SIZE / options_.block_size;
+  std::lock_guard<std::mutex> lock(mutex_);
+  for (uint32_t block_id : block_ids) {
+    const size_t seg_id = block_id / blocks_per_segment;
+    const size_t seg_block_id = block_id % blocks_per_segment;
+    MT_ASSERT_LT(seg_id, segments_.size());
+    blocks.push_back(segments_[seg_id].get(seg_block_id, options_.block_size));
+  }
+  return blocks;
+}
+
 size_t Store::getNumBlocksUnlocked() const {
-  const auto num_segments = segments_.size();
-  const auto blocks_per_segment = SEGMENT_SIZE / options_.block_size;
+  const size_t num_segments = segments_.size();
+  const size_t blocks_per_segment = SEGMENT_SIZE / options_.block_size;
   return (num_segments != 0)
              ? ((num_segments - 1) * blocks_per_segment +
                 segments_.back().getNumBlocks(options_.block_size))
@@ -89,6 +103,14 @@ void Store::Segment::append(const Block& block) {
   MT_REQUIRE_FALSE(isFull());
   std::memcpy(memory_.addr() + offset_, block.data, block.size);
   offset_ += block.size;
+}
+
+Store::Block Store::Segment::get(uint32_t block_id, size_t block_size) const {
+  MT_REQUIRE_LT(block_id, getNumBlocks(block_size));
+  Block block;
+  block.data = memory_.addr() + block_id * block_size;
+  block.size = block_size;
+  return block;
 }
 
 }  // namespace internal

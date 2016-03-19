@@ -42,7 +42,18 @@ class Store {
     byte* current() const { return data + offset; }
 
     byte* end() const { return data + size; }
+
+    bool empty() const { return size == 0; }
+
+    void clear() {
+      data = nullptr;
+      offset = 0;
+      size = 0;
+    }
   };
+
+  typedef std::vector<uint32_t> BlockIds;
+  typedef std::vector<Block> Blocks;
 
   Store() = default;
 
@@ -51,6 +62,8 @@ class Store {
   ~Store();
 
   uint32_t put(const Block& block);
+
+  Blocks get(const BlockIds& block_ids) const;
 
   const Options& getOptions() const { return options_; }
 
@@ -67,6 +80,8 @@ class Store {
     Segment(mt::AutoUnmapMemory memory);
 
     void append(const Block& block);
+
+    Block get(uint32_t block_id, size_t block_size) const;
 
     bool isFull() const { return offset_ == memory_.length(); }
 
