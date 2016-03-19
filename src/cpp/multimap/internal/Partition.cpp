@@ -75,15 +75,12 @@ Partition::Partition(const std::string& prefix, const Options& options)
     store_options.block_size = stats_.block_size;
     for (size_t i = 0; i != stats_.num_keys_valid; i++) {
       MT_ASSERT_TRUE(readBytesFromStream(map_stream.get(), &key));
-      const Slice new_key = Slice(key).makeCopy(
+      Slice new_key = Slice(key).makeCopy(
           [this](size_t size) { return arena_.allocate(size); });
-      //      SharedList list = SharedList::readFromStream(map_stream.get());
-      //      stats_.num_values_total -=
-      //      list.getStatsUnlocked().num_values_total;
-      //      stats_.num_values_valid -=
-      //      list.getStatsUnlocked().num_values_valid();
-      //      map_.emplace(new_key, std::unique_ptr<SharedList>(new
-      //      SharedList(std::move(list))));
+      List list = List::readFromStream(map_stream.get());
+      stats_.num_values_total -= list.getStatsUnlocked().num_values_total;
+      stats_.num_values_valid -= list.getStatsUnlocked().num_values_valid();
+      map_.emplace(new_key, std::unique_ptr<List>(new List(std::move(list))));
     }
 
     // Reset stats, but preserve number of total and valid values.
@@ -273,35 +270,35 @@ void Partition::forEachEntry(BinaryProcedure process) const {
 Stats Partition::getStats() const {
   boost::shared_lock<boost::shared_mutex> lock(mutex_);
   Stats stats = stats_;
-  //  SharedList::Stats list_stats;
-  //  for (const auto& entry : map_) {
-  //    if (entry.second->tryGetStats(&list_stats)) {
-  //      stats.num_values_total += list_stats.num_values_total;
-  //      stats.num_values_valid += list_stats.num_values_valid();
-  //      const auto list_size = list_stats.num_values_valid();
-  //      if (list_size != 0) {
-  //        const auto& key = entry.first;
-  //        stats.num_keys_valid++;
-  //        stats.key_size_avg += key.size();
-  //        stats.key_size_max = mt::max(stats.key_size_max, key.size());
-  //        stats.key_size_min = stats.key_size_min
-  //                                 ? mt::min(stats.key_size_min, key.size())
-  //                                 : key.size();
-  //        stats.list_size_avg += list_size;
-  //        stats.list_size_max = mt::max(stats.list_size_max, list_size);
-  //        stats.list_size_min = stats.list_size_min
-  //                                  ? mt::min(stats.list_size_min, list_size)
-  //                                  : list_size;
-  //      }
-  //    }
-  //  }
-  //  if (stats.num_keys_valid) {
-  //    stats.key_size_avg /= stats.num_keys_valid;
-  //    stats.list_size_avg /= stats.num_keys_valid;
-  //  }
-  //  stats.block_size = store_->getBlockSize();
-  //  stats.num_blocks = store_->getNumBlocks();
-  //  stats.num_keys_total = map_.size();
+  List::Stats list_stats;
+  for (const auto& entry : map_) {
+    if (entry.second->tryGetStats(&list_stats)) {
+      stats.num_values_total += list_stats.num_values_total;
+      stats.num_values_valid += list_stats.num_values_valid();
+      const auto list_size = list_stats.num_values_valid();
+      if (list_size != 0) {
+        const auto& key = entry.first;
+        stats.num_keys_valid++;
+        stats.key_size_avg += key.size();
+        stats.key_size_max = mt::max(stats.key_size_max, key.size());
+        stats.key_size_min = stats.key_size_min
+                                 ? mt::min(stats.key_size_min, key.size())
+                                 : key.size();
+        stats.list_size_avg += list_size;
+        stats.list_size_max = mt::max(stats.list_size_max, list_size);
+        stats.list_size_min = stats.list_size_min
+                                  ? mt::min(stats.list_size_min, list_size)
+                                  : list_size;
+      }
+    }
+  }
+  if (stats.num_keys_valid) {
+    stats.key_size_avg /= stats.num_keys_valid;
+    stats.list_size_avg /= stats.num_keys_valid;
+  }
+  stats.block_size = store_->getOptions().block_size;
+  stats.num_blocks = store_->getNumBlocks();
+  stats.num_keys_total = map_.size();
   return stats;
 }
 
