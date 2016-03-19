@@ -87,7 +87,8 @@ class Slice {
   // parsing the buffer or file stream. The latter can be done via class Bytes.
   // The encoding is as follows: [number of bytes as varint][actual data bytes]
 
-  static std::pair<Slice, size_t> readFromBuffer(const byte* buffer);
+  static std::pair<Slice, size_t> readFromBuffer(const byte* begin,
+                                                 const byte* end);
 
   static std::pair<Slice, size_t> readFromStream(
       std::FILE* stream, std::function<byte*(size_t)> allocate);

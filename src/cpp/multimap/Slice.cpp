@@ -22,10 +22,13 @@
 
 namespace multimap {
 
-std::pair<Slice, size_t> Slice::readFromBuffer(const byte* buffer) {
+std::pair<Slice, size_t> Slice::readFromBuffer(const byte* begin,
+                                               const byte* end) {
   uint32_t size = 0;
-  const size_t nbytes = internal::Varint::readFromBuffer(buffer, &size);
-  return std::make_pair(Slice(buffer + nbytes, size), nbytes + size);
+  const size_t nbytes = internal::Varint::readFromBuffer(begin, end, &size);
+  return (nbytes != 0)
+             ? std::make_pair(Slice(begin + nbytes, size), nbytes + size)
+             : std::make_pair(Slice(), 0);
 }
 
 std::pair<Slice, size_t> Slice::readFromStream(
