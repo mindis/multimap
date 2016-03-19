@@ -87,23 +87,26 @@ class Slice {
   // parsing the buffer or file stream. The latter can be done via class Bytes.
   // The encoding is as follows: [number of bytes as varint][actual data bytes]
 
-  static std::pair<Slice, size_t> readFromBuffer(const byte* begin,
-                                                 const byte* end);
+  static Slice readFromBuffer(const byte* begin, const byte* end);
+  // Reads a slice from the buffer starting at `begin`. Returns a slice object
+  // that is backed by the buffer's content. If no slice could be read, because
+  // there was not sufficient space in the buffer, the returned slice is empty.
+  // The `end()` position of a non-empty slice can be used as the new `begin`
+  // pointer for subsequent reads.
 
-  static std::pair<Slice, size_t> readFromStream(
-      std::FILE* stream, std::function<byte*(size_t)> allocate);
+  static Slice readFromStream(std::FILE* stream,
+                              std::function<byte*(size_t)> allocate);
 
   size_t writeToBuffer(byte* begin, byte* end) const;
   // Writes the slice to the buffer starting at `begin`. Returns the number
   // of bytes written, which may be zero if there was not sufficient space.
 
-  size_t writeToStream(std::FILE* stream) const;
+  void writeToStream(std::FILE* stream) const;
   // Writes the slice to a file stream or throws an exception if that was not
   // possible for some reason. In Multimap's I/O policy an unsuccessful write
   // to a file stream is considered a fatal error which only happens due to
   // faulty user behavior, e.g. someone deleted the file, or due to reaching
   // certain system limits, e.g. the device has no more space left.
-  // Returns the number of bytes written.
 
  private:
   const byte* data_ = reinterpret_cast<const byte*>("");

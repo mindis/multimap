@@ -83,7 +83,7 @@ class Store {
 
     Block get(uint32_t block_id, size_t block_size) const;
 
-    bool isFull() const { return offset_ == memory_.length(); }
+    bool isFull() const { return offset_ == memory_.size(); }
 
     size_t getNumBlocks(size_t block_size) const {
       return offset_ / block_size;

@@ -51,11 +51,13 @@ class Stream {
     do {
       // Read value's size and removed-flag.
       last_value_begin_ = block_.current();
-      nbytes = Varint::readFromBuffer(block_.current(), &size, &removed);
+      nbytes = Varint::readFromBuffer(block_.current(), block_.end(), &size,
+                                      &removed);
       if (size == 0) {
         block_ = fetchNextBlock();
         last_value_begin_ = block_.current();
-        nbytes = Varint::readFromBuffer(block_.current(), &size, &removed);
+        nbytes = Varint::readFromBuffer(block_.current(), block_.end(), &size,
+                                        &removed);
         MT_ASSERT_NOT_ZERO(size);
       }
       block_.offset += nbytes;

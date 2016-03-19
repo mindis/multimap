@@ -31,28 +31,28 @@ namespace {
 
 class ListIter : public Iterator {
  public:
-  ListIter(const byte* data, size_t num_values)
-      : data_(data), num_values_(num_values) {}
+  ListIter(const byte* begin, const byte* end, size_t num_values)
+      : begin_(begin), end_(end), num_values_(num_values) {}
 
   size_t available() const override { return num_values_; }
 
   bool hasNext() const override { return num_values_ != 0; }
 
   Slice next() override {
-    MT_REQUIRE_TRUE(hasNext());
-    const Slice value = peekNext();
-    data_ = value.end();
+    Slice value = peekNext();
+    begin_ = value.end();
     num_values_--;
     return value;
   }
 
   Slice peekNext() override {
     MT_REQUIRE_TRUE(hasNext());
-    return Slice::readFromBuffer(data_).first;
+    return Slice::readFromBuffer(begin_, end_);
   }
 
  private:
-  const byte* data_ = nullptr;
+  const byte* begin_ = nullptr;
+  const byte* end_ = nullptr;
   size_t num_values_ = 0;
 };
 
@@ -197,21 +197,21 @@ mt::AutoUnmapMemory mapFileIntoMemory(const boost::filesystem::path& filename) {
 
 const byte* getListBegin(const mt::AutoUnmapMemory& lists, size_t block_id,
                          size_t block_size) {
-  return lists.addr() + block_id * block_size;
+  return lists.data() + block_id * block_size;
 }
 
 uint32_t getTableEntry(const mt::AutoUnmapMemory& table, size_t index) {
   return *reinterpret_cast<const Table::value_type*>(
-             table.addr() + index * sizeof(Table::value_type));
+             table.data() + index * sizeof(Table::value_type));
 }
 
 size_t getTableSize(const mt::AutoUnmapMemory& table) {
-  return table.length() / sizeof(Table::value_type);
+  return table.size() / sizeof(Table::value_type);
 }
 
 Table makeCopy(const mt::AutoUnmapMemory& table) {
   Table copy(getTableSize(table));
-  std::memcpy(copy.data(), table.addr(), table.length());
+  std::memcpy(copy.data(), table.data(), table.size());
   return copy;
 }
 
@@ -233,13 +233,14 @@ std::unique_ptr<Iterator> MphTable::get(const Slice& key) const {
     // `hash` may be greater equal than table size for unknown keys.
     const uint32_t block_id = getTableEntry(table_, hash);
     const byte* begin = getListBegin(lists_, block_id, stats_.block_size);
-    const Slice actual_key = Slice::readFromBuffer(begin).first;
+    const Slice actual_key = Slice::readFromBuffer(begin, lists_.end());
     if (actual_key == key) {
       uint32_t num_values;
       begin = actual_key.end();
       std::memcpy(&num_values, begin, sizeof num_values);
       begin += sizeof num_values;
-      return std::unique_ptr<Iterator>(new ListIter(begin, num_values));
+      return std::unique_ptr<Iterator>(
+          new ListIter(begin, lists_.end(), num_values));
     }
   }
   return Iterator::newEmptyInstance();
@@ -251,7 +252,7 @@ void MphTable::forEachKey(Procedure process) const {
   // TODO Advise access pattern for lists_.
   for (auto block_id : table_copy) {
     const byte* begin = getListBegin(lists_, block_id, stats_.block_size);
-    const Slice key = Slice::readFromBuffer(begin).first;
+    const Slice key = Slice::readFromBuffer(begin, lists_.end());
     process(key);
   }
 }
@@ -269,12 +270,12 @@ void MphTable::forEachEntry(BinaryProcedure process) const {
   // TODO Advise access pattern for lists_.
   for (auto block_id : table_copy) {
     const byte* begin = getListBegin(lists_, block_id, stats_.block_size);
-    const Slice key = Slice::readFromBuffer(begin).first;
+    const Slice key = Slice::readFromBuffer(begin, lists_.end());
     begin = key.end();
     uint32_t num_values;
     std::memcpy(&num_values, begin, sizeof num_values);
     begin += sizeof num_values;
-    ListIter iter(begin, num_values);
+    ListIter iter(begin, lists_.end(), num_values);
     process(key, &iter);
   }
 }

@@ -30,27 +30,29 @@ Bytes toBytes(const char* cstr) {
 
 Bytes toBytes(const std::string& str) { return toBytes(str.c_str()); }
 
-size_t readBytesFromBuffer(const byte* buffer, Bytes* output) {
-  const auto slice_and_nbytes = Slice::readFromBuffer(buffer);
-  slice_and_nbytes.first.copyTo(output);
-  return slice_and_nbytes.second;
+size_t readBytesFromBuffer(const byte* begin, const byte* end, Bytes* output) {
+  const Slice slice = Slice::readFromBuffer(begin, end);
+  if (!slice.empty()) {
+    slice.copyTo(output);
+    return slice.end() - begin;
+  }
+  return 0;
 }
 
-size_t readBytesFromStream(std::FILE* stream, Bytes* output) {
-  const auto slice_and_nbytes =
-      Slice::readFromStream(stream, [output](size_t size) {
-        output->resize(size);
-        return output->data();
-      });
-  return slice_and_nbytes.second;
+bool readBytesFromStream(std::FILE* stream, Bytes* output) {
+  const Slice slice = Slice::readFromStream(stream, [output](size_t size) {
+    output->resize(size);
+    return output->data();
+  });
+  return !slice.empty();
 }
 
 size_t writeBytesToBuffer(byte* begin, byte* end, const Bytes& input) {
   return Slice(input).writeToBuffer(begin, end);
 }
 
-size_t writeBytesToStream(std::FILE* stream, const Bytes& input) {
-  return Slice(input).writeToStream(stream);
+void writeBytesToStream(std::FILE* stream, const Bytes& input) {
+  Slice(input).writeToStream(stream);
 }
 
 }  // namespace multimap

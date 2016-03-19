@@ -61,7 +61,7 @@ std::vector<uint32_t> UintVector::unpack() const {
     const byte* pos = begin();
     const byte* end = current();
     while (pos != end) {
-      pos += Varint::readFromBuffer(pos, &delta);
+      pos += Varint::readFromBuffer(pos, end, &delta);
       values.push_back(value + delta);
       value = values.back();
     }

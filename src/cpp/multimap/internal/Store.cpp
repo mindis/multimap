@@ -101,14 +101,14 @@ Store::Segment::Segment(mt::AutoUnmapMemory memory)
 
 void Store::Segment::append(const Block& block) {
   MT_REQUIRE_FALSE(isFull());
-  std::memcpy(memory_.addr() + offset_, block.data, block.size);
+  std::memcpy(memory_.data() + offset_, block.data, block.size);
   offset_ += block.size;
 }
 
 Store::Block Store::Segment::get(uint32_t block_id, size_t block_size) const {
   MT_REQUIRE_LT(block_id, getNumBlocks(block_size));
   Block block;
-  block.data = memory_.addr() + block_id * block_size;
+  block.data = memory_.data() + block_id * block_size;
   block.size = block_size;
   return block;
 }
