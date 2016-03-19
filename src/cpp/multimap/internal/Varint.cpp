@@ -42,57 +42,71 @@ const uint32_t Varint::Limits::MAX_N2_WITH_FLAG = (1 << 13) - 1;
 const uint32_t Varint::Limits::MAX_N3_WITH_FLAG = (1 << 21) - 1;
 const uint32_t Varint::Limits::MAX_N4_WITH_FLAG = (1 << 29) - 1;
 
-size_t Varint::readFromBuffer(const byte* buffer, uint32_t* value) {
-  const auto length = *buffer & 0xC0;  // 11000000
-  switch (length) {
-    case 0x00:  // 00000000
-      *value = *buffer++;
-      return 1;
-    case 0x40:  // 01000000
-      *value = (*buffer++ & 0x3F) << 8;
-      *value += *buffer++;
-      return 2;
-    case 0x80:  // 10000000
-      *value = (*buffer++ & 0x3F) << 16;
-      *value += *buffer++ << 8;
-      *value += *buffer++;
-      return 3;
-    case 0xC0:  // 11000000
-      *value = (*buffer++ & 0x3F) << 24;
-      *value += *buffer++ << 16;
-      *value += *buffer++ << 8;
-      *value += *buffer++;
-      return 4;
-    default:
-      MT_FAIL("Reached default branch in switch statement");
+size_t Varint::readFromBuffer(const byte* begin, const byte* end,
+                              uint32_t* value) {
+  const auto remaining = end - begin;
+  if (remaining > 0) {
+    const auto length = *begin & 0xC0;  // 11000000
+    switch (length) {
+      case 0x00:  // 00000000
+        *value = *begin++;
+        return 1;
+      case 0x40:  // 01000000
+        if (remaining < 2) return 0;
+        *value = (*begin++ & 0x3F) << 8;
+        *value += *begin++;
+        return 2;
+      case 0x80:  // 10000000
+        if (remaining < 3) return 0;
+        *value = (*begin++ & 0x3F) << 16;
+        *value += *begin++ << 8;
+        *value += *begin++;
+        return 3;
+      case 0xC0:  // 11000000
+        if (remaining < 4) return 0;
+        *value = (*begin++ & 0x3F) << 24;
+        *value += *begin++ << 16;
+        *value += *begin++ << 8;
+        *value += *begin++;
+        return 4;
+      default:
+        MT_FAIL("Reached default branch in switch statement");
+    }
   }
   return 0;
 }
 
-size_t Varint::readFromBuffer(const byte* buffer, uint32_t* value, bool* flag) {
-  *flag = *buffer & 0x20;              // 00100000
-  const auto length = *buffer & 0xC0;  // 11000000
-  switch (length) {
-    case 0x00:  // 00000000
-      *value = *buffer++ & 0x1F;
-      return 1;
-    case 0x40:  // 01000000
-      *value = (*buffer++ & 0x1F) << 8;
-      *value += *buffer++;
-      return 2;
-    case 0x80:  // 10000000
-      *value = (*buffer++ & 0x1F) << 16;
-      *value += *buffer++ << 8;
-      *value += *buffer++;
-      return 3;
-    case 0xC0:  // 11000000
-      *value = (*buffer++ & 0x1F) << 24;
-      *value += *buffer++ << 16;
-      *value += *buffer++ << 8;
-      *value += *buffer++;
-      return 4;
-    default:
-      MT_FAIL("Reached default branch in switch statement");
+size_t Varint::readFromBuffer(const byte* begin, const byte* end,
+                              uint32_t* value, bool* flag) {
+  const auto remaining = end - begin;
+  if (remaining > 0) {
+    *flag = *begin & 0x20;              // 00100000
+    const auto length = *begin & 0xC0;  // 11000000
+    switch (length) {
+      case 0x00:  // 00000000
+        *value = *begin++ & 0x1F;
+        return 1;
+      case 0x40:  // 01000000
+        if (remaining < 2) return 0;
+        *value = (*begin++ & 0x1F) << 8;
+        *value += *begin++;
+        return 2;
+      case 0x80:  // 10000000
+        if (remaining < 3) return 0;
+        *value = (*begin++ & 0x1F) << 16;
+        *value += *begin++ << 8;
+        *value += *begin++;
+        return 3;
+      case 0xC0:  // 11000000
+        if (remaining < 4) return 0;
+        *value = (*begin++ & 0x1F) << 24;
+        *value += *begin++ << 16;
+        *value += *begin++ << 8;
+        *value += *begin++;
+        return 4;
+      default:
+        MT_FAIL("Reached default branch in switch statement");
+    }
   }
   return 0;
 }
@@ -241,8 +255,10 @@ size_t Varint::writeToStream(std::FILE* stream, uint32_t value) {
   return 0;
 }
 
-void Varint::setFlagInBuffer(byte* buffer, bool flag) {
-  flag ? (*buffer |= 0x20) : (*buffer &= 0xDF);
+size_t Varint::setFlagInBuffer(byte* begin, byte* end, bool flag) {
+  if (begin == end) return 0;
+  flag ? (*begin |= 0x20) : (*begin &= 0xDF);
+  return 1;
 }
 
 }  // namespace internal

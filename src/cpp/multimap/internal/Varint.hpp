@@ -50,9 +50,11 @@ struct Varint {
     Limits() = delete;
   };
 
-  static size_t readFromBuffer(const byte* buffer, uint32_t* value);
+  static size_t readFromBuffer(const byte* begin, const byte* end,
+                               uint32_t* value);
 
-  static size_t readFromBuffer(const byte* buffer, uint32_t* value, bool* flag);
+  static size_t readFromBuffer(const byte* begin, const byte* end,
+                               uint32_t* value, bool* flag);
 
   static size_t readFromStream(std::FILE* stream, uint32_t* value);
 
@@ -63,7 +65,7 @@ struct Varint {
 
   static size_t writeToStream(std::FILE* stream, uint32_t value);
 
-  static void setFlagInBuffer(byte* buffer, bool flag);
+  static size_t setFlagInBuffer(byte* begin, byte* end, bool flag);
 
   Varint() = delete;
 };
