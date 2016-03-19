@@ -115,23 +115,23 @@ SharedMutex::Pool& SharedMutex::Pool::instance() {
   return instance;
 }
 
-// Note: This function needs external locking.
+// This function needs external locking.
 size_t SharedMutex::Pool::getCurrentSize() const { return mutexes_.size(); }
 
-// Note: This function needs external locking.
+// This function needs external locking.
 size_t SharedMutex::Pool::getMaximumSize() const { return max_size_; }
 
-// Note: This function needs external locking.
+// This function needs external locking.
 void SharedMutex::Pool::setMaximumSize(size_t size) { max_size_ = size; }
 
-// Note: This function needs external locking.
+// This function needs external locking.
 void SharedMutex::Pool::push(std::unique_ptr<RefCountedMutex> mutex) {
   if (mutexes_.size() < max_size_) {
     mutexes_.push_back(std::move(mutex));
   }
 }
 
-// Note: This function needs external locking.
+// This function needs external locking.
 std::unique_ptr<SharedMutex::RefCountedMutex> SharedMutex::Pool::pop() {
   std::unique_ptr<RefCountedMutex> mutex;
   if (!mutexes_.empty()) {
@@ -141,14 +141,14 @@ std::unique_ptr<SharedMutex::RefCountedMutex> SharedMutex::Pool::pop() {
   return mutex;
 }
 
-// Note: This function needs external locking.
+// This function needs external locking.
 std::unique_ptr<SharedMutex::RefCountedMutex> SharedMutex::allocate() {
   auto mutex = Pool::instance().pop();
   if (!mutex) mutex.reset(new RefCountedMutex());
   return mutex;
 }
 
-// Note: This function needs external locking.
+// This function needs external locking.
 void SharedMutex::deallocate(std::unique_ptr<RefCountedMutex> mutex) {
   Pool::instance().push(std::move(mutex));
 }
