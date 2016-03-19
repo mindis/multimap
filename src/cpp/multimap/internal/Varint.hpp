@@ -65,7 +65,7 @@ struct Varint {
 
   static size_t writeToStream(std::FILE* stream, uint32_t value);
 
-  static size_t setFlagInBuffer(byte* begin, byte* end, bool flag);
+  static void setFlagInBuffer(byte* buffer, bool flag);
 
   Varint() = delete;
 };

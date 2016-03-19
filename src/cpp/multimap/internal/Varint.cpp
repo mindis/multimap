@@ -255,10 +255,8 @@ size_t Varint::writeToStream(std::FILE* stream, uint32_t value) {
   return 0;
 }
 
-size_t Varint::setFlagInBuffer(byte* begin, byte* end, bool flag) {
-  if (begin == end) return 0;
-  flag ? (*begin |= 0x20) : (*begin &= 0xDF);
-  return 1;
+void Varint::setFlagInBuffer(byte* buffer, bool flag) {
+  flag ? (*buffer |= 0x20) : (*buffer &= 0xDF);
 }
 
 }  // namespace internal
