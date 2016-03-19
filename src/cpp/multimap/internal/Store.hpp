@@ -33,9 +33,7 @@ class List;
 class Store {
  public:
   struct Block {
-    byte* data = nullptr;
-    uint32_t offset = 0;
-    uint32_t size = 0;
+    Block() = default;
 
     byte* begin() const { return data; }
 
@@ -50,6 +48,10 @@ class Store {
       offset = 0;
       size = 0;
     }
+
+    byte* data = nullptr;
+    uint32_t offset = 0;
+    uint32_t size = 0;
   };
 
   typedef std::vector<uint32_t> BlockIds;
