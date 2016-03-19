@@ -200,56 +200,56 @@ TEST_F(VarintTestFixture, WriteTooBigValueWithFalseFlagThrows) {
 TEST_F(VarintTestFixture, ReadMinN1Value) {
   uint32_t value = 0;
   Varint::writeToBuffer(b4, b4end, Varint::Limits::MIN_N1);
-  ASSERT_EQ(1, Varint::readFromBuffer(b4, &value));
+  ASSERT_EQ(1, Varint::readFromBuffer(b4, b4end, &value));
   ASSERT_EQ(Varint::Limits::MIN_N1, value);
 }
 
 TEST_F(VarintTestFixture, ReadMinN2Value) {
   uint32_t value = 0;
   Varint::writeToBuffer(b4, b4end, Varint::Limits::MIN_N2);
-  ASSERT_EQ(2, Varint::readFromBuffer(b4, &value));
+  ASSERT_EQ(2, Varint::readFromBuffer(b4, b4end, &value));
   ASSERT_EQ(Varint::Limits::MIN_N2, value);
 }
 
 TEST_F(VarintTestFixture, ReadMinN3Value) {
   uint32_t value = 0;
   Varint::writeToBuffer(b4, b4end, Varint::Limits::MIN_N3);
-  ASSERT_EQ(3, Varint::readFromBuffer(b4, &value));
+  ASSERT_EQ(3, Varint::readFromBuffer(b4, b4end, &value));
   ASSERT_EQ(Varint::Limits::MIN_N3, value);
 }
 
 TEST_F(VarintTestFixture, ReadMinN4Value) {
   uint32_t value = 0;
   Varint::writeToBuffer(b4, b4end, Varint::Limits::MIN_N4);
-  ASSERT_EQ(4, Varint::readFromBuffer(b4, &value));
+  ASSERT_EQ(4, Varint::readFromBuffer(b4, b4end, &value));
   ASSERT_EQ(Varint::Limits::MIN_N4, value);
 }
 
 TEST_F(VarintTestFixture, ReadMaxN1Value) {
   uint32_t value = 0;
   Varint::writeToBuffer(b4, b4end, Varint::Limits::MAX_N1);
-  ASSERT_EQ(1, Varint::readFromBuffer(b4, &value));
+  ASSERT_EQ(1, Varint::readFromBuffer(b4, b4end, &value));
   ASSERT_EQ(Varint::Limits::MAX_N1, value);
 }
 
 TEST_F(VarintTestFixture, ReadMaxN2Value) {
   uint32_t value = 0;
   Varint::writeToBuffer(b4, b4end, Varint::Limits::MAX_N2);
-  ASSERT_EQ(2, Varint::readFromBuffer(b4, &value));
+  ASSERT_EQ(2, Varint::readFromBuffer(b4, b4end, &value));
   ASSERT_EQ(Varint::Limits::MAX_N2, value);
 }
 
 TEST_F(VarintTestFixture, ReadMaxN3Value) {
   uint32_t value = 0;
   Varint::writeToBuffer(b4, b4end, Varint::Limits::MAX_N3);
-  ASSERT_EQ(3, Varint::readFromBuffer(b4, &value));
+  ASSERT_EQ(3, Varint::readFromBuffer(b4, b4end, &value));
   ASSERT_EQ(Varint::Limits::MAX_N3, value);
 }
 
 TEST_F(VarintTestFixture, ReadMaxN4Value) {
   uint32_t value = 0;
   Varint::writeToBuffer(b4, b4end, Varint::Limits::MAX_N4);
-  ASSERT_EQ(4, Varint::readFromBuffer(b4, &value));
+  ASSERT_EQ(4, Varint::readFromBuffer(b4, b4end, &value));
   ASSERT_EQ(Varint::Limits::MAX_N4, value);
 }
 
@@ -257,7 +257,7 @@ TEST_F(VarintTestFixture, ReadMinN1ValueWithTrueFlag) {
   bool flag = false;
   uint32_t value = 0;
   Varint::writeToBuffer(b4, b4end, Varint::Limits::MIN_N1_WITH_FLAG, true);
-  ASSERT_EQ(1, Varint::readFromBuffer(b4, &value, &flag));
+  ASSERT_EQ(1, Varint::readFromBuffer(b4, b4end, &value, &flag));
   ASSERT_EQ(Varint::Limits::MIN_N1_WITH_FLAG, value);
   ASSERT_TRUE(flag);
 }
@@ -266,7 +266,7 @@ TEST_F(VarintTestFixture, ReadMinN1ValueWithFalseFlag) {
   bool flag = true;
   uint32_t value = 0;
   Varint::writeToBuffer(b4, b4end, Varint::Limits::MIN_N1_WITH_FLAG, false);
-  ASSERT_EQ(1, Varint::readFromBuffer(b4, &value, &flag));
+  ASSERT_EQ(1, Varint::readFromBuffer(b4, b4end, &value, &flag));
   ASSERT_EQ(Varint::Limits::MIN_N1_WITH_FLAG, value);
   ASSERT_FALSE(flag);
 }
@@ -275,7 +275,7 @@ TEST_F(VarintTestFixture, ReadMinN2ValueWithTrueFlag) {
   bool flag = false;
   uint32_t value = 0;
   Varint::writeToBuffer(b4, b4end, Varint::Limits::MIN_N2_WITH_FLAG, true);
-  ASSERT_EQ(2, Varint::readFromBuffer(b4, &value, &flag));
+  ASSERT_EQ(2, Varint::readFromBuffer(b4, b4end, &value, &flag));
   ASSERT_EQ(Varint::Limits::MIN_N2_WITH_FLAG, value);
   ASSERT_TRUE(flag);
 }
@@ -284,7 +284,7 @@ TEST_F(VarintTestFixture, ReadMinN2ValueWithFalseFlag) {
   bool flag = true;
   uint32_t value = 0;
   Varint::writeToBuffer(b4, b4end, Varint::Limits::MIN_N2_WITH_FLAG, false);
-  ASSERT_EQ(2, Varint::readFromBuffer(b4, &value, &flag));
+  ASSERT_EQ(2, Varint::readFromBuffer(b4, b4end, &value, &flag));
   ASSERT_EQ(Varint::Limits::MIN_N2_WITH_FLAG, value);
   ASSERT_FALSE(flag);
 }
@@ -293,7 +293,7 @@ TEST_F(VarintTestFixture, ReadMinN3ValueWithTrueFlag) {
   bool flag = false;
   uint32_t value = 0;
   Varint::writeToBuffer(b4, b4end, Varint::Limits::MIN_N3_WITH_FLAG, true);
-  ASSERT_EQ(3, Varint::readFromBuffer(b4, &value, &flag));
+  ASSERT_EQ(3, Varint::readFromBuffer(b4, b4end, &value, &flag));
   ASSERT_EQ(Varint::Limits::MIN_N3_WITH_FLAG, value);
   ASSERT_TRUE(flag);
 }
@@ -302,7 +302,7 @@ TEST_F(VarintTestFixture, ReadMinN3ValueWithFalseFlag) {
   bool flag = true;
   uint32_t value = 0;
   Varint::writeToBuffer(b4, b4end, Varint::Limits::MIN_N3_WITH_FLAG, false);
-  ASSERT_EQ(3, Varint::readFromBuffer(b4, &value, &flag));
+  ASSERT_EQ(3, Varint::readFromBuffer(b4, b4end, &value, &flag));
   ASSERT_EQ(Varint::Limits::MIN_N3_WITH_FLAG, value);
   ASSERT_FALSE(flag);
 }
@@ -311,7 +311,7 @@ TEST_F(VarintTestFixture, ReadMinN4ValueWithTrueFlag) {
   bool flag = false;
   uint32_t value = 0;
   Varint::writeToBuffer(b4, b4end, Varint::Limits::MIN_N4_WITH_FLAG, true);
-  ASSERT_EQ(4, Varint::readFromBuffer(b4, &value, &flag));
+  ASSERT_EQ(4, Varint::readFromBuffer(b4, b4end, &value, &flag));
   ASSERT_EQ(Varint::Limits::MIN_N4_WITH_FLAG, value);
   ASSERT_TRUE(flag);
 }
@@ -320,7 +320,7 @@ TEST_F(VarintTestFixture, ReadMinN4ValueWithFalseFlag) {
   bool flag = true;
   uint32_t value = 0;
   Varint::writeToBuffer(b4, b4end, Varint::Limits::MIN_N4_WITH_FLAG, false);
-  ASSERT_EQ(4, Varint::readFromBuffer(b4, &value, &flag));
+  ASSERT_EQ(4, Varint::readFromBuffer(b4, b4end, &value, &flag));
   ASSERT_EQ(Varint::Limits::MIN_N4_WITH_FLAG, value);
   ASSERT_FALSE(flag);
 }
@@ -329,7 +329,7 @@ TEST_F(VarintTestFixture, ReadMaxN1ValueWithTrueFlag) {
   bool flag = false;
   uint32_t value = 0;
   Varint::writeToBuffer(b4, b4end, Varint::Limits::MAX_N1_WITH_FLAG, true);
-  ASSERT_EQ(1, Varint::readFromBuffer(b4, &value, &flag));
+  ASSERT_EQ(1, Varint::readFromBuffer(b4, b4end, &value, &flag));
   ASSERT_EQ(Varint::Limits::MAX_N1_WITH_FLAG, value);
   ASSERT_TRUE(flag);
 }
@@ -338,7 +338,7 @@ TEST_F(VarintTestFixture, ReadMaxN1ValueWithFalseFlag) {
   bool flag = true;
   uint32_t value = 0;
   Varint::writeToBuffer(b4, b4end, Varint::Limits::MAX_N1_WITH_FLAG, false);
-  ASSERT_EQ(1, Varint::readFromBuffer(b4, &value, &flag));
+  ASSERT_EQ(1, Varint::readFromBuffer(b4, b4end, &value, &flag));
   ASSERT_EQ(Varint::Limits::MAX_N1_WITH_FLAG, value);
   ASSERT_FALSE(flag);
 }
@@ -347,7 +347,7 @@ TEST_F(VarintTestFixture, ReadMaxN2ValueWithTrueFlag) {
   bool flag = false;
   uint32_t value = 0;
   Varint::writeToBuffer(b4, b4end, Varint::Limits::MAX_N2_WITH_FLAG, true);
-  ASSERT_EQ(2, Varint::readFromBuffer(b4, &value, &flag));
+  ASSERT_EQ(2, Varint::readFromBuffer(b4, b4end, &value, &flag));
   ASSERT_EQ(Varint::Limits::MAX_N2_WITH_FLAG, value);
   ASSERT_TRUE(flag);
 }
@@ -356,7 +356,7 @@ TEST_F(VarintTestFixture, ReadMaxN2ValueWithFalseFlag) {
   bool flag = true;
   uint32_t value = 0;
   Varint::writeToBuffer(b4, b4end, Varint::Limits::MAX_N2_WITH_FLAG, false);
-  ASSERT_EQ(2, Varint::readFromBuffer(b4, &value, &flag));
+  ASSERT_EQ(2, Varint::readFromBuffer(b4, b4end, &value, &flag));
   ASSERT_EQ(Varint::Limits::MAX_N2_WITH_FLAG, value);
   ASSERT_FALSE(flag);
 }
@@ -365,7 +365,7 @@ TEST_F(VarintTestFixture, ReadMaxN3ValueWithTrueFlag) {
   bool flag = false;
   uint32_t value = 0;
   Varint::writeToBuffer(b4, b4end, Varint::Limits::MAX_N3_WITH_FLAG, true);
-  ASSERT_EQ(3, Varint::readFromBuffer(b4, &value, &flag));
+  ASSERT_EQ(3, Varint::readFromBuffer(b4, b4end, &value, &flag));
   ASSERT_EQ(Varint::Limits::MAX_N3_WITH_FLAG, value);
   ASSERT_TRUE(flag);
 }
@@ -374,7 +374,7 @@ TEST_F(VarintTestFixture, ReadMaxN3ValueWithFalseFlag) {
   bool flag = true;
   uint32_t value = 0;
   Varint::writeToBuffer(b4, b4end, Varint::Limits::MAX_N3_WITH_FLAG, false);
-  ASSERT_EQ(3, Varint::readFromBuffer(b4, &value, &flag));
+  ASSERT_EQ(3, Varint::readFromBuffer(b4, b4end, &value, &flag));
   ASSERT_EQ(Varint::Limits::MAX_N3_WITH_FLAG, value);
   ASSERT_FALSE(flag);
 }
@@ -383,7 +383,7 @@ TEST_F(VarintTestFixture, ReadMaxN4ValueWithTrueFlag) {
   bool flag = false;
   uint32_t value = 0;
   Varint::writeToBuffer(b4, b4end, Varint::Limits::MAX_N4_WITH_FLAG, true);
-  ASSERT_EQ(4, Varint::readFromBuffer(b4, &value, &flag));
+  ASSERT_EQ(4, Varint::readFromBuffer(b4, b4end, &value, &flag));
   ASSERT_EQ(Varint::Limits::MAX_N4_WITH_FLAG, value);
   ASSERT_TRUE(flag);
 }
@@ -392,7 +392,7 @@ TEST_F(VarintTestFixture, ReadMaxN4ValueWithFalseFlag) {
   bool flag = true;
   uint32_t value = 0;
   Varint::writeToBuffer(b4, b4end, Varint::Limits::MAX_N4_WITH_FLAG, false);
-  ASSERT_EQ(4, Varint::readFromBuffer(b4, &value, &flag));
+  ASSERT_EQ(4, Varint::readFromBuffer(b4, b4end, &value, &flag));
   ASSERT_EQ(Varint::Limits::MAX_N4_WITH_FLAG, value);
   ASSERT_FALSE(flag);
 }
@@ -413,10 +413,10 @@ TEST_F(VarintTestFixture, WriteAndReadSequenceOfValues) {
 
   pos = b32;
   uint32_t value = 0;
-  ASSERT_EQ(1, Varint::readFromBuffer(pos, &value)); pos += 1;
-  ASSERT_EQ(2, Varint::readFromBuffer(pos, &value)); pos += 2;
-  ASSERT_EQ(3, Varint::readFromBuffer(pos, &value)); pos += 3;
-  ASSERT_EQ(4, Varint::readFromBuffer(pos, &value)); pos += 4;
+  ASSERT_EQ(1, Varint::readFromBuffer(pos, b32end, &value)); pos += 1;
+  ASSERT_EQ(2, Varint::readFromBuffer(pos, b32end, &value)); pos += 2;
+  ASSERT_EQ(3, Varint::readFromBuffer(pos, b32end, &value)); pos += 3;
+  ASSERT_EQ(4, Varint::readFromBuffer(pos, b32end, &value)); pos += 4;
   // clang-format on
 }
 
@@ -439,22 +439,22 @@ TEST_F(VarintTestFixture, WriteAndReadSequenceOfValuesWithTrueFlags) {
   pos = b32;
   flag = false;
   uint32_t value = 0;
-  ASSERT_EQ(1, Varint::readFromBuffer(pos, &value, &flag)); pos += 1;
+  ASSERT_EQ(1, Varint::readFromBuffer(pos, b32end, &value, &flag)); pos += 1;
   ASSERT_EQ(v1, value);
   ASSERT_TRUE(flag);
 
   flag = false;
-  ASSERT_EQ(2, Varint::readFromBuffer(pos, &value, &flag)); pos += 2;
+  ASSERT_EQ(2, Varint::readFromBuffer(pos, b32end, &value, &flag)); pos += 2;
   ASSERT_EQ(v2, value);
   ASSERT_TRUE(flag);
 
   flag = false;
-  ASSERT_EQ(3, Varint::readFromBuffer(pos, &value, &flag)); pos += 3;
+  ASSERT_EQ(3, Varint::readFromBuffer(pos, b32end, &value, &flag)); pos += 3;
   ASSERT_EQ(v3, value);
   ASSERT_TRUE(flag);
 
   flag = false;
-  ASSERT_EQ(4, Varint::readFromBuffer(pos, &value, &flag)); pos += 4;
+  ASSERT_EQ(4, Varint::readFromBuffer(pos, b32end, &value, &flag)); pos += 4;
   ASSERT_EQ(v4, value);
   ASSERT_TRUE(flag);
   // clang-format on
@@ -479,22 +479,22 @@ TEST_F(VarintTestFixture, WriteAndReadSequenceOfValuesWithFalseFlags) {
   pos = b32;
   flag = true;
   uint32_t value = 0;
-  ASSERT_EQ(1, Varint::readFromBuffer(pos, &value, &flag)); pos += 1;
+  ASSERT_EQ(1, Varint::readFromBuffer(pos, b32end, &value, &flag)); pos += 1;
   ASSERT_EQ(v1, value);
   ASSERT_FALSE(flag);
 
   flag = true;
-  ASSERT_EQ(2, Varint::readFromBuffer(pos, &value, &flag)); pos += 2;
+  ASSERT_EQ(2, Varint::readFromBuffer(pos, b32end, &value, &flag)); pos += 2;
   ASSERT_EQ(v2, value);
   ASSERT_FALSE(flag);
 
   flag = true;
-  ASSERT_EQ(3, Varint::readFromBuffer(pos, &value, &flag)); pos += 3;
+  ASSERT_EQ(3, Varint::readFromBuffer(pos, b32end, &value, &flag)); pos += 3;
   ASSERT_EQ(v3, value);
   ASSERT_FALSE(flag);
 
   flag = true;
-  ASSERT_EQ(4, Varint::readFromBuffer(pos, &value, &flag)); pos += 4;
+  ASSERT_EQ(4, Varint::readFromBuffer(pos, b32end, &value, &flag)); pos += 4;
   ASSERT_EQ(v4, value);
   ASSERT_FALSE(flag);
   // clang-format on
@@ -518,19 +518,19 @@ TEST_F(VarintTestFixture, WriteAndReadSequenceOfValuesWithTrueAndFalseFlags) {
   pos = b32;
   bool flag = false;
   uint32_t value = 0;
-  ASSERT_EQ(1, Varint::readFromBuffer(pos, &value, &flag)); pos += 1;
+  ASSERT_EQ(1, Varint::readFromBuffer(pos, b32end, &value, &flag)); pos += 1;
   ASSERT_EQ(v1, value);
   ASSERT_TRUE(flag);
 
-  ASSERT_EQ(2, Varint::readFromBuffer(pos, &value, &flag)); pos += 2;
+  ASSERT_EQ(2, Varint::readFromBuffer(pos, b32end, &value, &flag)); pos += 2;
   ASSERT_EQ(v2, value);
   ASSERT_FALSE(flag);
 
-  ASSERT_EQ(3, Varint::readFromBuffer(pos, &value, &flag)); pos += 3;
+  ASSERT_EQ(3, Varint::readFromBuffer(pos, b32end, &value, &flag)); pos += 3;
   ASSERT_EQ(v3, value);
   ASSERT_TRUE(flag);
 
-  ASSERT_EQ(4, Varint::readFromBuffer(pos, &value, &flag)); pos += 4;
+  ASSERT_EQ(4, Varint::readFromBuffer(pos, b32end, &value, &flag)); pos += 4;
   ASSERT_EQ(v4, value);
   ASSERT_FALSE(flag);
   // clang-format on
