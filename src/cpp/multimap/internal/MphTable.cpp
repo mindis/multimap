@@ -21,6 +21,7 @@
 #include <limits>
 #include <unordered_map>
 #include <boost/filesystem/operations.hpp>
+#include "multimap/thirdparty/mt/mt.hpp"
 #include "multimap/internal/Varint.hpp"
 #include "multimap/Arena.hpp"
 
@@ -29,10 +30,22 @@ namespace internal {
 
 namespace {
 
+struct ListMeta {
+  uint32_t num_values = 0;
+  uint32_t num_bytes = 0;
+
+  ListMeta() = default;
+};
+
+static_assert(mt::hasExpectedSize<ListMeta>(8, 8),
+              "class ListMeta does not have expected size");
+
 class ListIter : public Iterator {
  public:
-  ListIter(const byte* begin, const byte* end, size_t num_values)
-      : begin_(begin), end_(end), num_values_(num_values) {}
+  ListIter(const byte* begin, const byte* end, const ListMeta& meta)
+      : begin_(begin), end_(end), num_values_(meta.num_values) {
+    // TODO posix_madvice
+  }
 
   size_t available() const override { return num_values_; }
 
@@ -103,7 +116,7 @@ std::pair<Map, Arena> readRecordsFromFile(
   return std::make_pair(std::move(map), std::move(arena));
 }
 
-Mph buildMphFromKeys(const Map& map, const Options& options) {
+Mph buildMphFromKeys(const Map& map) {
   uint32_t key_size;
   auto iter = map.begin();
   std::vector<const byte*> keys(map.size());
@@ -111,10 +124,7 @@ Mph buildMphFromKeys(const Map& map, const Options& options) {
     const byte* full_key_begin = iter->first.begin() - sizeof key_size;
     keys[i] = full_key_begin;
   }
-  Mph::Options mph_options;
-  mph_options.algorithm = CMPH_BDZ;
-  mph_options.verbose = options.verbose;
-  return Mph::build(keys.data(), keys.size(), mph_options);
+  return Mph::build(keys.data(), keys.size());
 }
 
 Stats writeMap(const std::string& prefix, const Map& map, const Mph& mph,
@@ -127,7 +137,9 @@ Stats writeMap(const std::string& prefix, const Map& map, const Mph& mph,
   Table table(map.size());
   const Bytes zeros(stats.block_size, 0);
   const auto lists_filename = getNameOfListsFile(prefix);
-  if (verbose) mt::log() << "Writing " << lists_filename << std::endl;
+  if (verbose) {
+    mt::log() << "Writing " << lists_filename << std::endl;
+  }
   const auto lists_stream = mt::open(lists_filename, "w");
   for (const auto& entry : map) {
     // TODO Since Linux supports holes in files we actually don't need padding.
@@ -142,8 +154,10 @@ Stats writeMap(const std::string& prefix, const Map& map, const Mph& mph,
     const List& list = entry.second;
     table[mph(key)] = offset / stats.block_size;
     key.writeToStream(lists_stream.get());
-    const uint32_t num_values = list.size();
-    mt::write(lists_stream.get(), &num_values, sizeof num_values);
+    ListMeta list_meta;
+    list_meta.num_values = list.size();
+    list_meta.num_bytes = 0,  // TODO Seek back and write data again.
+        mt::write(lists_stream.get(), &list_meta, sizeof list_meta);
     for (const Slice& value : list) {
       value.writeToStream(lists_stream.get());
     }
@@ -173,17 +187,23 @@ Stats writeMap(const std::string& prefix, const Map& map, const Mph& mph,
   stats.num_blocks = offset / stats.block_size;
 
   const auto mph_filename = getNameOfMphFile(prefix);
-  if (verbose) mt::log() << "Writing " << mph_filename << std::endl;
-  mph.dump(mph_filename);
+  if (verbose) {
+    mt::log() << "Writing " << mph_filename << std::endl;
+  }
+  mph.writeToFile(mph_filename);
 
   const auto table_filename = getNameOfTableFile(prefix);
-  if (verbose) mt::log() << "Writing " << table_filename << std::endl;
+  if (verbose) {
+    mt::log() << "Writing " << table_filename << std::endl;
+  }
   const auto table_stream = mt::open(table_filename, "w");
   mt::write(table_stream.get(), table.data(),
             table.size() * sizeof(Table::value_type));
 
   const auto stats_filename = getNameOfStatsFile(prefix);
-  if (verbose) mt::log() << "Writing " << stats_filename << std::endl;
+  if (verbose) {
+    mt::log() << "Writing " << stats_filename << std::endl;
+  }
   stats.writeToFile(stats_filename);
 
   return stats;
@@ -235,12 +255,14 @@ std::unique_ptr<Iterator> MphTable::get(const Slice& key) const {
     const byte* begin = getListBegin(lists_, block_id, stats_.block_size);
     const Slice actual_key = Slice::readFromBuffer(begin, lists_.end());
     if (actual_key == key) {
-      uint32_t num_values;
+      ListMeta list_meta;
       begin = actual_key.end();
-      std::memcpy(&num_values, begin, sizeof num_values);
-      begin += sizeof num_values;
+      std::memcpy(&list_meta, begin, sizeof list_meta);
+      begin += sizeof list_meta;
       return std::unique_ptr<Iterator>(
-          new ListIter(begin, lists_.end(), num_values));
+          new ListIter(begin, lists_.end(), list_meta));
+      // TODO Once list_meta.num_bytes is available, change signature
+      //      to ListIter(const byte* begin, const ListMeta& meta)
     }
   }
   return Iterator::newEmptyInstance();
@@ -249,8 +271,7 @@ std::unique_ptr<Iterator> MphTable::get(const Slice& key) const {
 void MphTable::forEachKey(Procedure process) const {
   Table table_copy = makeCopy(table_);
   std::sort(table_copy.begin(), table_copy.end());
-  // TODO Advise access pattern for lists_.
-  for (auto block_id : table_copy) {
+  for (uint32_t block_id : table_copy) {
     const byte* begin = getListBegin(lists_, block_id, stats_.block_size);
     const Slice key = Slice::readFromBuffer(begin, lists_.end());
     process(key);
@@ -267,15 +288,14 @@ void MphTable::forEachValue(const Slice& key, Procedure process) const {
 void MphTable::forEachEntry(BinaryProcedure process) const {
   Table table_copy = makeCopy(table_);
   std::sort(table_copy.begin(), table_copy.end());
-  // TODO Advise access pattern for lists_.
   for (auto block_id : table_copy) {
     const byte* begin = getListBegin(lists_, block_id, stats_.block_size);
     const Slice key = Slice::readFromBuffer(begin, lists_.end());
     begin = key.end();
-    uint32_t num_values;
-    std::memcpy(&num_values, begin, sizeof num_values);
-    begin += sizeof num_values;
-    ListIter iter(begin, lists_.end(), num_values);
+    ListMeta list_meta;
+    std::memcpy(&list_meta, begin, sizeof list_meta);
+    begin += sizeof list_meta;
+    ListIter iter(begin, lists_.end(), list_meta);
     process(key, &iter);
   }
 }
@@ -283,7 +303,9 @@ void MphTable::forEachEntry(BinaryProcedure process) const {
 Stats MphTable::build(const std::string& prefix,
                       const boost::filesystem::path& source,
                       const Options& options) {
-  if (options.verbose) mt::log() << "Reading " << source.string() << std::endl;
+  if (options.verbose) {
+    mt::log() << "Reading " << source.string() << std::endl;
+  }
   auto map_and_arena = readRecordsFromFile(source);
   Map& map = map_and_arena.first;
   if (options.compare) {
@@ -291,7 +313,7 @@ Stats MphTable::build(const std::string& prefix,
       std::sort(entry.second.begin(), entry.second.end(), options.compare);
     }
   }
-  const Mph mph = buildMphFromKeys(map, options);
+  const Mph mph = buildMphFromKeys(map);
   return writeMap(prefix, map, mph, options.verbose);
 }
 

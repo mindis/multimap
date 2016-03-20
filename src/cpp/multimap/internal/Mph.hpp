@@ -21,6 +21,7 @@
 #include <memory>
 #include <boost/filesystem/path.hpp>
 #include "multimap/thirdparty/cmph/cmph.h"
+#include "multimap/Options.hpp"
 #include "multimap/Slice.hpp"
 
 namespace std {
@@ -41,37 +42,23 @@ class Mph {
   // This class is read-only and does not need external locking.
 
  public:
-  // TODO Remove
-  struct Options {
-    bool verbose = true;
-    CMPH_ALGO algorithm = CMPH_BDZ;
-    uint32_t b = 0;  // 0 means use default value.
-    double c = 0;    // 0 means use default value.
-
-    Options() = default;
-  };
-
   explicit Mph(const boost::filesystem::path& filename);
 
   Mph(Mph&&) = default;
-
   Mph& operator=(Mph&&) = default;
 
-  static Mph build(const byte** keys, size_t nkeys, const Options& options);
+  static Mph build(const byte** keys, size_t nkeys);
   // A key in `keys` points to memory which is encoded like this:
-  // [keylen as uint32][1 .. key data .. keylen]
+  // [keylen as uint32][1 .. keydata .. keylen]
 
-  static Mph build(const boost::filesystem::path& keys, const Options& options);
+  static Mph build(const boost::filesystem::path& keys);
   // `keys` contains a sequence of keys which are encoded as described above.
 
-  void dump(const boost::filesystem::path& filename) const;
-
-  size_t operator()(const Slice& key) const {
-    return cmph_search(cmph_.get(), reinterpret_cast<const char*>(key.begin()),
-                       key.size());
-  }
+  size_t operator()(const Slice& key) const;
 
   size_t size() const { return cmph_size(cmph_.get()); }
+
+  void writeToFile(const boost::filesystem::path& filename) const;
 
  private:
   explicit Mph(std::unique_ptr<cmph_t> cmph);

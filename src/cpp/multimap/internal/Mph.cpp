@@ -43,14 +43,12 @@ namespace internal {
 Mph::Mph(const boost::filesystem::path& filename)
     : cmph_(cmph_load(mt::open(filename.string(), "r").get())) {}
 
-Mph Mph::build(const byte** keys, size_t nkeys, const Options& options) {
+Mph Mph::build(const byte** keys, size_t nkeys) {
   std::unique_ptr<cmph_io_adapter_t> source(
       cmph_io_byte_vector_adapter(const_cast<byte**>(keys), nkeys));
-  std::unique_ptr<cmph_config_t> config(cmph_config_new(source.get()));
 
-  cmph_config_set_algo(config.get(), options.algorithm);
-  if (options.b != 0) cmph_config_set_b(config.get(), options.b);
-  if (options.c != 0) cmph_config_set_graphsize(config.get(), options.c);
+  std::unique_ptr<cmph_config_t> config(cmph_config_new(source.get()));
+  cmph_config_set_algo(config.get(), CMPH_BDZ);
 
   std::unique_ptr<cmph_t> cmph(cmph_new(config.get()));
   mt::Check::notNull(cmph.get(), "cmph_new() failed");
@@ -58,7 +56,7 @@ Mph Mph::build(const byte** keys, size_t nkeys, const Options& options) {
   return Mph(std::move(cmph));
 }
 
-Mph Mph::build(const boost::filesystem::path& keys, const Options& options) {
+Mph Mph::build(const boost::filesystem::path& keys) {
   Arena arena;
   uint32_t keylen;
   std::vector<const byte*> keydata;
@@ -69,10 +67,15 @@ Mph Mph::build(const boost::filesystem::path& keys, const Options& options) {
     mt::read(stream.get(), key + sizeof keylen, keylen);
     keydata.push_back(key);
   }
-  return build(keydata.data(), keydata.size(), options);
+  return build(keydata.data(), keydata.size());
 }
 
-void Mph::dump(const boost::filesystem::path& filename) const {
+size_t Mph::operator()(const Slice& key) const {
+  return cmph_search(cmph_.get(), reinterpret_cast<const char*>(key.begin()),
+                     key.size());
+}
+
+void Mph::writeToFile(const boost::filesystem::path& filename) const {
   const auto stream = mt::open(filename.string(), "w");
   mt::Check::notZero(cmph_dump(cmph_.get(), stream.get()),
                      "cmph_dump() failed");

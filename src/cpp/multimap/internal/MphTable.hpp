@@ -51,10 +51,6 @@ class MphTable {
 
   Stats getStats() const { return stats_; }
 
-  // ---------------------------------------------------------------------------
-  // Static methods
-  // ---------------------------------------------------------------------------
-
   static Stats build(const std::string& prefix,
                      const boost::filesystem::path& source,
                      const Options& options);
