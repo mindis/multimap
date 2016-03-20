@@ -43,9 +43,9 @@ class UintVector {
 
   byte* begin() const { return data_.get(); }
 
-  byte* current() const { return data_.get() + offset_; }
-
   byte* end() const { return data_.get() + size_; }
+
+  byte* cur() const { return data_.get() + offset_; }
 
   std::unique_ptr<byte[]> data_;
   uint32_t offset_ = 0;

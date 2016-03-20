@@ -26,12 +26,12 @@ namespace internal {
 namespace {
 
 void readUint32FromBuffer(const byte* begin, const byte* end, uint32_t* value) {
-  MT_REQUIRE_GE(end - begin, sizeof *value);
+  MT_REQUIRE_GE(static_cast<size_t>(end - begin), sizeof *value);
   std::memcpy(value, begin, sizeof *value);
 }
 
 void writeUint32ToBuffer(byte* begin, byte* end, uint32_t value) {
-  MT_REQUIRE_GE(end - begin, sizeof value);
+  MT_REQUIRE_GE(static_cast<size_t>(end - begin), sizeof value);
   std::memcpy(begin, &value, sizeof value);
 }
 
@@ -43,14 +43,14 @@ void UintVector::add(uint32_t value) {
     offset_ += Varint::writeToBuffer(begin(), end(), value);
   } else {
     uint32_t absolute_value = 0;
-    readUint32FromBuffer(current(), end(), &absolute_value);
+    readUint32FromBuffer(cur(), end(), &absolute_value);
     MT_ASSERT_LT(absolute_value, value);
     const uint32_t delta = value - absolute_value;
-    offset_ += Varint::writeToBuffer(current(), end(), delta);
+    offset_ += Varint::writeToBuffer(cur(), end(), delta);
   }
   // The new offset points past the last delta encoded value
   // which is also right before the trailing absolute value.
-  writeUint32ToBuffer(current(), end(), value);
+  writeUint32ToBuffer(cur(), end(), value);
 }
 
 std::vector<uint32_t> UintVector::unpack() const {
@@ -59,7 +59,7 @@ std::vector<uint32_t> UintVector::unpack() const {
     uint32_t delta = 0;
     uint32_t value = 0;
     const byte* pos = begin();
-    const byte* end = current();
+    const byte* end = cur();
     while (pos != end) {
       pos += Varint::readFromBuffer(pos, end, &delta);
       values.push_back(value + delta);
