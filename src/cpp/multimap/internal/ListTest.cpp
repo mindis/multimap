@@ -370,7 +370,7 @@ TEST_P(ListTestWithParam, RemoveEvery23thValue) {
     list.append(std::to_string(i), getStore(), getArena());
   }
 
-  const auto num_removed = list.removeAllMatches([](const Slice &value) {
+  const size_t num_removed = list.removeAllMatches([](const Slice &value) {
     return std::stoi(value.toString()) % 23 == 0;
   }, getStore());
 
