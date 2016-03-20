@@ -39,9 +39,11 @@ class Store {
 
     byte* begin() const { return data; }
 
-    byte* current() const { return data + offset; }
-
     byte* end() const { return data + size; }
+
+    byte* cur() const { return data + offset; }
+
+    size_t remaining() const { return size - offset; }
 
     bool empty() const { return size == 0; }
 
