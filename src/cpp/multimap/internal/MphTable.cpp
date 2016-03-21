@@ -42,9 +42,11 @@ static_assert(mt::hasExpectedSize<ListMeta>(8, 8),
 
 class ListIter : public Iterator {
  public:
-  ListIter(const byte* begin, const byte* end, const ListMeta& meta)
-      : begin_(begin), end_(end), num_values_(meta.num_values) {
-    // TODO posix_madvice
+  ListIter(const byte* begin, const ListMeta& meta)
+      : begin_(begin), end_(begin + meta.num_bytes), num_values_(meta.num_values) {
+    byte* page = mt::getPageBegin(begin_);
+    int result = posix_madvise(page, end_ - page, POSIX_MADV_SEQUENTIAL);
+    mt::Check::isZero(result, "posix_madvise() failed");
   }
 
   size_t available() const override { return num_values_; }
@@ -142,7 +144,6 @@ Stats writeMap(const std::string& prefix, const Map& map, const Mph& mph,
   }
   const auto lists_stream = mt::open(lists_filename, "w");
   for (const auto& entry : map) {
-    // TODO Since Linux supports holes in files we actually don't need padding.
     auto offset = mt::tell(lists_stream.get());
     if (const auto remainder = offset % stats.block_size) {
       const auto padding = stats.block_size - remainder;
@@ -154,13 +155,23 @@ Stats writeMap(const std::string& prefix, const Map& map, const Mph& mph,
     const List& list = entry.second;
     table[mph(key)] = offset / stats.block_size;
     key.writeToStream(lists_stream.get());
+
+    const uint64_t begin_of_list_meta = mt::tell(lists_stream.get());
     ListMeta list_meta;
     list_meta.num_values = list.size();
-    list_meta.num_bytes = 0,  // TODO Seek back and write data again.
-        mt::write(lists_stream.get(), &list_meta, sizeof list_meta);
+    // list_meta.num_bytes will be written later.
+    mt::write(lists_stream.get(), &list_meta, sizeof list_meta);
+
+    const uint64_t begin_of_list = begin_of_list_meta + sizeof list_meta;
     for (const Slice& value : list) {
       value.writeToStream(lists_stream.get());
     }
+    const uint64_t end_of_list = mt::tell(lists_stream.get());
+
+    list_meta.num_bytes = end_of_list - begin_of_list;
+    mt::seek(lists_stream.get(), begin_of_list_meta, SEEK_SET);
+    mt::write(lists_stream.get(), &list_meta, sizeof list_meta);
+    mt::seek(lists_stream.get(), end_of_list, SEEK_SET);
 
     stats.key_size_avg += key.size();
     stats.key_size_max = mt::max(stats.key_size_max, key.size());
@@ -178,7 +189,6 @@ Stats writeMap(const std::string& prefix, const Map& map, const Mph& mph,
     stats.list_size_avg /= stats.num_keys_total;
   }
   auto offset = mt::tell(lists_stream.get());
-  // TODO Since Linux supports holes in files we actually don't need padding.
   if (const auto remainder = offset % stats.block_size) {
     const auto padding = stats.block_size - remainder;
     mt::write(lists_stream.get(), &zeros, padding);
@@ -259,10 +269,7 @@ std::unique_ptr<Iterator> MphTable::get(const Slice& key) const {
       begin = actual_key.end();
       std::memcpy(&list_meta, begin, sizeof list_meta);
       begin += sizeof list_meta;
-      return std::unique_ptr<Iterator>(
-          new ListIter(begin, lists_.end(), list_meta));
-      // TODO Once list_meta.num_bytes is available, change signature
-      //      to ListIter(const byte* begin, const ListMeta& meta)
+      return std::unique_ptr<Iterator>(new ListIter(begin, list_meta));
     }
   }
   return Iterator::newEmptyInstance();
@@ -295,7 +302,7 @@ void MphTable::forEachEntry(BinaryProcedure process) const {
     ListMeta list_meta;
     std::memcpy(&list_meta, begin, sizeof list_meta);
     begin += sizeof list_meta;
-    ListIter iter(begin, lists_.end(), list_meta);
+    ListIter iter(begin, list_meta);
     process(key, &iter);
   }
 }
