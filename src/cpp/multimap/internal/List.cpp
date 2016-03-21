@@ -18,22 +18,14 @@
 #include "multimap/internal/List.hpp"
 
 #include <sys/mman.h>
-#include <unistd.h>
 #include <algorithm>
 #include "multimap/internal/Varint.hpp"
+#include "multimap/thirdparty/mt/mt.hpp"
 
 namespace multimap {
 namespace internal {
 
 namespace {
-
-const long SYS_PAGE_SIZE = sysconf(_SC_PAGESIZE);
-
-byte* alignToPageBegin(const byte* ptr) {
-  size_t value_of_ptr = reinterpret_cast<size_t>(ptr);
-  value_of_ptr -= value_of_ptr % SYS_PAGE_SIZE;
-  return reinterpret_cast<byte*>(value_of_ptr);
-}
 
 class Stream {
  public:
@@ -42,8 +34,8 @@ class Stream {
   Stream(const Store::Blocks& blocks, const Store::Block& tail)
       : blocks_(blocks), tail_(tail) {
     for (const Store::Block& block : blocks_) {
-      byte* page = alignToPageBegin(block.data);
-      int result = ::posix_madvise(page, SYS_PAGE_SIZE, POSIX_MADV_WILLNEED);
+      byte* page = mt::getPageBegin(block.data);
+      int result = posix_madvise(page, mt::getPageSize(), POSIX_MADV_WILLNEED);
       mt::Check::isZero(result, "posix_madvise() failed");
     }
     std::reverse(blocks_.begin(), blocks_.end());
