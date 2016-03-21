@@ -25,14 +25,14 @@
 namespace multimap {
 
 struct Version {
-  static const int MAJOR = 0;
-  static const int MINOR = 6;
-  static const int PATCH = 0;
+  static const int MAJOR;
+  static const int MINOR;
+  static const int PATCH;
 
   static void checkCompatibility(int extern_major, int extern_minor);
 
   static bool isCompatible(int extern_major, int extern_minor,
-                           int lib_major = MAJOR, int lib_minor = MINOR);
+                           int intern_major = MAJOR, int intern_minor = MINOR);
 
   Version() = delete;
 };

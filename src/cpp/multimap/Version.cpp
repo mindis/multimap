@@ -21,6 +21,10 @@
 
 namespace multimap {
 
+const int Version::MAJOR = 0;
+const int Version::MINOR = 6;
+const int Version::PATCH = 0;
+
 void Version::checkCompatibility(int extern_major, int extern_minor) {
   mt::Check::isTrue(
       isCompatible(extern_major, extern_minor),
@@ -29,10 +33,10 @@ void Version::checkCompatibility(int extern_major, int extern_minor) {
       extern_major, extern_minor);
 }
 
-bool Version::isCompatible(int extern_major, int extern_minor,
-                           int library_major, int library_minor) {
-  if (extern_major != library_major) return false;
-  if (extern_minor > library_minor) return false;
+bool Version::isCompatible(int extern_major, int extern_minor, int intern_major,
+                           int intern_minor) {
+  if (extern_major != intern_major) return false;
+  if (extern_minor > intern_minor) return false;
   return true;
 }
 
