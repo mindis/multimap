@@ -23,6 +23,7 @@
 #define MULTIMAP_OPTIONS_HPP_INCLUDED
 
 #include <functional>
+#include "multimap/thirdparty/mt/mt.hpp"
 #include "multimap/callables.hpp"
 
 namespace multimap {
@@ -30,6 +31,7 @@ namespace multimap {
 struct Options {
   size_t block_size = 512;
   size_t num_partitions = 23;
+  size_t max_partition_size = mt::GiB(1);
 
   bool create_if_missing = false;
   bool error_if_exists = false;

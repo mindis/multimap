@@ -40,14 +40,6 @@ class ImmutableMap {
     Limits() = delete;
   };
 
-  // TODO Remove
-  struct Options : public multimap::Options {
-    size_t max_bucket_size = mt::GiB(1);
-    size_t num_buckets = 23;
-
-    Options() = default;
-  };
-
   class Builder {
    public:
     Builder(const boost::filesystem::path& directory, const Options& options);

@@ -63,7 +63,7 @@ ImmutableMap::Builder::Builder(const boost::filesystem::path& directory,
       std::distance(boost::filesystem::directory_iterator(directory),
                     boost::filesystem::directory_iterator()),
       1, "Directory must be empty '%s'", directory.c_str());
-  buckets_.resize(mt::nextPrime(options.num_buckets));
+  buckets_.resize(mt::nextPrime(options.num_partitions));
   for (size_t i = 0; i != buckets_.size(); i++) {
     auto& bucket = buckets_[i];
     bucket.filename = getPartitionPrefix(directory, i);
@@ -76,7 +76,7 @@ void ImmutableMap::Builder::put(const Slice& key, const Slice& value) {
   key.writeToStream(bucket.stream.get());
   value.writeToStream(bucket.stream.get());
   bucket.size += value.size();
-  if (bucket.size > options_.max_bucket_size && !bucket.is_large) {
+  if (bucket.size > options_.max_partition_size && !bucket.is_large) {
     // Double number of buckets and rehash all records.
     std::vector<Bucket> new_buckets(mt::nextPrime(buckets_.size() * 2));
     if (options_.verbose)
@@ -107,7 +107,7 @@ void ImmutableMap::Builder::put(const Slice& key, const Slice& value) {
       const auto old_filename = new_bucket.filename;
       const auto new_filename = new_bucket.filename.replace_extension();
       boost::filesystem::rename(old_filename, new_filename);
-      if (new_bucket.size > options_.max_bucket_size) {
+      if (new_bucket.size > options_.max_partition_size) {
         new_bucket.is_large = true;
       }
     }
