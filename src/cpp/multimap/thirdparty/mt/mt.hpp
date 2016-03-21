@@ -45,7 +45,7 @@
 
 namespace mt {
 
-static const uint32_t VERSION = 20160319;
+static const int VERSION = 20160321;
 
 // -----------------------------------------------------------------------------
 // COMMON
@@ -554,6 +554,10 @@ class AutoUnmapMemory {
 };
 
 AutoUnmapMemory mmap(uint64_t len, int prot, int flags, int fd, off_t offset);
+
+uint8_t* getPageBegin(const uint8_t* ptr);
+
+size_t getPageSize();
 
 // -----------------------------------------------------------------------------
 // CONFIGURATION

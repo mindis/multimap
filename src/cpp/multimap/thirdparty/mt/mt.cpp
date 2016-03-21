@@ -318,6 +318,17 @@ AutoUnmapMemory mmap(uint64_t len, int prot, int flags, int fd, off_t offset) {
   return AutoUnmapMemory(static_cast<uint8_t*>(result), len);
 }
 
+uint8_t* getPageBegin(const uint8_t* ptr) {
+  size_t value_of_ptr = reinterpret_cast<size_t>(ptr);
+  value_of_ptr -= value_of_ptr % getPageSize();
+  return reinterpret_cast<uint8_t*>(value_of_ptr);
+}
+
+size_t getPageSize() {
+  static const size_t size = sysconf(_SC_PAGESIZE);
+  return size;
+}
+
 Properties readPropertiesFromFile(const boost::filesystem::path& filename) {
   std::ifstream input(filename.string());
   check(input.is_open(), "Could not open '%s'", filename.c_str());
