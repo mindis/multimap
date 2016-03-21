@@ -187,7 +187,7 @@ void compressed_rank_dump(compressed_rank_t * cr, char **buf, cmph_uint32 *bufle
 	DEBUGP("Dumped compressed rank structure with size %u bytes\n", *buflen);
 }
 
-void compressed_rank_load(compressed_rank_t * cr, const char *buf, cmph_uint32 buflen)
+void compressed_rank_load(compressed_rank_t * cr, const char *buf, cmph_uint32 buflen __attribute__((unused)))
 {
 	register cmph_uint32 pos = 0;
 	cmph_uint32 buflen_sel = 0;

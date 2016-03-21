@@ -239,7 +239,7 @@ jenkins_state_t *jenkins_state_copy(jenkins_state_t *src_state)
 	return dest_state;
 }
 
-jenkins_state_t *jenkins_state_load(const char *buf, cmph_uint32 buflen)
+jenkins_state_t *jenkins_state_load(const char *buf, cmph_uint32 buflen __attribute__((unused)))
 {
 	jenkins_state_t *state = (jenkins_state_t *)malloc(sizeof(jenkins_state_t));
 	state->seed = *(cmph_uint32 *)buf;

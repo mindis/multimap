@@ -24,7 +24,7 @@ void __config_destroy(cmph_config_t *mph)
 
 void __cmph_dump(cmph_t *mphf, FILE *fd)
 {
-	register size_t nbytes;
+	register size_t nbytes __attribute__((unused));
 	nbytes = fwrite(cmph_names[mphf->algo], (size_t)(strlen(cmph_names[mphf->algo]) + 1), (size_t)1, fd);
 	nbytes = fwrite(&(mphf->size), sizeof(mphf->size), (size_t)1, fd);
 }
@@ -35,7 +35,7 @@ cmph_t *__cmph_load(FILE *f)
 	char algo_name[BUFSIZ];
 	char *ptr = algo_name;
 	CMPH_ALGO algo = CMPH_COUNT;
-	register size_t nbytes;
+	register size_t nbytes __attribute__((unused));
 	
 	DEBUGP("Loading mphf\n");
 	while(1)

@@ -183,11 +183,12 @@ cmph_uint32 * fch_buckets_get_indexes_sorted_by_size(fch_buckets_t * buckets)
 	// calculating offset considering a decreasing order of buckets size.
 	value = nbuckets_size[buckets->max_size];
 	nbuckets_size[buckets->max_size] = sum;
-	for(i = (int)buckets->max_size - 1; i >= 0; i--)
+	int signed_i = 0;
+	for(signed_i = (int)buckets->max_size - 1; signed_i >= 0; signed_i--)
 	{
 		sum += value;
-		value = nbuckets_size[i];
-		nbuckets_size[i] = sum;
+		value = nbuckets_size[signed_i];
+		nbuckets_size[signed_i] = sum;
 		
 	}
 	for(i = 0; i < buckets->nbuckets; i++) 

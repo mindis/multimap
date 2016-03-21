@@ -175,7 +175,7 @@ cmph_t *chd_new(cmph_config_t *mph, double c)
 
 void chd_load(FILE *fd, cmph_t *mphf)
 {
-	register size_t nbytes;
+	register size_t nbytes __attribute__((unused));
 	chd_data_t *chd = (chd_data_t *)malloc(sizeof(chd_data_t));
 
 	DEBUGP("Loading chd mphf\n");
@@ -194,7 +194,7 @@ void chd_load(FILE *fd, cmph_t *mphf)
 
 int chd_dump(cmph_t *mphf, FILE *fd)
 {
-	register size_t nbytes;
+	register size_t nbytes __attribute__((unused));
 	chd_data_t *data = (chd_data_t *)mphf->data;
 	
 	__cmph_dump(mphf, fd);

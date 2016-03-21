@@ -247,7 +247,7 @@ void select_dump(select_t *sel, char **buf, cmph_uint32 *buflen)
 	DEBUGP("Dumped select structure with size %u bytes\n", *buflen);
 }
 
-void select_load(select_t * sel, const char *buf, cmph_uint32 buflen)
+void select_load(select_t * sel, const char *buf, cmph_uint32 buflen __attribute__((unused)))
 {
 	register cmph_uint32 pos = 0;
         register cmph_uint32 nbits = 0;

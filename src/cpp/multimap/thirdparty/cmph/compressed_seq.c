@@ -235,7 +235,7 @@ void compressed_seq_dump(compressed_seq_t * cs, char ** buf, cmph_uint32 * bufle
 	DEBUGP("Dumped compressed sequence structure with size %u bytes\n", *buflen);
 }
 
-void compressed_seq_load(compressed_seq_t * cs, const char * buf, cmph_uint32 buflen)
+void compressed_seq_load(compressed_seq_t * cs, const char * buf, cmph_uint32 buflen __attribute__((unused)))
 {
 	register cmph_uint32 pos = 0;
 	cmph_uint32 buflen_sel = 0;

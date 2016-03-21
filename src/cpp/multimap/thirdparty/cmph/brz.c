@@ -231,7 +231,7 @@ static int brz_gen_mphf(cmph_config_t *mph)
 	cmph_uint32 *buffer_h0 = NULL;
 	cmph_uint32 nflushes = 0;
 	cmph_uint32 h0;
-	register size_t nbytes;
+	register size_t nbytes __attribute__((unused));
 	FILE *  tmp_fd = NULL;
 	buffer_manager_t * buff_manager = NULL;
 	char *filename = NULL;
@@ -512,7 +512,7 @@ static void brz_destroy_keys_vd(cmph_uint8 ** keys_vd, cmph_uint32 nkeys)
 	for(i = 0; i < nkeys; i++) { free(keys_vd[i]); keys_vd[i] = NULL;}
 }
 
-static char * brz_copy_partial_fch_mphf(brz_config_data_t *brz, fch_data_t * fchf, cmph_uint32 index,  cmph_uint32 *buflen)
+static char * brz_copy_partial_fch_mphf(brz_config_data_t * brz __attribute__((unused)), fch_data_t * fchf, cmph_uint32 index __attribute__((unused)),  cmph_uint32 *buflen)
 {
 	cmph_uint32 i = 0;
 	cmph_uint32 buflenh1 = 0;
@@ -562,7 +562,7 @@ int brz_dump(cmph_t *mphf, FILE *fd)
 	brz_data_t *data = (brz_data_t *)mphf->data;
 	char *buf = NULL;
 	cmph_uint32 buflen;
-	register size_t nbytes;
+	register size_t nbytes __attribute__((unused));
 	DEBUGP("Dumping brzf\n");
 	// The initial part of the MPHF have already been dumped to disk during construction
 	// Dumping h0
@@ -581,7 +581,7 @@ void brz_load(FILE *f, cmph_t *mphf)
 {
 	char *buf = NULL;
 	cmph_uint32 buflen;
-	register size_t nbytes;
+	register size_t nbytes __attribute__((unused));
 	cmph_uint32 i, n;
 	brz_data_t *brz = (brz_data_t *)malloc(sizeof(brz_data_t));
 

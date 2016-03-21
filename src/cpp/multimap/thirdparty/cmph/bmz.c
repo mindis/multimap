@@ -448,7 +448,7 @@ int bmz_dump(cmph_t *mphf, FILE *fd)
 	cmph_uint32 buflen;
 	cmph_uint32 two = 2; //number of hash functions
 	bmz_data_t *data = (bmz_data_t *)mphf->data;
-	register size_t nbytes;
+	register size_t nbytes __attribute__((unused));
 	__cmph_dump(mphf, fd);
 
 	nbytes = fwrite(&two, sizeof(cmph_uint32), (size_t)1, fd);
@@ -485,7 +485,7 @@ void bmz_load(FILE *f, cmph_t *mphf)
 	cmph_uint32 buflen;
 	cmph_uint32 i;
 	bmz_data_t *bmz = (bmz_data_t *)malloc(sizeof(bmz_data_t));
-	register size_t nbytes;
+	register size_t nbytes __attribute__((unused));
 	DEBUGP("Loading bmz mphf\n");
 	mphf->data = bmz;
 	nbytes = fread(&nhashes, sizeof(cmph_uint32), (size_t)1, f);

@@ -77,8 +77,8 @@ void chd_ph_bucket_clean(chd_ph_bucket_t * buckets, cmph_uint32 nbuckets)
 	for(i = 0; i < nbuckets; i++)
 		buckets[i].size = 0;
 }
-static cmph_uint8 chd_ph_bucket_insert(chd_ph_bucket_t * buckets,chd_ph_map_item_t * map_items, chd_ph_item_t * items,
-				cmph_uint32 nbuckets,cmph_uint32 item_idx)
+static cmph_uint8 chd_ph_bucket_insert(chd_ph_bucket_t * buckets, chd_ph_map_item_t * map_items, chd_ph_item_t * items,
+				cmph_uint32 nbuckets __attribute__((unused)), cmph_uint32 item_idx)
 {
 	register cmph_uint32 i = 0;
 	register chd_ph_item_t * tmp_item;
@@ -834,7 +834,7 @@ void chd_ph_load(FILE *fd, cmph_t *mphf)
 {
 	char *buf = NULL;
 	cmph_uint32 buflen;
-	register size_t nbytes;
+	register size_t nbytes __attribute__((unused));
 	chd_ph_data_t *chd_ph = (chd_ph_data_t *)malloc(sizeof(chd_ph_data_t));
 
 	DEBUGP("Loading chd_ph mphf\n");
@@ -865,7 +865,7 @@ int chd_ph_dump(cmph_t *mphf, FILE *fd)
 {
 	char *buf = NULL;
 	cmph_uint32 buflen;
-	register size_t nbytes;
+	register size_t nbytes __attribute__((unused));
 	chd_ph_data_t *data = (chd_ph_data_t *)mphf->data;
 	
 	__cmph_dump(mphf, fd);

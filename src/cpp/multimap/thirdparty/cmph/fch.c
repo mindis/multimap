@@ -316,7 +316,7 @@ int fch_dump(cmph_t *mphf, FILE *fd)
 {
 	char *buf = NULL;
 	cmph_uint32 buflen;
-	register size_t nbytes;
+	register size_t nbytes __attribute__((unused));
 	
 	fch_data_t *data = (fch_data_t *)mphf->data;
 	__cmph_dump(mphf, fd);
@@ -352,7 +352,7 @@ void fch_load(FILE *f, cmph_t *mphf)
 {
 	char *buf = NULL;
 	cmph_uint32 buflen;
-	register size_t nbytes;
+	register size_t nbytes __attribute__((unused));
 	fch_data_t *fch = (fch_data_t *)malloc(sizeof(fch_data_t));
 
 	//DEBUGP("Loading fch mphf\n");

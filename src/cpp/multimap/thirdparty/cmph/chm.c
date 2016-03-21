@@ -204,7 +204,7 @@ int chm_dump(cmph_t *mphf, FILE *fd)
 	cmph_uint32 buflen;
 	cmph_uint32 two = 2; //number of hash functions
 	chm_data_t *data = (chm_data_t *)mphf->data;
-	register size_t nbytes;
+	register size_t nbytes __attribute__((unused));
 	
 	__cmph_dump(mphf, fd);
 
@@ -240,7 +240,7 @@ void chm_load(FILE *f, cmph_t *mphf)
 	cmph_uint32 buflen;
 	cmph_uint32 i;
 	chm_data_t *chm = (chm_data_t *)malloc(sizeof(chm_data_t));
-	register size_t nbytes;
+	register size_t nbytes __attribute__((unused));
 	DEBUGP("Loading chm mphf\n");
 	mphf->data = chm;
 	nbytes = fread(&nhashes, sizeof(cmph_uint32), (size_t)1, f);

@@ -120,12 +120,12 @@ static int key_vector_read(void *data, char **key, cmph_uint32 *keylen)
 }
 
 
-static void key_nlfile_dispose(void *data, char *key, cmph_uint32 keylen)
+static void key_nlfile_dispose(void * data __attribute__((unused)), char *key, cmph_uint32 keylen __attribute__((unused)))
 {
 	free(key);
 }
 
-static void key_vector_dispose(void *data, char *key, cmph_uint32 keylen)
+static void key_vector_dispose(void * data __attribute__((unused)), char *key, cmph_uint32 keylen __attribute__((unused)))
 {
 	free(key);
 }
@@ -151,7 +151,7 @@ static void key_vector_rewind(void *data)
 static cmph_uint32 count_nlfile_keys(FILE *fd)
 {
 	cmph_uint32 count = 0;
-	register char * ptr;
+	register char * ptr __attribute__((unused));
 	rewind(fd);
 	while(1)
 	{

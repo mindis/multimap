@@ -69,7 +69,7 @@ static void bdz_alloc_graph3(bdz_graph3_t * graph3, cmph_uint32 nedges, cmph_uin
 	graph3->first_edge=malloc(nvertices*sizeof(cmph_uint32));
 	graph3->vert_degree=malloc((size_t)nvertices);	
 };
-static void bdz_init_graph3(bdz_graph3_t * graph3, cmph_uint32 nedges, cmph_uint32 nvertices)
+static void bdz_init_graph3(bdz_graph3_t * graph3, cmph_uint32 nedges __attribute__((unused)), cmph_uint32 nvertices)
 {
 	memset(graph3->first_edge,0xff,nvertices*sizeof(cmph_uint32));
 	memset(graph3->vert_degree,0,(size_t)nvertices);
@@ -155,7 +155,7 @@ static void bdz_remove_edge(bdz_graph3_t * graph3, cmph_uint32 curr_edge)
 	
 };
 
-static int bdz_generate_queue(cmph_uint32 nedges, cmph_uint32 nvertices, bdz_queue_t queue, bdz_graph3_t* graph3)
+static int bdz_generate_queue(cmph_uint32 nedges, cmph_uint32 nvertices __attribute__((unused)), bdz_queue_t queue, bdz_graph3_t* graph3)
 {
 	cmph_uint32 i,v0,v1,v2;
 	cmph_uint32 queue_head=0,queue_tail=0;
@@ -486,7 +486,7 @@ int bdz_dump(cmph_t *mphf, FILE *fd)
 {
 	char *buf = NULL;
 	cmph_uint32 buflen;
-	register size_t nbytes;
+	register size_t nbytes __attribute__((unused));
 	bdz_data_t *data = (bdz_data_t *)mphf->data;
 	__cmph_dump(mphf, fd);
 
@@ -521,7 +521,7 @@ void bdz_load(FILE *f, cmph_t *mphf)
 {
 	char *buf = NULL;
 	cmph_uint32 buflen, sizeg;
-	register size_t nbytes;
+	register size_t nbytes __attribute__((unused));
 	bdz_data_t *bdz = (bdz_data_t *)malloc(sizeof(bdz_data_t));
 
 	DEBUGP("Loading bdz mphf\n");
