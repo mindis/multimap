@@ -43,7 +43,9 @@ static_assert(mt::hasExpectedSize<ListMeta>(8, 8),
 class ListIter : public Iterator {
  public:
   ListIter(const byte* begin, const ListMeta& meta)
-      : begin_(begin), end_(begin + meta.num_bytes), num_values_(meta.num_values) {
+      : begin_(begin),
+        end_(begin + meta.num_bytes),
+        num_values_(meta.num_values) {
     byte* page = mt::getPageBegin(begin_);
     int result = posix_madvise(page, end_ - page, POSIX_MADV_SEQUENTIAL);
     mt::Check::isZero(result, "posix_madvise() failed");

@@ -126,7 +126,7 @@ std::vector<Stats> ImmutableMap::Builder::build() {
   }
 
   internal::Descriptor descriptor;
-  descriptor.type = internal::Descriptor::IMMUTABLE_MAP;
+  descriptor.map_type = internal::Descriptor::IMMUTABLE_MAP;
   descriptor.num_partitions = buckets_.size();
   descriptor.writeToDirectory(dlock_.directory());
 
@@ -135,9 +135,9 @@ std::vector<Stats> ImmutableMap::Builder::build() {
 
 ImmutableMap::ImmutableMap(const boost::filesystem::path& directory)
     : dlock_(directory) {
-  const auto descriptor = internal::Descriptor::readFromDirectory(
-      directory, internal::Descriptor::IMMUTABLE_MAP);
-  for (size_t i = 0; i != descriptor.num_partitions; i++) {
+  const auto desc = internal::Descriptor::readFromDirectory(directory);
+  internal::Descriptor::validate(desc, internal::Descriptor::IMMUTABLE_MAP);
+  for (size_t i = 0; i != desc.num_partitions; i++) {
     const auto full_prefix = getPartitionPrefix(directory, i);
     tables_.push_back(internal::MphTable(full_prefix));
   }
@@ -175,10 +175,10 @@ Stats ImmutableMap::getTotalStats() const { return Stats::total(getStats()); }
 
 std::vector<Stats> ImmutableMap::stats(
     const boost::filesystem::path& directory) {
-  const auto descriptor = internal::Descriptor::readFromDirectory(
-      directory, internal::Descriptor::IMMUTABLE_MAP);
-  std::vector<Stats> stats(descriptor.num_partitions);
-  for (size_t i = 0; i != descriptor.num_partitions; i++) {
+  const auto desc = internal::Descriptor::readFromDirectory(directory);
+  internal::Descriptor::validate(desc, internal::Descriptor::IMMUTABLE_MAP);
+  std::vector<Stats> stats(desc.num_partitions);
+  for (size_t i = 0; i != desc.num_partitions; i++) {
     stats[i] = internal::MphTable::stats(getPartitionPrefix(directory, i));
   }
   return stats;

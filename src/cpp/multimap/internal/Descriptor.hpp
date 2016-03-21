@@ -26,12 +26,13 @@ namespace multimap {
 namespace internal {
 
 struct Descriptor {
-  enum Type { NONE, MAP, IMMUTABLE_MAP };
+  static const int MAP = 1;
+  static const int IMMUTABLE_MAP = 2;
 
-  uint64_t major_version = Version::MAJOR;
-  uint64_t minor_version = Version::MINOR;
-  uint64_t num_partitions = 0;
-  uint64_t type = NONE;
+  int major_version = Version::MAJOR;
+  int minor_version = Version::MINOR;
+  int num_partitions = 0;
+  int map_type = 0;
 
   static std::string getFilename();
 
@@ -41,20 +42,19 @@ struct Descriptor {
 
   static std::string getFullFilePrefix(const boost::filesystem::path& base);
 
-  static Descriptor readFromDirectory(const boost::filesystem::path& directory,
-                                      Type expected_type);
+  static Descriptor readFromDirectory(const boost::filesystem::path& directory);
 
   static bool tryReadFromDirectory(const boost::filesystem::path& directory,
-                                   Type expected_type, Descriptor* output);
+                                   Descriptor* output);
 
   void writeToDirectory(const boost::filesystem::path& directory) const;
 
-  static std::string toString(Type type);
+  static void validate(const Descriptor& descriptor, int expected_map_type);
 
   Descriptor() = default;
 };
 
-static_assert(mt::hasExpectedSize<Descriptor>(32, 32),
+static_assert(mt::hasExpectedSize<Descriptor>(16, 16),
               "struct Descriptor does not have expected size");
 
 }  // namespace internal

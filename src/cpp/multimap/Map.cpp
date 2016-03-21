@@ -60,8 +60,8 @@ Map::Map(const boost::filesystem::path& directory, const Options& options)
   partition_options.readonly = options.readonly;
   partition_options.block_size = options.block_size;
   internal::Descriptor descriptor;
-  if (internal::Descriptor::tryReadFromDirectory(
-          directory, internal::Descriptor::MAP, &descriptor)) {
+  if (internal::Descriptor::tryReadFromDirectory(directory, &descriptor)) {
+    internal::Descriptor::validate(descriptor, internal::Descriptor::MAP);
     mt::Check::isFalse(options.error_if_exists, "Map in '%s' already exists",
                        boost::filesystem::absolute(directory).c_str());
     partitions_.resize(descriptor.num_partitions);
@@ -70,7 +70,7 @@ Map::Map(const boost::filesystem::path& directory, const Options& options)
     mt::Check::isTrue(options.create_if_missing, "Map in '%s' does not exist",
                       boost::filesystem::absolute(directory).c_str());
     partitions_.resize(mt::nextPrime(options.num_partitions));
-    descriptor.type = internal::Descriptor::MAP;
+    descriptor.map_type = internal::Descriptor::MAP;
     descriptor.num_partitions = partitions_.size();
     descriptor.writeToDirectory(directory);
   }
@@ -176,8 +176,8 @@ Stats Map::getTotalStats() const { return Stats::total(getStats()); }
 
 std::vector<Stats> Map::stats(const boost::filesystem::path& directory) {
   internal::DirectoryLock lock(directory);
-  const auto descriptor = internal::Descriptor::readFromDirectory(
-      directory, internal::Descriptor::MAP);
+  const auto descriptor = internal::Descriptor::readFromDirectory(directory);
+  internal::Descriptor::validate(descriptor, internal::Descriptor::MAP);
   std::vector<Stats> stats;
   for (size_t i = 0; i != descriptor.num_partitions; i++) {
     const auto prefix = getPartitionPrefix(directory, i);
@@ -227,8 +227,8 @@ void Map::exportToBase64(const boost::filesystem::path& directory,
                          const boost::filesystem::path& target,
                          const Options& options) {
   internal::DirectoryLock lock(directory);
-  const auto descriptor = internal::Descriptor::readFromDirectory(
-      directory, internal::Descriptor::MAP);
+  const auto descriptor = internal::Descriptor::readFromDirectory(directory);
+  internal::Descriptor::validate(descriptor, internal::Descriptor::MAP);
   internal::TsvFileWriter writer(target);
 
   for (size_t i = 0; i != descriptor.num_partitions; i++) {
@@ -274,8 +274,8 @@ void Map::optimize(const boost::filesystem::path& directory,
 void Map::optimize(const boost::filesystem::path& directory,
                    const boost::filesystem::path& target,
                    const Options& options) {
-  const auto descriptor = internal::Descriptor::readFromDirectory(
-      directory, internal::Descriptor::MAP);
+  const auto descriptor = internal::Descriptor::readFromDirectory(directory);
+  internal::Descriptor::validate(descriptor, internal::Descriptor::MAP);
   auto prefix = getPartitionPrefix(directory, 0);
   const Stats stats = internal::Partition::stats(prefix);
   Options new_options = options;

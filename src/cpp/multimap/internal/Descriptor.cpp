@@ -20,6 +20,22 @@
 namespace multimap {
 namespace internal {
 
+namespace {
+
+std::string mapTypeToString(uint32_t map_type) {
+  switch (map_type) {
+    case Descriptor::MAP:
+      return "Map";
+    case Descriptor::IMMUTABLE_MAP:
+      return "ImmutableMap";
+    default:
+      mt::fail("mapTypeToString(%u) is undefined", map_type);
+      return "";
+  }
+}
+
+}  // namespace
+
 std::string Descriptor::getFilename() { return getFilePrefix() + ".desc"; }
 
 std::string Descriptor::getFilePrefix() { return "multimap"; }
@@ -33,25 +49,20 @@ std::string Descriptor::getFullFilePrefix(const boost::filesystem::path& base) {
 }
 
 Descriptor Descriptor::readFromDirectory(
-    const boost::filesystem::path& directory, Type expected_type) {
+    const boost::filesystem::path& directory) {
   Descriptor descriptor;
-  mt::check(tryReadFromDirectory(directory, expected_type, &descriptor),
+  mt::check(tryReadFromDirectory(directory, &descriptor),
             "Reading descriptor from '%s' failed", directory.c_str());
   return descriptor;
 }
 
 bool Descriptor::tryReadFromDirectory(const boost::filesystem::path& directory,
-                                      Type expected_type, Descriptor* output) {
+                                      Descriptor* output) {
   const auto filename = directory / getFilename();
   const auto stream = mt::tryOpen(filename, "r");
   if (stream.get()) {
     mt::read(stream.get(), output, sizeof *output);
-    Version::checkCompatibility(output->major_version, output->minor_version);
-    mt::check(expected_type == output->type,
-              "Attempt to open an instance of type '%s' from '%s' but the "
-              "actual type found was '%s'",
-              toString(expected_type).c_str(), filename.parent_path().c_str(),
-              toString(static_cast<Type>(output->type)).c_str());
+
     return true;
   }
   return false;
@@ -59,23 +70,20 @@ bool Descriptor::tryReadFromDirectory(const boost::filesystem::path& directory,
 
 void Descriptor::writeToDirectory(
     const boost::filesystem::path& directory) const {
-  MT_REQUIRE_TRUE(type == MAP || type == IMMUTABLE_MAP);
+  MT_REQUIRE_NOT_ZERO(num_partitions);
+  MT_REQUIRE_TRUE(map_type == MAP || map_type == IMMUTABLE_MAP);
   const auto stream = mt::open(directory / getFilename(), "w");
   mt::write(stream.get(), this, sizeof *this);
 }
 
-std::string Descriptor::toString(Type type) {
-  switch (type) {
-    case NONE:
-      return "None";
-    case MAP:
-      return "Map";
-    case IMMUTABLE_MAP:
-      return "ImmutableMap";
-    default:
-      MT_FAIL("Reached default branch in switch statement");
-  }
-  return "";
+void Descriptor::validate(const Descriptor& descriptor, int expected_map_type) {
+  Version::checkCompatibility(descriptor.major_version,
+                              descriptor.minor_version);
+  mt::Check::isEqual(expected_map_type, descriptor.map_type,
+                     "Validation of descriptor failed. Expected type '%s' but "
+                     "the actual type was '%s'",
+                     mapTypeToString(expected_map_type).c_str(),
+                     mapTypeToString(descriptor.map_type).c_str());
 }
 
 }  // namespace internal
