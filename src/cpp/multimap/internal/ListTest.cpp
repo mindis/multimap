@@ -25,8 +25,6 @@
 namespace multimap {
 namespace internal {
 
-using testing::Eq;
-
 TEST(ListTest, IsDefaultConstructible) {
   ASSERT_TRUE(std::is_default_constructible<List>::value);
 }
