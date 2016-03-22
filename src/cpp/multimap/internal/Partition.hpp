@@ -44,7 +44,7 @@ class Partition {
 
   template <typename InputIter>
   void put(const Slice& key, InputIter begin, InputIter end) {
-    getListOrCreate(key)->append(begin, end, store_.get(), &arena_);
+    getListOrCreate(key)->append(begin, end, &store_, &arena_);
   }
 
   std::unique_ptr<Iterator> get(const Slice& key) const;
@@ -96,10 +96,10 @@ class Partition {
 
   mutable boost::shared_mutex mutex_;
   std::unordered_map<Slice, std::unique_ptr<List>> map_;
-  std::unique_ptr<Store> store_;
-  std::string prefix_;
+  Store store_;
   Arena arena_;
   Stats stats_;
+  std::string prefix_;
 };
 
 }  // namespace internal

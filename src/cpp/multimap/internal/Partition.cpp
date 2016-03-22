@@ -91,11 +91,11 @@ Partition::Partition(const std::string& prefix, const Options& options)
     stats.num_values_valid = stats_.num_values_valid;
     stats_ = stats;
   }
-  store_.reset(new Store(getNameOfStoreFile(prefix), store_options));
+  store_ = Store(getNameOfStoreFile(prefix), store_options);
 }
 
 Partition::~Partition() {
-  if (store_->isReadOnly()) return;
+  if (store_.isReadOnly()) return;
 
   const auto map_filename = getNameOfMapFile(prefix_);
   const auto map_filename_old = map_filename + ".old";
@@ -108,7 +108,7 @@ Partition::~Partition() {
   for (const auto& entry : map_) {
     auto& key = entry.first;
     auto& list = *entry.second;
-    if (list.tryFlush(store_.get(), &list_stats)) {
+    if (list.tryFlush(&store_, &list_stats)) {
       // Ok, everything is fine.
     } else {
       const auto key_as_base64 = Base64::encode(key);
@@ -116,7 +116,7 @@ Partition::~Partition() {
                 << " (Base64) was still locked when shutting down.\n"
                 << " The last known state of the list has been safed,"
                 << " but ongoing updates, if any, may be lost.\n";
-      list.flushUnlocked(store_.get(), &list_stats);
+      list.flushUnlocked(&store_, &list_stats);
     }
     stats_.num_values_total += list_stats.num_values_total;
     stats_.num_values_valid += list_stats.num_values_valid();
@@ -141,8 +141,8 @@ Partition::~Partition() {
     stats_.key_size_avg /= stats_.num_keys_valid;
     stats_.list_size_avg /= stats_.num_keys_valid;
   }
-  stats_.block_size = store_->getBlockSize();
-  stats_.num_blocks = store_->getNumBlocks();
+  stats_.block_size = store_.getBlockSize();
+  stats_.num_blocks = store_.getNumBlocks();
   stats_.num_keys_total = map_.size();
 
   stats_.writeToFile(getNameOfStatsFile(prefix_));
@@ -154,16 +154,16 @@ Partition::~Partition() {
 }
 
 void Partition::put(const Slice& key, const Slice& value) {
-  getListOrCreate(key)->append(value, store_.get(), &arena_);
+  getListOrCreate(key)->append(value, &store_, &arena_);
 }
 
 std::unique_ptr<Iterator> Partition::get(const Slice& key) const {
   const List* list = getList(key);
-  return list ? list->newIterator(*store_) : Iterator::newEmptyInstance();
+  return list ? list->newIterator(store_) : Iterator::newEmptyInstance();
 }
 
 size_t Partition::remove(const Slice& key) {
-  mt::Check::isFalse(store_->isReadOnly(), READ_ONLY_VIOLATION);
+  mt::Check::isFalse(store_.isReadOnly(), READ_ONLY_VIOLATION);
   List* list = getList(key);
   return list ? list->clear() : 0;
 }
@@ -177,13 +177,13 @@ size_t Partition::removeAllEqual(const Slice& key, const Slice& value) {
 }
 
 bool Partition::removeFirstMatch(const Slice& key, Predicate predicate) {
-  mt::Check::isFalse(store_->isReadOnly(), READ_ONLY_VIOLATION);
+  mt::Check::isFalse(store_.isReadOnly(), READ_ONLY_VIOLATION);
   List* list = getList(key);
-  return list ? list->removeFirstMatch(predicate, store_.get()) : false;
+  return list ? list->removeFirstMatch(predicate, &store_) : false;
 }
 
 size_t Partition::removeFirstMatch(Predicate predicate) {
-  mt::Check::isFalse(store_->isReadOnly(), READ_ONLY_VIOLATION);
+  mt::Check::isFalse(store_.isReadOnly(), READ_ONLY_VIOLATION);
   ReaderLockGuard<boost::shared_mutex> lock(mutex_);
   size_t num_values_removed = 0;
   for (const auto& entry : map_) {
@@ -196,13 +196,13 @@ size_t Partition::removeFirstMatch(Predicate predicate) {
 }
 
 size_t Partition::removeAllMatches(const Slice& key, Predicate predicate) {
-  mt::Check::isFalse(store_->isReadOnly(), READ_ONLY_VIOLATION);
+  mt::Check::isFalse(store_.isReadOnly(), READ_ONLY_VIOLATION);
   List* list = getList(key);
-  return list ? list->removeAllMatches(predicate, store_.get()) : 0;
+  return list ? list->removeAllMatches(predicate, &store_) : 0;
 }
 
 std::pair<size_t, size_t> Partition::removeAllMatches(Predicate predicate) {
-  mt::Check::isFalse(store_->isReadOnly(), READ_ONLY_VIOLATION);
+  mt::Check::isFalse(store_.isReadOnly(), READ_ONLY_VIOLATION);
   ReaderLockGuard<boost::shared_mutex> lock(mutex_);
   size_t num_keys_removed = 0;
   size_t num_values_removed = 0;
@@ -233,21 +233,21 @@ size_t Partition::replaceAllEqual(const Slice& key, const Slice& old_value,
 }
 
 bool Partition::replaceFirstMatch(const Slice& key, Function map) {
-  mt::Check::isFalse(store_->isReadOnly(), READ_ONLY_VIOLATION);
+  mt::Check::isFalse(store_.isReadOnly(), READ_ONLY_VIOLATION);
   List* list = getList(key);
-  return list ? list->replaceFirstMatch(map, store_.get(), &arena_) : false;
+  return list ? list->replaceFirstMatch(map, &store_, &arena_) : false;
 }
 
 size_t Partition::replaceAllMatches(const Slice& key, Function map) {
-  mt::Check::isFalse(store_->isReadOnly(), READ_ONLY_VIOLATION);
+  mt::Check::isFalse(store_.isReadOnly(), READ_ONLY_VIOLATION);
   List* list = getList(key);
-  return list ? list->replaceAllMatches(map, store_.get(), &arena_) : 0;
+  return list ? list->replaceAllMatches(map, &store_, &arena_) : 0;
 }
 
 size_t Partition::replaceAllMatches(const Slice& key, Function2 map) {
-  mt::Check::isFalse(store_->isReadOnly(), READ_ONLY_VIOLATION);
+  mt::Check::isFalse(store_.isReadOnly(), READ_ONLY_VIOLATION);
   List* list = getList(key);
-  return list ? list->replaceAllMatches(map, store_.get(), &arena_) : 0;
+  return list ? list->replaceAllMatches(map, &store_, &arena_) : 0;
 }
 
 void Partition::forEachKey(Procedure process) const {
@@ -261,20 +261,18 @@ void Partition::forEachKey(Procedure process) const {
 
 void Partition::forEachValue(const Slice& key, Procedure process) const {
   if (const List* list = getList(key)) {
-    list->forEachValue(process, *store_);
+    list->forEachValue(process, store_);
   }
 }
 
 void Partition::forEachEntry(BinaryProcedure process) const {
   ReaderLockGuard<boost::shared_mutex> lock(mutex_);
-  //        store_->adviseAccessPattern(Store::AccessPattern::WILLNEED);
   for (const auto& entry : map_) {
-    auto iter = entry.second->newIterator(*store_);
+    auto iter = entry.second->newIterator(store_);
     if (iter->hasNext()) {
       process(entry.first, iter.get());
     }
   }
-  //        store_->adviseAccessPattern(Store::AccessPattern::NORMAL);
 }
 
 Stats Partition::getStats() const {
@@ -306,8 +304,8 @@ Stats Partition::getStats() const {
     stats.key_size_avg /= stats.num_keys_valid;
     stats.list_size_avg /= stats.num_keys_valid;
   }
-  stats.block_size = store_->getBlockSize();
-  stats.num_blocks = store_->getNumBlocks();
+  stats.block_size = store_.getBlockSize();
+  stats.num_blocks = store_.getNumBlocks();
   stats.num_keys_total = map_.size();
   return stats;
 }
@@ -316,13 +314,11 @@ void Partition::forEachEntry(const std::string& prefix,
                              BinaryProcedure process) {
   const auto stats = Stats::readFromFile(getNameOfStatsFile(prefix));
 
+  Bytes key;
   Options store_options;
   store_options.readonly = true;
   store_options.block_size = stats.block_size;
   Store store(getNameOfStoreFile(prefix), store_options);
-  //        store.adviseAccessPattern(Store::AccessPattern::WILLNEED);
-
-  Bytes key;
   const auto stream = mt::open(getNameOfMapFile(prefix), "r");
   for (size_t i = 0; i != stats.num_keys_valid; i++) {
     MT_ASSERT_TRUE(readBytesFromStream(stream.get(), &key));
@@ -343,7 +339,7 @@ List* Partition::getList(const Slice& key) const {
 }
 
 List* Partition::getListOrCreate(const Slice& key) {
-  mt::Check::isFalse(store_->isReadOnly(), READ_ONLY_VIOLATION);
+  mt::Check::isFalse(store_.isReadOnly(), READ_ONLY_VIOLATION);
   MT_REQUIRE_LE(key.size(), Limits::maxKeySize());
   WriterLockGuard<boost::shared_mutex> lock(mutex_);
   auto iter = map_.find(key);
