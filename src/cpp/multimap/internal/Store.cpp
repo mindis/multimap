@@ -29,8 +29,10 @@ const size_t SEGMENT_SIZE = mt::MiB(2);
 
 }  // namespace
 
+Store::Store() : mutex_(new std::mutex()) {}
+
 Store::Store(const boost::filesystem::path& filename, const Options& options)
-    : options_(options) {
+    : mutex_(new std::mutex()), options_(options) {
   MT_REQUIRE_NOT_ZERO(options.block_size);
   if (boost::filesystem::is_regular_file(filename)) {
     fd_ = mt::open(filename, options.readonly ? O_RDONLY : O_RDWR);
@@ -71,7 +73,7 @@ Store::~Store() {
 }
 
 uint32_t Store::put(const Block& block) {
-  std::lock_guard<std::mutex> lock(mutex_);
+  std::lock_guard<std::mutex> lock(*mutex_);
   if (segments_.empty() || segments_.back().isFull()) {
     const uint64_t old_file_size = segments_.size() * SEGMENT_SIZE;
     const uint64_t new_file_size = old_file_size + SEGMENT_SIZE;
@@ -87,7 +89,7 @@ Store::Blocks Store::get(const BlockIds& block_ids) const {
   Blocks blocks;
   blocks.reserve(block_ids.size());
   const size_t blocks_per_segment = SEGMENT_SIZE / options_.block_size;
-  std::lock_guard<std::mutex> lock(mutex_);
+  std::lock_guard<std::mutex> lock(*mutex_);
   for (uint32_t block_id : block_ids) {
     const size_t seg_id = block_id / blocks_per_segment;
     const size_t seg_block_id = block_id % blocks_per_segment;

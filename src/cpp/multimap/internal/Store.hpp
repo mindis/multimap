@@ -59,7 +59,10 @@ class Store {
   typedef std::vector<uint32_t> BlockIds;
   typedef std::vector<Block> Blocks;
 
-  Store() = default;
+  Store();
+
+  Store(Store&&) = default;
+  Store& operator=(Store&&) = default;
 
   Store(const boost::filesystem::path& file, const Options& options);
 
@@ -70,7 +73,7 @@ class Store {
   Blocks get(const BlockIds& block_ids) const;
 
   size_t getNumBlocks() const {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock(*mutex_);
     return getNumBlocksUnlocked();
   }
 
@@ -102,7 +105,7 @@ class Store {
     size_t offset_ = 0;
   };
 
-  mutable std::mutex mutex_;
+  std::unique_ptr<std::mutex> mutex_;
   std::vector<Segment> segments_;
   mt::AutoCloseFd fd_;
   Options options_;
