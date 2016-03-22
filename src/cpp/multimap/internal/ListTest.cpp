@@ -419,6 +419,50 @@ TEST_F(ListTestFixture, ReplaceAllMatchesReplacesAllMatches) {
   ASSERT_FALSE(iter->hasNext());
 }
 
+TEST_F(ListTestFixture, ClearRemovesAllValues) {
+  List list;
+  const int num_values = 1000;
+  for (int i = 0; i < num_values; i++) {
+    list.append(std::to_string(i), getStore(), getArena());
+  }
+  ASSERT_EQ(0, list.getStatsUnlocked().num_values_removed);
+  ASSERT_EQ(num_values, list.getStatsUnlocked().num_values_total);
+  ASSERT_EQ(num_values, list.getStatsUnlocked().num_values_valid());
+  ASSERT_FALSE(list.empty());
+
+  // Clear list.
+  ASSERT_EQ(num_values, list.clear());
+  ASSERT_EQ(num_values, list.getStatsUnlocked().num_values_removed);
+  ASSERT_EQ(num_values, list.getStatsUnlocked().num_values_total);
+  ASSERT_EQ(0, list.getStatsUnlocked().num_values_valid());
+  ASSERT_TRUE(list.empty());
+
+  // Append again.
+  for (int i = 0; i < num_values; i++) {
+    list.append(std::to_string(i), getStore(), getArena());
+  }
+  ASSERT_EQ(num_values, list.getStatsUnlocked().num_values_removed);
+  ASSERT_EQ(num_values * 2, list.getStatsUnlocked().num_values_total);
+  ASSERT_EQ(num_values, list.getStatsUnlocked().num_values_valid());
+  ASSERT_FALSE(list.empty());
+
+  // Clear list again.
+  ASSERT_EQ(num_values, list.clear());
+  ASSERT_EQ(num_values * 2, list.getStatsUnlocked().num_values_removed);
+  ASSERT_EQ(num_values * 2, list.getStatsUnlocked().num_values_total);
+  ASSERT_EQ(0, list.getStatsUnlocked().num_values_valid());
+  ASSERT_TRUE(list.empty());
+
+  // Append again.
+  for (int i = 0; i < num_values; i++) {
+    list.append(std::to_string(i), getStore(), getArena());
+  }
+  ASSERT_EQ(num_values * 2, list.getStatsUnlocked().num_values_removed);
+  ASSERT_EQ(num_values * 3, list.getStatsUnlocked().num_values_total);
+  ASSERT_EQ(num_values, list.getStatsUnlocked().num_values_valid());
+  ASSERT_FALSE(list.empty());
+}
+
 // -----------------------------------------------------------------------------
 // Concurrency
 // -----------------------------------------------------------------------------

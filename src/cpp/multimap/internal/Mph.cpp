@@ -70,7 +70,7 @@ Mph Mph::build(const boost::filesystem::path& keys) {
   return build(keydata.data(), keydata.size());
 }
 
-size_t Mph::operator()(const Slice& key) const {
+uint32_t Mph::operator()(const Slice& key) const {
   return cmph_search(cmph_.get(), reinterpret_cast<const char*>(key.begin()),
                      key.size());
 }

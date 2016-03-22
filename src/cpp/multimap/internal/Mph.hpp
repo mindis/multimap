@@ -54,9 +54,9 @@ class Mph {
   static Mph build(const boost::filesystem::path& keys);
   // `keys` contains a sequence of keys which are encoded as described above.
 
-  size_t operator()(const Slice& key) const;
+  uint32_t operator()(const Slice& key) const;
 
-  size_t size() const { return cmph_size(cmph_.get()); }
+  uint32_t size() const { return cmph_size(cmph_.get()); }
 
   void writeToFile(const boost::filesystem::path& filename) const;
 
