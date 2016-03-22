@@ -137,7 +137,7 @@ ImmutableMap::ImmutableMap(const boost::filesystem::path& directory)
     : dlock_(directory) {
   const auto desc = internal::Descriptor::readFromDirectory(directory);
   internal::Descriptor::validate(desc, internal::Descriptor::IMMUTABLE_MAP);
-  for (size_t i = 0; i != desc.num_partitions; i++) {
+  for (int i = 0; i < desc.num_partitions; i++) {
     const auto full_prefix = getPartitionPrefix(directory, i);
     tables_.push_back(internal::MphTable(full_prefix));
   }
@@ -178,7 +178,7 @@ std::vector<Stats> ImmutableMap::stats(
   const auto desc = internal::Descriptor::readFromDirectory(directory);
   internal::Descriptor::validate(desc, internal::Descriptor::IMMUTABLE_MAP);
   std::vector<Stats> stats(desc.num_partitions);
-  for (size_t i = 0; i != desc.num_partitions; i++) {
+  for (int i = 0; i < desc.num_partitions; i++) {
     stats[i] = internal::MphTable::stats(getPartitionPrefix(directory, i));
   }
   return stats;
