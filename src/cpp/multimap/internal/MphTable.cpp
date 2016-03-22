@@ -254,7 +254,7 @@ size_t MphTable::Limits::maxKeySize() { return Varint::Limits::MAX_N4; }
 size_t MphTable::Limits::maxValueSize() { return Varint::Limits::MAX_N4; }
 
 MphTable::MphTable(const std::string& prefix)
-    : mph_(getNameOfMphFile(prefix)),
+    : mph_(Mph::readFromFile(getNameOfMphFile(prefix))),
       table_(mapFileIntoMemory(getNameOfTableFile(prefix))),
       lists_(mapFileIntoMemory(getNameOfListsFile(prefix))),
       stats_(Stats::readFromFile(getNameOfStatsFile(prefix))) {}

@@ -40,10 +40,7 @@ struct default_delete<cmph_config_t> {
 namespace multimap {
 namespace internal {
 
-Mph::Mph(const boost::filesystem::path& filename)
-    : cmph_(cmph_load(mt::open(filename.string(), "r").get())) {}
-
-Mph Mph::build(const byte** keys, size_t nkeys) {
+Mph Mph::build(const byte** keys, uint32_t nkeys) {
   std::unique_ptr<cmph_io_adapter_t> source(
       cmph_io_byte_vector_adapter(const_cast<byte**>(keys), nkeys));
 
@@ -73,6 +70,11 @@ Mph Mph::build(const boost::filesystem::path& keys) {
 uint32_t Mph::operator()(const Slice& key) const {
   return cmph_search(cmph_.get(), reinterpret_cast<const char*>(key.begin()),
                      key.size());
+}
+
+Mph Mph::readFromFile(const boost::filesystem::path& filename) {
+  auto stream = mt::open(filename.string(), "r");
+  return Mph(std::unique_ptr<cmph_t>(cmph_load(stream.get())));
 }
 
 void Mph::writeToFile(const boost::filesystem::path& filename) const {

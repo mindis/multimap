@@ -21,7 +21,6 @@
 #include <memory>
 #include <boost/filesystem/path.hpp>
 #include "multimap/thirdparty/cmph/cmph.h"
-#include "multimap/Options.hpp"
 #include "multimap/Slice.hpp"
 
 namespace std {
@@ -42,12 +41,10 @@ class Mph {
   // This class is read-only and does not need external locking.
 
  public:
-  explicit Mph(const boost::filesystem::path& filename);
-
   Mph(Mph&&) = default;
   Mph& operator=(Mph&&) = default;
 
-  static Mph build(const byte** keys, size_t nkeys);
+  static Mph build(const byte** keys, uint32_t nkeys);
   // A key in `keys` points to memory which is encoded like this:
   // [keylen as uint32][1 .. keydata .. keylen]
 
@@ -57,6 +54,8 @@ class Mph {
   uint32_t operator()(const Slice& key) const;
 
   uint32_t size() const { return cmph_size(cmph_.get()); }
+
+  static Mph readFromFile(const boost::filesystem::path& filename);
 
   void writeToFile(const boost::filesystem::path& filename) const;
 
