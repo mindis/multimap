@@ -31,9 +31,9 @@ TEST(StoreTest, IsNotCopyConstructibleOrAssignable) {
   ASSERT_FALSE(std::is_copy_assignable<Store>::value);
 }
 
-TEST(StoreTest, IsNotMoveConstructibleOrAssignable) {
-  ASSERT_FALSE(std::is_move_constructible<Store>::value);
-  ASSERT_FALSE(std::is_move_assignable<Store>::value);
+TEST(StoreTest, IsMoveConstructibleAndAssignable) {
+  ASSERT_TRUE(std::is_move_constructible<Store>::value);
+  ASSERT_TRUE(std::is_move_assignable<Store>::value);
 }
 
 }  // namespace internal
