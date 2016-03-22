@@ -58,7 +58,6 @@ class ListTestWithParam : public testing::TestWithParam<int> {
     directory_ = "/tmp/multimap.ListTestWithParam";
     boost::filesystem::remove_all(directory_);
     MT_ASSERT_TRUE(boost::filesystem::create_directory(directory_));
-
     store_ = Store(directory_ / "store", Options());
   }
 
@@ -267,7 +266,6 @@ class ListTestFixture : public testing::Test {
     directory_ = "/tmp/multimap.ListTestFixture";
     boost::filesystem::remove_all(directory_);
     MT_ASSERT_TRUE(boost::filesystem::create_directory(directory_));
-
     store_ = Store(directory_ / "store", Options());
   }
 
