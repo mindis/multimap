@@ -54,27 +54,28 @@ TEST(ListTest, DefaultConstructedHasProperState) {
 // Appending and Iteration
 // -----------------------------------------------------------------------------
 
-struct ListTestWithParam : public testing::TestWithParam<int> {
+class ListTestWithParam : public testing::TestWithParam<int> {
+ public:
   void SetUp() override {
-    directory = "/tmp/multimap.ListTestWithParam";
-    boost::filesystem::remove_all(directory);
-    MT_ASSERT_TRUE(boost::filesystem::create_directory(directory));
+    directory_ = "/tmp/multimap.ListTestWithParam";
+    boost::filesystem::remove_all(directory_);
+    MT_ASSERT_TRUE(boost::filesystem::create_directory(directory_));
 
-    store = Store(directory / "store", Options());
+    store_ = Store(directory_ / "store", Options());
   }
 
   void TearDown() override {
-    store = Store();  // Destructor flushes all data to disk.
-    MT_ASSERT_TRUE(boost::filesystem::remove_all(directory));
+    store_ = Store();  // Destructor flushes all data to disk.
+    MT_ASSERT_TRUE(boost::filesystem::remove_all(directory_));
   }
 
-  Store* getStore() { return &store; }
-  Arena* getArena() { return &arena; }
+  Store* getStore() { return &store_; }
+  Arena* getArena() { return &arena_; }
 
  private:
-  boost::filesystem::path directory;
-  Store store;
-  Arena arena;
+  boost::filesystem::path directory_;
+  Store store_;
+  Arena arena_;
 };
 
 TEST_P(ListTestWithParam, AppendSmallValuesAndIterateOnce) {
@@ -262,27 +263,28 @@ INSTANTIATE_TEST_CASE_P(Parameterized, ListTestWithParam,
 // Mutation
 // -----------------------------------------------------------------------------
 
-struct ListTestFixture : public testing::Test {
+class ListTestFixture : public testing::Test {
+ public:
   void SetUp() override {
-    directory = "/tmp/multimap.ListTestFixture";
-    boost::filesystem::remove_all(directory);
-    MT_ASSERT_TRUE(boost::filesystem::create_directory(directory));
+    directory_ = "/tmp/multimap.ListTestFixture";
+    boost::filesystem::remove_all(directory_);
+    MT_ASSERT_TRUE(boost::filesystem::create_directory(directory_));
 
-    store = Store(directory / "store", Options());
+    store_ = Store(directory_ / "store", Options());
   }
 
   void TearDown() override {
-    store = Store();  // Destructor flushes all data to disk.
-    MT_ASSERT_TRUE(boost::filesystem::remove_all(directory));
+    store_ = Store();  // Destructor flushes all data to disk.
+    MT_ASSERT_TRUE(boost::filesystem::remove_all(directory_));
   }
 
-  Store* getStore() { return &store; }
-  Arena* getArena() { return &arena; }
+  Store* getStore() { return &store_; }
+  Arena* getArena() { return &arena_; }
 
- private:
-  boost::filesystem::path directory;
-  Store store;
-  Arena arena;
+ protected:
+  boost::filesystem::path directory_;
+  Store store_;
+  Arena arena_;
 };
 
 TEST_F(ListTestFixture, RemoveFirstMatchOnlyRemovesFirstMatch) {
@@ -461,6 +463,50 @@ TEST_F(ListTestFixture, ClearRemovesAllValues) {
   ASSERT_EQ(num_values * 3, list.getStatsUnlocked().num_values_total);
   ASSERT_EQ(num_values, list.getStatsUnlocked().num_values_valid());
   ASSERT_FALSE(list.empty());
+}
+
+// -----------------------------------------------------------------------------
+// Serialization
+// -----------------------------------------------------------------------------
+
+class ListTestFixture2 : public ListTestFixture {
+ public:
+  void SetUp() override {
+    ListTestFixture::SetUp();
+    stream_ = mt::open(directory_ / "lists", "w+");
+  }
+
+  void TearDown() override {
+    stream_.reset();
+    ListTestFixture::TearDown();
+  }
+
+  std::FILE* getStream() { return stream_.get(); }
+
+ private:
+  mt::AutoCloseFile stream_;
+};
+
+TEST_F(ListTestFixture2, WriteListToFileThenReadBackAndIterate) {
+  List list;
+  const int num_values = 1000;
+  for (int i = 0; i < num_values; i++) {
+    list.append(std::to_string(i), getStore(), getArena());
+  }
+  list.flushUnlocked(getStore());
+
+  list.writeToStream(getStream());
+  std::rewind(getStream());
+  list = List::readFromStream(getStream());
+
+  auto iter = list.newIterator(*getStore());
+  for (int i = 0; i < num_values; i++) {
+    ASSERT_TRUE(iter->hasNext());
+    ASSERT_EQ(num_values - i, iter->available());
+    ASSERT_EQ(std::to_string(i), iter->next());
+  }
+  ASSERT_FALSE(iter->hasNext());
+  ASSERT_EQ(0, iter->available());
 }
 
 // -----------------------------------------------------------------------------
