@@ -39,6 +39,31 @@ class MphTable {
     Limits() = delete;
   };
 
+  class Builder {
+   public:
+    Builder(Builder&&) = default;
+    Builder& operator=(Builder&&) = default;
+
+    Builder(const std::string& prefix, const Options& options);
+
+    ~Builder();
+
+    void put(const Slice& key, const Slice& value);
+
+    boost::filesystem::path getFilename() const;
+
+    boost::filesystem::path releaseFile();
+
+    size_t getFileSize() const;
+
+    Stats build();
+
+   private:
+    mt::AutoCloseFile stream_;
+    std::string prefix_;
+    Options options_;
+  };
+
   explicit MphTable(const std::string& prefix);
 
   std::unique_ptr<Iterator> get(const Slice& key) const;
@@ -50,10 +75,6 @@ class MphTable {
   void forEachEntry(BinaryProcedure process) const;
 
   Stats getStats() const { return stats_; }
-
-  static Stats build(const std::string& prefix,
-                     const boost::filesystem::path& source,
-                     const Options& options);
 
   static Stats stats(const std::string& prefix);
 
