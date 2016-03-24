@@ -36,3 +36,5 @@ Makefile*
 libmultimap*
 mkdocs
 bin
+multimap.Rmd
+multimap.html
