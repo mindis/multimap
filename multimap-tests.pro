@@ -13,6 +13,8 @@ QMAKE_CXXFLAGS += -Wall -Wno-sign-compare
 # but with an exception for "-Wno-sign-compare".  The order of flags matters.
 # Compiling Google Test emits sign compare warnings we want to suppress.
 
+#DEFINES += MULTIMAP_RUN_LARGE_TESTS
+
 INCLUDEPATH += \
     src/cpp/multimap/thirdparty/googlemock \
     src/cpp/multimap/thirdparty/googlemock/include \
@@ -68,6 +70,7 @@ SOURCES += \
     src/cpp/multimap/internal/Base64Test.cpp \
     src/cpp/multimap/internal/ListTest.cpp \
     src/cpp/multimap/internal/DescriptorTest.cpp \
+    src/cpp/multimap/internal/MphTableTest.cpp \
     src/cpp/multimap/internal/MphTest.cpp \
     src/cpp/multimap/internal/PartitionTest.cpp \
     src/cpp/multimap/internal/StoreTest.cpp \
