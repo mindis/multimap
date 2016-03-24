@@ -49,16 +49,17 @@ class ImmutableMap {
     std::vector<Stats> build();
 
    private:
-    struct Bucket {
-      boost::filesystem::path filename;
-      mt::AutoCloseFile stream;
-      bool is_large = false;
-      size_t size = 0;
+    void rehash();
 
-      Bucket() = default;
+    struct Bucket {
+      Bucket(internal::MphTable::Builder builder)
+          : builder(std::move(builder)) {}
+
+      internal::MphTable::Builder builder;
+      bool is_large = false;
     };
 
-    const Options options_;
+    Options options_;
     std::vector<Bucket> buckets_;
     internal::DirectoryLock dlock_;
   };

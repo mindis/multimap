@@ -63,66 +63,30 @@ ImmutableMap::Builder::Builder(const boost::filesystem::path& directory,
       std::distance(boost::filesystem::directory_iterator(directory),
                     boost::filesystem::directory_iterator()),
       1, "Directory must be empty '%s'", directory.c_str());
-  buckets_.resize(mt::nextPrime(options.num_partitions));
-  for (size_t i = 0; i != buckets_.size(); i++) {
-    auto& bucket = buckets_[i];
-    bucket.filename = getPartitionPrefix(directory, i);
-    bucket.stream = mt::open(bucket.filename, "w+");
+  const auto num_buckets = mt::nextPrime(options.num_partitions);
+  for (size_t i = 0; i != num_buckets; i++) {
+    buckets_.emplace_back(internal::MphTable::Builder(
+        getPartitionPrefix(directory, i), options_));
   }
 }
 
 void ImmutableMap::Builder::put(const Slice& key, const Slice& value) {
   Bucket& bucket = select(buckets_, key);
-  key.writeToStream(bucket.stream.get());
-  value.writeToStream(bucket.stream.get());
-  bucket.size += value.size();
-  if (bucket.size > options_.max_partition_size && !bucket.is_large) {
-    // Double number of buckets and rehash all records.
-    std::vector<Bucket> new_buckets(mt::nextPrime(buckets_.size() * 2));
-    if (options_.verbose)
-      mt::log() << "Rehashing from " << buckets_.size() << " to "
-                << new_buckets.size() << " buckets triggered by "
-                << bucket.filename.string() << std::endl;
-    for (size_t i = 0; i != new_buckets.size(); i++) {
-      auto& new_bucket = new_buckets[i];
-      new_bucket.filename = getPartitionPrefix(dlock_.directory(), i) + ".new";
-      new_bucket.stream = mt::open(new_bucket.filename, "w+");
-    }
-    Bytes old_key;
-    Bytes old_value;
-    for (auto& bucket : buckets_) {
-      mt::seek(bucket.stream.get(), 0, SEEK_SET);
-      while (readBytesFromStream(bucket.stream.get(), &old_key) &&
-             readBytesFromStream(bucket.stream.get(), &old_value)) {
-        Bucket& new_bucket = select(new_buckets, old_key);
-        writeBytesToStream(new_bucket.stream.get(), old_key);
-        writeBytesToStream(new_bucket.stream.get(), old_value);
-        new_bucket.size += old_value.size();
-      }
-      bucket.stream.reset();
-      boost::filesystem::remove(bucket.filename);
-    }
-    // Rename new bucket files and check if there are large ones.
-    for (auto& new_bucket : new_buckets) {
-      const auto old_filename = new_bucket.filename;
-      const auto new_filename = new_bucket.filename.replace_extension();
-      boost::filesystem::rename(old_filename, new_filename);
-      if (new_bucket.size > options_.max_partition_size) {
-        new_bucket.is_large = true;
-      }
-    }
-    buckets_ = std::move(new_buckets);
-    if (options_.verbose) mt::log() << "Rehashing finished" << std::endl;
+  bucket.builder.put(key, value);
+  if ((bucket.builder.getFileSize() > options_.max_partition_size) &&
+      !bucket.is_large) {
+    rehash();
   }
 }
 
 std::vector<Stats> ImmutableMap::Builder::build() {
   std::vector<Stats> stats;
-  for (auto& bucket : buckets_) {
-    bucket.stream.reset();
-    stats.push_back(internal::MphTable::build(bucket.filename.string(),
-                                              bucket.filename, options_));
-    boost::filesystem::remove(bucket.filename);
+  for (size_t i = 0; i != buckets_.size(); i++) {
+    if (options_.verbose) {
+      mt::log() << "Building partition " << (i + 1) << " of " << buckets_.size()
+                << std::endl;
+    }
+    stats.push_back(buckets_[i].builder.build());
   }
 
   internal::Descriptor descriptor;
@@ -131,6 +95,46 @@ std::vector<Stats> ImmutableMap::Builder::build() {
   descriptor.writeToDirectory(dlock_.directory());
 
   return stats;
+}
+
+void ImmutableMap::Builder::rehash() {
+  const auto num_new_buckets = mt::nextPrime(buckets_.size() * 2);
+  if (options_.verbose) {
+    mt::log() << "Rehashing from " << buckets_.size() << " to "
+              << num_new_buckets << " buckets" << std::endl;
+  }
+  std::vector<Bucket> new_buckets;
+  for (size_t i = 0; i != num_new_buckets; i++) {
+    new_buckets.emplace_back(internal::MphTable::Builder(
+        getPartitionPrefix(dlock_.directory(), i) + ".new", options_));
+  }
+  Bytes old_key;
+  Bytes old_value;
+  for (Bucket& bucket : buckets_) {
+    const auto filename = bucket.builder.releaseFile();
+    {
+      const auto stream = mt::open(filename, "r");
+      while (readBytesFromStream(stream.get(), &old_key) &&
+             readBytesFromStream(stream.get(), &old_value)) {
+        select(new_buckets, old_key).builder.put(old_key, old_value);
+      }
+    }
+    boost::filesystem::remove(filename);
+  }
+  // Rename new bucket files and check if there are large ones.
+  for (Bucket& new_bucket : new_buckets) {
+    const auto old_filename = new_bucket.builder.getFilename();
+    auto new_filename = old_filename;
+    new_filename.replace_extension();
+    boost::filesystem::rename(old_filename, new_filename);
+    if (new_bucket.builder.getFileSize() > options_.max_partition_size) {
+      new_bucket.is_large = true;
+    }
+  }
+  buckets_ = std::move(new_buckets);
+  if (options_.verbose) {
+    mt::log() << "Rehashing finished" << std::endl;
+  }
 }
 
 ImmutableMap::ImmutableMap(const boost::filesystem::path& directory)
