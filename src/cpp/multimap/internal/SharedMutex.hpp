@@ -60,8 +60,8 @@ class SharedMutex {
     size_t getCurrentSize() const;
     size_t getMaximumSize() const;
     void setMaximumSize(size_t size);
-    void push(std::unique_ptr<RefCountedMutex> mutex);
-    std::unique_ptr<RefCountedMutex> pop();
+    void release(std::unique_ptr<RefCountedMutex> mutex);
+    std::unique_ptr<RefCountedMutex> acquire();
 
    private:
     Pool() = default;
