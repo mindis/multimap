@@ -179,7 +179,7 @@ std::vector<Stats> Map::stats(const boost::filesystem::path& directory) {
   const auto descriptor = internal::Descriptor::readFromDirectory(directory);
   internal::Descriptor::validate(descriptor, internal::Descriptor::MAP);
   std::vector<Stats> stats;
-  for (size_t i = 0; i != descriptor.num_partitions; i++) {
+  for (int i = 0; i < descriptor.num_partitions; i++) {
     const auto prefix = getPartitionPrefix(directory, i);
     stats.push_back(internal::Partition::stats(prefix));
   }
@@ -231,7 +231,7 @@ void Map::exportToBase64(const boost::filesystem::path& directory,
   internal::Descriptor::validate(descriptor, internal::Descriptor::MAP);
   internal::TsvFileWriter writer(target);
 
-  for (size_t i = 0; i != descriptor.num_partitions; i++) {
+  for (int i = 0; i < descriptor.num_partitions; i++) {
     const auto prefix = getPartitionPrefix(directory, i);
     if (options.verbose) {
       mt::log() << "Exporting partition " << (i + 1) << " of "
@@ -289,7 +289,7 @@ void Map::optimize(const boost::filesystem::path& directory,
   }
   Map new_map(target, new_options);
 
-  for (size_t i = 0; i != descriptor.num_partitions; i++) {
+  for (int i = 0; i < descriptor.num_partitions; i++) {
     prefix = getPartitionPrefix(directory, i);
     if (options.verbose) {
       mt::log() << "Optimizing partition " << (i + 1) << " of "
