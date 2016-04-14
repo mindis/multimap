@@ -19,7 +19,8 @@
 #include <cinttypes>
 #include <iostream>
 #include <boost/filesystem/operations.hpp>
-#include <multimap/thirdparty/mt/mt.hpp>
+#include <multimap/thirdparty/mt/check.hpp>
+#include <multimap/thirdparty/mt/common.hpp>
 #include <multimap/Map.hpp>
 #include <multimap/Version.hpp>
 
@@ -104,8 +105,8 @@ CommandLine parseCommandLine(int argc, const char** argv) {
   return cmd;
 }
 
-Map::Options initOptions(const CommandLine& cmd) {
-  Map::Options options;
+Options initOptions(const CommandLine& cmd) {
+  Options options;
   options.create_if_missing = cmd.options.count(CREATE);
   options.verbose = cmd.options.count(QUIET) == 0;
   if (cmd.options.count(BS)) {
@@ -119,7 +120,7 @@ Map::Options initOptions(const CommandLine& cmd) {
 
 void runHelpCommand(const char* toolname) {
   // clang-format off
-  const Map::Options default_options{};
+  const Options default_options{};
   std::printf(
       "USAGE\n"
       "\n  %s COMMAND path/to/map [PATH] [OPTIONS]"
@@ -131,9 +132,10 @@ void runHelpCommand(const char* toolname) {
       "\n  %-10s     Rewrite an instance performing various optimizations."
       "\n\nOPTIONS\n"
       "\n  %-9s      Create a new instance if missing when importing data."
-      "\n  %-9s NUM  Block size to use for a new instance. Default is %u."
+      "\n  %-9s NUM  Block size to use for a new instance."
+      " Default is %" PRIxS "."
       "\n  %-9s NUM  Number of partitions to use for a new instance."
-      " Default is %u."
+      " Default is %" PRIxS "."
       "\n  %-9s      Don't output any status messages."
       "\n\nEXAMPLES\n"
       "\n  %s %-8s path/to/map"
@@ -175,14 +177,14 @@ void runStatsCommand(const CommandLine& cmd) {
   const auto stats = Map::stats(cmd.map);
   const int first_column_width = std::to_string(stats.size()).size();
 
-  const auto names = internal::Stats::names();
+  const auto names = Stats::names();
   const int second_column_width =
       std::max_element(names.begin(), names.end(),
                        [](const std::string& a, const std::string& b) {
                          return a.size() < b.size();
                        })->size();
 
-  const auto totals = internal::Stats::total(stats).toVector();
+  const auto totals = Stats::total(stats).toVector();
   const int third_column_width =
       std::to_string(*std::max_element(totals.begin(), totals.end())).size();
 
@@ -191,7 +193,7 @@ void runStatsCommand(const CommandLine& cmd) {
     return value != 0 ? std::string(std::ceil(30 * value / max), '*') : "";
   };
 
-  const auto max = internal::Stats::max(stats).toVector();
+  const auto max = Stats::max(stats).toVector();
   for (uint32_t i = 0; i != stats.size(); ++i) {
     const auto stat = stats[i].toVector();
     for (size_t j = 0; j != stat.size(); ++j) {

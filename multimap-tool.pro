@@ -6,9 +6,12 @@ CONFIG -= qt
 
 QMAKE_CXXFLAGS += -std=c++11  # for Qt4 compatibility
 
+INCLUDEPATH += $$PWD/src/cpp
+DEPENDPATH += $$PWD/src/cpp
+
 SOURCES += src/cpp/multimap/command_line_tool.cpp
 
-unix: LIBS += -lboost_system -lmultimap
+unix: LIBS += -L$$OUT_PWD/ -lmultimap -lboost_system
 
 unix {
     target.path = /usr/local/bin
