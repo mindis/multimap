@@ -30,16 +30,16 @@
 
 namespace mt {
 
-// -----------------------------------------------------------------------------
-// POSIX-style I/O
-// -----------------------------------------------------------------------------
-
 std::vector<uint8_t> readAllBytes(const std::string& filename);
 
 std::vector<std::string> readAllLines(const std::string& filename);
 
 std::vector<std::string> listFiles(const std::string& directory,
                                    bool ignore_hidden = true);
+
+// -----------------------------------------------------------------------------
+// POSIX-style I/O
+// -----------------------------------------------------------------------------
 
 class AutoCloseFd {
   // A RAII-style file descriptor owner.
