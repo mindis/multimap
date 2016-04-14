@@ -25,31 +25,35 @@
 namespace multimap {
 namespace jni {
 
-struct BytesRaiiHelper : private mt::Resource {
-  BytesRaiiHelper(JNIEnv* env, jbyteArray array)
+struct JByteArrayRaiiHelper {
+
+  JByteArrayRaiiHelper(JNIEnv* env, jbyteArray array)
       : env_(env),
         array_(array),
-        bytes_(env->GetByteArrayElements(array, nullptr),
+        slice_(env->GetByteArrayElements(array, nullptr),
                env->GetArrayLength(array)) {}
 
-  BytesRaiiHelper(JNIEnv* env, jobject array)
-      : BytesRaiiHelper(env, static_cast<jbyteArray>(array)) {}
+  JByteArrayRaiiHelper(JNIEnv* env, jobject array)
+      : JByteArrayRaiiHelper(env, static_cast<jbyteArray>(array)) {}
 
-  ~BytesRaiiHelper() {
-    auto data = reinterpret_cast<jbyte*>(const_cast<char*>(bytes_.data()));
+  JByteArrayRaiiHelper(const JByteArrayRaiiHelper&) = delete;
+  JByteArrayRaiiHelper& operator=(const JByteArrayRaiiHelper&) = delete;
+
+  ~JByteArrayRaiiHelper() {
+    auto data = reinterpret_cast<jbyte*>(const_cast<byte*>(slice_.data()));
     env_->ReleaseByteArrayElements(array_, data, JNI_ABORT);
   }
 
-  const Bytes& get() const { return bytes_; }
+  const Slice& get() const { return slice_; }
 
  private:
   JNIEnv* env_;
   const jbyteArray array_;
-  const Bytes bytes_;
+  const Slice slice_;
 };
 
 inline jobject newByteBufferFromBytes(JNIEnv* env, const Bytes& bytes) {
-  return env->NewDirectByteBuffer(const_cast<char*>(bytes.data()),
+  return env->NewDirectByteBuffer(const_cast<byte*>(bytes.data()),
                                   bytes.size());
 }
 
@@ -125,7 +129,7 @@ class JavaFunction : public JavaCallable {
       // is passed to the Java exception-handling process of the Java client.
     }
     // result is a jbyteArray that is copied into a std::string.
-    return (result != nullptr) ? BytesRaiiHelper(env_, result).get().toString()
+    return (result != nullptr) ? JByteArrayRaiiHelper(env_, result).get().toString()
                                : std::string();
   }
 };
@@ -178,7 +182,7 @@ void throwJavaException(JNIEnv* env, const char* message);
 
 std::string makeString(JNIEnv* env, jstring string);
 
-Map::Options makeMapOptions(JNIEnv* env, jobject options);
+Options makeOptions(JNIEnv* env, jobject options);
 
 }  // namespace jni
 }  // namespace multimap

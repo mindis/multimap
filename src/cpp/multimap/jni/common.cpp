@@ -45,12 +45,12 @@ std::string makeString(JNIEnv* env, jstring string) {
   return result;
 }
 
-Map::Options makeMapOptions(JNIEnv* env, jobject options) {
+Options makeOptions(JNIEnv* env, jobject options) {
   MT_REQUIRE_NOT_NULL(options);
   const auto cls = env->GetObjectClass(options);
   mt::Check::notNull(cls, "GetObjectClass(options) failed");
 
-  Map::Options opts;
+  Options opts;
   const auto fid_numPartitions = env->GetFieldID(cls, "numPartitions", "I");
   mt::Check::notNull(fid_numPartitions, "GetFieldID(numPartitions) failed");
   opts.num_partitions = env->GetIntField(options, fid_numPartitions);
@@ -71,9 +71,9 @@ Map::Options makeMapOptions(JNIEnv* env, jobject options) {
   mt::Check::notNull(fid_readonly, "GetFieldID(readonly) failed");
   opts.readonly = env->GetBooleanField(options, fid_readonly);
 
-  const auto fid_quiet = env->GetFieldID(cls, "quiet", "Z");
-  mt::Check::notNull(fid_quiet, "GetFieldID(quiet) failed");
-  opts.quiet = env->GetBooleanField(options, fid_quiet);
+  const auto fid_verbose = env->GetFieldID(cls, "verbose", "Z");
+  mt::Check::notNull(fid_verbose, "GetFieldID(verbose) failed");
+  opts.verbose = env->GetBooleanField(options, fid_verbose);
 
   const auto fid_lessThan =
       env->GetFieldID(cls, "lessThan", "Lio/multimap/Callables$LessThan;");
