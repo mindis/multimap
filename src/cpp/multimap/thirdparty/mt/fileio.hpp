@@ -31,14 +31,7 @@
 namespace mt {
 
 // -----------------------------------------------------------------------------
-// Linux-style I/O
-//
-// Note that Linux and POSIX may define different interfaces.
-// However, the functions wrapped here should be compatible with POSIX.
-//
-// For example, the signature for open(...) is equivalent on Linux and POSIX.
-// Linux: <http://man7.org/linux/man-pages/man2/open.2.html>
-// POSIX: <http://man7.org/linux/man-pages/man3/open.3p.html>
+// POSIX-style I/O
 // -----------------------------------------------------------------------------
 
 std::vector<uint8_t> readAllBytes(const std::string& filename);
