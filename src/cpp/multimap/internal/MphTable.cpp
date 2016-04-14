@@ -218,7 +218,7 @@ Stats writeMap(const std::string& prefix, const Map& map, const Mph& mph,
   }
   const mt::AutoCloseFile table_stream = mt::fopen(table_filename, "w");
   mt::fwriteAll(table_stream.get(), table.data(),
-            table.size() * sizeof(Table::value_type));
+                table.size() * sizeof(Table::value_type));
 
   const std::string stats_filename = getNameOfStatsFile(prefix);
   if (verbose) {

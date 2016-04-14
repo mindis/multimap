@@ -72,7 +72,7 @@ size_t Varint::readFromBuffer(const byte* begin, const byte* end,
         *value += *begin++;
         return 4;
       default:
-      MT_FAIL("Reached default branch in switch statement");
+        MT_FAIL("Reached default branch in switch statement");
     }
   }
   return 0;
