@@ -23,7 +23,7 @@
 #define MULTIMAP_SLICE_HPP_INCLUDED
 
 #include <functional>
-#include "multimap/thirdparty/mt/mt.hpp"
+#include "multimap/thirdparty/mt/common.hpp"
 #include "multimap/thirdparty/xxhash/xxhash.h"
 #include "multimap/Bytes.hpp"
 

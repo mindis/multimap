@@ -26,7 +26,7 @@
 #include <string>
 #include <vector>
 #include <boost/filesystem/path.hpp>
-#include "multimap/thirdparty/mt/mt.hpp"
+#include "multimap/thirdparty/mt/common.hpp"
 
 namespace multimap {
 

@@ -22,6 +22,7 @@
 #include "multimap/internal/Base64.hpp"
 #include "multimap/internal/Locks.hpp"
 #include "multimap/internal/Varint.hpp"
+#include "multimap/thirdparty/mt/check.hpp"
 
 namespace multimap {
 namespace internal {
@@ -68,11 +69,11 @@ Partition::Partition(const std::string& prefix, const Options& options)
   Options store_options;
   store_options.readonly = options.readonly;
   store_options.block_size = options.block_size;
-  const auto map_filename = getNameOfMapFile(prefix);
+  const std::string map_filename = getNameOfMapFile(prefix);
   if (boost::filesystem::is_regular_file(map_filename)) {
     Bytes key;
-    const auto map_stream = mt::open(map_filename, "r");
-    const auto stats_filename = getNameOfStatsFile(prefix);
+    const mt::AutoCloseFile map_stream = mt::fopen(map_filename, "r");
+    const std::string stats_filename = getNameOfStatsFile(prefix);
     stats_ = Stats::readFromFile(stats_filename);
     store_options.block_size = stats_.block_size;
     for (size_t i = 0; i != stats_.num_keys_valid; i++) {
@@ -97,21 +98,21 @@ Partition::Partition(const std::string& prefix, const Options& options)
 Partition::~Partition() {
   if (store_.isReadOnly()) return;
 
-  const auto map_filename = getNameOfMapFile(prefix_);
-  const auto map_filename_old = map_filename + ".old";
+  const std::string map_filename = getNameOfMapFile(prefix_);
+  const std::string map_filename_old = map_filename + ".old";
   if (boost::filesystem::is_regular_file(map_filename)) {
     boost::filesystem::rename(map_filename, map_filename_old);
   }
 
   List::Stats list_stats;
-  mt::AutoCloseFile map_stream = mt::open(map_filename, "w");
+  const mt::AutoCloseFile map_stream = mt::fopen(map_filename, "w");
   for (const auto& entry : map_) {
     auto& key = entry.first;
     auto& list = *entry.second;
     if (list.tryFlush(&store_, &list_stats)) {
       // Ok, everything is fine.
     } else {
-      const auto key_as_base64 = Base64::encode(key);
+      const std::string key_as_base64 = Base64::encode(key);
       mt::log() << "The list with the key " << key_as_base64
                 << " (Base64) was still locked when shutting down.\n"
                 << " The last known state of the list has been safed,"
@@ -319,7 +320,7 @@ void Partition::forEachEntry(const std::string& prefix,
   store_options.readonly = true;
   store_options.block_size = stats.block_size;
   Store store(getNameOfStoreFile(prefix), store_options);
-  const auto stream = mt::open(getNameOfMapFile(prefix), "r");
+  mt::AutoCloseFile stream = mt::fopen(getNameOfMapFile(prefix), "r");
   for (size_t i = 0; i != stats.num_keys_valid; i++) {
     MT_ASSERT_TRUE(readBytesFromStream(stream.get(), &key));
     const List list = List::readFromStream(stream.get());

@@ -20,6 +20,8 @@
 
 #include <boost/filesystem/path.hpp>
 #include "multimap/internal/Mph.hpp"
+#include "multimap/thirdparty/mt/fileio.hpp"
+#include "multimap/thirdparty/mt/memory.hpp"
 #include "multimap/callables.hpp"
 #include "multimap/Iterator.hpp"
 #include "multimap/Options.hpp"

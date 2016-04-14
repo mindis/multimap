@@ -17,7 +17,9 @@
 
 #include "multimap/internal/Varint.hpp"
 
-#include "multimap/thirdparty/mt/mt.hpp"
+#include "multimap/thirdparty/mt/assert.hpp"
+#include "multimap/thirdparty/mt/check.hpp"
+#include "multimap/thirdparty/mt/fileio.hpp"
 
 namespace multimap {
 namespace internal {
@@ -70,7 +72,7 @@ size_t Varint::readFromBuffer(const byte* begin, const byte* end,
         *value += *begin++;
         return 4;
       default:
-        MT_FAIL("Reached default branch in switch statement");
+      MT_FAIL("Reached default branch in switch statement");
     }
   }
   return 0;
@@ -114,7 +116,7 @@ size_t Varint::readFromBuffer(const byte* begin, const byte* end,
 // TODO Micro-benchmark this compared to byte[4].
 size_t Varint::readFromStream(std::FILE* stream, uint32_t* value) {
   byte b0 = 0;
-  if (mt::tryGet(stream, &b0)) {
+  if (mt::fgetcMaybe(stream, &b0)) {
     const auto length = b0 & 0xC0;  // 11000000
     switch (length) {
       case 0x00: {  // 00000000
@@ -122,23 +124,23 @@ size_t Varint::readFromStream(std::FILE* stream, uint32_t* value) {
         return 1;
       }
       case 0x40: {  // 01000000
-        const byte b1 = mt::get(stream);
+        const byte b1 = mt::fgetc(stream);
         *value = (b0 & 0x3F) << 8;
         *value += b1;
         return 2;
       }
       case 0x80: {  // 10000000
-        const byte b1 = mt::get(stream);
-        const byte b2 = mt::get(stream);
+        const byte b1 = mt::fgetc(stream);
+        const byte b2 = mt::fgetc(stream);
         *value = (b0 & 0x3F) << 16;
         *value += b1 << 8;
         *value += b2;
         return 3;
       }
       case 0xC0: {  // 11000000
-        const byte b1 = mt::get(stream);
-        const byte b2 = mt::get(stream);
-        const byte b3 = mt::get(stream);
+        const byte b1 = mt::fgetc(stream);
+        const byte b2 = mt::fgetc(stream);
+        const byte b3 = mt::fgetc(stream);
         *value = (b0 & 0x3F) << 24;
         *value += b1 << 16;
         *value += b2 << 8;
@@ -221,23 +223,23 @@ size_t Varint::writeToStream(std::FILE* stream, uint32_t value) {
   byte b0, b1, b2, b3;
   if (value < 0x00000040) {  // 00000000 00000000 00000000 01000000
     b0 = value;
-    mt::put(stream, b0);
+    mt::fputc(stream, b0);
     return 1;
   }
   if (value < 0x00004000) {  // 00000000 00000000 01000000 00000000
     b0 = (value >> 8) | 0x40;
     b1 = (value);
-    mt::put(stream, b0);
-    mt::put(stream, b1);
+    mt::fputc(stream, b0);
+    mt::fputc(stream, b1);
     return 2;
   }
   if (value < 0x00400000) {  // 00000000 01000000 00000000 00000000
     b0 = (value >> 16) | 0x80;
     b1 = (value >> 8);
     b2 = (value);
-    mt::put(stream, b0);
-    mt::put(stream, b1);
-    mt::put(stream, b2);
+    mt::fputc(stream, b0);
+    mt::fputc(stream, b1);
+    mt::fputc(stream, b2);
     return 3;
   }
   if (value < 0x40000000) {  // 01000000 00000000 00000000 00000000
@@ -245,10 +247,10 @@ size_t Varint::writeToStream(std::FILE* stream, uint32_t value) {
     b1 = (value >> 16);
     b2 = (value >> 8);
     b3 = (value);
-    mt::put(stream, b0);
-    mt::put(stream, b1);
-    mt::put(stream, b2);
-    mt::put(stream, b3);
+    mt::fputc(stream, b0);
+    mt::fputc(stream, b1);
+    mt::fputc(stream, b2);
+    mt::fputc(stream, b3);
     return 4;
   }
   mt::fail("Varint::writeToStream() failed. Too big value: %d", value);

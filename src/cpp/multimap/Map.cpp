@@ -20,6 +20,7 @@
 #include <boost/filesystem/operations.hpp>
 #include "multimap/internal/TsvFileReader.hpp"
 #include "multimap/internal/TsvFileWriter.hpp"
+#include "multimap/thirdparty/mt/check.hpp"
 
 namespace multimap {
 
@@ -54,7 +55,7 @@ Map::Map(const boost::filesystem::path& directory)
     : Map(directory, Options()) {}
 
 Map::Map(const boost::filesystem::path& directory, const Options& options)
-    : dlock_(directory) {
+    : dlock_(directory.string()) {
   checkOptions(options);
   Options partition_options;
   partition_options.readonly = options.readonly;
@@ -62,12 +63,12 @@ Map::Map(const boost::filesystem::path& directory, const Options& options)
   internal::Descriptor descriptor;
   if (internal::Descriptor::tryReadFromDirectory(directory, &descriptor)) {
     internal::Descriptor::validate(descriptor, internal::Descriptor::MAP);
-    mt::Check::isFalse(options.error_if_exists, "Map in '%s' already exists",
+    mt::Check::isFalse(options.error_if_exists, "Map in %s already exists",
                        boost::filesystem::absolute(directory).c_str());
     partitions_.resize(descriptor.num_partitions);
 
   } else {
-    mt::Check::isTrue(options.create_if_missing, "Map in '%s' does not exist",
+    mt::Check::isTrue(options.create_if_missing, "Map in %s does not exist",
                       boost::filesystem::absolute(directory).c_str());
     partitions_.resize(mt::nextPrime(options.num_partitions));
     descriptor.map_type = internal::Descriptor::MAP;
@@ -175,7 +176,7 @@ std::vector<Stats> Map::getStats() const {
 Stats Map::getTotalStats() const { return Stats::total(getStats()); }
 
 std::vector<Stats> Map::stats(const boost::filesystem::path& directory) {
-  internal::DirectoryLock lock(directory);
+  internal::DirectoryLock lock(directory.string());
   const auto descriptor = internal::Descriptor::readFromDirectory(directory);
   internal::Descriptor::validate(descriptor, internal::Descriptor::MAP);
   std::vector<Stats> stats;
@@ -196,18 +197,18 @@ void Map::importFromBase64(const boost::filesystem::path& directory,
                            const Options& options) {
   Map map(directory, options);
 
-  std::vector<boost::filesystem::path> files;
+  std::vector<std::string> filenames;
   if (boost::filesystem::is_regular_file(source)) {
-    files.push_back(source);
+    filenames.push_back(source.string());
   } else if (boost::filesystem::is_directory(source)) {
-    files = mt::Files::list(source);
+    filenames = mt::listFiles(source.string());
   } else {
-    mt::fail("Not a regular file or directory '%s'", source.c_str());
+    mt::fail("No such file or directory: %s", source.c_str());
   }
 
   Bytes key;
   Bytes value;
-  for (const auto& file : files) {
+  for (const auto& file : filenames) {
     if (options.verbose) {
       mt::log() << "Importing " << file << std::endl;
     }
@@ -226,7 +227,7 @@ void Map::exportToBase64(const boost::filesystem::path& directory,
 void Map::exportToBase64(const boost::filesystem::path& directory,
                          const boost::filesystem::path& target,
                          const Options& options) {
-  internal::DirectoryLock lock(directory);
+  internal::DirectoryLock lock(directory.string());
   const auto descriptor = internal::Descriptor::readFromDirectory(directory);
   internal::Descriptor::validate(descriptor, internal::Descriptor::MAP);
   internal::TsvFileWriter writer(target);

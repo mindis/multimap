@@ -63,7 +63,11 @@ HEADERS += \
     src/cpp/multimap/thirdparty/cmph/select_lookup_tables.h \
     src/cpp/multimap/thirdparty/cmph/vqueue.h \
     src/cpp/multimap/thirdparty/cmph/vstack.h \
-    src/cpp/multimap/thirdparty/mt/mt.hpp \
+    src/cpp/multimap/thirdparty/mt/assert.hpp \
+    src/cpp/multimap/thirdparty/mt/check.hpp \
+    src/cpp/multimap/thirdparty/mt/common.hpp \
+    src/cpp/multimap/thirdparty/mt/fileio.hpp \
+    src/cpp/multimap/thirdparty/mt/memory.hpp \
     src/cpp/multimap/thirdparty/xxhash/xxhash.h \
     src/cpp/multimap/Arena.hpp \
     src/cpp/multimap/Bytes.hpp \
@@ -112,7 +116,11 @@ SOURCES += \
     src/cpp/multimap/thirdparty/cmph/select.c \
     src/cpp/multimap/thirdparty/cmph/vqueue.c \
     src/cpp/multimap/thirdparty/cmph/vstack.c \
-    src/cpp/multimap/thirdparty/mt/mt.cpp \
+    src/cpp/multimap/thirdparty/mt/assert.cpp \
+    src/cpp/multimap/thirdparty/mt/check.cpp \
+    src/cpp/multimap/thirdparty/mt/common.cpp \
+    src/cpp/multimap/thirdparty/mt/fileio.cpp \
+    src/cpp/multimap/thirdparty/mt/memory.cpp \
     src/cpp/multimap/thirdparty/xxhash/xxhash.c \
     src/cpp/multimap/Arena.cpp \
     src/cpp/multimap/Bytes.cpp \

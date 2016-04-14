@@ -17,6 +17,10 @@
 
 #include "multimap/internal/Descriptor.hpp"
 
+#include "multimap/thirdparty/mt/assert.hpp"
+#include "multimap/thirdparty/mt/check.hpp"
+#include "multimap/thirdparty/mt/fileio.hpp"
+
 namespace multimap {
 namespace internal {
 
@@ -52,17 +56,16 @@ Descriptor Descriptor::readFromDirectory(
     const boost::filesystem::path& directory) {
   Descriptor descriptor;
   mt::check(tryReadFromDirectory(directory, &descriptor),
-            "Reading descriptor from '%s' failed", directory.c_str());
+            "Reading descriptor from %s failed", directory.c_str());
   return descriptor;
 }
 
 bool Descriptor::tryReadFromDirectory(const boost::filesystem::path& directory,
                                       Descriptor* output) {
-  const auto filename = directory / getFilename();
-  const auto stream = mt::tryOpen(filename, "r");
-  if (stream.get()) {
-    mt::read(stream.get(), output, sizeof *output);
-
+  const boost::filesystem::path filename = directory / getFilename();
+  const mt::AutoCloseFile stream = mt::fopenIfExists(filename.string(), "r");
+  if (stream) {
+    mt::freadAll(stream.get(), output, sizeof *output);
     return true;
   }
   return false;
@@ -72,16 +75,16 @@ void Descriptor::writeToDirectory(
     const boost::filesystem::path& directory) const {
   MT_REQUIRE_NOT_ZERO(num_partitions);
   MT_REQUIRE_TRUE(map_type == MAP || map_type == IMMUTABLE_MAP);
-  const auto stream = mt::open(directory / getFilename(), "w");
-  mt::write(stream.get(), this, sizeof *this);
+  const auto stream = mt::fopen((directory / getFilename()).string(), "w");
+  mt::fwriteAll(stream.get(), this, sizeof *this);
 }
 
 void Descriptor::validate(const Descriptor& descriptor, int expected_map_type) {
   Version::checkCompatibility(descriptor.major_version,
                               descriptor.minor_version);
   mt::Check::isEqual(expected_map_type, descriptor.map_type,
-                     "Validation of descriptor failed. Expected type '%s' but "
-                     "the actual type was '%s'",
+                     "Validation of descriptor failed. Expected type %s but "
+                     "the actual type was %s",
                      mapTypeToString(expected_map_type).c_str(),
                      mapTypeToString(descriptor.map_type).c_str());
 }

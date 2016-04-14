@@ -19,6 +19,9 @@
 
 #include <cstdio>
 #include <boost/filesystem/operations.hpp>
+#include "multimap/thirdparty/mt/assert.hpp"
+#include "multimap/thirdparty/mt/check.hpp"
+#include "multimap/thirdparty/mt/memory.hpp"
 
 namespace multimap {
 namespace internal {
@@ -35,8 +38,8 @@ Store::Store(const boost::filesystem::path& filename, const Options& options)
     : mutex_(new std::mutex()), options_(options) {
   MT_REQUIRE_NOT_ZERO(options.block_size);
   if (boost::filesystem::is_regular_file(filename)) {
-    fd_ = mt::open(filename, options.readonly ? O_RDONLY : O_RDWR);
-    const uint64_t file_size = mt::seek(fd_.get(), 0, SEEK_END);
+    fd_ = mt::open(filename.string(), options.readonly ? O_RDONLY : O_RDWR);
+    const uint64_t file_size = mt::lseek(fd_.get(), 0, SEEK_END);
     mt::Check::isZero(file_size % options.block_size,
                       "Store: block size does not match size of data file");
     const size_t num_full_segments = file_size / SEGMENT_SIZE;
@@ -54,21 +57,21 @@ Store::Store(const boost::filesystem::path& filename, const Options& options)
             mt::mmap(last_segment_size, prot, MAP_SHARED, fd_.get(), offset),
             last_segment_size);
       } else {
-        mt::truncate(fd_.get(), SEGMENT_SIZE * (num_full_segments + 1));
+        mt::ftruncate(fd_.get(), SEGMENT_SIZE * (num_full_segments + 1));
         segments_.emplace_back(
             mt::mmap(SEGMENT_SIZE, prot, MAP_SHARED, fd_.get(), offset),
             last_segment_size);
       }
     }
   } else {
-    fd_ = mt::open(filename, O_RDWR | O_CREAT, 0644);
+    fd_ = mt::open(filename.string(), O_RDWR | O_CREAT, 0644);
   }
 }
 
 Store::~Store() {
   if (fd_ && !options_.readonly) {
     const uint64_t file_size = getNumBlocksUnlocked() * options_.block_size;
-    mt::truncate(fd_.get(), file_size);
+    mt::ftruncate(fd_.get(), file_size);
   }
 }
 
@@ -77,7 +80,7 @@ uint32_t Store::put(const Block& block) {
   if (segments_.empty() || segments_.back().isFull()) {
     const uint64_t old_file_size = segments_.size() * SEGMENT_SIZE;
     const uint64_t new_file_size = old_file_size + SEGMENT_SIZE;
-    mt::truncate(fd_.get(), new_file_size);
+    mt::ftruncate(fd_.get(), new_file_size);
     segments_.push_back(mt::mmap(SEGMENT_SIZE, PROT_READ | PROT_WRITE,
                                  MAP_SHARED, fd_.get(), old_file_size));
   }

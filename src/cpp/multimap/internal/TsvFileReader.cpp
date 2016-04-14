@@ -18,14 +18,14 @@
 #include "multimap/internal/TsvFileReader.hpp"
 
 #include "multimap/internal/Base64.hpp"
-#include "multimap/thirdparty/mt/mt.hpp"
+#include "multimap/thirdparty/mt/check.hpp"
 
 namespace multimap {
 namespace internal {
 
 TsvFileReader::TsvFileReader(const boost::filesystem::path& filename)
     : stream_(filename.string()) {
-  mt::check(stream_.is_open(), "Could not open '%s'", filename.c_str());
+  mt::check(stream_.is_open(), "Could not open %s", filename.c_str());
   stream_ >> base64_key_;
   Base64::decode(base64_key_, &current_key_);
 }

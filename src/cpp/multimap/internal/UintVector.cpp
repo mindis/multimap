@@ -19,6 +19,8 @@
 
 #include <cstring>
 #include "multimap/internal/Varint.hpp"
+#include "multimap/thirdparty/mt/assert.hpp"
+#include "multimap/thirdparty/mt/fileio.hpp"
 
 namespace multimap {
 namespace internal {
@@ -71,17 +73,17 @@ std::vector<uint32_t> UintVector::unpack() const {
 
 UintVector UintVector::readFromStream(std::FILE* stream) {
   UintVector vector;
-  mt::read(stream, &vector.size_, sizeof vector.size_);
+  mt::freadAll(stream, &vector.size_, sizeof vector.size_);
   vector.data_.reset(new byte[vector.size_]);
-  mt::read(stream, vector.data_.get(), vector.size_);
+  mt::freadAll(stream, vector.data_.get(), vector.size_);
   vector.offset_ = vector.size_ - sizeof(uint32_t);
   return vector;
 }
 
 void UintVector::writeToStream(std::FILE* stream) const {
   const uint32_t offset = offset_ + sizeof(uint32_t);
-  mt::write(stream, &offset, sizeof offset);
-  mt::write(stream, data_.get(), offset);
+  mt::fwriteAll(stream, &offset, sizeof offset);
+  mt::fwriteAll(stream, data_.get(), offset);
 }
 
 void UintVector::allocateMoreIfFull() {

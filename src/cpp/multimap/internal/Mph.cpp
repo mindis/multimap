@@ -17,6 +17,9 @@
 
 #include "multimap/internal/Mph.hpp"
 
+#include "multimap/thirdparty/mt/assert.hpp"
+#include "multimap/thirdparty/mt/check.hpp"
+#include "multimap/thirdparty/mt/fileio.hpp"
 #include "multimap/Arena.hpp"
 
 namespace std {
@@ -57,11 +60,11 @@ Mph Mph::build(const boost::filesystem::path& keys) {
   Arena arena;
   uint32_t keylen;
   std::vector<const byte*> keydata;
-  const auto stream = mt::open(keys.string(), "r");
-  while (mt::tryRead(stream.get(), &keylen, sizeof keylen)) {
+  const mt::AutoCloseFile stream = mt::fopen(keys.string(), "r");
+  while (mt::freadAllMaybe(stream.get(), &keylen, sizeof keylen)) {
     byte* key = arena.allocate(sizeof keylen + keylen);
     std::memcpy(key, &keylen, sizeof keylen);
-    mt::read(stream.get(), key + sizeof keylen, keylen);
+    mt::freadAll(stream.get(), key + sizeof keylen, keylen);
     keydata.push_back(key);
   }
   return build(keydata.data(), keydata.size());
@@ -73,12 +76,12 @@ uint32_t Mph::operator()(const Slice& key) const {
 }
 
 Mph Mph::readFromFile(const boost::filesystem::path& filename) {
-  auto stream = mt::open(filename.string(), "r");
+  const mt::AutoCloseFile stream = mt::fopen(filename.string(), "r");
   return Mph(std::unique_ptr<cmph_t>(cmph_load(stream.get())));
 }
 
 void Mph::writeToFile(const boost::filesystem::path& filename) const {
-  const auto stream = mt::open(filename.string(), "w");
+  const mt::AutoCloseFile stream = mt::fopen(filename.string(), "w");
   mt::Check::notZero(cmph_dump(cmph_.get(), stream.get()),
                      "cmph_dump() failed");
 }

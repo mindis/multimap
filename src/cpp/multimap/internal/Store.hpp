@@ -21,7 +21,8 @@
 #include <mutex>
 #include <vector>
 #include <boost/filesystem/path.hpp>
-#include "multimap/thirdparty/mt/mt.hpp"
+#include "multimap/thirdparty/mt/fileio.hpp"
+#include "multimap/thirdparty/mt/memory.hpp"
 #include "multimap/Bytes.hpp"
 #include "multimap/Options.hpp"
 

@@ -16,8 +16,9 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <type_traits>
-#include "gmock/gmock.h"
 #include "multimap/Arena.hpp"
+#include "multimap/thirdparty/mt/assert.hpp"
+#include "gmock/gmock.h"
 
 namespace multimap {
 

@@ -17,6 +17,8 @@
 
 #include "multimap/Arena.hpp"
 
+#include "multimap/thirdparty/mt/assert.hpp"
+
 namespace multimap {
 
 Arena::Arena(size_t block_size)

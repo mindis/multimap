@@ -17,8 +17,9 @@
 
 #include "multimap/Slice.hpp"
 
-#include "multimap/thirdparty/mt/mt.hpp"
 #include "multimap/internal/Varint.hpp"
+#include "multimap/thirdparty/mt/assert.hpp"
+#include "multimap/thirdparty/mt/fileio.hpp"
 
 namespace multimap {
 
@@ -33,9 +34,9 @@ Slice Slice::readFromStream(std::FILE* stream,
   uint32_t size = 0;
   if (internal::Varint::readFromStream(stream, &size) != 0) {
     byte* data = allocate(size);
-    mt::read(stream, data, size);
+    mt::freadAll(stream, data, size);
     // The stream is expected to contain valid encodings of Bytes objects.
-    // Hence, after successfully reading the size field, mt::read() will
+    // Hence, after successfully reading the size field, mt::freadAll() will
     // throw, if the data field could not be read to signal an invalid stream.
     return Slice(data, size);
   }
@@ -57,7 +58,7 @@ size_t Slice::writeToBuffer(byte* begin, byte* end) const {
 void Slice::writeToStream(std::FILE* stream) const {
   MT_REQUIRE_LE(size_, internal::Varint::Limits::MAX_N4);
   internal::Varint::writeToStream(stream, size_);
-  mt::write(stream, data_, size_);
+  mt::fwriteAll(stream, data_, size_);
 }
 
 }  // namespace multimap

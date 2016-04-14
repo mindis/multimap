@@ -19,6 +19,7 @@
 #include "gmock/gmock.h"
 #include <boost/filesystem/operations.hpp>
 #include "multimap/internal/Descriptor.hpp"
+#include "multimap/thirdparty/mt/assert.hpp"
 
 namespace multimap {
 namespace internal {

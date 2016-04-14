@@ -19,8 +19,10 @@
 
 #include <sys/mman.h>
 #include <algorithm>
+#include "multimap/thirdparty/mt/check.hpp"
+#include "multimap/thirdparty/mt/fileio.hpp"
+#include "multimap/thirdparty/mt/memory.hpp"
 #include "multimap/internal/Varint.hpp"
-#include "multimap/thirdparty/mt/mt.hpp"
 
 namespace multimap {
 namespace internal {
@@ -361,19 +363,20 @@ size_t List::clear() {
 
 List List::readFromStream(std::FILE* stream) {
   List list;
-  mt::read(stream, &list.stats_.num_values_total,
-           sizeof list.stats_.num_values_total);
-  mt::read(stream, &list.stats_.num_values_removed,
-           sizeof list.stats_.num_values_removed);
+  mt::freadAll(stream, &list.stats_.num_values_total,
+               sizeof list.stats_.num_values_total);
+  mt::freadAll(stream, &list.stats_.num_values_removed,
+               sizeof list.stats_.num_values_removed);
   list.block_ids_ = UintVector::readFromStream(stream);
   return std::move(list);
 }
 
 void List::writeToStream(std::FILE* stream) const {
   ReaderLockGuard<SharedMutex> lock(mutex_);
-  mt::write(stream, &stats_.num_values_total, sizeof stats_.num_values_total);
-  mt::write(stream, &stats_.num_values_removed,
-            sizeof stats_.num_values_removed);
+  mt::fwriteAll(stream, &stats_.num_values_total,
+                sizeof stats_.num_values_total);
+  mt::fwriteAll(stream, &stats_.num_values_removed,
+                sizeof stats_.num_values_removed);
   block_ids_.writeToStream(stream);
 }
 

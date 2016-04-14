@@ -23,7 +23,6 @@
 #define MULTIMAP_OPTIONS_HPP_INCLUDED
 
 #include <functional>
-#include "multimap/thirdparty/mt/mt.hpp"
 #include "multimap/callables.hpp"
 
 namespace multimap {

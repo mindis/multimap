@@ -21,6 +21,7 @@
 #include "multimap/internal/Descriptor.hpp"
 #include "multimap/internal/TsvFileReader.hpp"
 #include "multimap/internal/TsvFileWriter.hpp"
+#include "multimap/thirdparty/mt/check.hpp"
 #include "multimap/Arena.hpp"
 
 namespace multimap {
@@ -58,11 +59,11 @@ size_t ImmutableMap::Limits::maxValueSize() {
 
 ImmutableMap::Builder::Builder(const boost::filesystem::path& directory,
                                const Options& options)
-    : options_(options), dlock_(directory) {
+    : options_(options), dlock_(directory.string()) {
   mt::Check::isEqual(
       std::distance(boost::filesystem::directory_iterator(directory),
                     boost::filesystem::directory_iterator()),
-      1, "Directory must be empty '%s'", directory.c_str());
+      1, "Must be empty: %s", directory.c_str());
   const auto num_buckets = mt::nextPrime(options.num_partitions);
   for (size_t i = 0; i != num_buckets; i++) {
     buckets_.emplace_back(internal::MphTable::Builder(
@@ -111,9 +112,9 @@ void ImmutableMap::Builder::rehash() {
   Bytes old_key;
   Bytes old_value;
   for (Bucket& bucket : buckets_) {
-    const auto filename = bucket.builder.releaseFile();
+    const boost::filesystem::path filename = bucket.builder.releaseFile();
     {
-      const auto stream = mt::open(filename, "r");
+      const mt::AutoCloseFile stream = mt::fopen(filename.string(), "r");
       while (readBytesFromStream(stream.get(), &old_key) &&
              readBytesFromStream(stream.get(), &old_value)) {
         select(new_buckets, old_key).builder.put(old_key, old_value);
@@ -138,7 +139,7 @@ void ImmutableMap::Builder::rehash() {
 }
 
 ImmutableMap::ImmutableMap(const boost::filesystem::path& directory)
-    : dlock_(directory) {
+    : dlock_(directory.string()) {
   const auto desc = internal::Descriptor::readFromDirectory(directory);
   internal::Descriptor::validate(desc, internal::Descriptor::IMMUTABLE_MAP);
   for (int i = 0; i < desc.num_partitions; i++) {
@@ -198,22 +199,22 @@ void ImmutableMap::buildFromBase64(const boost::filesystem::path& directory,
                                    const Options& options) {
   Builder builder(directory, options);
 
-  std::vector<boost::filesystem::path> files;
+  std::vector<std::string> filenames;
   if (boost::filesystem::is_regular_file(source)) {
-    files.push_back(source);
+    filenames.push_back(source.string());
   } else if (boost::filesystem::is_directory(source)) {
-    files = mt::Files::list(source);
+    filenames = mt::listFiles(source.c_str());
   } else {
-    mt::fail("Not a regular file or directory '%s'", source.c_str());
+    mt::fail("No such file or directory: %s", source.c_str());
   }
 
   Bytes key;
   Bytes value;
-  for (const auto& file : files) {
+  for (const auto& filename : filenames) {
     if (options.verbose) {
-      mt::log() << "Importing " << file.string() << std::endl;
+      mt::log() << "Importing " << filename << std::endl;
     }
-    internal::TsvFileReader reader(file);
+    internal::TsvFileReader reader(filename);
     while (reader.read(&key, &value)) {
       builder.put(key, value);
     }

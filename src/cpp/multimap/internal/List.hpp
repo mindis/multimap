@@ -22,6 +22,7 @@
 #include "multimap/internal/SharedMutex.hpp"
 #include "multimap/internal/Store.hpp"
 #include "multimap/internal/UintVector.hpp"
+#include "multimap/thirdparty/mt/assert.hpp"
 #include "multimap/Arena.hpp"
 #include "multimap/callables.hpp"
 #include "multimap/Iterator.hpp"

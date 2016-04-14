@@ -18,9 +18,11 @@
 #include <type_traits>
 #include <vector>
 #include <boost/filesystem/operations.hpp>
-#include "gmock/gmock.h"
 #include "multimap/internal/Mph.hpp"
+#include "multimap/thirdparty/mt/assert.hpp"
+#include "multimap/thirdparty/mt/fileio.hpp"
 #include "multimap/Arena.hpp"
+#include "gmock/gmock.h"
 
 namespace multimap {
 namespace internal {
@@ -57,8 +59,8 @@ byte* makeCmphEncodedKey(int index, Arena* arena) {
 void writeCmphEncodedKey(int index, std::FILE* stream) {
   const std::string key = makeKey(index);
   const uint32_t key_size = key.size();
-  mt::write(stream, &key_size, sizeof key_size);
-  mt::write(stream, key.data(), key_size);
+  mt::fwriteAll(stream, &key_size, sizeof key_size);
+  mt::fwriteAll(stream, key.data(), key_size);
 }
 
 TEST(MphTest, BuildFromVerySmallKeysetThrows) {
@@ -110,7 +112,7 @@ TEST_P(MphTestWithParam, BuildFromInMemoryKeys) {
 }
 
 TEST_P(MphTestWithParam, BuildFromOnDiskKeys) {
-  auto stream = mt::open(getKeysFilename(), "w");
+  mt::AutoCloseFile stream = mt::fopen(getKeysFilename().string(), "w");
   for (int i = 0; i < GetParam(); i++) {
     writeCmphEncodedKey(i, stream.get());
   }

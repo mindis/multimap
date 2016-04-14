@@ -17,7 +17,7 @@
 
 #include "multimap/Version.hpp"
 
-#include "multimap/thirdparty/mt/mt.hpp"
+#include "multimap/thirdparty/mt/check.hpp"
 
 namespace multimap {
 

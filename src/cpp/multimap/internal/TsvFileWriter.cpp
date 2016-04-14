@@ -18,14 +18,15 @@
 #include "multimap/internal/TsvFileWriter.hpp"
 
 #include "multimap/internal/Base64.hpp"
-#include "multimap/thirdparty/mt/mt.hpp"
+#include "multimap/thirdparty/mt/assert.hpp"
+#include "multimap/thirdparty/mt/check.hpp"
 
 namespace multimap {
 namespace internal {
 
 TsvFileWriter::TsvFileWriter(const boost::filesystem::path& filename)
     : stream_(filename.string()) {
-  mt::check(stream_.is_open(), "Could not create '%s'", filename.c_str());
+  mt::check(stream_.is_open(), "Could not create %s", filename.c_str());
 }
 
 void TsvFileWriter::write(const Slice& key, const Slice& value) {

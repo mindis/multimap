@@ -19,8 +19,9 @@
 #include <set>
 #include <type_traits>
 #include <boost/filesystem/operations.hpp>
-#include "gmock/gmock.h"
 #include "multimap/internal/MphTable.hpp"
+#include "multimap/thirdparty/mt/assert.hpp"
+#include "gmock/gmock.h"
 
 namespace multimap {
 namespace internal {

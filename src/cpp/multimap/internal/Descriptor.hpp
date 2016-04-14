@@ -19,7 +19,7 @@
 #define MULTIMAP_INTERNAL_DESCRIPTOR_HPP_INCLUDED
 
 #include <boost/filesystem/path.hpp>
-#include "multimap/thirdparty/mt/mt.hpp"
+#include "multimap/thirdparty/mt/common.hpp"
 #include "multimap/Version.hpp"
 
 namespace multimap {

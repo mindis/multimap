@@ -18,7 +18,8 @@
 #ifndef MULTIMAP_INTERNAL_UINT_VECTOR_HPP_INCLUDED
 #define MULTIMAP_INTERNAL_UINT_VECTOR_HPP_INCLUDED
 
-#include "multimap/thirdparty/mt/mt.hpp"
+#include <memory>
+#include "multimap/thirdparty/mt/common.hpp"
 #include "multimap/Bytes.hpp"
 
 namespace multimap {
