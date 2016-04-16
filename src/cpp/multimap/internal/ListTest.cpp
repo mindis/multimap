@@ -469,7 +469,7 @@ class ListTestFixture2 : public ListTestFixture {
  public:
   void SetUp() override {
     ListTestFixture::SetUp();
-    stream_ = mt::fopen((directory_ / "lists").string(), "w+");
+    stream_ = mt::fopen(directory_ / "lists", "w+");
   }
 
   void TearDown() override {

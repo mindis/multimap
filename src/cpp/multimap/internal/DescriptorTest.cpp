@@ -36,9 +36,9 @@ TEST(Descriptor, IsCopyConstructibleAndAssignable) {
 }
 
 TEST(Descriptor, DefaultConstructedHasProperState) {
-  ASSERT_FALSE(Descriptor().getFilename().empty());
+  ASSERT_FALSE(Descriptor().getFileName().empty());
   ASSERT_FALSE(Descriptor().getFilePrefix().empty());
-  ASSERT_FALSE(Descriptor().getFullFilename("").empty());
+  ASSERT_FALSE(Descriptor().getFullFileName("").empty());
   ASSERT_FALSE(Descriptor().getFullFilePrefix("").empty());
   ASSERT_EQ(Version::MAJOR, Descriptor().major_version);
   ASSERT_EQ(Version::MINOR, Descriptor().minor_version);
@@ -95,7 +95,7 @@ TEST(Descriptor, TryReadReturnsFalseIfDirectoryDoesNotExist) {
 
 TEST(Descriptor, TryReadReturnsFalseIfDirectoryDoesNotContainDescriptor) {
   Descriptor descriptor;
-  boost::filesystem::remove(Descriptor::getFullFilename(TMPDIR));
+  boost::filesystem::remove(Descriptor::getFullFileName(TMPDIR));
   ASSERT_FALSE(Descriptor::tryReadFromDirectory(TMPDIR, &descriptor));
 }
 

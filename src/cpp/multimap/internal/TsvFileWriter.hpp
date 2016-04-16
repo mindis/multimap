@@ -18,9 +18,7 @@
 #ifndef MULTIMAP_INTERNAL_TSV_FILE_WRITER_HPP_INCLUDED
 #define MULTIMAP_INTERNAL_TSV_FILE_WRITER_HPP_INCLUDED
 
-#include <fstream>
-#include <string>
-#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/fstream.hpp>
 #include "multimap/Iterator.hpp"
 #include "multimap/Slice.hpp"
 
@@ -29,14 +27,14 @@ namespace internal {
 
 class TsvFileWriter {
  public:
-  explicit TsvFileWriter(const boost::filesystem::path& filename);
+  explicit TsvFileWriter(const boost::filesystem::path& file_path);
 
   void write(const Slice& key, const Slice& value);
 
   void write(const Slice& key, Iterator* iter);
 
  private:
-  std::ofstream stream_;
+  boost::filesystem::ofstream stream_;
   std::string base64_key_;
   std::string base64_value_;
   Bytes current_key_;

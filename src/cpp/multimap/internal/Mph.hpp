@@ -55,9 +55,9 @@ class Mph {
 
   uint32_t size() const { return cmph_size(cmph_.get()); }
 
-  static Mph readFromFile(const boost::filesystem::path& filename);
+  static Mph readFromFile(const boost::filesystem::path& file_path);
 
-  void writeToFile(const boost::filesystem::path& filename) const;
+  void writeToFile(const boost::filesystem::path& file_path) const;
 
  private:
   explicit Mph(std::unique_ptr<cmph_t> cmph);

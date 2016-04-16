@@ -18,7 +18,9 @@
 #include "mt/memory.hpp"
 
 #include <unistd.h>
+#include <boost/filesystem/operations.hpp>
 #include "mt/check.hpp"
+#include "mt/fileio.hpp"
 
 namespace mt {
 
@@ -58,6 +60,24 @@ AutoUnmapMemory mmap(size_t length, int prot, int flags, int fd,
   void* ptr = ::mmap(nullptr, length, prot, flags, fd, offset);
   Check::notEqual(MAP_FAILED, ptr, "mmap() failed because of '%s'", errnostr());
   return AutoUnmapMemory(static_cast<uint8_t*>(ptr), length);
+}
+
+AutoUnmapMemory mmapFile(const boost::filesystem::path& file_path, int prot) {
+  AutoUnmapMemory memory;
+  if (prot == PROT_READ) {
+    const AutoCloseFd fd = open(file_path, O_RDONLY);
+    const auto file_size = boost::filesystem::file_size(file_path);
+    memory = mmap(file_size, PROT_READ, MAP_SHARED, fd.get(), 0);
+
+  } else if (prot == (PROT_READ | PROT_WRITE)) {
+    const AutoCloseFd fd = open(file_path, O_RDWR);
+    const auto file_size = boost::filesystem::file_size(file_path);
+    memory = mmap(file_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd.get(), 0);
+
+  } else {
+    mt::fail("mmapFile: invalid protection");
+  }
+  return memory;
 }
 
 uint8_t* getPageBegin(const uint8_t* ptr) {

@@ -112,22 +112,22 @@ void ImmutableMap::Builder::rehash() {
   Bytes old_key;
   Bytes old_value;
   for (Bucket& bucket : buckets_) {
-    const boost::filesystem::path filename = bucket.builder.releaseFile();
+    const boost::filesystem::path file_path = bucket.builder.releaseFile();
     {
-      const mt::AutoCloseFile stream = mt::fopen(filename.string(), "r");
+      const mt::AutoCloseFile stream = mt::fopen(file_path, "r");
       while (readBytesFromStream(stream.get(), &old_key) &&
              readBytesFromStream(stream.get(), &old_value)) {
         select(new_buckets, old_key).builder.put(old_key, old_value);
       }
     }
-    boost::filesystem::remove(filename);
+    boost::filesystem::remove(file_path);
   }
   // Rename new bucket files and check if there are large ones.
   for (Bucket& new_bucket : new_buckets) {
-    const auto old_filename = new_bucket.builder.getFilename();
-    auto new_filename = old_filename;
-    new_filename.replace_extension();
-    boost::filesystem::rename(old_filename, new_filename);
+    const auto old_file_path = new_bucket.builder.getFilePath();
+    auto new_file_path = old_file_path;
+    new_file_path.replace_extension();
+    boost::filesystem::rename(old_file_path, new_file_path);
     if (new_bucket.builder.getFileSize() > options_.max_partition_size) {
       new_bucket.is_large = true;
     }
@@ -199,22 +199,22 @@ void ImmutableMap::buildFromBase64(const boost::filesystem::path& directory,
                                    const Options& options) {
   Builder builder(directory, options);
 
-  std::vector<std::string> filenames;
+  std::vector<boost::filesystem::path> file_paths;
   if (boost::filesystem::is_regular_file(source)) {
-    filenames.push_back(source.string());
+    file_paths.push_back(source);
   } else if (boost::filesystem::is_directory(source)) {
-    filenames = mt::listFiles(source.c_str());
+    file_paths = mt::listFilePaths(source);
   } else {
     mt::fail("No such file or directory: %s", source.c_str());
   }
 
   Bytes key;
   Bytes value;
-  for (const auto& filename : filenames) {
+  for (const auto& file_path : file_paths) {
     if (options.verbose) {
-      mt::log() << "Importing " << filename << std::endl;
+      mt::log() << "Importing " << file_path.string() << std::endl;
     }
-    internal::TsvFileReader reader(filename);
+    internal::TsvFileReader reader(file_path);
     while (reader.read(&key, &value)) {
       builder.put(key, value);
     }

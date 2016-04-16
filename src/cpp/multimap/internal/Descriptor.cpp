@@ -40,12 +40,12 @@ std::string mapTypeToString(uint32_t map_type) {
 
 }  // namespace
 
-std::string Descriptor::getFilename() { return getFilePrefix() + ".desc"; }
+std::string Descriptor::getFileName() { return getFilePrefix() + ".desc"; }
 
 std::string Descriptor::getFilePrefix() { return "multimap"; }
 
-std::string Descriptor::getFullFilename(const boost::filesystem::path& base) {
-  return (base / getFilename()).string();
+std::string Descriptor::getFullFileName(const boost::filesystem::path& base) {
+  return (base / getFileName()).string();
 }
 
 std::string Descriptor::getFullFilePrefix(const boost::filesystem::path& base) {
@@ -62,8 +62,8 @@ Descriptor Descriptor::readFromDirectory(
 
 bool Descriptor::tryReadFromDirectory(const boost::filesystem::path& directory,
                                       Descriptor* output) {
-  const boost::filesystem::path filename = directory / getFilename();
-  const mt::AutoCloseFile stream = mt::fopenIfExists(filename.string(), "r");
+  const boost::filesystem::path file_path = directory / getFileName();
+  const mt::AutoCloseFile stream = mt::fopenIfExists(file_path, "r");
   if (stream) {
     mt::freadAll(stream.get(), output, sizeof *output);
     return true;
@@ -75,7 +75,7 @@ void Descriptor::writeToDirectory(
     const boost::filesystem::path& directory) const {
   MT_REQUIRE_NOT_ZERO(num_partitions);
   MT_REQUIRE_TRUE(map_type == MAP || map_type == IMMUTABLE_MAP);
-  const auto stream = mt::fopen((directory / getFilename()).string(), "w");
+  const auto stream = mt::fopen(directory / getFileName(), "w");
   mt::fwriteAll(stream.get(), this, sizeof *this);
 }
 

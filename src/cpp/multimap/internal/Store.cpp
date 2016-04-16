@@ -34,11 +34,11 @@ const size_t SEGMENT_SIZE = mt::MiB(2);
 
 Store::Store() : mutex_(new std::mutex()) {}
 
-Store::Store(const boost::filesystem::path& filename, const Options& options)
+Store::Store(const boost::filesystem::path& file_path, const Options& options)
     : mutex_(new std::mutex()), options_(options) {
   MT_REQUIRE_NOT_ZERO(options.block_size);
-  if (boost::filesystem::is_regular_file(filename)) {
-    fd_ = mt::open(filename.string(), options.readonly ? O_RDONLY : O_RDWR);
+  if (boost::filesystem::is_regular_file(file_path)) {
+    fd_ = mt::open(file_path, options.readonly ? O_RDONLY : O_RDWR);
     const uint64_t file_size = mt::lseek(fd_.get(), 0, SEEK_END);
     mt::Check::isZero(file_size % options.block_size,
                       "Store: block size does not match size of data file");
@@ -64,7 +64,7 @@ Store::Store(const boost::filesystem::path& filename, const Options& options)
       }
     }
   } else {
-    fd_ = mt::open(filename.string(), O_RDWR | O_CREAT, 0644);
+    fd_ = mt::open(file_path, O_RDWR | O_CREAT, 0644);
   }
 }
 

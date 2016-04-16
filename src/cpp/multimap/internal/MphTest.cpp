@@ -87,8 +87,8 @@ class MphTestWithParam : public testing::TestWithParam<int> {
     MT_ASSERT_TRUE(boost::filesystem::remove_all(directory_));
   }
 
-  const boost::filesystem::path& getKeysFilename() { return keys_file_; }
-  const boost::filesystem::path& getMphFilename() { return mph_file_; }
+  const boost::filesystem::path& getKeysFileName() { return keys_file_; }
+  const boost::filesystem::path& getMphFileName() { return mph_file_; }
 
  private:
   boost::filesystem::path directory_;
@@ -112,12 +112,12 @@ TEST_P(MphTestWithParam, BuildFromInMemoryKeys) {
 }
 
 TEST_P(MphTestWithParam, BuildFromOnDiskKeys) {
-  mt::AutoCloseFile stream = mt::fopen(getKeysFilename().string(), "w");
+  mt::AutoCloseFile stream = mt::fopen(getKeysFileName(), "w");
   for (int i = 0; i < GetParam(); i++) {
     writeCmphEncodedKey(i, stream.get());
   }
   stream.reset();  // Closes the file.
-  const Mph mph = Mph::build(getKeysFilename());
+  const Mph mph = Mph::build(getKeysFileName());
   ASSERT_EQ(GetParam(), mph.size());
 
   for (int i = 0; i < GetParam(); i++) {
@@ -156,9 +156,9 @@ TEST_P(MphTestWithParam, WriteMphToFileThenReadBackAndEvaluate) {
   for (int i = 0; i < keys.size(); i++) {
     keys[i] = makeCmphEncodedKey(i, &arena);
   }
-  Mph::build(keys.data(), keys.size()).writeToFile(getMphFilename());
+  Mph::build(keys.data(), keys.size()).writeToFile(getMphFileName());
 
-  const Mph mph = Mph::readFromFile(getMphFilename());
+  const Mph mph = Mph::readFromFile(getMphFileName());
   for (int i = 0; i < keys.size(); i++) {
     const std::string key = makeKey(i);
     ASSERT_LT(mph(key), mph.size());

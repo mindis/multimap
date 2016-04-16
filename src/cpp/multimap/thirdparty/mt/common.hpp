@@ -24,7 +24,7 @@
 
 namespace mt {
 
-static const int VERSION = 20160414;
+static const int VERSION = 20160416;
 
 bool isPrime(uint64_t number);
 // Returns `true` if `number` is prime, `false` otherwise.

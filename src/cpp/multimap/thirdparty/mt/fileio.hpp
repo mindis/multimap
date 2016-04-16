@@ -27,15 +27,21 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <boost/filesystem/path.hpp>
 
 namespace mt {
 
-std::vector<uint8_t> readAllBytes(const std::string& filename);
+namespace bfs = boost::filesystem;
 
-std::vector<std::string> readAllLines(const std::string& filename);
+std::vector<uint8_t> readAllBytes(const bfs::path& file_path);
 
-std::vector<std::string> listFiles(const std::string& directory,
-                                   bool ignore_hidden = true);
+std::vector<std::string> readAllLines(const bfs::path& file_path);
+
+std::vector<std::string> listFileNames(const bfs::path& directory,
+                                       bool ignore_hidden = true);
+
+std::vector<bfs::path> listFilePaths(const bfs::path& directory,
+                                     bool ignore_hidden = true);
 
 // -----------------------------------------------------------------------------
 // POSIX-style I/O
@@ -70,23 +76,23 @@ class AutoCloseFd {
   int fd_ = NOFD;
 };
 
-AutoCloseFd open(const std::string& path, int flags);
+AutoCloseFd open(const bfs::path& file_path, int flags);
 // Tries to open (or create) a file or thowns std::runtime_error on failure.
 // Wraps open() from http://man7.org/linux/man-pages/man2/open.2.html
 
-AutoCloseFd open(const std::string& path, int flags, mode_t mode);
+AutoCloseFd open(const bfs::path& file_path, int flags, mode_t mode);
 // Tries to open (or create) a file or thowns std::runtime_error on failure.
 // Wraps open() from http://man7.org/linux/man-pages/man2/open.2.html
 
-AutoCloseFd openIfExists(const std::string& path, int flags);
+AutoCloseFd openIfExists(const bfs::path& file_path, int flags);
 // Tries to open (or create) a file or returns an empty file descriptor owner.
 // Wraps open() from http://man7.org/linux/man-pages/man2/open.2.html
 
-AutoCloseFd openIfExists(const std::string& path, int flags, mode_t mode);
+AutoCloseFd openIfExists(const bfs::path& file_path, int flags, mode_t mode);
 // Tries to open (or create) a file or returns an empty file descriptor owner.
 // Wraps open() from http://man7.org/linux/man-pages/man2/open.2.html
 
-AutoCloseFd creat(const std::string& path, mode_t mode);
+AutoCloseFd creat(const bfs::path& file_path, mode_t mode);
 // Tries to create a file or thowns std::runtime_error on failure.
 // Wraps creat() from http://man7.org/linux/man-pages/man2/open.2.html
 
@@ -145,11 +151,11 @@ class AutoCloseFile
   AutoCloseFile(std::FILE* stream) : Base(stream, std::fclose) {}
 };
 
-AutoCloseFile fopen(const std::string& path, const char* mode);
+AutoCloseFile fopen(const bfs::path& file_path, const char* mode);
 // Tries to open (or create) a file or thowns std::runtime_error on failure.
 // Wraps fopen() from http://man7.org/linux/man-pages/man3/fopen.3.html
 
-AutoCloseFile fopenIfExists(const std::string& path, const char* mode);
+AutoCloseFile fopenIfExists(const bfs::path& file_path, const char* mode);
 // Tries to open (or create) a file or returns an empty file stream owner.
 // Wraps fopen() from http://man7.org/linux/man-pages/man3/fopen.3.html
 
@@ -195,21 +201,22 @@ class DirectoryLockGuard {
  public:
   static const std::string DEFAULT_FILENAME;
 
-  DirectoryLockGuard(const std::string& directory,
-                     const std::string& filename = DEFAULT_FILENAME);
+  DirectoryLockGuard(const bfs::path& directory);
+
+  DirectoryLockGuard(const bfs::path& directory, const std::string& file_name);
 
   DirectoryLockGuard(const DirectoryLockGuard&) = delete;
   DirectoryLockGuard& operator=(const DirectoryLockGuard&) = delete;
 
   ~DirectoryLockGuard();
 
-  const std::string& directory() const { return directory_; }
+  const bfs::path& directory() const { return directory_; }
 
-  const std::string& filename() const { return filename_; }
+  const std::string& file_name() const { return file_name_; }
 
  private:
-  std::string directory_;
-  std::string filename_;
+  bfs::path directory_;
+  std::string file_name_;
 };
 
 }  // namespace mt

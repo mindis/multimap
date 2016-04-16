@@ -24,9 +24,9 @@
 namespace multimap {
 namespace internal {
 
-TsvFileWriter::TsvFileWriter(const boost::filesystem::path& filename)
-    : stream_(filename.string()) {
-  mt::check(stream_.is_open(), "Could not create %s", filename.c_str());
+TsvFileWriter::TsvFileWriter(const boost::filesystem::path& file_path)
+    : stream_(file_path) {
+  mt::check(stream_.is_open(), "Could not create %s", file_path.c_str());
 }
 
 void TsvFileWriter::write(const Slice& key, const Slice& value) {

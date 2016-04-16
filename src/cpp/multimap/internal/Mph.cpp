@@ -60,7 +60,7 @@ Mph Mph::build(const boost::filesystem::path& keys) {
   Arena arena;
   uint32_t keylen;
   std::vector<const byte*> keydata;
-  const mt::AutoCloseFile stream = mt::fopen(keys.string(), "r");
+  const mt::AutoCloseFile stream = mt::fopen(keys, "r");
   while (mt::freadAllMaybe(stream.get(), &keylen, sizeof keylen)) {
     byte* key = arena.allocate(sizeof keylen + keylen);
     std::memcpy(key, &keylen, sizeof keylen);
@@ -75,13 +75,13 @@ uint32_t Mph::operator()(const Slice& key) const {
                      key.size());
 }
 
-Mph Mph::readFromFile(const boost::filesystem::path& filename) {
-  const mt::AutoCloseFile stream = mt::fopen(filename.string(), "r");
+Mph Mph::readFromFile(const boost::filesystem::path& file_path) {
+  const mt::AutoCloseFile stream = mt::fopen(file_path, "r");
   return Mph(std::unique_ptr<cmph_t>(cmph_load(stream.get())));
 }
 
-void Mph::writeToFile(const boost::filesystem::path& filename) const {
-  const mt::AutoCloseFile stream = mt::fopen(filename.string(), "w");
+void Mph::writeToFile(const boost::filesystem::path& file_path) const {
+  const mt::AutoCloseFile stream = mt::fopen(file_path, "w");
   mt::Check::notZero(cmph_dump(cmph_.get(), stream.get()),
                      "cmph_dump() failed");
 }

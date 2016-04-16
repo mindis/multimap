@@ -22,6 +22,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <utility>
+#include <boost/filesystem/path.hpp>
 
 namespace mt {
 
@@ -68,6 +69,12 @@ AutoUnmapMemory mmap(size_t length, int prot, int flags, int fd, size_t offset);
 // Tries to map a file into memory or throws std::runtime_error on failure.
 // Wraps mmap() from http://man7.org/linux/man-pages/man2/mmap.2.html
 // Note that the addr parameter is omited. It is set to nullptr internally.
+
+AutoUnmapMemory mmapFile(const boost::filesystem::path& file_path, int prot);
+// Tries to map an entire file into memory or throws std::runtime_error on
+// failure. The memory mapping is in MAP_SHARED mode. Allowed values for prot
+// are PROT_READ or PROT_READ | PROT_WRITE. The file is opened in an equivalent
+// mode just to mmap() the file. It will be closed when the function returns.
 
 uint8_t* getPageBegin(const uint8_t* ptr);
 // Returns the address of the page where ptr belongs to.

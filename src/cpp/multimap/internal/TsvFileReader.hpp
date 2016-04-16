@@ -18,9 +18,7 @@
 #ifndef MULTIMAP_INTERNAL_TSV_FILE_READER_HPP_INCLUDED
 #define MULTIMAP_INTERNAL_TSV_FILE_READER_HPP_INCLUDED
 
-#include <fstream>
-#include <string>
-#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/fstream.hpp>
 #include "multimap/Bytes.hpp"
 
 namespace multimap {
@@ -28,12 +26,12 @@ namespace internal {
 
 class TsvFileReader {
  public:
-  explicit TsvFileReader(const boost::filesystem::path& filename);
+  explicit TsvFileReader(const boost::filesystem::path& file_path);
 
   bool read(Bytes* key, Bytes* value);
 
  private:
-  std::ifstream stream_;
+  boost::filesystem::ifstream stream_;
   std::string base64_key_;
   std::string base64_value_;
   Bytes current_key_;

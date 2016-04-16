@@ -197,22 +197,22 @@ void Map::importFromBase64(const boost::filesystem::path& directory,
                            const Options& options) {
   Map map(directory, options);
 
-  std::vector<std::string> filenames;
+  std::vector<boost::filesystem::path> file_paths;
   if (boost::filesystem::is_regular_file(source)) {
-    filenames.push_back(source.string());
+    file_paths.push_back(source);
   } else if (boost::filesystem::is_directory(source)) {
-    filenames = mt::listFiles(source.string());
+    file_paths = mt::listFilePaths(source);
   } else {
     mt::fail("No such file or directory: %s", source.c_str());
   }
 
   Bytes key;
   Bytes value;
-  for (const auto& file : filenames) {
+  for (const auto& file_path : file_paths) {
     if (options.verbose) {
-      mt::log() << "Importing " << file << std::endl;
+      mt::log() << "Importing " << file_path << std::endl;
     }
-    internal::TsvFileReader reader(file);
+    internal::TsvFileReader reader(file_path);
     while (reader.read(&key, &value)) {
       map.put(key, value);
     }

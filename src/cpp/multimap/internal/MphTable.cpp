@@ -100,13 +100,13 @@ std::string getNameOfTableFile(const std::string& prefix) {
 }
 
 std::pair<Map, Arena> readRecordsFromFile(
-    const boost::filesystem::path& filename) {
+    const boost::filesystem::path& file_path) {
   Map map;
   Bytes key;
   Bytes value;
   Arena arena;
   uint32_t key_size;
-  const mt::AutoCloseFile stream = mt::fopen(filename.string(), "r");
+  const mt::AutoCloseFile stream = mt::fopen(file_path, "r");
   while (readBytesFromStream(stream.get(), &key) &&
          readBytesFromStream(stream.get(), &value)) {
     auto iter = map.find(key);
@@ -139,11 +139,11 @@ Mph buildMphFromKeys(const Map& map) {
 
 Stats writeMap(const std::string& prefix, const Map& map, const Mph& mph,
                bool verbose) {
-  const auto mph_filename = getNameOfMphFile(prefix);
+  const auto mph_file_path = getNameOfMphFile(prefix);
   if (verbose) {
-    mt::log() << "Writing " << mph_filename << std::endl;
+    mt::log() << "Writing " << mph_file_path << std::endl;
   }
-  mph.writeToFile(mph_filename);
+  mph.writeToFile(mph_file_path);
 
   Stats stats;
   stats.block_size = 8;
@@ -152,11 +152,11 @@ Stats writeMap(const std::string& prefix, const Map& map, const Mph& mph,
 
   Table table(map.size());
   const Bytes zeros(stats.block_size, 0);
-  const std::string lists_filename = getNameOfListsFile(prefix);
+  const std::string lists_file_name = getNameOfListsFile(prefix);
   if (verbose) {
-    mt::log() << "Writing " << lists_filename << std::endl;
+    mt::log() << "Writing " << lists_file_name << std::endl;
   }
-  const mt::AutoCloseFile lists_stream = mt::fopen(lists_filename, "w");
+  const mt::AutoCloseFile lists_stream = mt::fopen(lists_file_name, "w");
   for (const auto& entry : map) {
     auto offset = mt::ftell(lists_stream.get());
     if (const auto remainder = offset % stats.block_size) {
@@ -212,27 +212,21 @@ Stats writeMap(const std::string& prefix, const Map& map, const Mph& mph,
   }
   stats.num_blocks = offset / stats.block_size;
 
-  const std::string table_filename = getNameOfTableFile(prefix);
+  const std::string table_file_name = getNameOfTableFile(prefix);
   if (verbose) {
-    mt::log() << "Writing " << table_filename << std::endl;
+    mt::log() << "Writing " << table_file_name << std::endl;
   }
-  const mt::AutoCloseFile table_stream = mt::fopen(table_filename, "w");
+  const mt::AutoCloseFile table_stream = mt::fopen(table_file_name, "w");
   mt::fwriteAll(table_stream.get(), table.data(),
                 table.size() * sizeof(Table::value_type));
 
-  const std::string stats_filename = getNameOfStatsFile(prefix);
+  const std::string stats_file_name = getNameOfStatsFile(prefix);
   if (verbose) {
-    mt::log() << "Writing " << stats_filename << std::endl;
+    mt::log() << "Writing " << stats_file_name << std::endl;
   }
-  stats.writeToFile(stats_filename);
+  stats.writeToFile(stats_file_name);
 
   return stats;
-}
-
-mt::AutoUnmapMemory mapFileIntoMemory(const boost::filesystem::path& filename) {
-  const mt::AutoCloseFd fd = mt::open(filename.string(), O_RDONLY);
-  const auto filesize = boost::filesystem::file_size(filename);
-  return mt::mmap(filesize, PROT_READ, MAP_SHARED, fd.get(), 0);
 }
 
 const byte* getListBegin(const mt::AutoUnmapMemory& lists, size_t block_id,
@@ -280,17 +274,17 @@ void MphTable::Builder::put(const Slice& key, const Slice& value) {
   value.writeToStream(stream_.get());
 }
 
-boost::filesystem::path MphTable::Builder::getFilename() const {
+boost::filesystem::path MphTable::Builder::getFilePath() const {
   return getNameOfRecordsFile(prefix_);
 }
 
 boost::filesystem::path MphTable::Builder::releaseFile() {
   MT_REQUIRE_TRUE(stream_);
   MT_REQUIRE_FALSE(prefix_.empty());
-  const auto filename = getFilename();
+  const auto file_path = getFilePath();
   stream_.reset();
   prefix_ = "";
-  return filename;
+  return file_path;
 }
 
 size_t MphTable::Builder::getFileSize() const {
@@ -300,9 +294,9 @@ size_t MphTable::Builder::getFileSize() const {
 Stats MphTable::Builder::build() {
   MT_REQUIRE_TRUE(stream_);
   stream_.reset();
-  const auto records_filename = getNameOfRecordsFile(prefix_);
-  auto map_and_arena = readRecordsFromFile(records_filename);
-  MT_ASSERT_TRUE(boost::filesystem::remove(records_filename));
+  const auto records_file_path = getNameOfRecordsFile(prefix_);
+  auto map_and_arena = readRecordsFromFile(records_file_path);
+  MT_ASSERT_TRUE(boost::filesystem::remove(records_file_path));
   Map& map = map_and_arena.first;
   if (options_.compare) {
     for (auto& entry : map) {
@@ -315,8 +309,8 @@ Stats MphTable::Builder::build() {
 
 MphTable::MphTable(const std::string& prefix)
     : mph_(Mph::readFromFile(getNameOfMphFile(prefix))),
-      table_(mapFileIntoMemory(getNameOfTableFile(prefix))),
-      lists_(mapFileIntoMemory(getNameOfListsFile(prefix))),
+      table_(mt::mmapFile(getNameOfTableFile(prefix), PROT_READ)),
+      lists_(mt::mmapFile(getNameOfListsFile(prefix), PROT_READ)),
       stats_(Stats::readFromFile(getNameOfStatsFile(prefix))) {}
 
 std::unique_ptr<Iterator> MphTable::get(const Slice& key) const {

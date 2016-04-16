@@ -34,11 +34,11 @@ struct Descriptor {
   int num_partitions = 0;
   int map_type = 0;
 
-  static std::string getFilename();
+  static std::string getFileName();
 
   static std::string getFilePrefix();
 
-  static std::string getFullFilename(const boost::filesystem::path& base);
+  static std::string getFullFileName(const boost::filesystem::path& base);
 
   static std::string getFullFilePrefix(const boost::filesystem::path& base);
 

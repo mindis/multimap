@@ -69,12 +69,12 @@ Partition::Partition(const std::string& prefix, const Options& options)
   Options store_options;
   store_options.readonly = options.readonly;
   store_options.block_size = options.block_size;
-  const std::string map_filename = getNameOfMapFile(prefix);
-  if (boost::filesystem::is_regular_file(map_filename)) {
+  const std::string map_file_path = getNameOfMapFile(prefix);
+  if (boost::filesystem::is_regular_file(map_file_path)) {
     Bytes key;
-    const mt::AutoCloseFile map_stream = mt::fopen(map_filename, "r");
-    const std::string stats_filename = getNameOfStatsFile(prefix);
-    stats_ = Stats::readFromFile(stats_filename);
+    const mt::AutoCloseFile map_stream = mt::fopen(map_file_path, "r");
+    const std::string stats_file_path = getNameOfStatsFile(prefix);
+    stats_ = Stats::readFromFile(stats_file_path);
     store_options.block_size = stats_.block_size;
     for (size_t i = 0; i != stats_.num_keys_valid; i++) {
       MT_ASSERT_TRUE(readBytesFromStream(map_stream.get(), &key));
@@ -98,14 +98,14 @@ Partition::Partition(const std::string& prefix, const Options& options)
 Partition::~Partition() {
   if (store_.isReadOnly()) return;
 
-  const std::string map_filename = getNameOfMapFile(prefix_);
-  const std::string map_filename_old = map_filename + ".old";
-  if (boost::filesystem::is_regular_file(map_filename)) {
-    boost::filesystem::rename(map_filename, map_filename_old);
+  const std::string map_file_path = getNameOfMapFile(prefix_);
+  const std::string map_file_path_old = map_file_path + ".old";
+  if (boost::filesystem::is_regular_file(map_file_path)) {
+    boost::filesystem::rename(map_file_path, map_file_path_old);
   }
 
   List::Stats list_stats;
-  const mt::AutoCloseFile map_stream = mt::fopen(map_filename, "w");
+  const mt::AutoCloseFile map_stream = mt::fopen(map_file_path, "w");
   for (const auto& entry : map_) {
     auto& key = entry.first;
     auto& list = *entry.second;
@@ -148,8 +148,8 @@ Partition::~Partition() {
 
   stats_.writeToFile(getNameOfStatsFile(prefix_));
 
-  if (boost::filesystem::is_regular_file(map_filename_old)) {
-    const auto status = boost::filesystem::remove(map_filename_old);
+  if (boost::filesystem::is_regular_file(map_file_path_old)) {
+    const auto status = boost::filesystem::remove(map_file_path_old);
     MT_ASSERT_TRUE(status);
   }
 }

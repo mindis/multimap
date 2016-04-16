@@ -23,9 +23,9 @@
 namespace multimap {
 namespace internal {
 
-TsvFileReader::TsvFileReader(const boost::filesystem::path& filename)
-    : stream_(filename.string()) {
-  mt::check(stream_.is_open(), "Could not open %s", filename.c_str());
+TsvFileReader::TsvFileReader(const boost::filesystem::path& file_path)
+    : stream_(file_path) {
+  mt::check(stream_.is_open(), "Could not open %s", file_path.c_str());
   stream_ >> base64_key_;
   Base64::decode(base64_key_, &current_key_);
 }

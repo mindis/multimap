@@ -43,12 +43,14 @@ constexpr boost::try_to_lock_t TRY_TO_LOCK{};
 
 struct DirectoryLock {
  public:
-  DirectoryLock(const std::string& directory)
+  DirectoryLock(const boost::filesystem::path& directory)
       : dlock_(directory, Descriptor::getFilePrefix() + ".lock") {}
 
-  const std::string& directory() const { return dlock_.directory(); }
+  const boost::filesystem::path& directory() const {
+    return dlock_.directory();
+  }
 
-  const std::string& filename() const { return dlock_.filename(); }
+  const std::string& file_name() const { return dlock_.file_name(); }
 
  private:
   mt::DirectoryLockGuard dlock_;

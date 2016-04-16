@@ -52,7 +52,7 @@ class MphTable {
 
     void put(const Slice& key, const Slice& value);
 
-    boost::filesystem::path getFilename() const;
+    boost::filesystem::path getFilePath() const;
 
     boost::filesystem::path releaseFile();
 

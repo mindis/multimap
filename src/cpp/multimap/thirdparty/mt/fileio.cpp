@@ -22,25 +22,26 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <cstring>
-#include <fstream>
+#include <boost/filesystem/fstream.hpp>
+#include <boost/filesystem/operations.hpp>
 #include "mt/check.hpp"
 
 namespace mt {
 
-std::vector<uint8_t> readAllBytes(const std::string& filename) {
+std::vector<uint8_t> readAllBytes(const bfs::path& file_path) {
   struct stat stats;
-  const int result = stat(filename.c_str(), &stats);
+  const int result = stat(file_path.c_str(), &stats);
   Check::isZero(result, "stat() failed for %s because of '%s'",
-                filename.c_str(), errnostr());
+                file_path.c_str(), errnostr());
   std::vector<uint8_t> bytes(stats.st_size);
-  const AutoCloseFd fd = open(filename.c_str(), O_RDONLY);
+  const AutoCloseFd fd = open(file_path.c_str(), O_RDONLY);
   readAll(fd.get(), bytes.data(), bytes.size());
   return bytes;
 }
 
-std::vector<std::string> readAllLines(const std::string& filename) {
-  std::ifstream stream(filename);
-  check(stream.is_open(), "Could not open %s", filename.c_str());
+std::vector<std::string> readAllLines(const bfs::path& file_path) {
+  bfs::ifstream stream(file_path);
+  check(stream.is_open(), "Could not open %s", file_path.c_str());
 
   std::string line;
   std::vector<std::string> lines;
@@ -50,24 +51,34 @@ std::vector<std::string> readAllLines(const std::string& filename) {
   return lines;
 }
 
-std::vector<std::string> listFiles(const std::string& directory,
-                                   bool ignore_hidden) {
+std::vector<std::string> listFileNames(const bfs::path& directory,
+                                       bool ignore_hidden) {
   DIR* stream = opendir(directory.c_str());
   Check::notNull(stream, "opendir() failed for %s because of '%s'",
                  directory.c_str(), errnostr());
 
   struct dirent* entry;
-  std::vector<std::string> filenames;
+  std::vector<std::string> file_names;
   while ((entry = readdir(stream)) != nullptr) {
     if (entry->d_type == DT_REG) {
       if (ignore_hidden && entry->d_name[0] == '.') continue;
-      filenames.emplace_back(entry->d_name);
+      file_names.emplace_back(entry->d_name);
     }
   }
 
   const int result = closedir(stream);
   Check::isZero(result, "closedir() failed because of '%s'", errnostr());
-  return filenames;
+  return file_names;
+}
+
+std::vector<bfs::path> listFilePaths(const bfs::path& directory,
+                                     bool ignore_hidden) {
+  const auto file_names = listFileNames(directory, ignore_hidden);
+  std::vector<bfs::path> file_paths(file_names.size());
+  for (size_t i = 0; i != file_names.size(); i++) {
+    file_paths[i] = directory / file_names[i];
+  }
+  return file_paths;
 }
 
 const int AutoCloseFd::NOFD = -1;
@@ -99,31 +110,31 @@ void AutoCloseFd::reset(int fd) {
   fd_ = fd;
 }
 
-AutoCloseFd open(const std::string& path, int flags) {
-  AutoCloseFd fd = openIfExists(path, flags);
-  check(bool(fd), "open() failed for %s because of '%s'", path.c_str(),
+AutoCloseFd open(const bfs::path& file_path, int flags) {
+  AutoCloseFd fd = openIfExists(file_path, flags);
+  check(bool(fd), "open() failed for %s because of '%s'", file_path.c_str(),
         errnostr());
   return fd;
 }
 
-AutoCloseFd open(const std::string& path, int flags, mode_t mode) {
-  AutoCloseFd fd = openIfExists(path, flags, mode);
-  check(bool(fd), "open() failed for %s because of '%s'", path.c_str(),
+AutoCloseFd open(const bfs::path& file_path, int flags, mode_t mode) {
+  AutoCloseFd fd = openIfExists(file_path, flags, mode);
+  check(bool(fd), "open() failed for %s because of '%s'", file_path.c_str(),
         errnostr());
   return fd;
 }
 
-AutoCloseFd openIfExists(const std::string& path, int flags) {
-  return AutoCloseFd(::open(path.c_str(), flags));
+AutoCloseFd openIfExists(const bfs::path& file_path, int flags) {
+  return AutoCloseFd(::open(file_path.c_str(), flags));
 }
 
-AutoCloseFd openIfExists(const std::string& path, int flags, mode_t mode) {
-  return AutoCloseFd(::open(path.c_str(), flags, mode));
+AutoCloseFd openIfExists(const bfs::path& file_path, int flags, mode_t mode) {
+  return AutoCloseFd(::open(file_path.c_str(), flags, mode));
 }
 
-AutoCloseFd creat(const std::string& path, mode_t mode) {
-  AutoCloseFd fd(::creat(path.c_str(), mode));
-  check(bool(fd), "creat() failed for %s because of '%s'", path.c_str(),
+AutoCloseFd creat(const bfs::path& file_path, mode_t mode) {
+  AutoCloseFd fd(::creat(file_path.c_str(), mode));
+  check(bool(fd), "creat() failed for %s because of '%s'", file_path.c_str(),
         errnostr());
   return fd;
 }
@@ -164,15 +175,15 @@ void ftruncate(int fd, uint64_t length) {
                 errnostr());
 }
 
-AutoCloseFile fopen(const std::string& path, const char* mode) {
-  AutoCloseFile file = fopenIfExists(path, mode);
-  check(bool(file), "fopen() failed for %s because of '%s'", path.c_str(),
+AutoCloseFile fopen(const bfs::path& file_path, const char* mode) {
+  AutoCloseFile file = fopenIfExists(file_path, mode);
+  check(bool(file), "fopen() failed for %s because of '%s'", file_path.c_str(),
         errnostr());
   return file;
 }
 
-AutoCloseFile fopenIfExists(const std::string& path, const char* mode) {
-  return AutoCloseFile(std::fopen(path.c_str(), mode));
+AutoCloseFile fopenIfExists(const bfs::path& file_path, const char* mode) {
+  return AutoCloseFile(std::fopen(file_path.c_str(), mode));
 }
 
 uint8_t fgetc(std::FILE* stream) {
@@ -219,24 +230,27 @@ uint64_t ftell(std::FILE* stream) {
 
 const std::string DirectoryLockGuard::DEFAULT_FILENAME = ".lock";
 
-DirectoryLockGuard::DirectoryLockGuard(const std::string& directory,
-                                       const std::string& filename)
-    : directory_(directory), filename_(filename) {
-  const std::string abs_filename = directory + '/' + filename;
+DirectoryLockGuard::DirectoryLockGuard(const bfs::path& directory)
+    : DirectoryLockGuard(directory, DEFAULT_FILENAME) {}
+
+DirectoryLockGuard::DirectoryLockGuard(const bfs::path& directory,
+                                       const std::string& file_name)
+    : directory_(directory), file_name_(file_name) {
+  const bfs::path file_path = directory / file_name;
   struct stat file_stats;
-  Check::isEqual(-1, ::stat(abs_filename.c_str(), &file_stats),
+  Check::isEqual(-1, ::stat(file_path.c_str(), &file_stats),
                  "Could not create %s because the file already exists",
-                 abs_filename.c_str());
-  std::ofstream stream(abs_filename);
+                 file_path.c_str());
+  bfs::ofstream stream(file_path);
   Check::isTrue(stream.is_open(),
                 "Could not create lock file %s for unknown reason",
-                abs_filename.c_str());
+                file_path.c_str());
   stream << ::getpid();
 }
 
 DirectoryLockGuard::~DirectoryLockGuard() {
   if (!directory_.empty()) {
-    std::remove((directory_ + '/' + filename_).c_str());
+    bfs::remove(directory_ / file_name_);
   }
 }
 

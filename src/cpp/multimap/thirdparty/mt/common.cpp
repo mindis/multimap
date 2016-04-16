@@ -49,9 +49,9 @@ uint64_t nextPrime(uint64_t number) {
 
 uint64_t currentResidentMemory() {
   const char* property = "VmRSS:";
-  const char* filename = "/proc/self/status";
-  std::ifstream input(filename);
-  check(input.is_open(), "Could not open %s", filename);
+  const char* file_path = "/proc/self/status";
+  std::ifstream input(file_path);
+  check(input.is_open(), "Could not open %s", file_path);
   std::string token;
   uint64_t mem_in_kb;
   while (input >> token) {
@@ -60,7 +60,7 @@ uint64_t currentResidentMemory() {
       return KiB(mem_in_kb);
     }
   }
-  fail("Could not find property %s in %s", property, filename);
+  fail("Could not find property '%s' in %s", property, file_path);
   return 0;
 }
 
