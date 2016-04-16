@@ -1,6 +1,8 @@
 TARGET = multimap-tests
 TEMPLATE = app
-CONFIG += console
+CONFIG += console c++11
+CONFIG -= app_bundle
+CONFIG -= qt
 
 COMMON = multimap.pri
 !include($$COMMON) {

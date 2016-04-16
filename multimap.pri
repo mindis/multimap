@@ -1,6 +1,6 @@
+CONFIG += console c++11
+CONFIG -= app_bundle
 CONFIG -= qt
-CONFIG += c++11
-DEFINES -= QT_WEBKIT
 VERSION = 0.6.0
 
 QMAKE_LFLAGS += -rdynamic     # for GNU backtrace
