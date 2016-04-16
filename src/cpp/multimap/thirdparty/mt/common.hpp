@@ -106,6 +106,8 @@ std::ostream& log();
 // TYPE TRAITS
 // -----------------------------------------------------------------------------
 
+namespace internal {
+
 template <typename T>
 constexpr bool hasExpectedSize(size_t size_on_32_bit_system,
                                size_t size_on_64_bit_system) {
@@ -114,10 +116,23 @@ constexpr bool hasExpectedSize(size_t size_on_32_bit_system,
 }
 // Checks at compile time if sizeof(T) has some expected value.
 //
-//   static_assert(mt::hasExpectedSize<Type>(40, 48)::value,
-//                 "class Type does not have expected size");
+//   static_assert(mt::internal::hasExpectedSize<Type>(40, 48),
+//                 "type Type does not have expected size");
 
-}  // namespace mt
+#define MT_ASSERT_SIZEOF(type, expected_size_on_x32, expected_size_on_x64) \
+  static_assert(mt::internal::hasExpectedSize<type>(expected_size_on_x32,  \
+                                                    expected_size_on_x64), \
+                "type " #type " does not have expected size")
+// Shorthand for internal::hasExpectedSize<Type>() that could be placed after a
+// type definition in order to get notified when the object's size has changed.
+//
+//    class SomeClass {
+//      int value;
+//    };
+//
+//    MT_ASSERT_SIZEOF(SomeClass, 4, 8);
+
+}  // namespace internal
 
 #define MT_ENABLE_IF(condition)      \
   template <bool __MT_B = condition, \
@@ -216,5 +231,7 @@ constexpr bool hasExpectedSize(size_t size_on_32_bit_system,
 #define PRIuS __PRIS_PREFIX "u"
 #define PRIXS __PRIS_PREFIX "X"
 #define PRIoS __PRIS_PREFIX "o"
+
+}  // namespace mt
 
 #endif  // MT_MT_HPP_INCLUDED
