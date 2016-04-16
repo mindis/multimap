@@ -63,8 +63,7 @@ struct Stats {
 static_assert(std::is_standard_layout<Stats>::value,
               "Stats is no standard layout type");
 
-static_assert(mt::hasExpectedSize<Stats>(104, 104),
-              "Stats does not have expected size");
+MT_ASSERT_SIZEOF(Stats, 104, 104);
 
 }  // namespace multimap
 

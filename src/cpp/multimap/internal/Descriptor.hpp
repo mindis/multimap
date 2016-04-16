@@ -54,8 +54,7 @@ struct Descriptor {
   Descriptor() = default;
 };
 
-static_assert(mt::hasExpectedSize<Descriptor>(16, 16),
-              "struct Descriptor does not have expected size");
+MT_ASSERT_SIZEOF(Descriptor, 16, 16);
 
 }  // namespace internal
 }  // namespace multimap

@@ -39,8 +39,7 @@ struct ListMeta {
   ListMeta() = default;
 };
 
-static_assert(mt::hasExpectedSize<ListMeta>(8, 8),
-              "class ListMeta does not have expected size");
+MT_ASSERT_SIZEOF(ListMeta, 8, 8);
 
 class ListIter : public Iterator {
  public:

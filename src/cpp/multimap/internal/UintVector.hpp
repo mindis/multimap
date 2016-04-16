@@ -53,8 +53,7 @@ class UintVector {
   uint32_t size_ = 0;
 };
 
-static_assert(mt::hasExpectedSize<UintVector>(12, 16),
-              "class UintVector does not have expected size");
+MT_ASSERT_SIZEOF(UintVector, 12, 16);
 
 }  // namespace internal
 }  // namespace multimap

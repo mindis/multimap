@@ -106,8 +106,7 @@ class List {
   Stats stats_;
 };
 
-static_assert(mt::hasExpectedSize<List>(36, 48),
-              "class List does not have expected size");
+MT_ASSERT_SIZEOF(List, 36, 48);
 
 }  // namespace internal
 }  // namespace multimap
