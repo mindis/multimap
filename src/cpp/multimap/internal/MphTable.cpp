@@ -39,7 +39,7 @@ struct ListMeta {
   ListMeta() = default;
 };
 
-MT_ASSERT_SIZEOF(ListMeta, 8, 8);
+MT_STATIC_ASSERT_SIZEOF(ListMeta, 8, 8);
 
 class ListIter : public Iterator {
  public:

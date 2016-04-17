@@ -106,7 +106,7 @@ class List {
   Stats stats_;
 };
 
-MT_ASSERT_SIZEOF(List, 36, 48);
+MT_STATIC_ASSERT_SIZEOF(List, 36, 48);
 
 }  // namespace internal
 }  // namespace multimap

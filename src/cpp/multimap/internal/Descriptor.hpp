@@ -54,7 +54,7 @@ struct Descriptor {
   Descriptor() = default;
 };
 
-MT_ASSERT_SIZEOF(Descriptor, 16, 16);
+MT_STATIC_ASSERT_SIZEOF(Descriptor, 16, 16);
 
 }  // namespace internal
 }  // namespace multimap

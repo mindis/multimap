@@ -53,7 +53,7 @@ class UintVector {
   uint32_t size_ = 0;
 };
 
-MT_ASSERT_SIZEOF(UintVector, 12, 16);
+MT_STATIC_ASSERT_SIZEOF(UintVector, 12, 16);
 
 }  // namespace internal
 }  // namespace multimap

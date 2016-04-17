@@ -24,7 +24,7 @@
 
 namespace mt {
 
-static const int VERSION = 20160416;
+static const int VERSION = 20160417;
 
 bool isPrime(uint64_t number);
 // Returns `true` if `number` is prime, `false` otherwise.
@@ -119,18 +119,17 @@ constexpr bool hasExpectedSize(size_t size_on_32_bit_system,
 //   static_assert(mt::internal::hasExpectedSize<Type>(40, 48),
 //                 "type Type does not have expected size");
 
-#define MT_ASSERT_SIZEOF(type, expected_size_on_x32, expected_size_on_x64) \
-  static_assert(mt::internal::hasExpectedSize<type>(expected_size_on_x32,  \
-                                                    expected_size_on_x64), \
+#define MT_STATIC_ASSERT_SIZEOF(type, size_on_x32, size_on_x64)                \
+  static_assert(mt::internal::hasExpectedSize<type>(size_on_x32, size_on_x64), \
                 "type " #type " does not have expected size")
 // Shorthand for internal::hasExpectedSize<Type>() that could be placed after a
 // type definition in order to get notified when the object's size has changed.
 //
 //    class SomeClass {
-//      int value;
+//      long value;
 //    };
 //
-//    MT_ASSERT_SIZEOF(SomeClass, 4, 8);
+//    MT_STATIC_ASSERT_SIZEOF(SomeClass, 4, 8);
 
 }  // namespace internal
 
