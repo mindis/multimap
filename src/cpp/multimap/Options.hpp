@@ -41,8 +41,6 @@ struct Options {
 
   void keepNumPartitions() { num_partitions = 0; }
   void keepBlockSize() { block_size = 0; }
-
-  Options() = default;
 };
 
 }  // namespace multimap
