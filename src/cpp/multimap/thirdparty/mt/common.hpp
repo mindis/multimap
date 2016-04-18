@@ -24,7 +24,7 @@
 
 namespace mt {
 
-static const int VERSION = 20160417;
+static const int VERSION = 20160418;
 
 bool isPrime(uint64_t number);
 // Returns `true` if `number` is prime, `false` otherwise.
@@ -105,33 +105,6 @@ std::ostream& log();
 // -----------------------------------------------------------------------------
 // TYPE TRAITS
 // -----------------------------------------------------------------------------
-
-namespace internal {
-
-template <typename T>
-constexpr bool hasExpectedSize(size_t size_on_32_bit_system,
-                               size_t size_on_64_bit_system) {
-  return sizeof(T) ==
-         (is32BitSystem() ? size_on_32_bit_system : size_on_64_bit_system);
-}
-// Checks at compile time if sizeof(T) has some expected value.
-//
-//   static_assert(mt::internal::hasExpectedSize<Type>(40, 48),
-//                 "type Type does not have expected size");
-
-#define MT_STATIC_ASSERT_SIZEOF(type, size_on_x32, size_on_x64)                \
-  static_assert(mt::internal::hasExpectedSize<type>(size_on_x32, size_on_x64), \
-                "type " #type " does not have expected size")
-// Shorthand for internal::hasExpectedSize<Type>() that could be placed after a
-// type definition in order to get notified when the object's size has changed.
-//
-//    class SomeClass {
-//      long value;
-//    };
-//
-//    MT_STATIC_ASSERT_SIZEOF(SomeClass, 4, 8);
-
-}  // namespace internal
 
 #define MT_ENABLE_IF(condition)      \
   template <bool __MT_B = condition, \

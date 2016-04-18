@@ -96,6 +96,15 @@ void throwError(const char* file, size_t line, const char* expr, Lhs lhs_value,
   throw AssertionError(file, line, expr, lhs_value, rhs_value, type);
 }
 
+template <typename T>
+constexpr bool hasExpectedSize(size_t size_on_x32, size_t size_on_x64) {
+  return sizeof(T) == ((sizeof(void*) == 4) ? size_on_x32 : size_on_x64);
+}
+// Checks at compile time if sizeof(T) has some expected value.
+//
+//   static_assert(mt::internal::hasExpectedSize<long>(4, 8),
+//                 "type long does not have expected size");
+
 }  // namespace internal
 
 template <typename Lhs, typename Rhs>
@@ -103,8 +112,6 @@ AssertionError::AssertionError(const char* file, size_t line, const char* expr,
                                Lhs lhs_value, Rhs rhs_value, Type type)
     : std::logic_error(internal::makeErrorMessage(file, line, expr, lhs_value,
                                                   rhs_value, type, 4)) {}
-
-}  // namespace mt
 
 #define __MT_VOID ((void)0)
 
@@ -218,6 +225,7 @@ AssertionError::AssertionError(const char* file, size_t line, const char* expr,
 
 // These assertions/macros are always enabled.
 
+// clang-format off
 #define MT_ASSERT_TRUE(expr) __MT_ASSERT_TRUE(expr)
 #define MT_ASSERT_FALSE(expr) __MT_ASSERT_FALSE(expr)
 #define MT_ASSERT_NULL(expr) __MT_ASSERT_NULL(expr)
@@ -226,9 +234,9 @@ AssertionError::AssertionError(const char* file, size_t line, const char* expr,
 #define MT_ASSERT_NOT_ZERO(expr) __MT_ASSERT_NOT_ZERO(expr)
 #define MT_ASSERT_EQ(a, b) __MT_ASSERT_COMPARE(a == b, a, b)
 #define MT_ASSERT_NE(a, b) __MT_ASSERT_COMPARE(a != b, a, b)
-#define MT_ASSERT_LT(a, b) __MT_ASSERT_COMPARE(a < b, a, b)
+#define MT_ASSERT_LT(a, b) __MT_ASSERT_COMPARE(a <  b, a, b)
 #define MT_ASSERT_LE(a, b) __MT_ASSERT_COMPARE(a <= b, a, b)
-#define MT_ASSERT_GT(a, b) __MT_ASSERT_COMPARE(a > b, a, b)
+#define MT_ASSERT_GT(a, b) __MT_ASSERT_COMPARE(a >  b, a, b)
 #define MT_ASSERT_GE(a, b) __MT_ASSERT_COMPARE(a >= b, a, b)
 
 #define MT_REQUIRE_TRUE(expr) __MT_REQUIRE_TRUE(expr)
@@ -239,9 +247,9 @@ AssertionError::AssertionError(const char* file, size_t line, const char* expr,
 #define MT_REQUIRE_NOT_ZERO(expr) __MT_REQUIRE_NOT_ZERO(expr)
 #define MT_REQUIRE_EQ(a, b) __MT_REQUIRE_COMPARE(a == b, a, b)
 #define MT_REQUIRE_NE(a, b) __MT_REQUIRE_COMPARE(a != b, a, b)
-#define MT_REQUIRE_LT(a, b) __MT_REQUIRE_COMPARE(a < b, a, b)
+#define MT_REQUIRE_LT(a, b) __MT_REQUIRE_COMPARE(a <  b, a, b)
 #define MT_REQUIRE_LE(a, b) __MT_REQUIRE_COMPARE(a <= b, a, b)
-#define MT_REQUIRE_GT(a, b) __MT_REQUIRE_COMPARE(a > b, a, b)
+#define MT_REQUIRE_GT(a, b) __MT_REQUIRE_COMPARE(a >  b, a, b)
 #define MT_REQUIRE_GE(a, b) __MT_REQUIRE_COMPARE(a >= b, a, b)
 
 #define MT_ENSURE_TRUE(expr) __MT_ENSURE_TRUE(expr)
@@ -252,11 +260,26 @@ AssertionError::AssertionError(const char* file, size_t line, const char* expr,
 #define MT_ENSURE_NOT_ZERO(expr) __MT_ENSURE_NOT_ZERO(expr)
 #define MT_ENSURE_EQ(a, b) __MT_ENSURE_COMPARE(a == b, a, b)
 #define MT_ENSURE_NE(a, b) __MT_ENSURE_COMPARE(a != b, a, b)
-#define MT_ENSURE_LT(a, b) __MT_ENSURE_COMPARE(a < b, a, b)
+#define MT_ENSURE_LT(a, b) __MT_ENSURE_COMPARE(a <  b, a, b)
 #define MT_ENSURE_LE(a, b) __MT_ENSURE_COMPARE(a <= b, a, b)
-#define MT_ENSURE_GT(a, b) __MT_ENSURE_COMPARE(a > b, a, b)
+#define MT_ENSURE_GT(a, b) __MT_ENSURE_COMPARE(a >  b, a, b)
 #define MT_ENSURE_GE(a, b) __MT_ENSURE_COMPARE(a >= b, a, b)
+// clang-format on
 
 #define MT_FAIL(message) __MT_FAIL(message)
+
+#define MT_STATIC_ASSERT_SIZEOF(type, size_on_x32, size_on_x64)                \
+  static_assert(mt::internal::hasExpectedSize<type>(size_on_x32, size_on_x64), \
+                "type " #type " does not have expected size")
+// Shorthand for internal::hasExpectedSize<Type>() that could be placed after a
+// type definition in order to get notified when the object's size has changed.
+//
+//    class SomeClass {
+//      long value;
+//    };
+//
+//    MT_STATIC_ASSERT_SIZEOF(SomeClass, 4, 8);
+
+}  // namespace mt
 
 #endif  // MT_ASSERT_HPP_INCLUDED

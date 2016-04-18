@@ -20,6 +20,7 @@
 #include <cstring>
 #include "multimap/internal/Varint.hpp"
 #include "multimap/thirdparty/mt/assert.hpp"
+#include "multimap/thirdparty/mt/common.hpp"
 #include "multimap/thirdparty/mt/fileio.hpp"
 
 namespace multimap {

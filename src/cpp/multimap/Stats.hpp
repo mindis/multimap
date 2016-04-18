@@ -26,7 +26,7 @@
 #include <string>
 #include <vector>
 #include <boost/filesystem/path.hpp>
-#include "multimap/thirdparty/mt/common.hpp"
+#include "multimap/thirdparty/mt/assert.hpp"
 
 namespace multimap {
 
@@ -59,9 +59,6 @@ struct Stats {
 
   Stats() = default;
 };
-
-static_assert(std::is_standard_layout<Stats>::value,
-              "Stats is no standard layout type");
 
 MT_STATIC_ASSERT_SIZEOF(Stats, 104, 104);
 
