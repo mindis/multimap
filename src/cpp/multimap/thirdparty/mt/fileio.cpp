@@ -21,6 +21,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <algorithm>
 #include <cstring>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -68,6 +69,7 @@ std::vector<std::string> listFileNames(const bfs::path& directory,
 
   const int result = closedir(stream);
   Check::isZero(result, "closedir() failed because of '%s'", errnostr());
+  std::sort(file_names.begin(), file_names.end());
   return file_names;
 }
 
