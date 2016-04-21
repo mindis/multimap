@@ -35,8 +35,6 @@ namespace {
 struct ListMeta {
   uint32_t num_values = 0;
   uint32_t num_bytes = 0;
-
-  ListMeta() = default;
 };
 
 MT_STATIC_ASSERT_SIZEOF(ListMeta, 8, 8);
