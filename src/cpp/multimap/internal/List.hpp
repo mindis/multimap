@@ -47,8 +47,6 @@ class List {
       MT_REQUIRE_GE(num_values_total, num_values_removed);
       return num_values_total - num_values_removed;
     }
-
-    Stats() = default;
   };
 
   List() = default;
