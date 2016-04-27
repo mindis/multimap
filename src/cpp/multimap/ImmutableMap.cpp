@@ -73,10 +73,9 @@ ImmutableMap::Builder::Builder(const bfs::path& directory,
   mt::Check::isEqual(std::distance(bfs::directory_iterator(directory),
                                    bfs::directory_iterator()),
                      1, "Must be empty: %s", directory.c_str());
-  const auto num_buckets = mt::nextPrime(options.num_partitions);
-  for (size_t i = 0; i != num_buckets; i++) {
-    table_builders_.push_back(internal::MphTable::Builder(
-        directory / getPartitionPrefix(i), options_));
+  const size_t num_partitions = mt::nextPrime(options.num_partitions);
+  for (size_t i = 0; i != num_partitions; i++) {
+    table_builders_.emplace_back(directory / getPartitionPrefix(i), options_);
   }
 }
 
