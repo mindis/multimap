@@ -17,23 +17,24 @@
 
 #include "multimap/internal/UintVector.hpp"
 
-#include <cstring>
-#include "multimap/internal/Varint.hpp"
 #include "multimap/thirdparty/mt/assert.hpp"
 #include "multimap/thirdparty/mt/common.hpp"
 #include "multimap/thirdparty/mt/fileio.hpp"
+#include "multimap/thirdparty/mt/varint.hpp"
 
 namespace multimap {
 namespace internal {
 
 namespace {
 
-void readUint32FromBuffer(const byte* begin, const byte* end, uint32_t* value) {
-  MT_REQUIRE_GE(static_cast<size_t>(end - begin), sizeof *value);
-  std::memcpy(value, begin, sizeof *value);
+uint32_t readFixedInt32FromBuffer(const byte* begin, const byte* end) {
+  uint32_t result = 0;
+  MT_REQUIRE_GE(static_cast<size_t>(end - begin), sizeof result);
+  std::memcpy(&result, begin, sizeof result);
+  return result;
 }
 
-void writeUint32ToBuffer(byte* begin, byte* end, uint32_t value) {
+void writeFixedInt32ToBuffer(byte* begin, byte* end, uint32_t value) {
   MT_REQUIRE_GE(static_cast<size_t>(end - begin), sizeof value);
   std::memcpy(begin, &value, sizeof value);
 }
@@ -43,17 +44,16 @@ void writeUint32ToBuffer(byte* begin, byte* end, uint32_t value) {
 void UintVector::add(uint32_t value) {
   allocateMoreIfFull();
   if (empty()) {
-    offset_ += Varint::writeToBuffer(begin(), end(), value);
+    offset_ += mt::writeVarint32ToBuffer(value, current(), end());
   } else {
-    uint32_t absolute_value = 0;
-    readUint32FromBuffer(cur(), end(), &absolute_value);
+    const uint32_t absolute_value = readFixedInt32FromBuffer(current(), end());
     MT_ASSERT_LT(absolute_value, value);
     const uint32_t delta = value - absolute_value;
-    offset_ += Varint::writeToBuffer(cur(), end(), delta);
+    offset_ += mt::writeVarint32ToBuffer(delta, current(), end());
   }
   // The new offset points past the last delta encoded value
   // which is also right before the trailing absolute value.
-  writeUint32ToBuffer(cur(), end(), value);
+  writeFixedInt32ToBuffer(current(), end(), value);
 }
 
 std::vector<uint32_t> UintVector::unpack() const {
@@ -62,9 +62,9 @@ std::vector<uint32_t> UintVector::unpack() const {
     uint32_t delta = 0;
     uint32_t value = 0;
     const byte* pos = begin();
-    const byte* end = cur();
+    const byte* end = current();
     while (pos != end) {
-      pos += Varint::readFromBuffer(pos, end, &delta);
+      pos += mt::readVarint32FromBuffer(pos, &delta);
       values.push_back(value + delta);
       value = values.back();
     }
@@ -88,9 +88,7 @@ void UintVector::writeToStream(std::FILE* stream) const {
 }
 
 void UintVector::allocateMoreIfFull() {
-  const uint32_t nbytes_required = sizeof(uint32_t) * 2;
-  // Required are at most 4 bytes for the next varint-encoded
-  // delta plus exactly 4 bytes for the trailing absolute value.
+  const uint32_t nbytes_required = mt::MAX_VARINT32_BYTES + sizeof(uint32_t);
   if (nbytes_required > size_ - offset_) {
     const uint32_t new_size = mt::max(size_ * 2, nbytes_required);
     std::unique_ptr<byte[]> new_data(new byte[new_size]);
