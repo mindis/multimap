@@ -84,15 +84,11 @@ class Slice {
   // parsing the buffer or file stream. The latter can be done via class Bytes.
   // The encoding is as follows: [number of bytes as varint][actual data bytes]
 
-  static Slice readFromBuffer(const byte* begin, const byte* end);
-  // Reads a slice from the buffer starting at `begin`. Returns a slice object
-  // that is backed by the buffer's content. If no slice could be read, because
-  // there was not sufficient space in the buffer, the returned slice is empty.
-  // The `end()` position of a non-empty slice can be used as the new `begin`
-  // pointer for subsequent reads.
-
-  static Slice readFromStream(std::FILE* stream,
-                              std::function<byte*(size_t)> allocate);
+  static Slice readFromBuffer(const byte* buffer);
+  // Reads a slice from a buffer. The returned slice is backed by the given
+  // buffer. The caller has to guarantee that `buffer` points to a valid
+  // encoding of a slice once written via `writeToBuffer()`. The end()-pointer
+  // of the returned slice must be used as the input for subsequent reads.
 
   size_t writeToBuffer(byte* begin, byte* end) const;
   // Writes the slice to the buffer starting at `begin`. Returns the number

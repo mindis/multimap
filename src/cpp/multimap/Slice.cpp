@@ -17,47 +17,31 @@
 
 #include "multimap/Slice.hpp"
 
-#include "multimap/internal/Varint.hpp"
 #include "multimap/thirdparty/mt/assert.hpp"
 #include "multimap/thirdparty/mt/fileio.hpp"
+#include "multimap/thirdparty/mt/varint.hpp"
 
 namespace multimap {
 
-Slice Slice::readFromBuffer(const byte* begin, const byte* end) {
-  uint32_t size = 0;
-  const size_t nbytes = internal::Varint::readFromBuffer(begin, end, &size);
-  return (nbytes != 0) ? Slice(begin + nbytes, size) : Slice();
-}
-
-Slice Slice::readFromStream(std::FILE* stream,
-                            std::function<byte*(size_t)> allocate) {
-  uint32_t size = 0;
-  if (internal::Varint::readFromStream(stream, &size) != 0) {
-    byte* data = allocate(size);
-    mt::freadAll(stream, data, size);
-    // The stream is expected to contain valid encodings of Bytes objects.
-    // Hence, after successfully reading the size field, mt::freadAll() will
-    // throw, if the data field could not be read to signal an invalid stream.
-    return Slice(data, size);
-  }
-  return Slice();
+Slice Slice::readFromBuffer(const byte* buffer) {
+  uint32_t slice_size = 0;
+  buffer += mt::readVarint32FromBuffer(buffer, &slice_size);
+  return Slice(buffer, slice_size);
 }
 
 size_t Slice::writeToBuffer(byte* begin, byte* end) const {
-  MT_REQUIRE_FALSE(empty());
-  MT_REQUIRE_LE(begin, end);
-  MT_REQUIRE_LE(size_, internal::Varint::Limits::MAX_N4);
-  byte* pos = begin + internal::Varint::writeToBuffer(begin, end, size_);
-  if ((pos != begin) && (static_cast<size_t>(end - pos) >= size_)) {
+  byte* pos = begin;
+  pos += mt::writeVarint32ToBuffer(size_, pos, end);
+  if (static_cast<size_t>(end - pos) >= size_) {
     std::memcpy(pos, data_, size_);
-    return (pos + size_) - begin;
+    return std::distance(begin, pos + size_);
   }
   return 0;
 }
 
 void Slice::writeToStream(std::FILE* stream) const {
-  MT_REQUIRE_LE(size_, internal::Varint::Limits::MAX_N4);
-  internal::Varint::writeToStream(stream, size_);
+  MT_REQUIRE_LE(size_, std::numeric_limits<uint32_t>::max());
+  mt::writeVarint32ToStream(size_, stream);
   mt::fwriteAll(stream, data_, size_);
 }
 
