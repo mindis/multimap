@@ -1,4 +1,3 @@
-TARGET = multimap-jni
 TEMPLATE = lib
 
 COMMON = multimap.pri
@@ -28,6 +27,12 @@ SOURCES += \
     src/cpp/multimap/jni/io_multimap_Iterator_Native.cpp \
     src/cpp/multimap/jni/io_multimap_Map_Limits_Native.cpp \
     src/cpp/multimap/jni/io_multimap_Map_Native.cpp
+
+CONFIG(debug, debug|release) {
+    TARGET = multimap-jni-dbg
+} else {
+    TARGET = multimap-jni
+}
 
 unix {
     target.path = /usr/local/lib
