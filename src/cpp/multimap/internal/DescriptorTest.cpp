@@ -24,7 +24,7 @@
 namespace multimap {
 namespace internal {
 
-const char* TMPDIR = "/tmp";
+const boost::filesystem::path TMPDIR = "/tmp";
 
 TEST(Descriptor, IsDefaultConstructible) {
   ASSERT_TRUE(std::is_default_constructible<Descriptor>::value);
@@ -36,14 +36,12 @@ TEST(Descriptor, IsCopyConstructibleAndAssignable) {
 }
 
 TEST(Descriptor, DefaultConstructedHasProperState) {
-  ASSERT_FALSE(Descriptor().getFileName().empty());
-  ASSERT_FALSE(Descriptor().getFilePrefix().empty());
-  ASSERT_FALSE(Descriptor().getFullFileName("").empty());
-  ASSERT_FALSE(Descriptor().getFullFilePrefix("").empty());
+  ASSERT_EQ(0, Descriptor().map_type);
+  ASSERT_EQ(0, Descriptor().num_partitions);
   ASSERT_EQ(Version::MAJOR, Descriptor().major_version);
   ASSERT_EQ(Version::MINOR, Descriptor().minor_version);
-  ASSERT_EQ(0, Descriptor().num_partitions);
-  ASSERT_EQ(0, Descriptor().map_type);
+  ASSERT_FALSE(Descriptor().getFilePrefix().empty());
+  ASSERT_FALSE(Descriptor().getFileName().empty());
 }
 
 TEST(Descriptor, WriteThrowsWithDefaultConstructed) {
@@ -53,37 +51,35 @@ TEST(Descriptor, WriteThrowsWithDefaultConstructed) {
 TEST(Descriptor, WriteThrowsIfNumPartitionsIsZero) {
   Descriptor descriptor;
   descriptor.num_partitions = 0;
-  descriptor.map_type = Descriptor::MAP;
   ASSERT_THROW(descriptor.writeToDirectory(TMPDIR), mt::AssertionError);
 }
 
 TEST(Descriptor, WriteThrowsIfMapTypeIsZero) {
   Descriptor descriptor;
   descriptor.map_type = 0;
-  descriptor.num_partitions = 1;
   ASSERT_THROW(descriptor.writeToDirectory(TMPDIR), mt::AssertionError);
 }
 
 TEST(Descriptor, WriteAndReadSucceedsForValidDescriptor) {
-  Descriptor descriptor;
-  descriptor.num_partitions = 1;
-  descriptor.map_type = Descriptor::MAP;
-  ASSERT_NO_THROW(descriptor.writeToDirectory(TMPDIR));
+  Descriptor expected;
+  expected.num_partitions = 1;
+  expected.map_type = Descriptor::TYPE_MAP;
+  ASSERT_NO_THROW(expected.writeToDirectory(TMPDIR));
 
-  Descriptor read_descriptor = Descriptor::readFromDirectory(TMPDIR);
-  ASSERT_EQ(descriptor.major_version, read_descriptor.major_version);
-  ASSERT_EQ(descriptor.minor_version, read_descriptor.minor_version);
-  ASSERT_EQ(descriptor.num_partitions, read_descriptor.num_partitions);
-  ASSERT_EQ(descriptor.map_type, read_descriptor.map_type);
+  Descriptor actual = Descriptor::readFromDirectory(TMPDIR);
+  ASSERT_EQ(expected.map_type, actual.map_type);
+  ASSERT_EQ(expected.num_partitions, actual.num_partitions);
+  ASSERT_EQ(expected.major_version, actual.major_version);
+  ASSERT_EQ(expected.minor_version, actual.minor_version);
 
-  descriptor.map_type = Descriptor::IMMUTABLE_MAP;
-  ASSERT_NO_THROW(descriptor.writeToDirectory(TMPDIR));
+  expected.map_type = Descriptor::TYPE_IMMUTABLE_MAP;
+  ASSERT_NO_THROW(expected.writeToDirectory(TMPDIR));
 
-  read_descriptor = Descriptor::readFromDirectory(TMPDIR);
-  ASSERT_EQ(descriptor.major_version, read_descriptor.major_version);
-  ASSERT_EQ(descriptor.minor_version, read_descriptor.minor_version);
-  ASSERT_EQ(descriptor.num_partitions, read_descriptor.num_partitions);
-  ASSERT_EQ(descriptor.map_type, read_descriptor.map_type);
+  actual = Descriptor::readFromDirectory(TMPDIR);
+  ASSERT_EQ(expected.map_type, actual.map_type);
+  ASSERT_EQ(expected.num_partitions, actual.num_partitions);
+  ASSERT_EQ(expected.major_version, actual.major_version);
+  ASSERT_EQ(expected.minor_version, actual.minor_version);
 }
 
 TEST(Descriptor, TryReadReturnsFalseIfDirectoryDoesNotExist) {
@@ -95,65 +91,22 @@ TEST(Descriptor, TryReadReturnsFalseIfDirectoryDoesNotExist) {
 
 TEST(Descriptor, TryReadReturnsFalseIfDirectoryDoesNotContainDescriptor) {
   Descriptor descriptor;
-  boost::filesystem::remove(Descriptor::getFullFileName(TMPDIR));
+  boost::filesystem::remove(TMPDIR / Descriptor::getFileName());
   ASSERT_FALSE(Descriptor::tryReadFromDirectory(TMPDIR, &descriptor));
 }
 
 TEST(Descriptor, TryReadReturnsTrueIfDirectoryContainsDescriptor) {
   Descriptor descriptor;
   descriptor.num_partitions = 1;
-  descriptor.map_type = Descriptor::MAP;
+  descriptor.map_type = Descriptor::TYPE_MAP;
   descriptor.writeToDirectory(TMPDIR);
 
   Descriptor read_descriptor;
   ASSERT_TRUE(Descriptor::tryReadFromDirectory(TMPDIR, &read_descriptor));
+  ASSERT_EQ(descriptor.map_type, read_descriptor.map_type);
+  ASSERT_EQ(descriptor.num_partitions, read_descriptor.num_partitions);
   ASSERT_EQ(descriptor.major_version, read_descriptor.major_version);
   ASSERT_EQ(descriptor.minor_version, read_descriptor.minor_version);
-  ASSERT_EQ(descriptor.num_partitions, read_descriptor.num_partitions);
-  ASSERT_EQ(descriptor.map_type, read_descriptor.map_type);
-}
-
-TEST(Descriptor, ValidateThrowsIfExpectedTypeDoesNotMatch) {
-  Descriptor descriptor;
-  descriptor.map_type = Descriptor::MAP;
-  ASSERT_THROW(Descriptor::validate(descriptor, Descriptor::IMMUTABLE_MAP),
-               std::runtime_error);
-
-  descriptor.map_type = Descriptor::IMMUTABLE_MAP;
-  ASSERT_THROW(Descriptor::validate(descriptor, Descriptor::MAP),
-               std::runtime_error);
-}
-
-TEST(Descriptor, ValidateThrowsIfMajorVersionIsNotCompatible) {
-  Descriptor descriptor;
-  descriptor.map_type = Descriptor::MAP;
-  descriptor.major_version = Version::MAJOR - 1;
-  ASSERT_THROW(Descriptor::validate(descriptor, Descriptor::MAP),
-               std::runtime_error);
-
-  descriptor.major_version = Version::MAJOR + 1;
-  ASSERT_THROW(Descriptor::validate(descriptor, Descriptor::MAP),
-               std::runtime_error);
-}
-
-TEST(Descriptor, ValidateThrowsIfMinorVersionIsNotCompatible) {
-  Descriptor descriptor;
-  descriptor.map_type = Descriptor::MAP;
-  descriptor.minor_version = Version::MINOR - 1;
-  ASSERT_NO_THROW(Descriptor::validate(descriptor, Descriptor::MAP));
-
-  descriptor.minor_version = Version::MINOR + 1;
-  ASSERT_THROW(Descriptor::validate(descriptor, Descriptor::MAP),
-               std::runtime_error);
-}
-
-TEST(Descriptor, ValidateDoesNotThrowIfVersionIsCompatible) {
-  Descriptor descriptor;
-  descriptor.map_type = Descriptor::MAP;
-  ASSERT_NO_THROW(Descriptor::validate(descriptor, Descriptor::MAP));
-
-  descriptor.minor_version = Version::MINOR - 1;
-  ASSERT_NO_THROW(Descriptor::validate(descriptor, Descriptor::MAP));
 }
 
 }  // namespace internal

@@ -21,72 +21,51 @@
 #include "multimap/thirdparty/mt/check.hpp"
 #include "multimap/thirdparty/mt/fileio.hpp"
 
+namespace bfs = boost::filesystem;
+
 namespace multimap {
 namespace internal {
 
-namespace {
-
-std::string mapTypeToString(uint32_t map_type) {
+const char* Descriptor::toString(int map_type) {
   switch (map_type) {
-    case Descriptor::MAP:
+    case Descriptor::TYPE_MAP:
       return "Map";
-    case Descriptor::IMMUTABLE_MAP:
+    case Descriptor::TYPE_IMMUTABLE_MAP:
       return "ImmutableMap";
     default:
-      mt::fail("mapTypeToString(%u) is undefined", map_type);
+      mt::fail("Invalid argument: %d", map_type);
       return "";
   }
 }
 
-}  // namespace
-
-std::string Descriptor::getFileName() { return getFilePrefix() + ".desc"; }
-
-std::string Descriptor::getFilePrefix() { return "multimap"; }
-
-std::string Descriptor::getFullFileName(const boost::filesystem::path& base) {
-  return (base / getFileName()).string();
-}
-
-std::string Descriptor::getFullFilePrefix(const boost::filesystem::path& base) {
-  return (base / getFilePrefix()).string();
-}
-
-Descriptor Descriptor::readFromDirectory(
-    const boost::filesystem::path& directory) {
+Descriptor Descriptor::readFromDirectory(const bfs::path& directory) {
   Descriptor descriptor;
   mt::check(tryReadFromDirectory(directory, &descriptor),
             "Reading descriptor from %s failed", directory.c_str());
   return descriptor;
 }
 
-bool Descriptor::tryReadFromDirectory(const boost::filesystem::path& directory,
+bool Descriptor::tryReadFromDirectory(const bfs::path& directory,
                                       Descriptor* output) {
-  const boost::filesystem::path file_path = directory / getFileName();
+  const bfs::path file_path = directory / getFileName();
   const mt::AutoCloseFile stream = mt::fopenIfExists(file_path, "r");
-  if (stream) {
-    mt::freadAll(stream.get(), output, sizeof *output);
-    return true;
-  }
-  return false;
+  if (!stream) return false;
+  mt::freadAll(stream.get(), output, sizeof *output);
+  Version::checkCompatibility(output->major_version, output->minor_version);
+  return true;
 }
 
-void Descriptor::writeToDirectory(
-    const boost::filesystem::path& directory) const {
+void Descriptor::writeToDirectory(const bfs::path& directory) const {
   MT_REQUIRE_NOT_ZERO(num_partitions);
-  MT_REQUIRE_TRUE(map_type == MAP || map_type == IMMUTABLE_MAP);
+  MT_REQUIRE_TRUE(map_type == TYPE_MAP || map_type == TYPE_IMMUTABLE_MAP);
   const auto stream = mt::fopen(directory / getFileName(), "w");
   mt::fwriteAll(stream.get(), this, sizeof *this);
 }
 
-void Descriptor::validate(const Descriptor& descriptor, int expected_map_type) {
-  Version::checkCompatibility(descriptor.major_version,
-                              descriptor.minor_version);
-  mt::Check::isEqual(expected_map_type, descriptor.map_type,
-                     "Validation of descriptor failed. Expected type %s but "
-                     "the actual type was %s",
-                     mapTypeToString(expected_map_type).c_str(),
-                     mapTypeToString(descriptor.map_type).c_str());
+std::string Descriptor::getFilePrefix() { return "multimap"; }
+
+std::string Descriptor::getFileName() {
+  return getFilePrefix() + ".descriptor";
 }
 
 }  // namespace internal
