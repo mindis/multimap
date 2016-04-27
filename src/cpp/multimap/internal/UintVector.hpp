@@ -18,6 +18,7 @@
 #ifndef MULTIMAP_INTERNAL_UINT_VECTOR_HPP_INCLUDED
 #define MULTIMAP_INTERNAL_UINT_VECTOR_HPP_INCLUDED
 
+#include <cstdio>
 #include <memory>
 #include "multimap/thirdparty/mt/assert.hpp"
 #include "multimap/Bytes.hpp"
@@ -27,8 +28,6 @@ namespace internal {
 
 class UintVector {
  public:
-  UintVector() = default;
-
   void add(uint32_t value);
 
   std::vector<uint32_t> unpack() const;
@@ -46,7 +45,7 @@ class UintVector {
 
   byte* end() const { return data_.get() + size_; }
 
-  byte* cur() const { return data_.get() + offset_; }
+  byte* current() const { return data_.get() + offset_; }
 
   std::unique_ptr<byte[]> data_;
   uint32_t offset_ = 0;
