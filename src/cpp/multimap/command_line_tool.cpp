@@ -21,6 +21,7 @@
 #include <boost/filesystem/operations.hpp>
 #include <multimap/thirdparty/mt/check.hpp>
 #include <multimap/thirdparty/mt/common.hpp>
+#include <multimap/ImmutableMap.hpp>
 #include <multimap/Map.hpp>
 #include <multimap/Version.hpp>
 
@@ -174,7 +175,19 @@ void runHelpCommand(const char* toolname) {
 }
 
 void runStatsCommand(const CommandLine& cmd) {
-  const auto stats = Map::stats(cmd.map);
+  std::vector<Stats> stats;
+  const auto descriptor = internal::Descriptor::readFromDirectory(cmd.map);
+  switch (descriptor.map_type) {
+    case internal::Descriptor::TYPE_MAP:
+      stats = Map::stats(cmd.map);
+      break;
+    case internal::Descriptor::TYPE_IMMUTABLE_MAP:
+      stats = ImmutableMap::stats(cmd.map);
+      break;
+    default:
+      mt::fail("Unknown Multimap type");
+  }
+
   const int first_column_width = std::to_string(stats.size()).size();
 
   const auto names = Stats::names();
