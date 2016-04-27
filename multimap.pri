@@ -68,6 +68,7 @@ HEADERS += \
     src/cpp/multimap/thirdparty/mt/common.hpp \
     src/cpp/multimap/thirdparty/mt/fileio.hpp \
     src/cpp/multimap/thirdparty/mt/memory.hpp \
+    src/cpp/multimap/thirdparty/mt/varint.hpp \
     src/cpp/multimap/thirdparty/xxhash/xxhash.h \
     src/cpp/multimap/Arena.hpp \
     src/cpp/multimap/Bytes.hpp \
@@ -121,6 +122,7 @@ SOURCES += \
     src/cpp/multimap/thirdparty/mt/common.cpp \
     src/cpp/multimap/thirdparty/mt/fileio.cpp \
     src/cpp/multimap/thirdparty/mt/memory.cpp \
+    src/cpp/multimap/thirdparty/mt/varint.cpp \
     src/cpp/multimap/thirdparty/xxhash/xxhash.c \
     src/cpp/multimap/Arena.cpp \
     src/cpp/multimap/Bytes.cpp \
@@ -130,6 +132,10 @@ SOURCES += \
     src/cpp/multimap/Slice.cpp \
     src/cpp/multimap/Stats.cpp \
     src/cpp/multimap/Version.cpp
+
+OTHER_FILES += \
+    install-dependencies-debian.sh \
+    update-mt-lib.sh
 
 unix:!macx: LIBS += -lboost_filesystem -lboost_system -lboost_thread -lpthread
 
