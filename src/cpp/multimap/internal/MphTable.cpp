@@ -248,27 +248,10 @@ void MphTable::Builder::put(const Slice& key, const Slice& value) {
   value.writeToStream(stream_.get());
 }
 
-bfs::path MphTable::Builder::getFilePath() const {
-  return getPathOfRecordsFile(prefix_);
-}
-
-bfs::path MphTable::Builder::releaseFile() {
-  MT_REQUIRE_TRUE(stream_);
-  MT_REQUIRE_FALSE(prefix_.empty());
-  const auto file_path = getFilePath();
-  stream_.reset();
-  prefix_ = "";
-  return file_path;
-}
-
-size_t MphTable::Builder::getFileSize() const {
-  return mt::ftell(stream_.get());
-}
-
 Stats MphTable::Builder::build() {
   MT_REQUIRE_TRUE(stream_);
   stream_.reset();
-  const auto records_file_path = getPathOfRecordsFile(prefix_);
+  const bfs::path records_file_path = getPathOfRecordsFile(prefix_);
   auto map_and_arena = readRecordsFromFile(records_file_path);
   MT_ASSERT_TRUE(bfs::remove(records_file_path));
   Map& map = map_and_arena.first;
