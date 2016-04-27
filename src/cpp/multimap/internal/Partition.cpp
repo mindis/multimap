@@ -18,6 +18,7 @@
 #include "multimap/internal/Partition.hpp"
 
 #include <cmath>
+#include <limits>
 #include <boost/filesystem/operations.hpp>
 #include "multimap/internal/Base64.hpp"
 #include "multimap/internal/Locks.hpp"
@@ -33,8 +34,8 @@ namespace {
 
 const char* READ_ONLY_VIOLATION = "Attempt to write to read-only partition";
 
-struct Equal {
-  explicit Equal(const Slice& value) : value_(value) {}
+struct SliceEqual {
+  explicit SliceEqual(const Slice& value) : value_(value) {}
 
   bool operator()(const Slice& other) const { return other == value_; }
 
@@ -56,7 +57,9 @@ bfs::path getPathOfStoreFile(const bfs::path& prefix) {
 
 }  // namespace
 
-size_t Partition::Limits::maxKeySize() { return Varint::Limits::MAX_N4; }
+size_t Partition::Limits::maxKeySize() {
+  return std::numeric_limits<uint32_t>::max();
+}
 
 size_t Partition::Limits::maxValueSize() {
   return List::Limits::maxValueSize();
@@ -171,11 +174,11 @@ size_t Partition::remove(const Slice& key) {
 }
 
 bool Partition::removeFirstEqual(const Slice& key, const Slice& value) {
-  return removeFirstMatch(key, Equal(value));
+  return removeFirstMatch(key, SliceEqual(value));
 }
 
 size_t Partition::removeAllEqual(const Slice& key, const Slice& value) {
-  return removeAllMatches(key, Equal(value));
+  return removeAllMatches(key, SliceEqual(value));
 }
 
 bool Partition::removeFirstMatch(const Slice& key, Predicate predicate) {
@@ -312,8 +315,7 @@ Stats Partition::getStats() const {
   return stats;
 }
 
-void Partition::forEachEntry(const bfs::path& prefix,
-                             BinaryProcedure process) {
+void Partition::forEachEntry(const bfs::path& prefix, BinaryProcedure process) {
   const Stats stats = Stats::readFromFile(getPathOfStatsFile(prefix));
 
   Bytes key;
