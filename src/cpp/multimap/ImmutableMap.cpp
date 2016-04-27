@@ -24,17 +24,27 @@
 #include "multimap/thirdparty/mt/check.hpp"
 #include "multimap/Arena.hpp"
 
+namespace bfs = boost::filesystem;
+
 namespace multimap {
 
 namespace {
 
-std::string getFilePrefix(const boost::filesystem::path& basedir) {
-  return internal::Descriptor::getFullFilePrefix(basedir) + ".immutablemap";
+void checkDescriptor(const internal::Descriptor& descriptor,
+                     const bfs::path& directory) {
+  mt::Check::isEqual(
+      internal::Descriptor::TYPE_IMMUTABLE_MAP, descriptor.map_type,
+      "Wrong map type: expected type %s but found type %s in %s",
+      internal::Descriptor::toString(internal::Descriptor::TYPE_IMMUTABLE_MAP),
+      internal::Descriptor::toString(descriptor.map_type), directory.c_str());
 }
 
-std::string getPartitionPrefix(const boost::filesystem::path& basedir,
-                               size_t index) {
-  return getFilePrefix(basedir) + '.' + std::to_string(index);
+std::string getFilePrefix() {
+  return internal::Descriptor::getFilePrefix() + ".immutablemap";
+}
+
+std::string getPartitionPrefix(size_t index) {
+  return getFilePrefix() + '.' + std::to_string(index);
 }
 
 template <typename Element>
@@ -57,17 +67,16 @@ size_t ImmutableMap::Limits::maxValueSize() {
   return internal::MphTable::Limits::maxValueSize();
 }
 
-ImmutableMap::Builder::Builder(const boost::filesystem::path& directory,
+ImmutableMap::Builder::Builder(const bfs::path& directory,
                                const Options& options)
     : options_(options), dlock_(directory.string()) {
-  mt::Check::isEqual(
-      std::distance(boost::filesystem::directory_iterator(directory),
-                    boost::filesystem::directory_iterator()),
-      1, "Must be empty: %s", directory.c_str());
+  mt::Check::isEqual(std::distance(bfs::directory_iterator(directory),
+                                   bfs::directory_iterator()),
+                     1, "Must be empty: %s", directory.c_str());
   const auto num_buckets = mt::nextPrime(options.num_partitions);
   for (size_t i = 0; i != num_buckets; i++) {
     buckets_.emplace_back(internal::MphTable::Builder(
-        getPartitionPrefix(directory, i), options_));
+        directory / getPartitionPrefix(i), options_));
   }
 }
 
@@ -91,7 +100,7 @@ std::vector<Stats> ImmutableMap::Builder::build() {
   }
 
   internal::Descriptor descriptor;
-  descriptor.map_type = internal::Descriptor::IMMUTABLE_MAP;
+  descriptor.map_type = internal::Descriptor::TYPE_IMMUTABLE_MAP;
   descriptor.num_partitions = buckets_.size();
   descriptor.writeToDirectory(dlock_.directory());
 
@@ -107,12 +116,12 @@ void ImmutableMap::Builder::rehash() {
   std::vector<Bucket> new_buckets;
   for (size_t i = 0; i != num_new_buckets; i++) {
     new_buckets.emplace_back(internal::MphTable::Builder(
-        getPartitionPrefix(dlock_.directory(), i) + ".new", options_));
+        dlock_.directory() / (getPartitionPrefix(i) + ".new"), options_));
   }
   Bytes old_key;
   Bytes old_value;
   for (Bucket& bucket : buckets_) {
-    const boost::filesystem::path file_path = bucket.builder.releaseFile();
+    const bfs::path file_path = bucket.builder.releaseFile();
     {
       const mt::AutoCloseFile stream = mt::fopen(file_path, "r");
       while (readBytesFromStream(stream.get(), &old_key) &&
@@ -120,14 +129,14 @@ void ImmutableMap::Builder::rehash() {
         select(new_buckets, old_key).builder.put(old_key, old_value);
       }
     }
-    boost::filesystem::remove(file_path);
+    bfs::remove(file_path);
   }
   // Rename new bucket files and check if there are large ones.
   for (Bucket& new_bucket : new_buckets) {
     const auto old_file_path = new_bucket.builder.getFilePath();
     auto new_file_path = old_file_path;
     new_file_path.replace_extension();
-    boost::filesystem::rename(old_file_path, new_file_path);
+    bfs::rename(old_file_path, new_file_path);
     if (new_bucket.builder.getFileSize() > options_.max_partition_size) {
       new_bucket.is_large = true;
     }
@@ -138,13 +147,13 @@ void ImmutableMap::Builder::rehash() {
   }
 }
 
-ImmutableMap::ImmutableMap(const boost::filesystem::path& directory)
+ImmutableMap::ImmutableMap(const bfs::path& directory)
     : dlock_(directory.string()) {
-  const auto desc = internal::Descriptor::readFromDirectory(directory);
-  internal::Descriptor::validate(desc, internal::Descriptor::IMMUTABLE_MAP);
-  for (int i = 0; i < desc.num_partitions; i++) {
-    const auto full_prefix = getPartitionPrefix(directory, i);
-    tables_.push_back(internal::MphTable(full_prefix));
+  const auto descriptor = internal::Descriptor::readFromDirectory(directory);
+  checkDescriptor(descriptor, directory);
+  for (int i = 0; i < descriptor.num_partitions; i++) {
+    const bfs::path prefix = directory / getPartitionPrefix(i);
+    tables_.push_back(internal::MphTable(prefix));
   }
 }
 
@@ -178,31 +187,31 @@ std::vector<Stats> ImmutableMap::getStats() const {
 
 Stats ImmutableMap::getTotalStats() const { return Stats::total(getStats()); }
 
-std::vector<Stats> ImmutableMap::stats(
-    const boost::filesystem::path& directory) {
-  const auto desc = internal::Descriptor::readFromDirectory(directory);
-  internal::Descriptor::validate(desc, internal::Descriptor::IMMUTABLE_MAP);
-  std::vector<Stats> stats(desc.num_partitions);
-  for (int i = 0; i < desc.num_partitions; i++) {
-    stats[i] = internal::MphTable::stats(getPartitionPrefix(directory, i));
+std::vector<Stats> ImmutableMap::stats(const bfs::path& directory) {
+  const auto descriptor = internal::Descriptor::readFromDirectory(directory);
+  checkDescriptor(descriptor, directory);
+  std::vector<Stats> stats(descriptor.num_partitions);
+  for (int i = 0; i < descriptor.num_partitions; i++) {
+    const bfs::path prefix = directory / getPartitionPrefix(i);
+    stats[i] = internal::MphTable::stats(prefix);
   }
   return stats;
 }
 
-void ImmutableMap::buildFromBase64(const boost::filesystem::path& directory,
-                                   const boost::filesystem::path& source) {
+void ImmutableMap::buildFromBase64(const bfs::path& directory,
+                                   const bfs::path& source) {
   buildFromBase64(directory, source, Options());
 }
 
-void ImmutableMap::buildFromBase64(const boost::filesystem::path& directory,
-                                   const boost::filesystem::path& source,
+void ImmutableMap::buildFromBase64(const bfs::path& directory,
+                                   const bfs::path& source,
                                    const Options& options) {
   Builder builder(directory, options);
 
-  std::vector<boost::filesystem::path> file_paths;
-  if (boost::filesystem::is_regular_file(source)) {
+  std::vector<bfs::path> file_paths;
+  if (bfs::is_regular_file(source)) {
     file_paths.push_back(source);
-  } else if (boost::filesystem::is_directory(source)) {
+  } else if (bfs::is_directory(source)) {
     file_paths = mt::listFilePaths(source);
   } else {
     mt::fail("No such file or directory: %s", source.c_str());
@@ -222,13 +231,13 @@ void ImmutableMap::buildFromBase64(const boost::filesystem::path& directory,
   builder.build();
 }
 
-void ImmutableMap::exportToBase64(const boost::filesystem::path& directory,
-                                  const boost::filesystem::path& target) {
+void ImmutableMap::exportToBase64(const bfs::path& directory,
+                                  const bfs::path& target) {
   exportToBase64(directory, target, Options());
 }
 
-void ImmutableMap::exportToBase64(const boost::filesystem::path& directory,
-                                  const boost::filesystem::path& target,
+void ImmutableMap::exportToBase64(const bfs::path& directory,
+                                  const bfs::path& target,
                                   const Options& options) {
   ImmutableMap map(directory);
   internal::TsvFileWriter writer(target);
