@@ -19,6 +19,8 @@
 
 #include <cstring>
 #include "multimap/Slice.hpp"
+#include "multimap/thirdparty/mt/fileio.hpp"
+#include "multimap/thirdparty/mt/varint.hpp"
 
 namespace multimap {
 
@@ -30,28 +32,30 @@ Bytes toBytes(const char* cstr) {
 
 Bytes toBytes(const std::string& str) { return toBytes(str.c_str()); }
 
-size_t readBytesFromBuffer(const byte* begin, const byte* end, Bytes* output) {
-  const Slice slice = Slice::readFromBuffer(begin, end);
-  if (!slice.empty()) {
-    slice.copyTo(output);
-    return slice.end() - begin;
-  }
-  return 0;
+size_t readBytesFromBuffer(const byte* buffer, Bytes* output) {
+  const Slice slice = Slice::readFromBuffer(buffer);
+  slice.copyTo(output);
+  return slice.end() - buffer;
 }
 
-bool readBytesFromStream(std::FILE* stream, Bytes* output) {
-  const Slice slice = Slice::readFromStream(stream, [output](size_t size) {
-    output->resize(size);
-    return output->data();
-  });
-  return !slice.empty();
-}
-
-size_t writeBytesToBuffer(byte* begin, byte* end, const Bytes& input) {
+size_t writeBytesToBuffer(const Bytes& input, byte* begin, byte* end) {
   return Slice(input).writeToBuffer(begin, end);
 }
 
-void writeBytesToStream(std::FILE* stream, const Bytes& input) {
+bool readBytesFromStream(std::FILE* stream, Bytes* output) {
+  uint32_t num_bytes = 0;
+  if (mt::readVarint32FromStream(stream, &num_bytes)) {
+    output->resize(num_bytes);
+    mt::freadAll(stream, output->data(), output->size());
+    // The stream is expected to contain valid encodings of Bytes objects.
+    // Hence, after successfully reading the size field, mt::freadAll() will
+    // throw, if the data field could not be read to signal an invalid stream.
+    return true;
+  }
+  return false;
+}
+
+void writeBytesToStream(const Bytes& input, std::FILE* stream) {
   Slice(input).writeToStream(stream);
 }
 

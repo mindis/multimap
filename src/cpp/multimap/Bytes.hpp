@@ -37,13 +37,13 @@ Bytes toBytes(const char* cstr);
 
 Bytes toBytes(const std::string& str);
 
-size_t readBytesFromBuffer(const byte* begin, const byte* end, Bytes* output);
+size_t readBytesFromBuffer(const byte* buffer, Bytes* output);
+
+size_t writeBytesToBuffer(const Bytes& input, byte* begin, byte* end);
 
 bool readBytesFromStream(std::FILE* stream, Bytes* output);
 
-size_t writeBytesToBuffer(byte* begin, byte* end, const Bytes& input);
-
-void writeBytesToStream(std::FILE* stream, const Bytes& input);
+void writeBytesToStream(const Bytes& input, std::FILE* stream);
 
 namespace internal {
 
