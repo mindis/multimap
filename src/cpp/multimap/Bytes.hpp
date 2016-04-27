@@ -23,15 +23,13 @@
 #define MULTIMAP_BYTES_HPP_INCLUDED
 
 #include <cstdio>
-#include <cstring>
-#include <string>
-#include <vector>
+#include "multimap/thirdparty/mt/common.hpp"
 
 namespace multimap {
 
-typedef unsigned char byte;
+typedef mt::byte byte;
 
-typedef std::vector<byte> Bytes;
+typedef mt::Bytes Bytes;
 
 Bytes toBytes(const char* cstr);
 
