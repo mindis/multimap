@@ -1,4 +1,3 @@
-TARGET = multimap-tests
 TEMPLATE = app
 CONFIG += console c++11
 CONFIG -= app_bundle
@@ -95,6 +94,12 @@ SOURCES += \
     src/cpp/multimap/MapTest.cpp \
     src/cpp/multimap/SliceTest.cpp \
     src/cpp/multimap/VersionTest.cpp
+
+CONFIG(debug, debug|release) {
+    TARGET = multimap-tests-dbg
+} else {
+    TARGET = multimap-tests
+}
 
 # Only enable for memory leak checking with Google Address Sanitizer.
 # Caution: You may experience increased memory usage.
