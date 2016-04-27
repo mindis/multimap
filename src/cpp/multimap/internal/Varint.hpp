@@ -18,7 +18,6 @@
 #ifndef MULTIMAP_INTERNAL_VARINT_HPP_INCLUDED
 #define MULTIMAP_INTERNAL_VARINT_HPP_INCLUDED
 
-#include <cstdio>
 #include <cstdint>
 #include "multimap/Bytes.hpp"
 
@@ -26,44 +25,13 @@ namespace multimap {
 namespace internal {
 
 struct Varint {
-  struct Limits {
-    static const uint32_t MIN_N1;
-    static const uint32_t MIN_N2;
-    static const uint32_t MIN_N3;
-    static const uint32_t MIN_N4;
-
-    static const uint32_t MAX_N1;
-    static const uint32_t MAX_N2;
-    static const uint32_t MAX_N3;
-    static const uint32_t MAX_N4;
-
-    static const uint32_t MIN_N1_WITH_FLAG;
-    static const uint32_t MIN_N2_WITH_FLAG;
-    static const uint32_t MIN_N3_WITH_FLAG;
-    static const uint32_t MIN_N4_WITH_FLAG;
-
-    static const uint32_t MAX_N1_WITH_FLAG;
-    static const uint32_t MAX_N2_WITH_FLAG;
-    static const uint32_t MAX_N3_WITH_FLAG;
-    static const uint32_t MAX_N4_WITH_FLAG;
-
-    Limits() = delete;
-  };
-
-  static size_t readFromBuffer(const byte* begin, const byte* end,
-                               uint32_t* value);
+  static const uint32_t MAX_VARINT_WITH_FLAG;
 
   static size_t readFromBuffer(const byte* begin, const byte* end,
                                uint32_t* value, bool* flag);
 
-  static size_t readFromStream(std::FILE* stream, uint32_t* value);
-
-  static size_t writeToBuffer(byte* begin, byte* end, uint32_t value);
-
   static size_t writeToBuffer(byte* begin, byte* end, uint32_t value,
                               bool flag);
-
-  static size_t writeToStream(std::FILE* stream, uint32_t value);
 
   static void setFlagInBuffer(byte* buffer, bool flag);
 
