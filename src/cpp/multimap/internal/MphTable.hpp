@@ -46,7 +46,7 @@ class MphTable {
     Builder(Builder&&) = default;
     Builder& operator=(Builder&&) = default;
 
-    Builder(const std::string& prefix, const Options& options);
+    Builder(const boost::filesystem::path& prefix, const Options& options);
 
     ~Builder();
 
@@ -62,11 +62,11 @@ class MphTable {
 
    private:
     mt::AutoCloseFile stream_;
-    std::string prefix_;
+    boost::filesystem::path prefix_;
     Options options_;
   };
 
-  explicit MphTable(const std::string& prefix);
+  explicit MphTable(const boost::filesystem::path& prefix);
 
   std::unique_ptr<Iterator> get(const Slice& key) const;
 
@@ -78,9 +78,10 @@ class MphTable {
 
   Stats getStats() const { return stats_; }
 
-  static Stats stats(const std::string& prefix);
+  static Stats stats(const boost::filesystem::path& prefix);
 
-  static void forEachEntry(const std::string& prefix, BinaryProcedure process);
+  static void forEachEntry(const boost::filesystem::path& prefix,
+                           BinaryProcedure process);
 
  private:
   Mph mph_;
