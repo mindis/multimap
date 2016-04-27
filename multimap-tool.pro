@@ -1,4 +1,3 @@
-TARGET = multimap
 TEMPLATE = app
 CONFIG += console c++11
 CONFIG -= app_bundle
@@ -11,6 +10,11 @@ DEPENDPATH += $$PWD/src/cpp
 
 SOURCES += src/cpp/multimap/command_line_tool.cpp
 
+macx {
+    INCLUDEPATH += /usr/local/include
+    LIBS += -L/usr/local/lib
+}
+
 unix: LIBS += -L$$OUT_PWD/ -lmultimap -lboost_system
 
 unix {
@@ -18,7 +22,8 @@ unix {
     INSTALLS += target
 }
 
-macx {
-    INCLUDEPATH += /usr/local/include
-    LIBS += -L/usr/local/lib
+CONFIG(debug, debug|release) {
+    TARGET = multimap-dbg
+} else {
+    TARGET = multimap
 }
