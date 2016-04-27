@@ -69,82 +69,37 @@ size_t ImmutableMap::Limits::maxValueSize() {
 
 ImmutableMap::Builder::Builder(const bfs::path& directory,
                                const Options& options)
-    : options_(options), dlock_(directory.string()) {
+    : dlock_(directory.string()), options_(options) {
   mt::Check::isEqual(std::distance(bfs::directory_iterator(directory),
                                    bfs::directory_iterator()),
                      1, "Must be empty: %s", directory.c_str());
   const auto num_buckets = mt::nextPrime(options.num_partitions);
   for (size_t i = 0; i != num_buckets; i++) {
-    buckets_.emplace_back(internal::MphTable::Builder(
+    table_builders_.push_back(internal::MphTable::Builder(
         directory / getPartitionPrefix(i), options_));
   }
 }
 
 void ImmutableMap::Builder::put(const Slice& key, const Slice& value) {
-  Bucket& bucket = select(buckets_, key);
-  bucket.builder.put(key, value);
-  if ((bucket.builder.getFileSize() > options_.max_partition_size) &&
-      !bucket.is_large) {
-    rehash();
-  }
+  select(table_builders_, key).put(key, value);
 }
 
 std::vector<Stats> ImmutableMap::Builder::build() {
   std::vector<Stats> stats;
-  for (size_t i = 0; i != buckets_.size(); i++) {
+  for (size_t i = 0; i != table_builders_.size(); i++) {
     if (options_.verbose) {
-      mt::log() << "Building partition " << (i + 1) << " of " << buckets_.size()
-                << std::endl;
+      mt::log() << "Building partition " << (i + 1) << " of "
+                << table_builders_.size() << std::endl;
     }
-    stats.push_back(buckets_[i].builder.build());
+    stats.push_back(table_builders_[i].build());
   }
 
   internal::Descriptor descriptor;
   descriptor.map_type = internal::Descriptor::TYPE_IMMUTABLE_MAP;
-  descriptor.num_partitions = buckets_.size();
+  descriptor.num_partitions = table_builders_.size();
   descriptor.writeToDirectory(dlock_.directory());
 
   return stats;
-}
-
-void ImmutableMap::Builder::rehash() {
-  const auto num_new_buckets = mt::nextPrime(buckets_.size() * 2);
-  if (options_.verbose) {
-    mt::log() << "Rehashing from " << buckets_.size() << " to "
-              << num_new_buckets << " buckets" << std::endl;
-  }
-  std::vector<Bucket> new_buckets;
-  for (size_t i = 0; i != num_new_buckets; i++) {
-    new_buckets.emplace_back(internal::MphTable::Builder(
-        dlock_.directory() / (getPartitionPrefix(i) + ".new"), options_));
-  }
-  Bytes old_key;
-  Bytes old_value;
-  for (Bucket& bucket : buckets_) {
-    const bfs::path file_path = bucket.builder.releaseFile();
-    {
-      const mt::AutoCloseFile stream = mt::fopen(file_path, "r");
-      while (readBytesFromStream(stream.get(), &old_key) &&
-             readBytesFromStream(stream.get(), &old_value)) {
-        select(new_buckets, old_key).builder.put(old_key, old_value);
-      }
-    }
-    bfs::remove(file_path);
-  }
-  // Rename new bucket files and check if there are large ones.
-  for (Bucket& new_bucket : new_buckets) {
-    const auto old_file_path = new_bucket.builder.getFilePath();
-    auto new_file_path = old_file_path;
-    new_file_path.replace_extension();
-    bfs::rename(old_file_path, new_file_path);
-    if (new_bucket.builder.getFileSize() > options_.max_partition_size) {
-      new_bucket.is_large = true;
-    }
-  }
-  buckets_ = std::move(new_buckets);
-  if (options_.verbose) {
-    mt::log() << "Rehashing finished" << std::endl;
-  }
 }
 
 ImmutableMap::ImmutableMap(const bfs::path& directory)

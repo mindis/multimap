@@ -49,19 +49,9 @@ class ImmutableMap {
     std::vector<Stats> build();
 
    private:
-    void rehash();
-
-    struct Bucket {
-      Bucket(internal::MphTable::Builder builder)
-          : builder(std::move(builder)) {}
-
-      internal::MphTable::Builder builder;
-      bool is_large = false;
-    };
-
-    Options options_;
-    std::vector<Bucket> buckets_;
+    std::vector<internal::MphTable::Builder> table_builders_;
     internal::DirectoryLock dlock_;
+    Options options_;
   };
 
   explicit ImmutableMap(const boost::filesystem::path& directory);
