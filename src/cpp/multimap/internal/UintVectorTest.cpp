@@ -17,7 +17,6 @@
 
 #include <type_traits>
 #include "multimap/internal/UintVector.hpp"
-#include "multimap/internal/Varint.hpp"
 #include "multimap/thirdparty/mt/assert.hpp"
 #include "gmock/gmock.h"
 
@@ -45,30 +44,24 @@ TEST(UintVector, DefaultConstructedHasProperState) {
   ASSERT_TRUE(UintVector().empty());
 }
 
-TEST(UintVector, AddMaxValueDoesNotThrow) {
+TEST(UintVector, AddAndUnpackMaxValue) {
   UintVector vector;
-  ASSERT_NO_THROW(vector.add(Varint::Limits::MAX_N4));
-  ASSERT_EQ(vector.unpack().front(), Varint::Limits::MAX_N4);
-}
-
-TEST(UintVector, AddTooLargeValueThrows) {
-  UintVector vector;
-  ASSERT_THROW(vector.add(Varint::Limits::MAX_N4 + 1), std::runtime_error);
+  vector.add(-1);
+  ASSERT_EQ(vector.unpack().front(), -1);
 }
 
 TEST(UintVector, AddIncreasingValuesAndUnpack) {
-  const uint32_t expected_values[] = {0,    1,        10,
-                                      1000, 10000000, Varint::Limits::MAX_N4};
+  const uint32_t values[] = {0, 1, 10, 1000, 10000000, 100000000};
   UintVector vector;
-  for (auto value : expected_values) {
+  for (uint32_t value : values) {
     vector.add(value);
   }
-  ASSERT_THAT(vector.unpack(), ElementsAreArray(expected_values));
+  ASSERT_THAT(vector.unpack(), ElementsAreArray(values));
 }
 
 TEST(UintVector, AddDecreasingValuesAndThrow) {
   UintVector vector;
-  uint32_t values[] = {Varint::Limits::MAX_N4, 10000000};
+  const uint32_t values[] = {100000000, 10000000};
   vector.add(values[0]);
   ASSERT_THROW(vector.add(values[1]), mt::AssertionError);
 }
@@ -83,8 +76,7 @@ TEST_P(UintVectorWithParam, AddValueAndUnpack) {
 }
 
 INSTANTIATE_TEST_CASE_P(Parameterized, UintVectorWithParam,
-                        testing::Values(0, 1, 10, 1000, 10000000,
-                                        Varint::Limits::MAX_N4));
+                        testing::Values(0, 1, 10, 1000, 10000000, 1000000000));
 
 }  // namespace internal
 }  // namespace multimap
