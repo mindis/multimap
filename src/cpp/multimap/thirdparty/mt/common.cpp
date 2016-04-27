@@ -65,22 +65,20 @@ uint64_t currentResidentMemory() {
 }
 
 // Source: http://www.isthe.com/chongo/src/fnv/hash_32a.c
-uint32_t fnv1aHash32(const void* data, size_t size) {
+uint32_t fnv1aHash32(const byte* buf, size_t len) {
   uint32_t h = 0x811c9dc5;  // FNV1_32A_INIT
-  const auto ptr = reinterpret_cast<const std::uint8_t*>(data);
-  for (size_t i = 0; i != size; ++i) {
-    h ^= ptr[i];
+  for (size_t i = 0; i != len; ++i) {
+    h ^= buf[i];
     h += (h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24);
   }
   return h;
 }
 
 // Source: http://www.isthe.com/chongo/src/fnv/hash_64a.c
-uint64_t fnv1aHash64(const void* data, size_t size) {
+uint64_t fnv1aHash64(const byte* buf, size_t len) {
   uint64_t h = 0xcbf29ce484222325ULL;  // FNV1A_64_INIT
-  const auto ptr = reinterpret_cast<const std::uint8_t*>(data);
-  for (size_t i = 0; i != size; ++i) {
-    h ^= ptr[i];
+  for (size_t i = 0; i != len; ++i) {
+    h ^= buf[i];
     h += (h << 1) + (h << 4) + (h << 5) + (h << 7) + (h << 8) + (h << 40);
   }
   return h;

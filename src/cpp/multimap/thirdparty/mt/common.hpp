@@ -21,8 +21,13 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
+#include <vector>
 
 namespace mt {
+
+typedef unsigned char byte;
+
+typedef std::vector<byte> Bytes;
 
 static const int VERSION = 20160418;
 
@@ -53,26 +58,38 @@ uint64_t currentResidentMemory();
 // ALGORITHM
 // -----------------------------------------------------------------------------
 
-uint32_t fnv1aHash32(const void* buf, size_t len);
+uint32_t fnv1aHash32(const byte* buf, size_t len);
 // Computes and returns a 32-bit hash value of the given byte array.
 // Source: http://www.isthe.com/chongo/src/fnv/fnv.h
 // Changes:
 //  * Parameter hashval removed, internally set to FNV1_32A_INIT.
 //  * More C++ like coding style.
 
-uint64_t fnv1aHash64(const void* buf, size_t len);
+inline uint32_t fnv1aHash32(const Bytes& bytes) {
+  return fnv1aHash32(bytes.data(), bytes.size());
+}
+
+uint64_t fnv1aHash64(const byte* buf, size_t len);
 // Computes and returns a 64-bit hash value of the given byte array.
 // Source: http://www.isthe.com/chongo/src/fnv/fnv.h
 // Changes:
 //  * Parameter hashval removed, internally set to FNV1A_64_INIT.
 //  * More C++ like coding style.
 
-inline size_t fnv1aHash(const void* buf, size_t len) {
+inline uint64_t fnv1aHash64(const Bytes& bytes) {
+  return fnv1aHash64(bytes.data(), bytes.size());
+}
+
+inline size_t fnv1aHash(const byte* buf, size_t len) {
   return is64BitSystem() ? fnv1aHash64(buf, len) : fnv1aHash32(buf, len);
   // The compiler will optimize away branching here.
 }
 // Dispatching function to choose either `fnv1aHash32()` or `fnv1aHash64()`
 // depending on the actual system.
+
+inline size_t fnv1aHash(const Bytes& bytes) {
+  return fnv1aHash(bytes.data(), bytes.size());
+}
 
 template <typename A, typename B>
 auto min(const A& a, const B& b) -> decltype(a < b ? a : b) {
