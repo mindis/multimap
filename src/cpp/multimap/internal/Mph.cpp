@@ -56,18 +56,18 @@ Mph Mph::build(const byte** keys, uint32_t nkeys) {
   return Mph(std::move(cmph));
 }
 
-Mph Mph::build(const boost::filesystem::path& keys) {
+Mph Mph::build(const boost::filesystem::path& keys_file_path) {
   Arena arena;
   uint32_t keylen;
-  std::vector<const byte*> keydata;
-  const mt::AutoCloseFile stream = mt::fopen(keys, "r");
+  std::vector<const byte*> keys;
+  const mt::AutoCloseFile stream = mt::fopen(keys_file_path, "r");
   while (mt::freadAllMaybe(stream.get(), &keylen, sizeof keylen)) {
     byte* key = arena.allocate(sizeof keylen + keylen);
     std::memcpy(key, &keylen, sizeof keylen);
     mt::freadAll(stream.get(), key + sizeof keylen, keylen);
-    keydata.push_back(key);
+    keys.push_back(key);
   }
-  return build(keydata.data(), keydata.size());
+  return build(keys.data(), keys.size());
 }
 
 uint32_t Mph::operator()(const Slice& key) const {

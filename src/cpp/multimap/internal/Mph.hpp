@@ -48,7 +48,7 @@ class Mph {
   // A key in `keys` points to memory which is encoded like this:
   // [keylen as uint32][1 .. keydata .. keylen]
 
-  static Mph build(const boost::filesystem::path& keys);
+  static Mph build(const boost::filesystem::path& keys_file_path);
   // `keys` contains a sequence of keys which are encoded as described above.
 
   uint32_t operator()(const Slice& key) const;
