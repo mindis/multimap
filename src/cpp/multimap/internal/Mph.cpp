@@ -50,7 +50,7 @@ Mph Mph::build(const byte** keys, uint32_t nkeys) {
   std::unique_ptr<cmph_config_t> config(cmph_config_new(source.get()));
   cmph_config_set_algo(config.get(), CMPH_BDZ);
 
-  std::unique_ptr<cmph_t> cmph(cmph_new(config.get()));
+  std::unique_ptr<cmph_t, CmphDeleter> cmph(cmph_new(config.get()));
   mt::Check::notNull(cmph.get(), "cmph_new() failed");
   MT_ASSERT_EQ(cmph_size(cmph.get()), nkeys);
   return Mph(std::move(cmph));
@@ -77,7 +77,7 @@ uint32_t Mph::operator()(const Slice& key) const {
 
 Mph Mph::readFromFile(const boost::filesystem::path& file_path) {
   const mt::AutoCloseFile stream = mt::fopen(file_path, "r");
-  return Mph(std::unique_ptr<cmph_t>(cmph_load(stream.get())));
+  return Mph(std::unique_ptr<cmph_t, CmphDeleter>(cmph_load(stream.get())));
 }
 
 void Mph::writeToFile(const boost::filesystem::path& file_path) const {
@@ -86,7 +86,7 @@ void Mph::writeToFile(const boost::filesystem::path& file_path) const {
                      "cmph_dump() failed");
 }
 
-Mph::Mph(std::unique_ptr<cmph_t> cmph) : cmph_(std::move(cmph)) {}
+Mph::Mph(std::unique_ptr<cmph_t, CmphDeleter> cmph) : cmph_(std::move(cmph)) {}
 
 }  // namespace internal
 }  // namespace multimap

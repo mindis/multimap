@@ -23,17 +23,6 @@
 #include "multimap/thirdparty/cmph/cmph.h"
 #include "multimap/Slice.hpp"
 
-namespace std {
-
-template <>
-struct default_delete<cmph_t> {
-  void operator()(cmph_t* cmph) const {
-    if (cmph) cmph_destroy(cmph);
-  }
-};
-
-}  // namespace std
-
 namespace multimap {
 namespace internal {
 
@@ -60,9 +49,15 @@ class Mph {
   void writeToFile(const boost::filesystem::path& file_path) const;
 
  private:
-  explicit Mph(std::unique_ptr<cmph_t> cmph);
+  struct CmphDeleter {
+    void operator()(cmph_t* cmph) const {
+      if (cmph) cmph_destroy(cmph);
+    }
+  };
 
-  std::unique_ptr<cmph_t> cmph_;
+  explicit Mph(std::unique_ptr<cmph_t, CmphDeleter> cmph);
+
+  std::unique_ptr<cmph_t, CmphDeleter> cmph_;
 };
 
 }  // namespace internal
