@@ -19,6 +19,7 @@
 #define MULTIMAP_INTERNAL_PARTITION_HPP_INCLUDED
 
 #include <unordered_map>
+#include <boost/filesystem/path.hpp>
 #include "multimap/internal/List.hpp"
 #include "multimap/Stats.hpp"
 
@@ -34,9 +35,9 @@ class Partition {
     Limits() = delete;
   };
 
-  explicit Partition(const std::string& prefix);
+  explicit Partition(const boost::filesystem::path& prefix);
 
-  Partition(const std::string& prefix, const Options& options);
+  Partition(const boost::filesystem::path& prefix, const Options& options);
 
   ~Partition();
 
@@ -85,9 +86,10 @@ class Partition {
   // Returns various statistics about the partition.
   // The data is collected upon request and triggers a full partition scan.
 
-  static void forEachEntry(const std::string& prefix, BinaryProcedure process);
+  static void forEachEntry(const boost::filesystem::path& prefix,
+                           BinaryProcedure process);
 
-  static Stats stats(const std::string& prefix);
+  static Stats stats(const boost::filesystem::path& prefix);
 
  private:
   List* getList(const Slice& key) const;
@@ -99,7 +101,7 @@ class Partition {
   Store store_;
   Arena arena_;
   Stats stats_;
-  std::string prefix_;
+  boost::filesystem::path prefix_;
 };
 
 }  // namespace internal

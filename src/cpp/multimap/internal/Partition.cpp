@@ -24,6 +24,8 @@
 #include "multimap/internal/Varint.hpp"
 #include "multimap/thirdparty/mt/check.hpp"
 
+namespace bfs = boost::filesystem;
+
 namespace multimap {
 namespace internal {
 
@@ -40,16 +42,16 @@ struct Equal {
   const Slice value_;
 };
 
-std::string getNameOfMapFile(const std::string& prefix) {
-  return prefix + ".map";
+bfs::path getPathOfMapFile(const bfs::path& prefix) {
+  return prefix.string() + ".map";
 }
 
-std::string getNameOfStatsFile(const std::string& prefix) {
-  return prefix + ".stats";
+bfs::path getPathOfStatsFile(const bfs::path& prefix) {
+  return prefix.string() + ".stats";
 }
 
-std::string getNameOfStoreFile(const std::string& prefix) {
-  return prefix + ".store";
+bfs::path getPathOfStoreFile(const bfs::path& prefix) {
+  return prefix.string() + ".store";
 }
 
 }  // namespace
@@ -60,20 +62,19 @@ size_t Partition::Limits::maxValueSize() {
   return List::Limits::maxValueSize();
 }
 
-Partition::Partition(const std::string& prefix)
-    : Partition(prefix, Options()) {}
+Partition::Partition(const bfs::path& prefix) : Partition(prefix, Options()) {}
 
-Partition::Partition(const std::string& prefix, const Options& options)
+Partition::Partition(const bfs::path& prefix, const Options& options)
     : prefix_(prefix) {
   MT_REQUIRE_FALSE(prefix.empty());
   Options store_options;
   store_options.readonly = options.readonly;
   store_options.block_size = options.block_size;
-  const std::string map_file_path = getNameOfMapFile(prefix);
-  if (boost::filesystem::is_regular_file(map_file_path)) {
+  const bfs::path map_file_path = getPathOfMapFile(prefix);
+  if (bfs::is_regular_file(map_file_path)) {
     Bytes key;
     const mt::AutoCloseFile map_stream = mt::fopen(map_file_path, "r");
-    const std::string stats_file_path = getNameOfStatsFile(prefix);
+    const bfs::path stats_file_path = getPathOfStatsFile(prefix);
     stats_ = Stats::readFromFile(stats_file_path);
     store_options.block_size = stats_.block_size;
     for (size_t i = 0; i != stats_.num_keys_valid; i++) {
@@ -92,16 +93,16 @@ Partition::Partition(const std::string& prefix, const Options& options)
     stats.num_values_valid = stats_.num_values_valid;
     stats_ = stats;
   }
-  store_ = Store(getNameOfStoreFile(prefix), store_options);
+  store_ = Store(getPathOfStoreFile(prefix), store_options);
 }
 
 Partition::~Partition() {
   if (store_.isReadOnly()) return;
 
-  const std::string map_file_path = getNameOfMapFile(prefix_);
-  const std::string map_file_path_old = map_file_path + ".old";
-  if (boost::filesystem::is_regular_file(map_file_path)) {
-    boost::filesystem::rename(map_file_path, map_file_path_old);
+  const bfs::path map_file_path = getPathOfMapFile(prefix_);
+  const bfs::path map_file_path_old = map_file_path.string() + ".old";
+  if (bfs::is_regular_file(map_file_path)) {
+    bfs::rename(map_file_path, map_file_path_old);
   }
 
   List::Stats list_stats;
@@ -146,10 +147,10 @@ Partition::~Partition() {
   stats_.num_blocks = store_.getNumBlocks();
   stats_.num_keys_total = map_.size();
 
-  stats_.writeToFile(getNameOfStatsFile(prefix_));
+  stats_.writeToFile(getPathOfStatsFile(prefix_));
 
-  if (boost::filesystem::is_regular_file(map_file_path_old)) {
-    const auto status = boost::filesystem::remove(map_file_path_old);
+  if (bfs::is_regular_file(map_file_path_old)) {
+    const auto status = bfs::remove(map_file_path_old);
     MT_ASSERT_TRUE(status);
   }
 }
@@ -311,16 +312,16 @@ Stats Partition::getStats() const {
   return stats;
 }
 
-void Partition::forEachEntry(const std::string& prefix,
+void Partition::forEachEntry(const bfs::path& prefix,
                              BinaryProcedure process) {
-  const auto stats = Stats::readFromFile(getNameOfStatsFile(prefix));
+  const Stats stats = Stats::readFromFile(getPathOfStatsFile(prefix));
 
   Bytes key;
   Options store_options;
   store_options.readonly = true;
   store_options.block_size = stats.block_size;
-  Store store(getNameOfStoreFile(prefix), store_options);
-  mt::AutoCloseFile stream = mt::fopen(getNameOfMapFile(prefix), "r");
+  Store store(getPathOfStoreFile(prefix), store_options);
+  mt::AutoCloseFile stream = mt::fopen(getPathOfMapFile(prefix), "r");
   for (size_t i = 0; i != stats.num_keys_valid; i++) {
     MT_ASSERT_TRUE(readBytesFromStream(stream.get(), &key));
     const List list = List::readFromStream(stream.get());
@@ -329,8 +330,8 @@ void Partition::forEachEntry(const std::string& prefix,
   }
 }
 
-Stats Partition::stats(const std::string& prefix) {
-  return Stats::readFromFile(getNameOfStatsFile(prefix));
+Stats Partition::stats(const bfs::path& prefix) {
+  return Stats::readFromFile(getPathOfStatsFile(prefix));
 }
 
 List* Partition::getList(const Slice& key) const {
