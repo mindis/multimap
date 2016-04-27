@@ -1,9 +1,14 @@
-TARGET = multimap
 TEMPLATE = lib
 
 COMMON = multimap.pri
 !include($$COMMON) {
     error("Could not find $$COMMON file")
+}
+
+CONFIG(debug, debug|release) {
+    TARGET = multimap-dbg
+} else {
+    TARGET = multimap
 }
 
 unix {
@@ -24,7 +29,7 @@ unix {
     INSTALLS += multimap_thirdparty_cmph
 
     multimap_thirdparty_mt.path = $$INCLUDE_MULTIMAP/thirdparty/mt
-    multimap_thirdparty_mt.files += src/cpp/multimap/thirdparty/mt/mt.hpp
+    multimap_thirdparty_mt.files += src/cpp/multimap/thirdparty/mt/*.hpp
     INSTALLS += multimap_thirdparty_mt
 
     multimap_thirdparty_xxhash.path = $$INCLUDE_MULTIMAP/thirdparty/xxhash
