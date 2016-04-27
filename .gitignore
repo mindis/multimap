@@ -28,16 +28,16 @@
 *.app
 
 # Other
+./multimap
+./mkdocs
+./bin
 .classpath
 .project
 *.user
 *.jar
 Makefile*
 libmultimap*
-mkdocs
-bin
 multimap.Rmd
 multimap.html
-multimap
 multimap-tests
 update-mt-lib.sh
