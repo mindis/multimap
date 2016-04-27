@@ -57,17 +57,17 @@ inline bool less(const byte* a, size_t alen, const byte* b, size_t blen) {
 
 }  // namespace internal
 
-struct Equal {
+struct BytesEqual {
   bool operator()(const Bytes& a, const Bytes& b) const {
     return internal::equal(a.data(), a.size(), b.data(), b.size());
   }
 };
 
-struct Less {
+struct BytesLess {
   // Comparator to be used with std::sort or similar functions.
   // We don't specialize operator "<" for Bytes, because doing so would require
   // to add this specialization to namespace std where class vector is defined.
-  // Overriding behavior in namespace std is a very bad thing.
+  // Changing implicit behavior of standard library types is a very bad thing.
   //
   // Not using this comparator in std::sort or related functions, will trigger
   // std::lexicographical_compare, which works similar, but may be slower.

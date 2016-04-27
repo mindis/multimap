@@ -409,7 +409,7 @@ TEST_F(PartitionTestFixture, ForEachEntryIgnoresEmptyLists) {
   partition->put(k3, v1);
   partition->put(k3, v2);
   partition->put(k3, v3);
-  std::map<Bytes, std::vector<Bytes>, Less> mapping;
+  std::map<Bytes, std::vector<Bytes>, BytesLess> mapping;
   BinaryProcedure collect = [&](const Slice& key, Iterator* iter) {
     while (iter->hasNext()) {
       mapping[key.makeCopy()].push_back(iter->next().makeCopy());
