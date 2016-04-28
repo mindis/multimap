@@ -192,7 +192,7 @@ Stats writeMap(const bfs::path& prefix, const Map& map, const Mph& mph,
 
   const bfs::path stats_file_path = getPathOfStatsFile(prefix);
   if (verbose) {
-    mt::log() << "Writing " << stats_file_path << std::endl;
+    mt::log() << "Writing " << stats_file_path.string() << std::endl;
   }
   stats.writeToFile(stats_file_path);
 
