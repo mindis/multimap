@@ -68,6 +68,7 @@ HEADERS += \
     src/cpp/multimap/thirdparty/mt/common.hpp \
     src/cpp/multimap/thirdparty/mt/fileio.hpp \
     src/cpp/multimap/thirdparty/mt/memory.hpp \
+    src/cpp/multimap/thirdparty/mt/unicode.hpp \
     src/cpp/multimap/thirdparty/mt/varint.hpp \
     src/cpp/multimap/thirdparty/xxhash/xxhash.h \
     src/cpp/multimap/Arena.hpp \
@@ -122,6 +123,7 @@ SOURCES += \
     src/cpp/multimap/thirdparty/mt/common.cpp \
     src/cpp/multimap/thirdparty/mt/fileio.cpp \
     src/cpp/multimap/thirdparty/mt/memory.cpp \
+    src/cpp/multimap/thirdparty/mt/unicode.cpp \
     src/cpp/multimap/thirdparty/mt/varint.cpp \
     src/cpp/multimap/thirdparty/xxhash/xxhash.c \
     src/cpp/multimap/Arena.cpp \
