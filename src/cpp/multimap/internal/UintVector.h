@@ -15,13 +15,13 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTIMAP_INTERNAL_UINT_VECTOR_HPP_INCLUDED
-#define MULTIMAP_INTERNAL_UINT_VECTOR_HPP_INCLUDED
+#ifndef MULTIMAP_INTERNAL_UINT_VECTOR_H_
+#define MULTIMAP_INTERNAL_UINT_VECTOR_H_
 
 #include <cstdio>
 #include <memory>
-#include "multimap/thirdparty/mt/assert.hpp"
-#include "multimap/Bytes.hpp"
+#include "multimap/thirdparty/mt/assert.h"
+#include "multimap/Bytes.h"
 
 namespace multimap {
 namespace internal {
@@ -57,4 +57,4 @@ MT_STATIC_ASSERT_SIZEOF(UintVector, 12, 16);
 }  // namespace internal
 }  // namespace multimap
 
-#endif  // MULTIMAP_INTERNAL_UINT_VECTOR_HPP_INCLUDED
+#endif  // MULTIMAP_INTERNAL_UINT_VECTOR_H_

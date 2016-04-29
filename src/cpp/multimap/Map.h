@@ -19,11 +19,13 @@
 // Documentation:  https://multimap.io/cppreference/#maphpp
 // -----------------------------------------------------------------------------
 
-#ifndef MULTIMAP_MAP_HPP_INCLUDED
-#define MULTIMAP_MAP_HPP_INCLUDED
+#ifndef MULTIMAP_MAP_H_
+#define MULTIMAP_MAP_H_
 
-#include "multimap/internal/Locks.hpp"
-#include "multimap/internal/Partition.hpp"
+#include <utility>
+#include <vector>
+#include "multimap/internal/Locks.h"
+#include "multimap/internal/Partition.h"
 
 namespace multimap {
 
@@ -131,4 +133,4 @@ class Map {
 
 }  // namespace multimap
 
-#endif  // MULTIMAP_MAP_HPP_INCLUDED
+#endif  // MULTIMAP_MAP_H_

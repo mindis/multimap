@@ -15,13 +15,13 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "multimap/internal/Store.hpp"
+#include "multimap/internal/Store.h"
 
 #include <cstdio>
 #include <boost/filesystem/operations.hpp>
-#include "multimap/thirdparty/mt/assert.hpp"
-#include "multimap/thirdparty/mt/check.hpp"
-#include "multimap/thirdparty/mt/memory.hpp"
+#include "multimap/thirdparty/mt/assert.h"
+#include "multimap/thirdparty/mt/check.h"
+#include "multimap/thirdparty/mt/memory.h"
 
 namespace multimap {
 namespace internal {

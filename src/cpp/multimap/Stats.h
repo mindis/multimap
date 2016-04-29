@@ -19,14 +19,15 @@
 // Documentation:  https://multimap.io/cppreference/#statshpp
 // -----------------------------------------------------------------------------
 
-#ifndef MULTIMAP_STATS_HPP_INCLUDED
-#define MULTIMAP_STATS_HPP_INCLUDED
+#ifndef MULTIMAP_STATS_H_
+#define MULTIMAP_STATS_H_
 
+#include <algorithm>
 #include <cstdint>
 #include <string>
 #include <vector>
 #include <boost/filesystem/path.hpp>
-#include "multimap/thirdparty/mt/assert.hpp"
+#include "multimap/thirdparty/mt/assert.h"
 
 namespace multimap {
 
@@ -64,4 +65,4 @@ MT_STATIC_ASSERT_SIZEOF(Stats, 104, 104);
 
 }  // namespace multimap
 
-#endif  // MULTIMAP_STATS_HPP_INCLUDED
+#endif  // MULTIMAP_STATS_H_

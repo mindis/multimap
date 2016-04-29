@@ -15,13 +15,13 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTIMAP_INTERNAL_PARTITION_HPP_INCLUDED
-#define MULTIMAP_INTERNAL_PARTITION_HPP_INCLUDED
+#ifndef MULTIMAP_INTERNAL_PARTITION_H_
+#define MULTIMAP_INTERNAL_PARTITION_H_
 
 #include <unordered_map>
 #include <boost/filesystem/path.hpp>
-#include "multimap/internal/List.hpp"
-#include "multimap/Stats.hpp"
+#include "multimap/internal/List.h"
+#include "multimap/Stats.h"
 
 namespace multimap {
 namespace internal {
@@ -107,4 +107,4 @@ class Partition {
 }  // namespace internal
 }  // namespace multimap
 
-#endif  // MULTIMAP_INTERNAL_PARTITION_HPP_INCLUDED
+#endif  // MULTIMAP_INTERNAL_PARTITION_H_

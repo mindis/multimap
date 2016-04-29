@@ -17,8 +17,8 @@
 
 #include "multimap/jni/generated/io_multimap_Iterator_Native.h"
 
-#include "multimap/jni/common.hpp"
-#include "multimap/Map.hpp"
+#include "multimap/jni/common.h"
+#include "multimap/Map.h"
 
 /*
  * Class:     io_multimap_Iterator_Native

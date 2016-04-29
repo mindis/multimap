@@ -15,12 +15,13 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "mt/unicode.hpp"
+#include "mt/unicode.h"
 
 #include <cstring>
 #include <cwchar>
 #include <cwctype>
-#include "mt/check.hpp"
+#include <string>
+#include "mt/check.h"
 
 // https://www.cl.cam.ac.uk/~mgk25/unicode.html
 // http://www.gnu.org/software/libc/manual/html_node/Character-Set-Handling.html

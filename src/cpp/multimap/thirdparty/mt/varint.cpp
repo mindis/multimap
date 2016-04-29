@@ -15,10 +15,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "mt/varint.hpp"
+#include "mt/varint.h"
 
-#include "mt/check.hpp"
-#include "mt/fileio.hpp"
+#include "mt/check.h"
+#include "mt/fileio.h"
 
 namespace mt {
 

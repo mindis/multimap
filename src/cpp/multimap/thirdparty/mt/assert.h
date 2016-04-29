@@ -15,12 +15,13 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MT_ASSERT_HPP_INCLUDED
-#define MT_ASSERT_HPP_INCLUDED
+#ifndef MT_ASSERT_H_
+#define MT_ASSERT_H_
 
 #include <ostream>
 #include <sstream>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
 namespace mt {
@@ -49,7 +50,7 @@ namespace internal {
 
 std::vector<std::string> getStackTrace(size_t skip_frames = 1);
 
-void printStackTraceTo(std::ostream& os, size_t skip_frames = 2);
+void printStackTraceTo(std::ostream* stream, size_t skip_frames = 2);
 
 void printStackTrace(size_t skip_frames = 3);
 
@@ -76,7 +77,7 @@ std::string makeErrorMessage(const char* file, size_t line, const char* expr,
   oss << "The expression '" << expr << "' was false.\n";
   oss << "Value of lhs was: " << lhs_value << '\n';
   oss << "Value of rhs was: " << rhs_value << "\n\n";
-  printStackTraceTo(oss, skip_head_from_stacktrace);
+  printStackTraceTo(&oss, skip_head_from_stacktrace);
   return oss.str();
 }
 
@@ -282,4 +283,4 @@ AssertionError::AssertionError(const char* file, size_t line, const char* expr,
 
 }  // namespace mt
 
-#endif  // MT_ASSERT_HPP_INCLUDED
+#endif  // MT_ASSERT_H_

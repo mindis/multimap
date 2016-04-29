@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "mt/common.hpp"
+#include "mt/common.h"
 
 #include <cmath>
 #include <ctime>
@@ -23,7 +23,8 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
-#include "mt/check.hpp"
+#include <string>
+#include "mt/check.h"
 
 namespace mt {
 
@@ -86,31 +87,31 @@ uint64_t fnv1aHash64(const byte* buf, size_t len) {
 
 std::string timestamp() {
   std::ostringstream stream;
-  printTimestamp(stream);
+  printTimestamp(&stream);
   return stream.str();
 }
 
-void printTimestamp(std::ostream& stream) {
+void printTimestamp(std::ostream* stream) {
   const std::time_t seconds = std::time(nullptr);
   Check::notEqual(-1, seconds, "std::time() failed because of %s", errnostr());
   struct tm broken_down_time;
   ::localtime_r(&seconds, &broken_down_time);
 
-  char old_fill_char = stream.fill('0');
-  stream << broken_down_time.tm_year + 1900;
-  stream << '-' << std::setw(2) << broken_down_time.tm_mon + 1;
-  stream << '-' << std::setw(2) << broken_down_time.tm_mday;
-  stream << ' ' << std::setw(2) << broken_down_time.tm_hour;
-  stream << ':' << std::setw(2) << broken_down_time.tm_min;
-  stream << ':' << std::setw(2) << broken_down_time.tm_sec;
-  stream.fill(old_fill_char);
+  char old_fill_char = stream->fill('0');
+  *stream << broken_down_time.tm_year + 1900;
+  *stream << '-' << std::setw(2) << broken_down_time.tm_mon + 1;
+  *stream << '-' << std::setw(2) << broken_down_time.tm_mday;
+  *stream << ' ' << std::setw(2) << broken_down_time.tm_hour;
+  *stream << ':' << std::setw(2) << broken_down_time.tm_min;
+  *stream << ':' << std::setw(2) << broken_down_time.tm_sec;
+  stream->fill(old_fill_char);
 }
 
-std::ostream& log(std::ostream& stream) {
+std::ostream& log(std::ostream* stream) {
   printTimestamp(stream);
-  return stream.put(' ');
+  return stream->put(' ');
 }
 
-std::ostream& log() { return log(std::clog); }
+std::ostream& log() { return log(&std::clog); }
 
 }  // namespace mt

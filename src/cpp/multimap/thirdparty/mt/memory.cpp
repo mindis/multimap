@@ -15,12 +15,12 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "mt/memory.hpp"
+#include "mt/memory.h"
 
 #include <unistd.h>
 #include <boost/filesystem/operations.hpp>
-#include "mt/check.hpp"
-#include "mt/fileio.hpp"
+#include "mt/check.h"
+#include "mt/fileio.h"
 
 namespace mt {
 

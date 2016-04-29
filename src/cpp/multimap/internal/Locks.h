@@ -15,14 +15,14 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTIMAP_INTERNAL_LOCKS_HPP_INCLUDED
-#define MULTIMAP_INTERNAL_LOCKS_HPP_INCLUDED
+#ifndef MULTIMAP_INTERNAL_LOCKS_H_
+#define MULTIMAP_INTERNAL_LOCKS_H_
 
 #include <boost/thread/lock_guard.hpp>
 #include <boost/thread/lock_types.hpp>
 #include <boost/thread/shared_lock_guard.hpp>
-#include "multimap/thirdparty/mt/fileio.hpp"
-#include "multimap/internal/Descriptor.hpp"
+#include "multimap/thirdparty/mt/fileio.h"
+#include "multimap/internal/Descriptor.h"
 
 namespace multimap {
 namespace internal {
@@ -59,4 +59,4 @@ struct DirectoryLock {
 }  // namespace internal
 }  // namespace multimap
 
-#endif  // MULTIMAP_INTERNAL_LOCKS_HPP_INCLUDED
+#endif  // MULTIMAP_INTERNAL_LOCKS_H_

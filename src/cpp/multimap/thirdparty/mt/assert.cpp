@@ -15,42 +15,46 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "mt/assert.hpp"
+#include "mt/assert.h"
 
 #include <cxxabi.h>    // abi::__cxa_demangle
 #include <execinfo.h>  // backtrace and backtrace_symbols
+#include <algorithm>
 #include <memory>
+#include <string>
+#include <vector>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
 namespace mt {
 namespace {
 
-void demangle(std::string& symbol) {
-  const auto stripFunctionName = [](std::string& symbol) {
-    const auto pos_lparen = symbol.find('(');
-    const auto pos_rparen = symbol.find(')');
+// TODO(mtrenkmann): Refactor taking a const-reference and return a new string.
+void demangle(std::string* symbol) {
+  const auto strip_function_name = [](std::string* symbol) {
+    const auto pos_lparen = symbol->find('(');
+    const auto pos_rparen = symbol->find(')');
     if (pos_lparen < pos_rparen) {
-      symbol = symbol.substr(pos_lparen + 1, pos_rparen - pos_lparen - 1);
+      *symbol = symbol->substr(pos_lparen + 1, pos_rparen - pos_lparen - 1);
     }
   };
 
-  const auto stripAddress = [](std::string& symbol) {
-    const auto pos_plus = symbol.find('+');
+  const auto strip_address = [](std::string* symbol) {
+    const auto pos_plus = symbol->find('+');
     if (pos_plus != std::string::npos) {
-      symbol = symbol.substr(0, pos_plus);
+      *symbol = symbol->substr(0, pos_plus);
     }
   };
 
   int status;
-  stripFunctionName(symbol);
-  stripAddress(symbol);
-  boost::trim(symbol);
-  if (symbol.empty()) {
-    symbol.assign("== inlined function ==");
-  } else if (boost::starts_with(symbol, "_Z")) {
+  strip_function_name(symbol);
+  strip_address(symbol);
+  boost::trim(*symbol);
+  if (symbol->empty()) {
+    symbol->assign("== inlined function ==");
+  } else if (boost::starts_with(*symbol, "_Z")) {
     std::unique_ptr<char, decltype(std::free)*> realname(
-        abi::__cxa_demangle(symbol.c_str(), nullptr, nullptr, &status),
+        abi::__cxa_demangle(symbol->c_str(), nullptr, nullptr, &status),
         std::free);
     switch (status) {
       case -1:
@@ -64,7 +68,7 @@ void demangle(std::string& symbol) {
         std::cerr << "demagle: One of the arguments is invalid.\n";
         break;
       default:
-        symbol.assign(realname.get());
+        symbol->assign(realname.get());
     }
   }
 }
@@ -75,7 +79,7 @@ std::string makeErrorMessage(const char* file, unsigned line,
   std::ostringstream oss;
   oss << "Fatal error in " << file << ':' << line
       << "\nwith message: " << message << "\n\n";
-  internal::printStackTraceTo(oss, skip_head_from_stacktrace);
+  internal::printStackTraceTo(&oss, skip_head_from_stacktrace);
   return oss.str();
 }
 
@@ -121,7 +125,7 @@ std::string makeErrorMessage(const char* file, unsigned line, const char* expr,
       throw "The unexpected happened.";
   }
   oss << "\n\n";
-  internal::printStackTraceTo(oss, skip_head_from_stacktrace);
+  internal::printStackTraceTo(&oss, skip_head_from_stacktrace);
   return oss.str();
 }
 
@@ -151,20 +155,22 @@ std::vector<std::string> getStackTrace(size_t skip_frames) {
   if (static_cast<size_t>(size) > skip_frames) {
     const auto symbols = backtrace_symbols(frames.data(), size);
     result.assign(symbols + skip_frames, symbols + size);
-    std::for_each(result.begin(), result.end(), demangle);
+    for (std::string& symbol : result) {
+      demangle(&symbol);
+    }
     std::free(symbols);
   }
   return result;
 }
 
-void printStackTraceTo(std::ostream& os, size_t skip_frames) {
+void printStackTraceTo(std::ostream* stream, size_t skip_frames) {
   const auto stacktrace = getStackTrace(skip_frames);
   std::copy(stacktrace.begin(), stacktrace.end(),
-            std::ostream_iterator<std::string>(os, "\n"));
+            std::ostream_iterator<std::string>(*stream, "\n"));
 }
 
 void printStackTrace(size_t skip_head) {
-  printStackTraceTo(std::cerr, skip_head);
+  printStackTraceTo(&std::cerr, skip_head);
 }
 
 }  // namespace internal

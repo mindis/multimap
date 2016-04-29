@@ -15,12 +15,12 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "multimap/internal/UintVector.hpp"
+#include "multimap/internal/UintVector.h"
 
-#include "multimap/thirdparty/mt/assert.hpp"
-#include "multimap/thirdparty/mt/common.hpp"
-#include "multimap/thirdparty/mt/fileio.hpp"
-#include "multimap/thirdparty/mt/varint.hpp"
+#include "multimap/thirdparty/mt/assert.h"
+#include "multimap/thirdparty/mt/common.h"
+#include "multimap/thirdparty/mt/fileio.h"
+#include "multimap/thirdparty/mt/varint.h"
 
 namespace multimap {
 namespace internal {

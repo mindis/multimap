@@ -15,14 +15,17 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "multimap/ImmutableMap.hpp"
+#include "multimap/ImmutableMap.h"
 
+#include <algorithm>
+#include <string>
+#include <vector>
 #include <boost/filesystem/operations.hpp>
-#include "multimap/internal/Descriptor.hpp"
-#include "multimap/internal/TsvFileReader.hpp"
-#include "multimap/internal/TsvFileWriter.hpp"
-#include "multimap/thirdparty/mt/check.hpp"
-#include "multimap/Arena.hpp"
+#include "multimap/internal/Descriptor.h"
+#include "multimap/internal/TsvFileReader.h"
+#include "multimap/internal/TsvFileWriter.h"
+#include "multimap/thirdparty/mt/check.h"
+#include "multimap/Arena.h"
 
 namespace bfs = boost::filesystem;
 
@@ -48,8 +51,8 @@ std::string getPartitionPrefix(size_t index) {
 }
 
 template <typename Element>
-Element& select(std::vector<Element>& elements, const Slice& key) {
-  return elements[std::hash<Slice>()(key) % elements.size()];
+Element& select(std::vector<Element>* elements, const Slice& key) {
+  return (*elements)[std::hash<Slice>()(key) % elements->size()];
 }
 
 template <typename Element>
@@ -80,7 +83,7 @@ ImmutableMap::Builder::Builder(const bfs::path& directory,
 }
 
 void ImmutableMap::Builder::put(const Slice& key, const Slice& value) {
-  select(table_builders_, key).put(key, value);
+  select(&table_builders_, key).put(key, value);
 }
 
 std::vector<Stats> ImmutableMap::Builder::build() {

@@ -18,7 +18,7 @@
 #include <type_traits>
 #include <boost/filesystem/operations.hpp>
 #include "gmock/gmock.h"
-#include "multimap/Map.hpp"
+#include "multimap/Map.h"
 
 namespace multimap {
 

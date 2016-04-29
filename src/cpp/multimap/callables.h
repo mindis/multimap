@@ -19,13 +19,13 @@
 // Documentation:  https://multimap.io/cppreference/#callableshpp
 // -----------------------------------------------------------------------------
 
-#ifndef MULTIMAP_CALLABLES_HPP_INCLUDED
-#define MULTIMAP_CALLABLES_HPP_INCLUDED
+#ifndef MULTIMAP_CALLABLES_H_
+#define MULTIMAP_CALLABLES_H_
 
 #include <functional>
-#include "multimap/Arena.hpp"
-#include "multimap/Iterator.hpp"
-#include "multimap/Slice.hpp"
+#include "multimap/Arena.h"
+#include "multimap/Iterator.h"
+#include "multimap/Slice.h"
 
 namespace multimap {
 
@@ -43,4 +43,4 @@ typedef std::function<void(const Slice&, Iterator*)> BinaryProcedure;
 
 }  // namespace multimap
 
-#endif  // MULTIMAP_CALLABLES_HPP_INCLUDED
+#endif  // MULTIMAP_CALLABLES_H_

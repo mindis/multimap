@@ -15,13 +15,13 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTIMAP_INTERNAL_MPH_HPP_INCLUDED
-#define MULTIMAP_INTERNAL_MPH_HPP_INCLUDED
+#ifndef MULTIMAP_INTERNAL_MPH_H_
+#define MULTIMAP_INTERNAL_MPH_H_
 
 #include <memory>
 #include <boost/filesystem/path.hpp>
 #include "multimap/thirdparty/cmph/cmph.h"
-#include "multimap/Slice.hpp"
+#include "multimap/Slice.h"
 
 namespace multimap {
 namespace internal {
@@ -63,4 +63,4 @@ class Mph {
 }  // namespace internal
 }  // namespace multimap
 
-#endif  // MULTIMAP_INTERNAL_MPH_HPP_INCLUDED
+#endif  // MULTIMAP_INTERNAL_MPH_H_

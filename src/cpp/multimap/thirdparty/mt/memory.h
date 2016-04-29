@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MT_MEMORY_HPP_INCLUDED
-#define MT_MEMORY_HPP_INCLUDED
+#ifndef MT_MEMORY_H_
+#define MT_MEMORY_H_
 
 #include <sys/mman.h>  // PROT_READ, PROT_WRITE, etc.
 #include <cstddef>
@@ -35,7 +35,7 @@ class AutoUnmapMemory {
 
   AutoUnmapMemory() = default;
 
-  AutoUnmapMemory(Memory memory);
+  explicit AutoUnmapMemory(Memory memory);
 
   AutoUnmapMemory(uint8_t* data, size_t size);
 
@@ -84,4 +84,4 @@ size_t getPageSize();
 
 }  // namespace mt
 
-#endif  // MT_MEMORY_HPP_INCLUDED
+#endif  // MT_MEMORY_H_

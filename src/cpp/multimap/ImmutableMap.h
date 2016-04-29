@@ -19,13 +19,13 @@
 // Documentation:  https://multimap.io/cppreference/#immutablemaphpp
 // -----------------------------------------------------------------------------
 
-#ifndef MULTIMAP_IMMUTABLE_MAP_HPP_INCLUDED
-#define MULTIMAP_IMMUTABLE_MAP_HPP_INCLUDED
+#ifndef MULTIMAP_IMMUTABLEMAP_H_
+#define MULTIMAP_IMMUTABLEMAP_H_
 
 #include <memory>
 #include <vector>
-#include "multimap/internal/Locks.hpp"
-#include "multimap/internal/MphTable.hpp"
+#include "multimap/internal/Locks.h"
+#include "multimap/internal/MphTable.h"
 
 namespace multimap {
 
@@ -95,4 +95,4 @@ class ImmutableMap {
 
 }  // namespace multimap
 
-#endif  // MULTIMAP_IMMUTABLE_MAP_HPP_INCLUDED
+#endif  // MULTIMAP_IMMUTABLEMAP_H_

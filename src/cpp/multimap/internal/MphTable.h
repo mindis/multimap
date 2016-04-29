@@ -15,17 +15,17 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTIMAP_INTERNAL_MPH_TABLE_HPP_INCLUDED
-#define MULTIMAP_INTERNAL_MPH_TABLE_HPP_INCLUDED
+#ifndef MULTIMAP_INTERNAL_MPH_TABLE_H_
+#define MULTIMAP_INTERNAL_MPH_TABLE_H_
 
 #include <boost/filesystem/path.hpp>
-#include "multimap/internal/Mph.hpp"
-#include "multimap/thirdparty/mt/fileio.hpp"
-#include "multimap/thirdparty/mt/memory.hpp"
-#include "multimap/callables.hpp"
-#include "multimap/Iterator.hpp"
-#include "multimap/Options.hpp"
-#include "multimap/Stats.hpp"
+#include "multimap/internal/Mph.h"
+#include "multimap/thirdparty/mt/fileio.h"
+#include "multimap/thirdparty/mt/memory.h"
+#include "multimap/callables.h"
+#include "multimap/Iterator.h"
+#include "multimap/Options.h"
+#include "multimap/Stats.h"
 
 namespace multimap {
 namespace internal {
@@ -87,4 +87,4 @@ class MphTable {
 }  // namespace internal
 }  // namespace multimap
 
-#endif  // MULTIMAP_INTERNAL_MPH_TABLE_HPP_INCLUDED
+#endif  // MULTIMAP_INTERNAL_MPH_TABLE_H_

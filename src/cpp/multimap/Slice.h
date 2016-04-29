@@ -19,13 +19,14 @@
 // Documentation:  https://multimap.io/cppreference/#slicehpp
 // -----------------------------------------------------------------------------
 
-#ifndef MULTIMAP_SLICE_HPP_INCLUDED
-#define MULTIMAP_SLICE_HPP_INCLUDED
+#ifndef MULTIMAP_SLICE_H_
+#define MULTIMAP_SLICE_H_
 
 #include <functional>
-#include "multimap/thirdparty/mt/common.hpp"
+#include <string>
+#include "multimap/thirdparty/mt/common.h"
 #include "multimap/thirdparty/xxhash/xxhash.h"
-#include "multimap/Bytes.hpp"
+#include "multimap/Bytes.h"
 
 namespace multimap {
 
@@ -116,6 +117,8 @@ inline bool operator<(const Slice& a, const Slice& b) {
   return internal::less(a.data(), a.size(), b.data(), b.size());
 }
 
+inline bool operator>=(const Slice& a, const Slice& b) { return !(a < b); }
+
 }  // namespace multimap
 
 namespace std {
@@ -130,4 +133,4 @@ struct hash< ::multimap::Slice> {
 
 }  // namespace std
 
-#endif  // MULTIMAP_SLICE_HPP_INCLUDED
+#endif  // MULTIMAP_SLICE_H_

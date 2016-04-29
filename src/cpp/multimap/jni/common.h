@@ -20,7 +20,7 @@
 
 #include <jni.h>
 #include <exception>
-#include "multimap/Map.hpp"
+#include "multimap/Map.h"
 
 namespace multimap {
 namespace jni {

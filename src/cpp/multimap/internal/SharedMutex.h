@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTIMAP_INTERNAL_SHARED_MUTEX_HPP_INCLUDED
-#define MULTIMAP_INTERNAL_SHARED_MUTEX_HPP_INCLUDED
+#ifndef MULTIMAP_INTERNAL_SHARED_MUTEX_H_
+#define MULTIMAP_INTERNAL_SHARED_MUTEX_H_
 
 #include <memory>
 #include <boost/thread/shared_mutex.hpp>
@@ -78,4 +78,4 @@ class SharedMutex {
 }  // namespace internal
 }  // namespace multimap
 
-#endif  // MULTIMAP_INTERNAL_SHARED_MUTEX_HPP_INCLUDED
+#endif  // MULTIMAP_INTERNAL_SHARED_MUTEX_H_

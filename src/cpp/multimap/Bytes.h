@@ -19,11 +19,12 @@
 // Documentation:  https://multimap.io/cppreference/#byteshpp
 // -----------------------------------------------------------------------------
 
-#ifndef MULTIMAP_BYTES_HPP_INCLUDED
-#define MULTIMAP_BYTES_HPP_INCLUDED
+#ifndef MULTIMAP_BYTES_H_
+#define MULTIMAP_BYTES_H_
 
 #include <cstdio>
-#include "multimap/thirdparty/mt/common.hpp"
+#include <string>
+#include "multimap/thirdparty/mt/common.h"
 
 namespace multimap {
 
@@ -79,4 +80,4 @@ struct BytesLess {
 
 }  // namespace multimap
 
-#endif  // MULTIMAP_BYTES_HPP_INCLUDED
+#endif  // MULTIMAP_BYTES_H_

@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "mt/fileio.hpp"
+#include "mt/fileio.h"
 
 #include <dirent.h>
 #include <fcntl.h>
@@ -23,9 +23,11 @@
 #include <unistd.h>
 #include <algorithm>
 #include <cstring>
+#include <string>
+#include <vector>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/filesystem/operations.hpp>
-#include "mt/check.hpp"
+#include "mt/check.h"
 
 namespace mt {
 
@@ -114,15 +116,17 @@ void AutoCloseFd::reset(int fd) {
 
 AutoCloseFd open(const bfs::path& file_path, int flags) {
   AutoCloseFd fd = openIfExists(file_path, flags);
-  check(bool(fd), "open() failed for %s because of '%s'", file_path.c_str(),
-        errnostr());
+  Check::notEqual(AutoCloseFd::NOFD, fd.get(),
+                  "open() failed for %s because of '%s'", file_path.c_str(),
+                  errnostr());
   return fd;
 }
 
 AutoCloseFd open(const bfs::path& file_path, int flags, mode_t mode) {
   AutoCloseFd fd = openIfExists(file_path, flags, mode);
-  check(bool(fd), "open() failed for %s because of '%s'", file_path.c_str(),
-        errnostr());
+  Check::notEqual(AutoCloseFd::NOFD, fd.get(),
+                  "open() failed for %s because of '%s'", file_path.c_str(),
+                  errnostr());
   return fd;
 }
 
@@ -136,8 +140,9 @@ AutoCloseFd openIfExists(const bfs::path& file_path, int flags, mode_t mode) {
 
 AutoCloseFd creat(const bfs::path& file_path, mode_t mode) {
   AutoCloseFd fd(::creat(file_path.c_str(), mode));
-  check(bool(fd), "creat() failed for %s because of '%s'", file_path.c_str(),
-        errnostr());
+  Check::notEqual(AutoCloseFd::NOFD, fd.get(),
+                  "creat() failed for %s because of '%s'", file_path.c_str(),
+                  errnostr());
   return fd;
 }
 
@@ -179,8 +184,8 @@ void ftruncate(int fd, uint64_t length) {
 
 AutoCloseFile fopen(const bfs::path& file_path, const char* mode) {
   AutoCloseFile file = fopenIfExists(file_path, mode);
-  check(bool(file), "fopen() failed for %s because of '%s'", file_path.c_str(),
-        errnostr());
+  Check::notNull(file.get(), "fopen() failed for %s because of '%s'",
+                 file_path.c_str(), errnostr());
   return file;
 }
 

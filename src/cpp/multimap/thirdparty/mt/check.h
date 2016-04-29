@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MT_CHECK_HPP_INCLUDED
-#define MT_CHECK_HPP_INCLUDED
+#ifndef MT_CHECK_H_
+#define MT_CHECK_H_
 
 #include <cstdarg>
 #include <stdexcept>
@@ -59,8 +59,6 @@ const char* errnostr();
 // Wraps strerror() from http://man7.org/linux/man-pages/man3/strerror.3.html
 
 struct Check {
-  // TODO Make descriptive error messages.
-
   static void isTrue(bool expression, const char* format, ...) {
     if (!expression) {
       va_list args;
@@ -184,4 +182,4 @@ struct Check {
 
 }  // namespace mt
 
-#endif  // MT_CHECK_HPP_INCLUDED
+#endif  // MT_CHECK_H_

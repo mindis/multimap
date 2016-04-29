@@ -15,15 +15,19 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include <cstdio>
+#include <algorithm>
 #include <cinttypes>
+#include <cstdio>
 #include <iostream>
+#include <map>
+#include <string>
+#include <vector>
 #include <boost/filesystem/operations.hpp>
-#include <multimap/thirdparty/mt/check.hpp>
-#include <multimap/thirdparty/mt/common.hpp>
-#include <multimap/ImmutableMap.hpp>
-#include <multimap/Map.hpp>
-#include <multimap/Version.hpp>
+#include <multimap/thirdparty/mt/check.h>
+#include <multimap/thirdparty/mt/common.h>
+#include <multimap/ImmutableMap.h>
+#include <multimap/Map.h>
+#include <multimap/Version.h>
 
 // clang-format off
 const auto HELP     = "help";
@@ -45,7 +49,7 @@ namespace multimap {
 
 struct CommandLine {
   struct Error : public std::runtime_error {
-    Error(const std::string& what) : std::runtime_error(what) {}
+    explicit Error(const std::string& what) : std::runtime_error(what) {}
   };
 
   std::string command, map, path;
@@ -280,11 +284,9 @@ int main(int argc, const char** argv) {
       multimap::runOptimizeCommand(cmd);
       return EXIT_SUCCESS;
     }
-
   } catch (multimap::CommandLine::Error& error) {
     std::cerr << "Invalid command line: " << error.what() << '.' << "\nTry '"
               << *argv << ' ' << HELP << "'." << std::endl;
-
   } catch (std::exception& error) {
     std::cerr << error.what() << '.' << std::endl;
   }

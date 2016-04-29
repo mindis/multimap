@@ -15,15 +15,15 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MT_VARINT_HPP_INCLUDED
-#define MT_VARINT_HPP_INCLUDED
+#ifndef MT_VARINT_H_
+#define MT_VARINT_H_
 
 #include <cstdio>
-#include "mt/common.hpp"
+#include "mt/common.h"
 
 namespace mt {
 
-// TODO IO policy begin/end vs buffer
+// TODO(mtrenkmann): Explain I/O policy wrt using begin/end vs. buffer.
 
 static const int MAX_VARINT32_BYTES = 5;
 static const int MAX_VARINT64_BYTES = 10;
@@ -61,4 +61,4 @@ void writeVarint64ToStream(uint64_t value, std::FILE* stream);
 
 }  // namespace mt
 
-#endif  // MT_VARINT_HPP_INCLUDED
+#endif  // MT_VARINT_H_

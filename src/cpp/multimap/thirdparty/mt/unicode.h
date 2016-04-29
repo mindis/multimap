@@ -1,4 +1,4 @@
-// This file is part of Multimap.  http://multimap.io
+// This file is part of the MT library.
 //
 // Copyright (C) 2015-2016  Martin Trenkmann
 //
@@ -15,28 +15,35 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTIMAP_INTERNAL_BASE64_HPP_INCLUDED
-#define MULTIMAP_INTERNAL_BASE64_HPP_INCLUDED
+#ifndef MT_UNICODE_H_
+#define MT_UNICODE_H_
 
 #include <string>
-#include "multimap/Slice.hpp"
 
-namespace multimap {
-namespace internal {
+namespace mt {
 
-struct Base64 {
-  static void encode(const Slice& bytes, std::string* output);
+void setUtf8Locale();
 
-  static std::string encode(const Slice& bytes);
+void utf8ToUtf32(const std::string& utf8, std::wstring* utf32);
 
-  static void decode(const std::string& base64, Bytes* output);
+void utf32ToUtf8(const std::wstring& utf32, std::string* utf8);
 
-  static Bytes decode(const std::string& base64);
+void toLowerUtf8(std::string* utf8);
 
-  Base64() = delete;
-};
+std::string toLowerUtf8Copy(const std::string& utf8);
 
-}  // namespace internal
-}  // namespace multimap
+void toLowerUtf32(std::wstring* utf32);
 
-#endif  // MULTIMAP_INTERNAL_BASE64_HPP_INCLUDED
+std::wstring toLowerUtf32Copy(const std::wstring& utf32);
+
+void toUpperUtf8(std::string* utf8);
+
+std::string toUpperUtf8Copy(const std::string& utf8);
+
+void toUpperUtf32(std::wstring* utf32);
+
+std::wstring toUpperUtf32Copy(const std::wstring& utf32);
+
+}  // namespace mt
+
+#endif  // MT_UNICODE_H_

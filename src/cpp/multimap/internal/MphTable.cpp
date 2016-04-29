@@ -15,16 +15,16 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "multimap/internal/MphTable.hpp"
+#include "multimap/internal/MphTable.h"
 
 #include <algorithm>
 #include <unordered_map>
 #include <boost/filesystem/operations.hpp>
-#include "multimap/thirdparty/mt/assert.hpp"
-#include "multimap/thirdparty/mt/check.hpp"
-#include "multimap/thirdparty/mt/memory.hpp"
-#include "multimap/thirdparty/mt/varint.hpp"
-#include "multimap/Arena.hpp"
+#include "multimap/thirdparty/mt/assert.h"
+#include "multimap/thirdparty/mt/check.h"
+#include "multimap/thirdparty/mt/memory.h"
+#include "multimap/thirdparty/mt/varint.h"
+#include "multimap/Arena.h"
 
 namespace multimap {
 namespace internal {

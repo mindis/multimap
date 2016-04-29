@@ -15,12 +15,13 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "multimap/Bytes.hpp"
+#include "multimap/Bytes.h"
 
 #include <cstring>
-#include "multimap/Slice.hpp"
-#include "multimap/thirdparty/mt/fileio.hpp"
-#include "multimap/thirdparty/mt/varint.hpp"
+#include <string>
+#include "multimap/Slice.h"
+#include "multimap/thirdparty/mt/fileio.h"
+#include "multimap/thirdparty/mt/varint.h"
 
 namespace multimap {
 

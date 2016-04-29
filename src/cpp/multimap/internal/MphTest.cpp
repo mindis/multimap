@@ -18,11 +18,11 @@
 #include <type_traits>
 #include <vector>
 #include <boost/filesystem/operations.hpp>
-#include "multimap/internal/Mph.hpp"
-#include "multimap/thirdparty/mt/assert.hpp"
-#include "multimap/thirdparty/mt/fileio.hpp"
-#include "multimap/Arena.hpp"
 #include "gmock/gmock.h"
+#include "multimap/internal/Mph.h"
+#include "multimap/thirdparty/mt/assert.h"
+#include "multimap/thirdparty/mt/fileio.h"
+#include "multimap/Arena.h"
 
 namespace multimap {
 namespace internal {

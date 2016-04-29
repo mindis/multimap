@@ -19,12 +19,12 @@
 // Documentation:  https://multimap.io/cppreference/#iteratorhpp
 // -----------------------------------------------------------------------------
 
-#ifndef MULTIMAP_ITERATOR_HPP_INCLUDED
-#define MULTIMAP_ITERATOR_HPP_INCLUDED
+#ifndef MULTIMAP_ITERATOR_H_
+#define MULTIMAP_ITERATOR_H_
 
 #include <iterator>
 #include <memory>
-#include "multimap/Slice.hpp"
+#include "multimap/Slice.h"
 
 namespace multimap {
 
@@ -68,4 +68,4 @@ RangeIterator<InputIter> makeRangeIterator(InputIter begin, InputIter end) {
 
 }  // namespace multimap
 
-#endif  // MULTIMAP_ITERATOR_HPP_INCLUDED
+#endif  // MULTIMAP_ITERATOR_H_

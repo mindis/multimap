@@ -15,16 +15,16 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTIMAP_INTERNAL_STORE_HPP_INCLUDED
-#define MULTIMAP_INTERNAL_STORE_HPP_INCLUDED
+#ifndef MULTIMAP_INTERNAL_STORE_H_
+#define MULTIMAP_INTERNAL_STORE_H_
 
 #include <mutex>
 #include <vector>
 #include <boost/filesystem/path.hpp>
-#include "multimap/thirdparty/mt/fileio.hpp"
-#include "multimap/thirdparty/mt/memory.hpp"
-#include "multimap/Bytes.hpp"
-#include "multimap/Options.hpp"
+#include "multimap/thirdparty/mt/fileio.h"
+#include "multimap/thirdparty/mt/memory.h"
+#include "multimap/Bytes.h"
+#include "multimap/Options.h"
 
 namespace multimap {
 namespace internal {
@@ -115,4 +115,4 @@ class Store {
 }  // namespace internal
 }  // namespace multimap
 
-#endif  // MULTIMAP_INTERNAL_STORE_HPP_INCLUDED
+#endif  // MULTIMAP_INTERNAL_STORE_H_

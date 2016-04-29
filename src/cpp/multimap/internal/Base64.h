@@ -15,32 +15,28 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-// -----------------------------------------------------------------------------
-// Documentation:  https://multimap.io/cppreference/#optionshpp
-// -----------------------------------------------------------------------------
+#ifndef MULTIMAP_INTERNAL_BASE64_H_
+#define MULTIMAP_INTERNAL_BASE64_H_
 
-#ifndef MULTIMAP_OPTIONS_HPP_INCLUDED
-#define MULTIMAP_OPTIONS_HPP_INCLUDED
-
-#include "multimap/callables.hpp"
+#include <string>
+#include "multimap/Slice.h"
 
 namespace multimap {
+namespace internal {
 
-struct Options {
-  size_t block_size = 512;
-  size_t num_partitions = 23;
+struct Base64 {
+  static void encode(const Slice& bytes, std::string* output);
 
-  bool create_if_missing = false;
-  bool error_if_exists = false;
-  bool readonly = false;
-  bool verbose = true;
+  static std::string encode(const Slice& bytes);
 
-  Compare compare;
+  static void decode(const std::string& base64, Bytes* output);
 
-  void keepNumPartitions() { num_partitions = 0; }
-  void keepBlockSize() { block_size = 0; }
+  static Bytes decode(const std::string& base64);
+
+  Base64() = delete;
 };
 
+}  // namespace internal
 }  // namespace multimap
 
-#endif  // MULTIMAP_OPTIONS_HPP_INCLUDED
+#endif  // MULTIMAP_INTERNAL_BASE64_H_

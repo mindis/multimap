@@ -15,26 +15,29 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include <type_traits>
-#include "gmock/gmock.h"
-#include "multimap/internal/Store.h"
+#ifndef MULTIMAP_INTERNAL_TSV_FILE_READER_H_
+#define MULTIMAP_INTERNAL_TSV_FILE_READER_H_
+
+#include <boost/filesystem/fstream.hpp>
+#include "multimap/Bytes.h"
 
 namespace multimap {
 namespace internal {
 
-TEST(StoreTest, IsDefaultConstructible) {
-  ASSERT_TRUE(std::is_default_constructible<Store>::value);
-}
+class TsvFileReader {
+ public:
+  explicit TsvFileReader(const boost::filesystem::path& file_path);
 
-TEST(StoreTest, IsNotCopyConstructibleOrAssignable) {
-  ASSERT_FALSE(std::is_copy_constructible<Store>::value);
-  ASSERT_FALSE(std::is_copy_assignable<Store>::value);
-}
+  bool read(Bytes* key, Bytes* value);
 
-TEST(StoreTest, IsMoveConstructibleAndAssignable) {
-  ASSERT_TRUE(std::is_move_constructible<Store>::value);
-  ASSERT_TRUE(std::is_move_assignable<Store>::value);
-}
+ private:
+  boost::filesystem::ifstream stream_;
+  std::string base64_key_;
+  std::string base64_value_;
+  Bytes current_key_;
+};
 
 }  // namespace internal
 }  // namespace multimap
+
+#endif  // MULTIMAP_INTERNAL_TSV_FILE_READER_H_

@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MT_FILEIO_HPP_INCLUDED
-#define MT_FILEIO_HPP_INCLUDED
+#ifndef MT_FILEIO_H_
+#define MT_FILEIO_H_
 
 #define _FILE_OFFSET_BITS 64
 // Enables large file support (> 2 GiB) on 32-bit systems.
@@ -201,7 +201,7 @@ class DirectoryLockGuard {
  public:
   static const std::string DEFAULT_FILENAME;
 
-  DirectoryLockGuard(const bfs::path& directory);
+  explicit DirectoryLockGuard(const bfs::path& directory);
 
   DirectoryLockGuard(const bfs::path& directory, const std::string& file_name);
 
@@ -221,4 +221,4 @@ class DirectoryLockGuard {
 
 }  // namespace mt
 
-#endif  // MT_FILEIO_HPP_INCLUDED
+#endif  // MT_FILEIO_H_

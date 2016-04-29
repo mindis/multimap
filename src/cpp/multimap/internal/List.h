@@ -15,18 +15,18 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTIMAP_INTERNAL_LIST_HPP_INCLUDED
-#define MULTIMAP_INTERNAL_LIST_HPP_INCLUDED
+#ifndef MULTIMAP_INTERNAL_LIST_H_
+#define MULTIMAP_INTERNAL_LIST_H_
 
-#include "multimap/internal/Locks.hpp"
-#include "multimap/internal/SharedMutex.hpp"
-#include "multimap/internal/Store.hpp"
-#include "multimap/internal/UintVector.hpp"
-#include "multimap/thirdparty/mt/assert.hpp"
-#include "multimap/Arena.hpp"
-#include "multimap/callables.hpp"
-#include "multimap/Iterator.hpp"
-#include "multimap/Slice.hpp"
+#include "multimap/internal/Locks.h"
+#include "multimap/internal/SharedMutex.h"
+#include "multimap/internal/Store.h"
+#include "multimap/internal/UintVector.h"
+#include "multimap/thirdparty/mt/assert.h"
+#include "multimap/Arena.h"
+#include "multimap/callables.h"
+#include "multimap/Iterator.h"
+#include "multimap/Slice.h"
 
 namespace multimap {
 namespace internal {
@@ -109,4 +109,4 @@ MT_STATIC_ASSERT_SIZEOF(List, 36, 48);
 }  // namespace internal
 }  // namespace multimap
 
-#endif  // MULTIMAP_INTERNAL_LIST_HPP_INCLUDED
+#endif  // MULTIMAP_INTERNAL_LIST_H_

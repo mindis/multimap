@@ -17,7 +17,7 @@
 
 #include <type_traits>
 #include "gmock/gmock.h"
-#include "multimap/Version.hpp"
+#include "multimap/Version.h"
 
 namespace multimap {
 

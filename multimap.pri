@@ -12,19 +12,19 @@ INCLUDEPATH += \
     src/cpp/multimap/thirdparty
 
 HEADERS += \
-    src/cpp/multimap/internal/Base64.hpp \
-    src/cpp/multimap/internal/Descriptor.hpp \
-    src/cpp/multimap/internal/List.hpp \
-    src/cpp/multimap/internal/Locks.hpp \
-    src/cpp/multimap/internal/Mph.hpp \
-    src/cpp/multimap/internal/MphTable.hpp \
-    src/cpp/multimap/internal/Partition.hpp \
-    src/cpp/multimap/internal/SharedMutex.hpp \
-    src/cpp/multimap/internal/Store.hpp \
-    src/cpp/multimap/internal/TsvFileReader.hpp \
-    src/cpp/multimap/internal/TsvFileWriter.hpp \
-    src/cpp/multimap/internal/UintVector.hpp \
-    src/cpp/multimap/internal/Varint.hpp \
+    src/cpp/multimap/internal/Base64.h \
+    src/cpp/multimap/internal/Descriptor.h \
+    src/cpp/multimap/internal/List.h \
+    src/cpp/multimap/internal/Locks.h \
+    src/cpp/multimap/internal/Mph.h \
+    src/cpp/multimap/internal/MphTable.h \
+    src/cpp/multimap/internal/Partition.h \
+    src/cpp/multimap/internal/SharedMutex.h \
+    src/cpp/multimap/internal/Store.h \
+    src/cpp/multimap/internal/TsvFileReader.h \
+    src/cpp/multimap/internal/TsvFileWriter.h \
+    src/cpp/multimap/internal/UintVector.h \
+    src/cpp/multimap/internal/Varint.h \
     src/cpp/multimap/thirdparty/cmph/bdz.h \
     src/cpp/multimap/thirdparty/cmph/bdz_ph.h \
     src/cpp/multimap/thirdparty/cmph/bdz_structs.h \
@@ -71,16 +71,16 @@ HEADERS += \
     src/cpp/multimap/thirdparty/mt/unicode.hpp \
     src/cpp/multimap/thirdparty/mt/varint.hpp \
     src/cpp/multimap/thirdparty/xxhash/xxhash.h \
-    src/cpp/multimap/Arena.hpp \
-    src/cpp/multimap/Bytes.hpp \
-    src/cpp/multimap/callables.hpp \
-    src/cpp/multimap/ImmutableMap.hpp \
-    src/cpp/multimap/Iterator.hpp \
-    src/cpp/multimap/Map.hpp \
-    src/cpp/multimap/Options.hpp \
-    src/cpp/multimap/Slice.hpp \
-    src/cpp/multimap/Stats.hpp \
-    src/cpp/multimap/Version.hpp
+    src/cpp/multimap/Arena.h \
+    src/cpp/multimap/Bytes.h \
+    src/cpp/multimap/callables.h \
+    src/cpp/multimap/ImmutableMap.h \
+    src/cpp/multimap/Iterator.h \
+    src/cpp/multimap/Map.h \
+    src/cpp/multimap/Options.h \
+    src/cpp/multimap/Slice.h \
+    src/cpp/multimap/Stats.h \
+    src/cpp/multimap/Version.h
 
 SOURCES += \
     src/cpp/multimap/internal/Base64.cpp \
@@ -137,6 +137,7 @@ SOURCES += \
 
 OTHER_FILES += \
     install-dependencies-debian.sh \
+    run-cpplint.sh \
     update-mt-lib.sh
 
 unix:!macx: LIBS += -lboost_filesystem -lboost_system -lboost_thread -lpthread

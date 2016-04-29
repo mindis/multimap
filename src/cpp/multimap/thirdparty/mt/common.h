@@ -15,9 +15,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MT_COMMON_HPP_INCLUDED
-#define MT_COMMON_HPP_INCLUDED
+#ifndef MT_COMMON_H_
+#define MT_COMMON_H_
 
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
 #include <string>
@@ -29,7 +30,7 @@ typedef unsigned char byte;
 
 typedef std::vector<byte> Bytes;
 
-static const int VERSION = 20160418;
+static const int VERSION = 20160429;
 
 bool isPrime(uint64_t number);
 // Returns `true` if `number` is prime, `false` otherwise.
@@ -111,10 +112,10 @@ auto max(const A& a, const B& b) -> decltype(a > b ? a : b) {
 
 std::string timestamp();
 
-void printTimestamp(std::ostream& stream);
+void printTimestamp(std::ostream* stream);
 
-std::ostream& log(std::ostream& stream);
-// Usage: mt::log(some_stream) << "Some message\n";
+std::ostream& log(std::ostream* stream);
+// Usage: mt::log(&some_stream) << "Some message\n";
 
 std::ostream& log();
 // Usage: mt::log() << "Some message\n";
@@ -223,4 +224,4 @@ std::ostream& log();
 
 }  // namespace mt
 
-#endif  // MT_MT_HPP_INCLUDED
+#endif  // MT_COMMON_H_

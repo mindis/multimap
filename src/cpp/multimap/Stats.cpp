@@ -15,12 +15,14 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "multimap/Stats.hpp"
+#include "multimap/Stats.h"
 
-#include <cmath>
-#include "multimap/thirdparty/mt/assert.hpp"
-#include "multimap/thirdparty/mt/common.hpp"
-#include "multimap/thirdparty/mt/fileio.hpp"
+#include <algorithm>
+#include <string>
+#include <vector>
+#include "multimap/thirdparty/mt/assert.h"
+#include "multimap/thirdparty/mt/common.h"
+#include "multimap/thirdparty/mt/fileio.h"
 
 namespace multimap {
 

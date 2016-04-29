@@ -15,15 +15,15 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "multimap/internal/Partition.hpp"
+#include "multimap/internal/Partition.h"
 
 #include <cmath>
 #include <limits>
 #include <boost/filesystem/operations.hpp>
-#include "multimap/internal/Base64.hpp"
-#include "multimap/internal/Locks.hpp"
-#include "multimap/internal/Varint.hpp"
-#include "multimap/thirdparty/mt/check.hpp"
+#include "multimap/internal/Base64.h"
+#include "multimap/internal/Locks.h"
+#include "multimap/internal/Varint.h"
+#include "multimap/thirdparty/mt/check.h"
 
 namespace bfs = boost::filesystem;
 

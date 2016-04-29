@@ -16,41 +16,31 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // -----------------------------------------------------------------------------
-// Documentation:  https://multimap.io/cppreference/#arenahpp
+// Documentation:  https://multimap.io/cppreference/#optionshpp
 // -----------------------------------------------------------------------------
 
-#ifndef MULTIMAP_ARENA_HPP_INCLUDED
-#define MULTIMAP_ARENA_HPP_INCLUDED
+#ifndef MULTIMAP_OPTIONS_H_
+#define MULTIMAP_OPTIONS_H_
 
-#include <memory>
-#include <mutex>
-#include <vector>
-#include "multimap/thirdparty/mt/common.hpp"
-#include "multimap/Bytes.hpp"
+#include "multimap/callables.h"
 
 namespace multimap {
 
-class Arena {
- public:
-  static const size_t DEFAULT_BLOCK_SIZE = mt::KiB(4);
+struct Options {
+  size_t block_size = 512;
+  size_t num_partitions = 23;
 
-  explicit Arena(size_t block_size = DEFAULT_BLOCK_SIZE);
+  bool create_if_missing = false;
+  bool error_if_exists = false;
+  bool readonly = false;
+  bool verbose = true;
 
-  byte* allocate(size_t nbytes);
+  Compare compare;
 
-  size_t allocated() const;
-
-  void deallocateAll();
-
- private:
-  std::unique_ptr<std::mutex> mutex_;
-  std::vector<std::unique_ptr<byte[]> > blocks_;
-  std::vector<std::unique_ptr<byte[]> > blobs_;
-  size_t block_offset_ = 0;
-  size_t block_size_ = 0;
-  size_t allocated_ = 0;
+  void keepNumPartitions() { num_partitions = 0; }
+  void keepBlockSize() { block_size = 0; }
 };
 
 }  // namespace multimap
 
-#endif  // MULTIMAP_ARENA_HPP_INCLUDED
+#endif  // MULTIMAP_OPTIONS_H_

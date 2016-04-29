@@ -19,8 +19,8 @@
 #include <type_traits>
 #include <boost/filesystem/operations.hpp>
 #include "gmock/gmock.h"
-#include "multimap/internal/Generator.hpp"
-#include "multimap/internal/List.hpp"
+#include "multimap/internal/Generator.h"
+#include "multimap/internal/List.h"
 
 namespace multimap {
 namespace internal {

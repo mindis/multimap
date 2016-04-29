@@ -16,27 +16,41 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // -----------------------------------------------------------------------------
-// Documentation:  https://multimap.io/cppreference/#versionhpp
+// Documentation:  https://multimap.io/cppreference/#arenahpp
 // -----------------------------------------------------------------------------
 
-#ifndef MULTIMAP_VERSION_HPP_INCLUDED
-#define MULTIMAP_VERSION_HPP_INCLUDED
+#ifndef MULTIMAP_ARENA_H_
+#define MULTIMAP_ARENA_H_
+
+#include <memory>
+#include <mutex>
+#include <vector>
+#include "multimap/thirdparty/mt/common.h"
+#include "multimap/Bytes.h"
 
 namespace multimap {
 
-struct Version {
-  static const int MAJOR;
-  static const int MINOR;
-  static const int PATCH;
+class Arena {
+ public:
+  static const size_t DEFAULT_BLOCK_SIZE = mt::KiB(4);
 
-  static void checkCompatibility(int extern_major, int extern_minor);
+  explicit Arena(size_t block_size = DEFAULT_BLOCK_SIZE);
 
-  static bool isCompatible(int extern_major, int extern_minor,
-                           int intern_major = MAJOR, int intern_minor = MINOR);
+  byte* allocate(size_t nbytes);
 
-  Version() = delete;
+  size_t allocated() const;
+
+  void deallocateAll();
+
+ private:
+  std::unique_ptr<std::mutex> mutex_;
+  std::vector<std::unique_ptr<byte[]> > blocks_;
+  std::vector<std::unique_ptr<byte[]> > blobs_;
+  size_t block_offset_ = 0;
+  size_t block_size_ = 0;
+  size_t allocated_ = 0;
 };
 
 }  // namespace multimap
 
-#endif  // MULTIMAP_VERSION_HPP_INCLUDED
+#endif  // MULTIMAP_ARENA_H_

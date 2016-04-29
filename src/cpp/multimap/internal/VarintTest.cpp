@@ -18,7 +18,7 @@
 #include <cstring>
 #include <type_traits>
 #include "gmock/gmock.h"
-#include "multimap/internal/Varint.hpp"
+#include "multimap/internal/Varint.h"
 
 namespace multimap {
 namespace internal {

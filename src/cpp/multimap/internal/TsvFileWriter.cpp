@@ -15,11 +15,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "multimap/internal/TsvFileWriter.hpp"
+#include "multimap/internal/TsvFileWriter.h"
 
-#include "multimap/internal/Base64.hpp"
-#include "multimap/thirdparty/mt/assert.hpp"
-#include "multimap/thirdparty/mt/check.hpp"
+#include "multimap/internal/Base64.h"
+#include "multimap/thirdparty/mt/assert.h"
+#include "multimap/thirdparty/mt/check.h"
 
 namespace multimap {
 namespace internal {

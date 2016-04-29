@@ -15,9 +15,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#include <string>
 #include <type_traits>
 #include "gmock/gmock.h"
-#include "multimap/Slice.hpp"
+#include "multimap/Slice.h"
 
 namespace multimap {
 
@@ -36,48 +37,48 @@ TEST(SliceTest, IsMoveConstructibleAndAssignable) {
 }
 
 TEST(SliceTest, EqualityOperator) {
-  ASSERT_TRUE(Slice("abc") == Slice("abc"));
-  ASSERT_FALSE(Slice("bc") == Slice("abc"));
+  ASSERT_EQ(Slice("abc"), Slice("abc"));
+  ASSERT_NE(Slice("bc"), Slice("abc"));
 }
 
 TEST(SliceTest, EqualityOperatorTakesCString) {
-  ASSERT_TRUE(Slice("abc") == "abc");
-  ASSERT_FALSE(Slice("bc") == "abc");
+  ASSERT_EQ(Slice("abc"), "abc");
+  ASSERT_NE(Slice("bc"), "abc");
 }
 
 TEST(SliceTest, EqualityOperatorTakesStdString) {
-  ASSERT_TRUE(Slice("abc") == std::string("abc"));
-  ASSERT_FALSE(Slice("bc") == std::string("abc"));
+  ASSERT_EQ(Slice("abc"), std::string("abc"));
+  ASSERT_NE(Slice("bc"), std::string("abc"));
 }
 
 TEST(SliceTest, InequalityOperator) {
-  ASSERT_TRUE(Slice("abc") != Slice("bc"));
-  ASSERT_FALSE(Slice("bc") != Slice("bc"));
+  ASSERT_NE(Slice("abc"), Slice("bc"));
+  ASSERT_EQ(Slice("bc"), Slice("bc"));
 }
 
 TEST(SliceTest, InequalityOperatorTakesCString) {
-  ASSERT_TRUE(Slice("abc") != "bc");
-  ASSERT_FALSE(Slice("bc") != "bc");
+  ASSERT_NE(Slice("abc"), "bc");
+  ASSERT_EQ(Slice("bc"), "bc");
 }
 
 TEST(SliceTest, InequalityOperatorTakesStdString) {
-  ASSERT_TRUE(Slice("abc") != std::string("bc"));
-  ASSERT_FALSE(Slice("bc") != std::string("bc"));
+  ASSERT_NE(Slice("abc"), std::string("bc"));
+  ASSERT_EQ(Slice("bc"), std::string("bc"));
 }
 
 TEST(SliceTest, LessThanOperator) {
-  ASSERT_TRUE(Slice("abc") < Slice("abcd"));
-  ASSERT_FALSE(Slice("bc") < Slice("abcd"));
+  ASSERT_LT(Slice("abc"), Slice("abcd"));
+  ASSERT_GE(Slice("bc"), Slice("abcd"));
 }
 
 TEST(SliceTest, LessThanOperatorTakesCString) {
-  ASSERT_TRUE(Slice("abc") < "abcd");
-  ASSERT_FALSE(Slice("bc") < "abcd");
+  ASSERT_LT(Slice("abc"), "abcd");
+  ASSERT_GE(Slice("bc"), "abcd");
 }
 
 TEST(SliceTest, LessThanOperatorTakesStdString) {
-  ASSERT_TRUE(Slice("abc") < std::string("abcd"));
-  ASSERT_FALSE(Slice("bc") < std::string("abcd"));
+  ASSERT_LT(Slice("abc"), std::string("abcd"));
+  ASSERT_GE(Slice("bc"), std::string("abcd"));
 }
 
 }  // namespace multimap

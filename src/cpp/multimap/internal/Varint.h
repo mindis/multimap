@@ -15,11 +15,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTIMAP_INTERNAL_VARINT_HPP_INCLUDED
-#define MULTIMAP_INTERNAL_VARINT_HPP_INCLUDED
+#ifndef MULTIMAP_INTERNAL_VARINT_H_
+#define MULTIMAP_INTERNAL_VARINT_H_
 
 #include <cstdint>
-#include "multimap/Bytes.hpp"
+#include "multimap/Bytes.h"
 
 namespace multimap {
 namespace internal {
@@ -41,4 +41,4 @@ struct Varint {
 }  // namespace internal
 }  // namespace multimap
 
-#endif  // MULTIMAP_INTERNAL_VARINT_HPP_INCLUDED
+#endif  // MULTIMAP_INTERNAL_VARINT_H_

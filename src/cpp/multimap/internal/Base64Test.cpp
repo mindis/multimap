@@ -18,7 +18,7 @@
 #include <string>
 #include <type_traits>
 #include "gmock/gmock.h"
-#include "multimap/internal/Base64.hpp"
+#include "multimap/internal/Base64.h"
 
 namespace multimap {
 namespace internal {

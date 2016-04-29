@@ -15,12 +15,12 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTIMAP_INTERNAL_DESCRIPTOR_HPP_INCLUDED
-#define MULTIMAP_INTERNAL_DESCRIPTOR_HPP_INCLUDED
+#ifndef MULTIMAP_INTERNAL_DESCRIPTOR_H_
+#define MULTIMAP_INTERNAL_DESCRIPTOR_H_
 
 #include <boost/filesystem/path.hpp>
-#include "multimap/thirdparty/mt/assert.hpp"
-#include "multimap/Version.hpp"
+#include "multimap/thirdparty/mt/assert.h"
+#include "multimap/Version.h"
 
 namespace multimap {
 namespace internal {
@@ -52,4 +52,4 @@ MT_STATIC_ASSERT_SIZEOF(Descriptor, 16, 16);
 }  // namespace internal
 }  // namespace multimap
 
-#endif  // MULTIMAP_INTERNAL_DESCRIPTOR_HPP_INCLUDED
+#endif  // MULTIMAP_INTERNAL_DESCRIPTOR_H_

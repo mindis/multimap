@@ -15,9 +15,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "multimap/Arena.hpp"
+#include "multimap/Arena.h"
 
-#include "multimap/thirdparty/mt/assert.hpp"
+#include "multimap/thirdparty/mt/assert.h"
 
 namespace multimap {
 
@@ -28,7 +28,7 @@ Arena::Arena(size_t block_size)
 }
 
 byte* Arena::allocate(size_t nbytes) {
-  MT_REQUIRE_NOT_ZERO(nbytes);  // TODO Should we allow zero size?
+  MT_REQUIRE_NOT_ZERO(nbytes);  // TODO(mtrenkmann): Should we allow zero size?
   std::lock_guard<std::mutex> lock(*mutex_);
 
   byte* result;

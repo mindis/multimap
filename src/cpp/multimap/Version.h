@@ -15,32 +15,28 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTIMAP_INTERNAL_TSV_FILE_WRITER_HPP_INCLUDED
-#define MULTIMAP_INTERNAL_TSV_FILE_WRITER_HPP_INCLUDED
+// -----------------------------------------------------------------------------
+// Documentation:  https://multimap.io/cppreference/#versionhpp
+// -----------------------------------------------------------------------------
 
-#include <boost/filesystem/fstream.hpp>
-#include "multimap/Iterator.hpp"
-#include "multimap/Slice.hpp"
+#ifndef MULTIMAP_VERSION_H_
+#define MULTIMAP_VERSION_H_
 
 namespace multimap {
-namespace internal {
 
-class TsvFileWriter {
- public:
-  explicit TsvFileWriter(const boost::filesystem::path& file_path);
+struct Version {
+  static const int MAJOR;
+  static const int MINOR;
+  static const int PATCH;
 
-  void write(const Slice& key, const Slice& value);
+  static void checkCompatibility(int extern_major, int extern_minor);
 
-  void write(const Slice& key, Iterator* iter);
+  static bool isCompatible(int extern_major, int extern_minor,
+                           int intern_major = MAJOR, int intern_minor = MINOR);
 
- private:
-  boost::filesystem::ofstream stream_;
-  std::string base64_key_;
-  std::string base64_value_;
-  Bytes current_key_;
+  Version() = delete;
 };
 
-}  // namespace internal
 }  // namespace multimap
 
-#endif  // MULTIMAP_INTERNAL_TSV_FILE_WRITER_HPP_INCLUDED
+#endif  // MULTIMAP_VERSION_H_
