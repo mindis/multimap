@@ -80,26 +80,6 @@ class MphTableBuilderFixture : public testing::Test {
   std::string prefix_;
 };
 
-TEST_F(MphTableBuilderFixture, DestructorRemovesFile) {
-  boost::filesystem::path file_path;
-  {
-    MphTable::Builder builder(getPrefix(), Options());
-    file_path = builder.getFilePath();
-    ASSERT_TRUE(boost::filesystem::is_regular_file(file_path));
-  }
-  ASSERT_FALSE(boost::filesystem::is_regular_file(file_path));
-}
-
-TEST_F(MphTableBuilderFixture, DestructorDoesNotRemoveFileWhenReleased) {
-  boost::filesystem::path file_path;
-  {
-    MphTable::Builder builder(getPrefix(), Options());
-    file_path = builder.releaseFile();
-    ASSERT_TRUE(boost::filesystem::is_regular_file(file_path));
-  }
-  ASSERT_TRUE(boost::filesystem::is_regular_file(file_path));
-}
-
 class MphTableBuilderTestWithParam : public testing::TestWithParam<int> {
  public:
   void SetUp() override {
