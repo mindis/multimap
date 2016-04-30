@@ -15,11 +15,11 @@ unix {
     INCLUDE_MULTIMAP = /usr/local/include/multimap
 
     multimap.path = $$INCLUDE_MULTIMAP
-    multimap.files += src/cpp/multimap/*.h*
+    multimap.files += src/cpp/multimap/*.h
     INSTALLS += multimap
 
     multimap_internal.path = $$INCLUDE_MULTIMAP/internal
-    multimap_internal.files += src/cpp/multimap/internal/*.h*
+    multimap_internal.files += src/cpp/multimap/internal/*.h
     INSTALLS += multimap_internal
 
     multimap_thirdparty_cmph.path = $$INCLUDE_MULTIMAP/thirdparty/cmph
@@ -29,7 +29,7 @@ unix {
     INSTALLS += multimap_thirdparty_cmph
 
     multimap_thirdparty_mt.path = $$INCLUDE_MULTIMAP/thirdparty/mt
-    multimap_thirdparty_mt.files += src/cpp/multimap/thirdparty/mt/*.hpp
+    multimap_thirdparty_mt.files += src/cpp/multimap/thirdparty/mt/*.h
     INSTALLS += multimap_thirdparty_mt
 
     multimap_thirdparty_xxhash.path = $$INCLUDE_MULTIMAP/thirdparty/xxhash
