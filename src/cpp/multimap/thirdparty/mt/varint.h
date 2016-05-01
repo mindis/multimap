@@ -34,10 +34,16 @@ static const int MAX_VARINT64_BYTES = 10;
 
 size_t readVarint32FromBuffer(const byte* buffer, uint32_t* value);
 
+size_t readVarint32FromBuffer(const byte* begin, const byte* end,
+                              uint32_t* value);
+
 size_t readVarint64FromBuffer(const byte* buffer, uint64_t* value);
 // Reads a varint from an unbounded buffer (no end pointer given).
 // The caller has to ensure that buffer points to a valid varint encoding.
 // Returns a pointer past the last byte read.
+
+size_t readVarint64FromBuffer(const byte* begin, const byte* end,
+                              uint64_t* value);
 
 size_t writeVarint32ToBuffer(uint32_t value, byte* begin, byte* end);
 // Returns the number of bytes written if the value could be encoded

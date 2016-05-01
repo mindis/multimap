@@ -48,23 +48,6 @@ uint64_t nextPrime(uint64_t number) {
   return number;
 }
 
-uint64_t currentResidentMemory() {
-  const char* property = "VmRSS:";
-  const char* file_path = "/proc/self/status";
-  std::ifstream input(file_path);
-  check(input.is_open(), "Could not open %s", file_path);
-  std::string token;
-  uint64_t mem_in_kb;
-  while (input >> token) {
-    if (token == property) {
-      input >> mem_in_kb;
-      return KiB(mem_in_kb);
-    }
-  }
-  fail("Could not find property '%s' in %s", property, file_path);
-  return 0;
-}
-
 // Source: http://www.isthe.com/chongo/src/fnv/hash_32a.c
 uint32_t fnv1aHash32(const byte* buf, size_t len) {
   uint32_t h = 0x811c9dc5;  // FNV1_32A_INIT

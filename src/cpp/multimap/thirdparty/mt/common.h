@@ -53,7 +53,7 @@ constexpr bool is32BitSystem() { return sizeof(void*) == 4; }
 
 constexpr bool is64BitSystem() { return sizeof(void*) == 8; }
 
-uint64_t currentResidentMemory();
+#define MT_LIKELY(condition) __builtin_expect(condition, true)
 
 // -----------------------------------------------------------------------------
 // ALGORITHM

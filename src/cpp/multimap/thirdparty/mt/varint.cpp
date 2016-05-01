@@ -17,7 +17,6 @@
 
 #include "mt/varint.h"
 
-#include "mt/check.h"
 #include "mt/fileio.h"
 
 namespace mt {
@@ -29,26 +28,50 @@ namespace mt {
 // [2] https://github.com/facebook/folly/blob/master/folly/Varint.h
 
 size_t readVarint32FromBuffer(const byte* buffer, uint32_t* value) {
+  return readVarint32FromBuffer(buffer, buffer + MAX_VARINT32_BYTES, value);
+}
+
+size_t readVarint32FromBuffer(const byte* begin, const byte* end,
+                              uint32_t* value) {
   *value = 0;
   int shift = 0;
-  for (int i = 0; i != MAX_VARINT32_BYTES; i++) {
-    *value += static_cast<uint32_t>(buffer[i] & 0x7f) << shift;
-    if (!(buffer[i] & 0x80)) return i + 1;
-    shift += 7;
+  if (MT_LIKELY((end - begin) >= MAX_VARINT32_BYTES)) {
+    for (int i = 0; i < MAX_VARINT32_BYTES; i++) {
+      *value += static_cast<uint32_t>(*begin & 0x7f) << shift;
+      if (!(*begin++ & 0x80)) return i + 1;
+      shift += 7;
+    }
+  } else {
+    for (int i = 0; (begin < end) && (i < MAX_VARINT32_BYTES); i++) {
+      *value += static_cast<uint32_t>(*begin & 0x7f) << shift;
+      if (!(*begin++ & 0x80)) return i + 1;
+      shift += 7;
+    }
   }
-  fail("mt::readVarint32FromBuffer() failed because of invalid input");
   return 0;
 }
 
 size_t readVarint64FromBuffer(const byte* buffer, uint64_t* value) {
+  return readVarint64FromBuffer(buffer, buffer + MAX_VARINT64_BYTES, value);
+}
+
+size_t readVarint64FromBuffer(const byte* begin, const byte* end,
+                              uint64_t* value) {
   *value = 0;
   int shift = 0;
-  for (int i = 0; i != MAX_VARINT64_BYTES; i++) {
-    *value += static_cast<uint64_t>(buffer[i] & 0x7f) << shift;
-    if (!(buffer[i] & 0x80)) return i + 1;
-    shift += 7;
+  if (MT_LIKELY((end - begin) >= MAX_VARINT64_BYTES)) {
+    for (int i = 0; i < MAX_VARINT64_BYTES; i++) {
+      *value += static_cast<uint64_t>(*begin & 0x7f) << shift;
+      if (!(*begin++ & 0x80)) return i + 1;
+      shift += 7;
+    }
+  } else {
+    for (int i = 0; (begin < end) && (i < MAX_VARINT64_BYTES); i++) {
+      *value += static_cast<uint64_t>(*begin & 0x7f) << shift;
+      if (!(*begin++ & 0x80)) return i + 1;
+      shift += 7;
+    }
   }
-  fail("mt::readVarint64FromBuffer() failed because of invalid input");
   return 0;
 }
 
@@ -71,13 +94,11 @@ bool readVarint32FromStream(std::FILE* stream, uint32_t* value) {
   byte b;
   *value = 0;
   int shift = 0;
-  for (int i = 0; i != MAX_VARINT32_BYTES; i++) {
-    if (!fgetcMaybe(stream, &b)) return false;
+  for (int i = 0; (i != MAX_VARINT32_BYTES) && fgetcMaybe(stream, &b); i++) {
     *value += static_cast<uint32_t>(b & 0x7f) << shift;
     if (!(b & 0x80)) return true;
     shift += 7;
   }
-  fail("mt::readVarint32FromStream() failed because of invalid input");
   return false;
 }
 
@@ -91,7 +112,6 @@ bool readVarint64FromStream(std::FILE* stream, uint64_t* value) {
     if (!(b & 0x80)) return true;
     shift += 7;
   }
-  fail("mt::readVarint64FromStream() failed because of invalid input");
   return false;
 }
 
