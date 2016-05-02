@@ -54,6 +54,7 @@ constexpr bool is32BitSystem() { return sizeof(void*) == 4; }
 constexpr bool is64BitSystem() { return sizeof(void*) == 8; }
 
 #define MT_LIKELY(condition) __builtin_expect(condition, true)
+#define MT_UNLIKELY(condition) __builtin_expect(condition, false)
 
 // -----------------------------------------------------------------------------
 // ALGORITHM

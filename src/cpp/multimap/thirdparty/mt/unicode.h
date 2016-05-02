@@ -24,9 +24,13 @@ namespace mt {
 
 void setUtf8Locale();
 
-void utf8ToUtf32(const std::string& utf8, std::wstring* utf32);
+void toUtf8(const std::wstring& utf32, std::string* utf8);
 
-void utf32ToUtf8(const std::wstring& utf32, std::string* utf8);
+std::string toUtf8Copy(const std::wstring& utf32);
+
+void toUtf32(const std::string& utf8, std::wstring* utf32);
+
+std::wstring toUtf32Copy(const std::string& utf8);
 
 void toLowerUtf8(std::string* utf8);
 

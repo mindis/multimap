@@ -37,22 +37,7 @@ void setUtf8Locale() {
                  "std::setlocale(LC_ALL, \"C.UTF-8\" failed");
 }
 
-void utf8ToUtf32(const std::string& utf8, std::wstring* utf32) {
-  std::mbstate_t state;
-  std::memset(&state, 0, sizeof state);
-  utf32->resize(utf8.size());
-  const char* utf8_begin = utf8.c_str();
-  const size_t status = std::mbsrtowcs(const_cast<wchar_t*>(utf32->data()),
-                                       &utf8_begin, utf32->size(), &state);
-  // C++11 requires that elements of std::wstring are stored contiguously,
-  // so casting away constness and writing directly into the array is safe.
-  // C++17 adds a non-const version of std::wstring::data() for that reason.
-  mt::check(status != static_cast<size_t>(-1),
-            "std::mbsrtowcs() failed because of %s", mt::errnostr());
-  utf32->resize(status);
-}
-
-void utf32ToUtf8(const std::wstring& utf32, std::string* utf8) {
+void toUtf8(const std::wstring& utf32, std::string* utf8) {
   std::mbstate_t state;
   std::memset(&state, 0, sizeof state);
   utf8->resize(utf32.size() * MB_CUR_MAX);
@@ -67,11 +52,38 @@ void utf32ToUtf8(const std::wstring& utf32, std::string* utf8) {
   utf8->resize(status);
 }
 
+std::string toUtf8Copy(const std::wstring& utf32) {
+  std::string result;
+  toUtf8(utf32, &result);
+  return result;
+}
+
+void toUtf32(const std::string& utf8, std::wstring* utf32) {
+  std::mbstate_t state;
+  std::memset(&state, 0, sizeof state);
+  utf32->resize(utf8.size());
+  const char* utf8_begin = utf8.c_str();
+  const size_t status = std::mbsrtowcs(const_cast<wchar_t*>(utf32->data()),
+                                       &utf8_begin, utf32->size(), &state);
+  // C++11 requires that elements of std::wstring are stored contiguously,
+  // so casting away constness and writing directly into the array is safe.
+  // C++17 adds a non-const version of std::wstring::data() for that reason.
+  mt::check(status != static_cast<size_t>(-1),
+            "std::mbsrtowcs() failed because of %s", mt::errnostr());
+  utf32->resize(status);
+}
+
+std::wstring toUtf32Copy(const std::string& utf8) {
+  std::wstring result;
+  toUtf32(utf8, &result);
+  return result;
+}
+
 void toLowerUtf8(std::string* utf8) {
   thread_local std::wstring utf32;
-  utf8ToUtf32(*utf8, &utf32);
+  toUtf32(*utf8, &utf32);
   toLowerUtf32(&utf32);
-  utf32ToUtf8(utf32, utf8);
+  toUtf8(utf32, utf8);
 }
 
 std::string toLowerUtf8Copy(const std::string& utf8) {
@@ -94,9 +106,9 @@ std::wstring toLowerUtf32Copy(const std::wstring& utf32) {
 
 void toUpperUtf8(std::string* utf8) {
   thread_local std::wstring utf32;
-  utf8ToUtf32(*utf8, &utf32);
+  toUtf32(*utf8, &utf32);
   toUpperUtf32(&utf32);
-  utf32ToUtf8(utf32, utf8);
+  toUtf8(utf32, utf8);
 }
 
 std::string toUpperUtf8Copy(const std::string& utf8) {
