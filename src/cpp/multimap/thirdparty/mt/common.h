@@ -30,7 +30,7 @@ typedef unsigned char byte;
 
 typedef std::vector<byte> Bytes;
 
-static const int VERSION = 20160429;
+static const int VERSION = 20160503;
 
 bool isPrime(uint64_t number);
 // Returns `true` if `number` is prime, `false` otherwise.
@@ -120,6 +120,9 @@ std::ostream& log(std::ostream* stream);
 
 std::ostream& log();
 // Usage: mt::log() << "Some message\n";
+
+std::ostream& debug();
+// Usage: mt::debug() << "Some message\n";
 
 // -----------------------------------------------------------------------------
 // TYPE TRAITS

@@ -97,4 +97,6 @@ std::ostream& log(std::ostream* stream) {
 
 std::ostream& log() { return log(&std::clog); }
 
+std::ostream& debug() { return std::cout << "DEBUG "; }
+
 }  // namespace mt
