@@ -100,7 +100,7 @@ DirectoryLockGuard::DirectoryLockGuard(const boost::filesystem::path& directory,
   if (stream.is_open()) {
     stream << ::getpid();
   } else if (!boost::filesystem::is_directory(directory)) {
-    fail("Could not create lock file %s because the directory does not exist",
+    fail("Could not create lock file because the directory %s does not exist",
          directory.c_str());
   } else {
     fail("Could not create lock file %s for unknown reason", file_path.c_str());
