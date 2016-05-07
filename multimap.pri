@@ -3,9 +3,7 @@ CONFIG -= app_bundle
 CONFIG -= qt
 VERSION = 0.6.0
 
-QMAKE_LFLAGS += -rdynamic     # for GNU backtrace
-QMAKE_CFLAGS += -std=c99      # for Qt4 compatibility
-QMAKE_CXXFLAGS += -std=c++11  # for Qt4 compatibility
+QMAKE_LFLAGS += -rdynamic # for GNU backtrace
 
 INCLUDEPATH += \
     src/cpp \
