@@ -94,15 +94,17 @@ DirectoryLockGuard::DirectoryLockGuard(const boost::filesystem::path& directory,
                                        const std::string& file_name)
     : directory_(directory), file_name_(file_name) {
   const boost::filesystem::path file_path = directory / file_name;
-  struct stat file_stats;
-  Check::isEqual(-1, ::stat(file_path.c_str(), &file_stats),
-                 "Could not create %s because the file already exists",
-                 file_path.c_str());
+  Check::isFalse(boost::filesystem::is_regular_file(file_path),
+                 "Could not create %s because the file already exists");
   std::ofstream stream(file_path.string());
-  Check::isTrue(stream.is_open(),
-                "Could not create lock file %s for unknown reason",
-                file_path.c_str());
-  stream << ::getpid();
+  if (stream.is_open()) {
+    stream << ::getpid();
+  } else if (!boost::filesystem::is_directory(directory)) {
+    fail("Could not create lock file %s because the directory does not exist",
+         directory.c_str());
+  } else {
+    fail("Could not create lock file %s for unknown reason", file_path.c_str());
+  }
 }
 
 DirectoryLockGuard::~DirectoryLockGuard() {
