@@ -20,7 +20,7 @@ INCLUDEPATH += \
     src/cpp/multimap/thirdparty/googletest/include
 
 HEADERS += \
-    src/cpp/multimap/internal/Generator.hpp \
+    src/cpp/multimap/internal/Generator.h \
     src/cpp/multimap/thirdparty/googlemock/include/gmock/internal/custom/gmock-generated-actions.h \
     src/cpp/multimap/thirdparty/googlemock/include/gmock/internal/custom/gmock-matchers.h \
     src/cpp/multimap/thirdparty/googlemock/include/gmock/internal/custom/gmock-port.h \
