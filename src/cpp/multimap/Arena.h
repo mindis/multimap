@@ -23,7 +23,7 @@
 #define MULTIMAP_ARENA_H_
 
 #include <memory>
-#include <mutex>
+#include <mutex>  // NOLINT
 #include <vector>
 #include "multimap/thirdparty/mt/common.h"
 #include "multimap/Bytes.h"
