@@ -24,27 +24,6 @@
 
 namespace mt {
 
-AutoUnmapMemory::AutoUnmapMemory(Memory memory) : memory_(memory) {}
-
-AutoUnmapMemory::AutoUnmapMemory(uint8_t* data, size_t size)
-    : memory_(data, size) {}
-
-AutoUnmapMemory::AutoUnmapMemory(AutoUnmapMemory&& other)
-    : memory_(other.release()) {}
-
-AutoUnmapMemory::~AutoUnmapMemory() { reset(); }
-
-AutoUnmapMemory& AutoUnmapMemory::operator=(AutoUnmapMemory&& other) {
-  reset(other.release());
-  return *this;
-}
-
-AutoUnmapMemory::Memory AutoUnmapMemory::release() {
-  const Memory memory = memory_;
-  memory_ = Memory();
-  return memory;
-}
-
 void AutoUnmapMemory::reset(Memory memory) {
   if (memory_.first != nullptr) {
     const int result = ::munmap(memory_.first, memory_.second);

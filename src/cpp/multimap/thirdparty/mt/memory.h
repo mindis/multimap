@@ -22,7 +22,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <utility>
-#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/path.hpp>  // NOLINT
 
 namespace mt {
 
@@ -35,15 +35,19 @@ class AutoUnmapMemory {
 
   AutoUnmapMemory() = default;
 
-  explicit AutoUnmapMemory(Memory memory);
+  explicit AutoUnmapMemory(Memory memory) : memory_(memory) {}
 
-  AutoUnmapMemory(uint8_t* data, size_t size);
+  AutoUnmapMemory(uint8_t* data, size_t size) : memory_(data, size) {}
 
-  AutoUnmapMemory(AutoUnmapMemory&& other);
+  AutoUnmapMemory(AutoUnmapMemory&& other)  // NOLINT
+      : memory_(other.release()) {}
 
-  ~AutoUnmapMemory();
+  ~AutoUnmapMemory() { reset(); }
 
-  AutoUnmapMemory& operator=(AutoUnmapMemory&& other);
+  AutoUnmapMemory& operator=(AutoUnmapMemory&& other) {  // NOLINT
+    reset(other.release());
+    return *this;
+  }
 
   const Memory& get() const { return memory_; }
 
@@ -55,7 +59,11 @@ class AutoUnmapMemory {
 
   uint8_t* end() const { return memory_.first + memory_.second; }
 
-  Memory release();
+  Memory release() {
+    const Memory memory = memory_;
+    memory_ = Memory();
+    return memory;
+  }
 
   void reset(Memory memory = Memory());
 

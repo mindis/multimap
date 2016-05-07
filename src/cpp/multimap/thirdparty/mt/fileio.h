@@ -24,24 +24,47 @@
 #include <sys/types.h>
 #include <fcntl.h>
 #include <cstdio>
+#include <fstream>
 #include <memory>
 #include <string>
 #include <vector>
-#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/path.hpp>  // NOLINT
+#include "mt/common.h"
 
 namespace mt {
 
-namespace bfs = boost::filesystem;
+Bytes readAllBytes(const boost::filesystem::path& file_path);
 
-std::vector<uint8_t> readAllBytes(const bfs::path& file_path);
+std::vector<std::string> readAllLines(const boost::filesystem::path& file_path);
 
-std::vector<std::string> readAllLines(const bfs::path& file_path);
-
-std::vector<std::string> listFileNames(const bfs::path& directory,
+std::vector<std::string> listFileNames(const boost::filesystem::path& directory,
                                        bool ignore_hidden = true);
 
-std::vector<bfs::path> listFilePaths(const bfs::path& directory,
-                                     bool ignore_hidden = true);
+std::vector<boost::filesystem::path> listFilePaths(
+    const boost::filesystem::path& directory, bool ignore_hidden = true);
+
+class DirectoryLockGuard {
+ public:
+  static const std::string DEFAULT_FILENAME;
+
+  explicit DirectoryLockGuard(const boost::filesystem::path& directory);
+
+  DirectoryLockGuard(const boost::filesystem::path& directory,
+                     const std::string& file_name);
+
+  DirectoryLockGuard(const DirectoryLockGuard&) = delete;
+  DirectoryLockGuard& operator=(const DirectoryLockGuard&) = delete;
+
+  ~DirectoryLockGuard();
+
+  const boost::filesystem::path& directory() const { return directory_; }
+
+  const std::string& file_name() const { return file_name_; }
+
+ private:
+  boost::filesystem::path directory_;
+  std::string file_name_;
+};
 
 // -----------------------------------------------------------------------------
 // POSIX-style I/O
@@ -58,11 +81,11 @@ class AutoCloseFd {
 
   explicit AutoCloseFd(int fd);
 
-  AutoCloseFd(AutoCloseFd&& other);
+  AutoCloseFd(AutoCloseFd&& other);  // NOLINT
 
   ~AutoCloseFd();
 
-  AutoCloseFd& operator=(AutoCloseFd&& other);
+  AutoCloseFd& operator=(AutoCloseFd&& other);  // NOLINT
 
   explicit operator bool() const noexcept;
 
@@ -76,23 +99,16 @@ class AutoCloseFd {
   int fd_ = NOFD;
 };
 
-AutoCloseFd open(const bfs::path& file_path, int flags);
+AutoCloseFd open(const boost::filesystem::path& file_path, int flags);
 // Tries to open (or create) a file or thowns std::runtime_error on failure.
 // Wraps open() from http://man7.org/linux/man-pages/man2/open.2.html
 
-AutoCloseFd open(const bfs::path& file_path, int flags, mode_t mode);
+AutoCloseFd open(const boost::filesystem::path& file_path, int flags,
+                 mode_t mode);
 // Tries to open (or create) a file or thowns std::runtime_error on failure.
 // Wraps open() from http://man7.org/linux/man-pages/man2/open.2.html
 
-AutoCloseFd openIfExists(const bfs::path& file_path, int flags);
-// Tries to open (or create) a file or returns an empty file descriptor owner.
-// Wraps open() from http://man7.org/linux/man-pages/man2/open.2.html
-
-AutoCloseFd openIfExists(const bfs::path& file_path, int flags, mode_t mode);
-// Tries to open (or create) a file or returns an empty file descriptor owner.
-// Wraps open() from http://man7.org/linux/man-pages/man2/open.2.html
-
-AutoCloseFd creat(const bfs::path& file_path, mode_t mode);
+AutoCloseFd creat(const boost::filesystem::path& file_path, mode_t mode);
 // Tries to create a file or thowns std::runtime_error on failure.
 // Wraps creat() from http://man7.org/linux/man-pages/man2/open.2.html
 
@@ -151,25 +167,21 @@ class AutoCloseFile
   AutoCloseFile(std::FILE* stream) : Base(stream, std::fclose) {}
 };
 
-AutoCloseFile fopen(const bfs::path& file_path, const char* mode);
+AutoCloseFile fopen(const boost::filesystem::path& file_path, const char* mode);
 // Tries to open (or create) a file or thowns std::runtime_error on failure.
 // Wraps fopen() from http://man7.org/linux/man-pages/man3/fopen.3.html
 
-AutoCloseFile fopenIfExists(const bfs::path& file_path, const char* mode);
-// Tries to open (or create) a file or returns an empty file stream owner.
-// Wraps fopen() from http://man7.org/linux/man-pages/man3/fopen.3.html
-
-uint8_t fgetc(std::FILE* stream);
+byte fgetc(std::FILE* stream);
 // Tries to read the next byte from a file stream or throws std::runtime_error
 // on failure.
 // Wraps fgetc() from http://man7.org/linux/man-pages/man3/fgetc.3.html
 
-bool fgetcMaybe(std::FILE* stream, uint8_t* byte);
+bool fgetcMaybe(std::FILE* stream, byte* b);
 // Tries to read the next byte from a file stream. Returns true on success,
 // false otherwise.
 // Wraps fgetc() from http://man7.org/linux/man-pages/man3/fgetc.3.html
 
-void fputc(std::FILE* stream, uint8_t byte);
+void fputc(std::FILE* stream, byte b);
 // Tries to write one byte to a file stream or throws std::runtime_error on
 // failure.
 // Wraps fputc() from http://man7.org/linux/man-pages/man3/fputc.3.html
@@ -197,27 +209,34 @@ uint64_t ftell(std::FILE* stream);
 // Tries to tell the current file offset or throws std::runtime_error on error.
 // Wraps ftell() from http://man7.org/linux/man-pages/man3/ftell.3.html
 
-class DirectoryLockGuard {
- public:
-  static const std::string DEFAULT_FILENAME;
+// -----------------------------------------------------------------------------
+// C++ stream I/O
+// -----------------------------------------------------------------------------
 
-  explicit DirectoryLockGuard(const bfs::path& directory);
+typedef std::unique_ptr<std::fstream> FileStream;
+typedef std::unique_ptr<std::ifstream> InputFileStream;
+typedef std::unique_ptr<std::ofstream> OutputFileStream;
 
-  DirectoryLockGuard(const bfs::path& directory, const std::string& file_name);
+static const std::ios_base::openmode in_out_trunc =
+    std::ios_base::in | std::ios_base::out | std::ios_base::trunc;
 
-  DirectoryLockGuard(const DirectoryLockGuard&) = delete;
-  DirectoryLockGuard& operator=(const DirectoryLockGuard&) = delete;
+FileStream newFileStream(const boost::filesystem::path& file_path,
+                         std::ios_base::openmode mode = std::ios_base::in |
+                                                        std::ios_base::out);
 
-  ~DirectoryLockGuard();
+InputFileStream newInputFileStream(
+    const boost::filesystem::path& file_path,
+    std::ios_base::openmode mode = std::ios_base::in);
 
-  const bfs::path& directory() const { return directory_; }
+OutputFileStream newOutputFileStream(
+    const boost::filesystem::path& file_path,
+    std::ios_base::openmode mode = std::ios_base::out);
 
-  const std::string& file_name() const { return file_name_; }
+void readAll(std::istream* stream, void* buf, size_t count);
 
- private:
-  bfs::path directory_;
-  std::string file_name_;
-};
+bool readAllMaybe(std::istream* stream, void* buf, size_t count);
+
+void writeAll(std::ostream* stream, const void* buf, size_t count);
 
 }  // namespace mt
 

@@ -30,7 +30,7 @@ typedef unsigned char byte;
 
 typedef std::vector<byte> Bytes;
 
-static const int VERSION = 20160503;
+static const int VERSION = 20160508;
 
 bool isPrime(uint64_t number);
 // Returns `true` if `number` is prime, `false` otherwise.

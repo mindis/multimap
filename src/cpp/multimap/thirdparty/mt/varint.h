@@ -18,7 +18,8 @@
 #ifndef MT_VARINT_H_
 #define MT_VARINT_H_
 
-#include <cstdio>
+#include <istream>
+#include <ostream>
 #include "mt/common.h"
 
 namespace mt {
@@ -57,13 +58,13 @@ size_t writeVarint64ToBuffer(uint64_t value, byte* begin, byte* end);
 // Unsigned integer file stream I/O
 // -----------------------------------------------------------------------------
 
-bool readVarint32FromStream(std::FILE* stream, uint32_t* value);
+bool readVarint32FromStream(std::istream* stream, uint32_t* value);
 
-bool readVarint64FromStream(std::FILE* stream, uint64_t* value);
+bool readVarint64FromStream(std::istream* stream, uint64_t* value);
 
-void writeVarint32ToStream(uint32_t value, std::FILE* stream);
+void writeVarint32ToStream(uint32_t value, std::ostream* stream);
 
-void writeVarint64ToStream(uint64_t value, std::FILE* stream);
+void writeVarint64ToStream(uint64_t value, std::ostream* stream);
 
 }  // namespace mt
 

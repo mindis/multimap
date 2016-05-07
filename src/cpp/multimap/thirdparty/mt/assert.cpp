@@ -23,8 +23,8 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include <boost/algorithm/string/predicate.hpp>
-#include <boost/algorithm/string/trim.hpp>
+#include <boost/algorithm/string/predicate.hpp>  // NOLINT
+#include <boost/algorithm/string/trim.hpp>       // NOLINT
 
 namespace mt {
 namespace {

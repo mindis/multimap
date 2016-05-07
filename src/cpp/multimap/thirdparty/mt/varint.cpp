@@ -17,8 +17,6 @@
 
 #include "mt/varint.h"
 
-#include "mt/fileio.h"
-
 namespace mt {
 
 // The varint implementations in [1] and [2] might be slightly more efficient,
@@ -90,11 +88,11 @@ size_t writeVarint64ToBuffer(uint64_t value, byte* begin, byte* end) {
   return pos - begin;
 }
 
-bool readVarint32FromStream(std::FILE* stream, uint32_t* value) {
-  byte b;
+bool readVarint32FromStream(std::istream* stream, uint32_t* value) {
+  char b;
   *value = 0;
   int shift = 0;
-  for (int i = 0; (i != MAX_VARINT32_BYTES) && fgetcMaybe(stream, &b); i++) {
+  for (int i = 0; (i != MAX_VARINT32_BYTES) && stream->get(b); i++) {
     *value += static_cast<uint32_t>(b & 0x7f) << shift;
     if (!(b & 0x80)) return true;
     shift += 7;
@@ -102,12 +100,12 @@ bool readVarint32FromStream(std::FILE* stream, uint32_t* value) {
   return false;
 }
 
-bool readVarint64FromStream(std::FILE* stream, uint64_t* value) {
-  byte b;
+bool readVarint64FromStream(std::istream* stream, uint64_t* value) {
+  char b;
   *value = 0;
   int shift = 0;
   for (int i = 0; i != MAX_VARINT64_BYTES; i++) {
-    if (!fgetcMaybe(stream, &b)) return false;
+    if (!stream->get(b)) return false;
     *value += static_cast<uint64_t>(b & 0x7f) << shift;
     if (!(b & 0x80)) return true;
     shift += 7;
@@ -115,16 +113,16 @@ bool readVarint64FromStream(std::FILE* stream, uint64_t* value) {
   return false;
 }
 
-void writeVarint32ToStream(uint32_t value, std::FILE* stream) {
+void writeVarint32ToStream(uint32_t value, std::ostream* stream) {
   writeVarint64ToStream(value, stream);
 }
 
-void writeVarint64ToStream(uint64_t value, std::FILE* stream) {
+void writeVarint64ToStream(uint64_t value, std::ostream* stream) {
   while (value > 0x7f) {
-    fputc(stream, 0x80 | (value & 0x7f));
+    stream->put(0x80 | (value & 0x7f));
     value >>= 7;
   }
-  fputc(stream, value);
+  stream->put(value);
 }
 
 }  // namespace mt
