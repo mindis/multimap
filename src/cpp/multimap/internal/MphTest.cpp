@@ -57,11 +57,11 @@ byte* makeCmphEncodedKey(int index, Arena* arena) {
   return full_key;
 }
 
-void writeCmphEncodedKey(int index, std::FILE* stream) {
+void writeCmphEncodedKey(int index, std::ostream* stream) {
   const std::string key = makeKey(index);
   const uint32_t key_size = key.size();
-  mt::fwriteAll(stream, &key_size, sizeof key_size);
-  mt::fwriteAll(stream, key.data(), key_size);
+  mt::writeAll(stream, &key_size, sizeof key_size);
+  mt::writeAll(stream, key.data(), key_size);
 }
 
 TEST(MphTest, BuildFromVerySmallKeysetThrows) {
@@ -113,7 +113,7 @@ TEST_P(MphTestWithParam, BuildFromInMemoryKeys) {
 }
 
 TEST_P(MphTestWithParam, BuildFromOnDiskKeys) {
-  mt::AutoCloseFile stream = mt::fopen(getKeysFileName(), "w");
+  mt::OutputFileStream stream = mt::newOutputFileStream(getKeysFileName());
   for (int i = 0; i < GetParam(); i++) {
     writeCmphEncodedKey(i, stream.get());
   }

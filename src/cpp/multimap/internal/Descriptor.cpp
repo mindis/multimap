@@ -48,10 +48,13 @@ Descriptor Descriptor::readFromDirectory(const bfs::path& directory) {
 
 bool Descriptor::tryReadFromDirectory(const bfs::path& directory,
                                       Descriptor* output) {
-  const bfs::path file_path = directory / getFileName();
-  const mt::AutoCloseFile stream = mt::fopenIfExists(file_path, "r");
-  if (!stream) return false;
-  mt::freadAll(stream.get(), output, sizeof *output);
+  mt::InputFileStream stream;
+  try {
+    stream = mt::newInputFileStream(directory / getFileName());
+  } catch (std::runtime_error&) {
+    return false;
+  }
+  mt::readAll(stream.get(), output, sizeof *output);
   Version::checkCompatibility(output->major_version, output->minor_version);
   return true;
 }
@@ -59,8 +62,9 @@ bool Descriptor::tryReadFromDirectory(const bfs::path& directory,
 void Descriptor::writeToDirectory(const bfs::path& directory) const {
   MT_REQUIRE_NOT_ZERO(num_partitions);
   MT_REQUIRE_TRUE(map_type == TYPE_MAP || map_type == TYPE_IMMUTABLE_MAP);
-  const auto stream = mt::fopen(directory / getFileName(), "w");
-  mt::fwriteAll(stream.get(), this, sizeof *this);
+  const mt::OutputFileStream stream =
+      mt::newOutputFileStream(directory / getFileName());
+  mt::writeAll(stream.get(), this, sizeof *this);
 }
 
 std::string Descriptor::getFilePrefix() { return "multimap"; }

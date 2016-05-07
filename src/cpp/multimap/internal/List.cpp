@@ -363,22 +363,22 @@ size_t List::clear() {
   return num_removed;
 }
 
-List List::readFromStream(std::FILE* stream) {
+List List::readFromStream(std::istream* stream) {
   List list;
-  mt::freadAll(stream, &list.stats_.num_values_total,
-               sizeof list.stats_.num_values_total);
-  mt::freadAll(stream, &list.stats_.num_values_removed,
-               sizeof list.stats_.num_values_removed);
+  mt::readAll(stream, &list.stats_.num_values_total,
+              sizeof list.stats_.num_values_total);
+  mt::readAll(stream, &list.stats_.num_values_removed,
+              sizeof list.stats_.num_values_removed);
   list.block_ids_ = UintVector::readFromStream(stream);
-  return std::move(list);
+  return list;
 }
 
-void List::writeToStream(std::FILE* stream) const {
+void List::writeToStream(std::ostream* stream) const {
   ReaderLockGuard<SharedMutex> lock(mutex_);
-  mt::fwriteAll(stream, &stats_.num_values_total,
-                sizeof stats_.num_values_total);
-  mt::fwriteAll(stream, &stats_.num_values_removed,
-                sizeof stats_.num_values_removed);
+  mt::writeAll(stream, &stats_.num_values_total,
+               sizeof stats_.num_values_total);
+  mt::writeAll(stream, &stats_.num_values_removed,
+               sizeof stats_.num_values_removed);
   block_ids_.writeToStream(stream);
 }
 

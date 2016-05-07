@@ -18,7 +18,6 @@
 #ifndef MULTIMAP_INTERNAL_UINTVECTOR_H_
 #define MULTIMAP_INTERNAL_UINTVECTOR_H_
 
-#include <cstdio>
 #include <memory>
 #include <vector>
 #include "multimap/thirdparty/mt/assert.h"
@@ -35,9 +34,9 @@ class UintVector {
 
   bool empty() const { return offset_ == 0; }
 
-  static UintVector readFromStream(std::FILE* stream);
+  static UintVector readFromStream(std::istream* stream);
 
-  void writeToStream(std::FILE* stream) const;
+  void writeToStream(std::ostream* stream) const;
 
  private:
   void allocateMoreIfFull();

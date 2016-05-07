@@ -55,7 +55,7 @@ class MphTable {
     Stats build();
 
    private:
-    mt::AutoCloseFile stream_;
+    mt::OutputFileStream stream_;
     boost::filesystem::path prefix_;
     Options options_;
   };

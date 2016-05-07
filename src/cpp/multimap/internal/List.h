@@ -88,9 +88,9 @@ class List {
 
   size_t clear();
 
-  static List readFromStream(std::FILE* stream);
+  static List readFromStream(std::istream* stream);
 
-  void writeToStream(std::FILE* stream) const;
+  void writeToStream(std::ostream* stream) const;
 
  private:
   void appendUnlocked(const Slice& value, Store* store, Arena* arena);

@@ -77,9 +77,10 @@ Partition::Partition(const bfs::path& prefix, const Options& options)
   store_options.readonly = options.readonly;
   store_options.block_size = options.block_size;
   const bfs::path map_file_path = getPathOfMapFile(prefix);
+  // TODO(mtrenkmann): Load stats file first and perform check.
   if (bfs::is_regular_file(map_file_path)) {
     Bytes key;
-    const mt::AutoCloseFile map_stream = mt::fopen(map_file_path, "r");
+    mt::InputFileStream map_stream = mt::newInputFileStream(map_file_path);
     const bfs::path stats_file_path = getPathOfStatsFile(prefix);
     stats_ = Stats::readFromFile(stats_file_path);
     store_options.block_size = stats_.block_size;
@@ -112,10 +113,10 @@ Partition::~Partition() {
   }
 
   List::Stats list_stats;
-  const mt::AutoCloseFile map_stream = mt::fopen(map_file_path, "w");
+  mt::OutputFileStream map_stream = mt::newOutputFileStream(map_file_path);
   for (const auto& entry : map_) {
-    auto& key = entry.first;
-    auto& list = *entry.second;
+    const Slice& key = entry.first;
+    List& list = *entry.second;
     if (list.tryFlush(&store_, &list_stats)) {
       // Ok, everything is fine.
     } else {
@@ -326,7 +327,7 @@ void Partition::forEachEntry(const bfs::path& prefix, BinaryProcedure process) {
   store_options.readonly = true;
   store_options.block_size = stats.block_size;
   Store store(getPathOfStoreFile(prefix), store_options);
-  mt::AutoCloseFile stream = mt::fopen(getPathOfMapFile(prefix), "r");
+  mt::InputFileStream stream = mt::newInputFileStream(getPathOfMapFile(prefix));
   for (size_t i = 0; i != stats.num_keys_valid; i++) {
     MT_ASSERT_TRUE(readBytesFromStream(stream.get(), &key));
     const List list = List::readFromStream(stream.get());

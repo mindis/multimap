@@ -470,7 +470,7 @@ class ListTestFixture2 : public ListTestFixture {
  public:
   void SetUp() override {
     ListTestFixture::SetUp();
-    stream_ = mt::fopen(directory_ / "lists", "w+");
+    stream_ = mt::newFileStream(directory_ / "lists", mt::in_out_trunc);
   }
 
   void TearDown() override {
@@ -478,10 +478,10 @@ class ListTestFixture2 : public ListTestFixture {
     ListTestFixture::TearDown();
   }
 
-  std::FILE* getStream() { return stream_.get(); }
+  std::fstream* getStream() { return stream_.get(); }
 
  private:
-  mt::AutoCloseFile stream_;
+  mt::FileStream stream_;
 };
 
 TEST_F(ListTestFixture2, WriteListToFileThenReadBackAndIterate) {
@@ -493,7 +493,7 @@ TEST_F(ListTestFixture2, WriteListToFileThenReadBackAndIterate) {
   list.flushUnlocked(getStore());
 
   list.writeToStream(getStream());
-  std::rewind(getStream());
+  getStream()->seekg(0);
   list = List::readFromStream(getStream());
 
   auto iter = list.newIterator(*getStore());

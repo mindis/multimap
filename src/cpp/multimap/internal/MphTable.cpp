@@ -93,7 +93,7 @@ std::pair<Map, Arena> readRecordsFromFile(const bfs::path& file_path) {
   Bytes value;
   Arena arena;
   uint32_t key_size;
-  const mt::AutoCloseFile stream = mt::fopen(file_path, "r");
+  const mt::InputFileStream stream = mt::newInputFileStream(file_path);
   while (readBytesFromStream(stream.get(), &key) &&
          readBytesFromStream(stream.get(), &value)) {
     auto iter = map.find(key);
@@ -143,12 +143,13 @@ Stats writeMap(const bfs::path& prefix, const Map& map, const Mph& mph,
   if (verbose) {
     mt::log() << "Writing " << lists_file_path.string() << std::endl;
   }
-  const mt::AutoCloseFile lists_stream = mt::fopen(lists_file_path, "w");
+  const mt::OutputFileStream lists_stream =
+      mt::newOutputFileStream(lists_file_path);
   for (const auto& entry : map) {
-    auto offset = mt::ftell(lists_stream.get());
+    auto offset = lists_stream->tellp();
     if (const auto remainder = offset % stats.block_size) {
       const auto padding = stats.block_size - remainder;
-      mt::fwriteAll(lists_stream.get(), &zeros, padding);
+      mt::writeAll(lists_stream.get(), &zeros, padding);
       offset += padding;
     }
     const Slice& key = entry.first;
@@ -178,10 +179,10 @@ Stats writeMap(const bfs::path& prefix, const Map& map, const Mph& mph,
     stats.key_size_avg /= stats.num_keys_total;
     stats.list_size_avg /= stats.num_keys_total;
   }
-  auto offset = mt::ftell(lists_stream.get());
+  auto offset = lists_stream->tellp();
   if (const auto remainder = offset % stats.block_size) {
     const auto padding = stats.block_size - remainder;
-    mt::fwriteAll(lists_stream.get(), &zeros, padding);
+    mt::writeAll(lists_stream.get(), &zeros, padding);
     offset += padding;
   }
   stats.num_blocks = offset / stats.block_size;
@@ -190,9 +191,10 @@ Stats writeMap(const bfs::path& prefix, const Map& map, const Mph& mph,
   if (verbose) {
     mt::log() << "Writing " << table_file_path.string() << std::endl;
   }
-  const mt::AutoCloseFile table_stream = mt::fopen(table_file_path, "w");
-  mt::fwriteAll(table_stream.get(), table.data(),
-                table.size() * sizeof(Table::value_type));
+  const mt::OutputFileStream table_stream =
+      mt::newOutputFileStream(table_file_path);
+  mt::writeAll(table_stream.get(), table.data(),
+               table.size() * sizeof(Table::value_type));
 
   const bfs::path stats_file_path = getPathOfStatsFile(prefix);
   if (verbose) {
@@ -234,7 +236,7 @@ size_t MphTable::Limits::maxValueSize() {
 }
 
 MphTable::Builder::Builder(const bfs::path& prefix, const Options& options)
-    : stream_(mt::fopen(getPathOfRecordsFile(prefix), "w")),
+    : stream_(mt::newOutputFileStream(getPathOfRecordsFile(prefix))),
       prefix_(prefix),
       options_(options) {}
 

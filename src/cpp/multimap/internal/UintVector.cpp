@@ -74,19 +74,19 @@ std::vector<uint32_t> UintVector::unpack() const {
   return values;
 }
 
-UintVector UintVector::readFromStream(std::FILE* stream) {
+UintVector UintVector::readFromStream(std::istream* stream) {
   UintVector vector;
-  mt::freadAll(stream, &vector.size_, sizeof vector.size_);
+  mt::readAll(stream, &vector.size_, sizeof vector.size_);
   vector.data_.reset(new byte[vector.size_]);
-  mt::freadAll(stream, vector.data_.get(), vector.size_);
+  mt::readAll(stream, vector.data_.get(), vector.size_);
   vector.offset_ = vector.size_ - sizeof(uint32_t);
   return vector;
 }
 
-void UintVector::writeToStream(std::FILE* stream) const {
+void UintVector::writeToStream(std::ostream* stream) const {
   const uint32_t offset = offset_ + sizeof(uint32_t);
-  mt::fwriteAll(stream, &offset, sizeof offset);
-  mt::fwriteAll(stream, data_.get(), offset);
+  mt::writeAll(stream, &offset, sizeof offset);
+  mt::writeAll(stream, data_.get(), offset);
 }
 
 void UintVector::allocateMoreIfFull() {

@@ -61,11 +61,11 @@ Mph Mph::build(const boost::filesystem::path& keys_file_path) {
   Arena arena;
   uint32_t keylen;
   std::vector<const byte*> keys;
-  const mt::AutoCloseFile stream = mt::fopen(keys_file_path, "r");
-  while (mt::freadAllMaybe(stream.get(), &keylen, sizeof keylen)) {
+  const mt::InputFileStream stream = mt::newInputFileStream(keys_file_path);
+  while (mt::readAllMaybe(stream.get(), &keylen, sizeof keylen)) {
     byte* key = arena.allocate(sizeof keylen + keylen);
     std::memcpy(key, &keylen, sizeof keylen);
-    mt::freadAll(stream.get(), key + sizeof keylen, keylen);
+    mt::readAll(stream.get(), key + sizeof keylen, keylen);
     keys.push_back(key);
   }
   return build(keys.data(), keys.size());
