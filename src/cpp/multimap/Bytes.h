@@ -22,7 +22,6 @@
 #ifndef MULTIMAP_BYTES_H_
 #define MULTIMAP_BYTES_H_
 
-#include <cstdio>
 #include <string>
 #include "multimap/thirdparty/mt/common.h"
 
@@ -40,9 +39,9 @@ size_t readBytesFromBuffer(const byte* buffer, Bytes* output);
 
 size_t writeBytesToBuffer(const Bytes& input, byte* begin, byte* end);
 
-bool readBytesFromStream(std::FILE* stream, Bytes* output);
+bool readBytesFromStream(std::istream* stream, Bytes* output);
 
-void writeBytesToStream(const Bytes& input, std::FILE* stream);
+void writeBytesToStream(const Bytes& input, std::ostream* stream);
 
 namespace internal {
 

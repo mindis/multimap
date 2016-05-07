@@ -17,7 +17,6 @@
 
 #include "multimap/Bytes.h"
 
-#include <cstring>
 #include <string>
 #include "multimap/Slice.h"
 #include "multimap/thirdparty/mt/fileio.h"
@@ -43,20 +42,20 @@ size_t writeBytesToBuffer(const Bytes& input, byte* begin, byte* end) {
   return Slice(input).writeToBuffer(begin, end);
 }
 
-bool readBytesFromStream(std::FILE* stream, Bytes* output) {
+bool readBytesFromStream(std::istream* stream, Bytes* output) {
   uint32_t num_bytes = 0;
   if (mt::readVarint32FromStream(stream, &num_bytes)) {
     output->resize(num_bytes);
-    mt::freadAll(stream, output->data(), output->size());
+    mt::readAll(stream, output->data(), output->size());
     // The stream is expected to contain valid encodings of Bytes objects.
-    // Hence, after successfully reading the size field, mt::freadAll() will
+    // Hence, after successfully reading the size field, mt::readAll() will
     // throw, if the data field could not be read to signal an invalid stream.
     return true;
   }
   return false;
 }
 
-void writeBytesToStream(const Bytes& input, std::FILE* stream) {
+void writeBytesToStream(const Bytes& input, std::ostream* stream) {
   Slice(input).writeToStream(stream);
 }
 
