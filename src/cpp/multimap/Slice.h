@@ -95,7 +95,7 @@ class Slice {
   // Writes the slice to the buffer starting at `begin`. Returns the number
   // of bytes written, which may be zero if there was not sufficient space.
 
-  void writeToStream(std::FILE* stream) const;
+  void writeToStream(std::ostream* stream) const;
   // Writes the slice to a file stream or throws an exception if that was not
   // possible for some reason. In Multimap's I/O policy an unsuccessful write
   // to a file stream is considered a fatal error which only happens due to

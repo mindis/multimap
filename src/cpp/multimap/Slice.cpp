@@ -40,10 +40,10 @@ size_t Slice::writeToBuffer(byte* begin, byte* end) const {
   return 0;
 }
 
-void Slice::writeToStream(std::FILE* stream) const {
+void Slice::writeToStream(std::ostream* stream) const {
   MT_REQUIRE_LE(size_, std::numeric_limits<uint32_t>::max());
   mt::writeVarint32ToStream(size_, stream);
-  mt::fwriteAll(stream, data_, size_);
+  mt::writeAll(stream, data_, size_);
 }
 
 }  // namespace multimap
