@@ -18,9 +18,10 @@
 #ifndef MULTIMAP_INTERNAL_LOCKS_H_
 #define MULTIMAP_INTERNAL_LOCKS_H_
 
-#include <boost/thread/lock_guard.hpp>
-#include <boost/thread/lock_types.hpp>
-#include <boost/thread/shared_lock_guard.hpp>
+#include <string>
+#include <boost/thread/lock_guard.hpp>         // NOLINT
+#include <boost/thread/lock_types.hpp>         // NOLINT
+#include <boost/thread/shared_lock_guard.hpp>  // NOLINT
 #include "multimap/thirdparty/mt/fileio.h"
 #include "multimap/internal/Descriptor.h"
 
@@ -43,7 +44,7 @@ constexpr boost::try_to_lock_t TRY_TO_LOCK{};
 
 struct DirectoryLock {
  public:
-  DirectoryLock(const boost::filesystem::path& directory)
+  explicit DirectoryLock(const boost::filesystem::path& directory)
       : dlock_(directory, Descriptor::getFilePrefix() + ".lock") {}
 
   const boost::filesystem::path& directory() const {

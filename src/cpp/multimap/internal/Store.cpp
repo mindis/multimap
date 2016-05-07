@@ -18,7 +18,7 @@
 #include "multimap/internal/Store.h"
 
 #include <cstdio>
-#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/operations.hpp>  // NOLINT
 #include "multimap/thirdparty/mt/assert.h"
 #include "multimap/thirdparty/mt/check.h"
 #include "multimap/thirdparty/mt/memory.h"
@@ -81,8 +81,8 @@ uint32_t Store::put(const Block& block) {
     const uint64_t old_file_size = segments_.size() * SEGMENT_SIZE;
     const uint64_t new_file_size = old_file_size + SEGMENT_SIZE;
     mt::ftruncate(fd_.get(), new_file_size);
-    segments_.push_back(mt::mmap(SEGMENT_SIZE, PROT_READ | PROT_WRITE,
-                                 MAP_SHARED, fd_.get(), old_file_size));
+    segments_.emplace_back(mt::mmap(SEGMENT_SIZE, PROT_READ | PROT_WRITE,
+                                    MAP_SHARED, fd_.get(), old_file_size));
   }
   segments_.back().append(block);
   return getNumBlocksUnlocked() - 1;

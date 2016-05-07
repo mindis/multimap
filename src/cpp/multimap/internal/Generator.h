@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTIMAP_INTERNAL_GENERATOR_HPP_INCLUDED
-#define MULTIMAP_INTERNAL_GENERATOR_HPP_INCLUDED
+#ifndef MULTIMAP_INTERNAL_GENERATOR_H_
+#define MULTIMAP_INTERNAL_GENERATOR_H_
 
 #include <limits>
 #include <memory>
@@ -45,7 +45,7 @@ class RandomGenerator : public Generator {
  public:
   RandomGenerator() = default;
 
-  RandomGenerator(size_t num_unique) : num_unique_(num_unique) {}
+  explicit RandomGenerator(size_t num_unique) : num_unique_(num_unique) {}
 
   void reset() override { random_engine_ = std::default_random_engine(); }
 
@@ -65,7 +65,7 @@ class SequenceGenerator : public Generator {
  public:
   SequenceGenerator() = default;
 
-  SequenceGenerator(size_t first_value)
+  explicit SequenceGenerator(size_t first_value)
       : first_value_(first_value), current_value_(first_value) {}
 
   void reset() override { current_value_ = first_value_; }
@@ -82,4 +82,4 @@ class SequenceGenerator : public Generator {
 }  // namespace internal
 }  // namespace multimap
 
-#endif  // MULTIMAP_INTERNAL_GENERATOR_HPP_INCLUDED
+#endif  // MULTIMAP_INTERNAL_GENERATOR_H_

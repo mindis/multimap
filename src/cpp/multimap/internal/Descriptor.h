@@ -18,7 +18,8 @@
 #ifndef MULTIMAP_INTERNAL_DESCRIPTOR_H_
 #define MULTIMAP_INTERNAL_DESCRIPTOR_H_
 
-#include <boost/filesystem/path.hpp>
+#include <string>
+#include <boost/filesystem/path.hpp>  // NOLINT
 #include "multimap/thirdparty/mt/assert.h"
 #include "multimap/Version.h"
 

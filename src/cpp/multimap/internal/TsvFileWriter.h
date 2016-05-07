@@ -15,10 +15,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef MULTIMAP_INTERNAL_TSV_FILE_WRITER_H_
-#define MULTIMAP_INTERNAL_TSV_FILE_WRITER_H_
+#ifndef MULTIMAP_INTERNAL_TSVFILEWRITER_H_
+#define MULTIMAP_INTERNAL_TSVFILEWRITER_H_
 
-#include <boost/filesystem/fstream.hpp>
+#include <string>
+#include <boost/filesystem/fstream.hpp>  // NOLINT
 #include "multimap/Iterator.h"
 #include "multimap/Slice.h"
 
@@ -43,4 +44,4 @@ class TsvFileWriter {
 }  // namespace internal
 }  // namespace multimap
 
-#endif  // MULTIMAP_INTERNAL_TSV_FILE_WRITER_H_
+#endif  // MULTIMAP_INTERNAL_TSVFILEWRITER_H_

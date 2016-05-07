@@ -17,6 +17,7 @@
 
 #include "multimap/internal/Descriptor.h"
 
+#include <string>
 #include "multimap/thirdparty/mt/assert.h"
 #include "multimap/thirdparty/mt/check.h"
 #include "multimap/thirdparty/mt/fileio.h"

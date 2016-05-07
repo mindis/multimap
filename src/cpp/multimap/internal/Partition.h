@@ -19,7 +19,8 @@
 #define MULTIMAP_INTERNAL_PARTITION_H_
 
 #include <unordered_map>
-#include <boost/filesystem/path.hpp>
+#include <utility>
+#include <boost/filesystem/path.hpp>  // NOLINT
 #include "multimap/internal/List.h"
 #include "multimap/Stats.h"
 

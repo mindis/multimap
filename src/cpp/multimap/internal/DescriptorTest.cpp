@@ -17,7 +17,7 @@
 
 #include <type_traits>
 #include "gmock/gmock.h"
-#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/operations.hpp>  // NOLINT
 #include "multimap/internal/Descriptor.h"
 #include "multimap/thirdparty/mt/assert.h"
 

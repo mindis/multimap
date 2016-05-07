@@ -16,7 +16,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <type_traits>
-#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/operations.hpp>  // NOLINT
 #include "gmock/gmock.h"
 #include "multimap/Map.h"
 

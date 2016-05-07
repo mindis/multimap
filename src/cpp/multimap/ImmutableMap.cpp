@@ -20,7 +20,7 @@
 #include <algorithm>
 #include <string>
 #include <vector>
-#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/operations.hpp>  // NOLINT
 #include "multimap/internal/Descriptor.h"
 #include "multimap/internal/TsvFileReader.h"
 #include "multimap/internal/TsvFileWriter.h"

@@ -17,9 +17,12 @@
 
 #include "multimap/internal/Partition.h"
 
+#include <algorithm>
 #include <cmath>
 #include <limits>
-#include <boost/filesystem/operations.hpp>
+#include <string>
+#include <utility>
+#include <boost/filesystem/operations.hpp>  // NOLINT
 #include "multimap/internal/Base64.h"
 #include "multimap/internal/Locks.h"
 #include "multimap/internal/Varint.h"

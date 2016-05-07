@@ -17,14 +17,15 @@
 
 #include "multimap/internal/Base64.h"
 
-#include <boost/archive/iterators/base64_from_binary.hpp>
-#include <boost/archive/iterators/binary_from_base64.hpp>
-#include <boost/archive/iterators/transform_width.hpp>
+#include <string>
+#include <boost/archive/iterators/base64_from_binary.hpp>  // NOLINT
+#include <boost/archive/iterators/binary_from_base64.hpp>  // NOLINT
+#include <boost/archive/iterators/transform_width.hpp>     // NOLINT
 
 namespace multimap {
 namespace internal {
 
-using namespace boost::archive::iterators;
+using namespace boost::archive::iterators;  // NOLINT
 typedef base64_from_binary<transform_width<const char*, 6, 8> > ToBase64Iter;
 typedef transform_width<binary_from_base64<const char*>, 8, 6> ToBinaryIter;
 
@@ -61,8 +62,6 @@ Bytes Base64::decode(const std::string& base64) {
   decode(base64, &bytes);
   return bytes;
 }
-
-// TODO Consider to use Base64 encoder/decoder from Boost.Iostreams.
 
 }  // namespace internal
 }  // namespace multimap

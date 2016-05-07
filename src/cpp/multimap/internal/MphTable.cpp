@@ -18,8 +18,12 @@
 #include "multimap/internal/MphTable.h"
 
 #include <algorithm>
+#include <limits>
+#include <string>
 #include <unordered_map>
-#include <boost/filesystem/operations.hpp>
+#include <utility>
+#include <vector>
+#include <boost/filesystem/operations.hpp>  // NOLINT
 #include "multimap/thirdparty/mt/assert.h"
 #include "multimap/thirdparty/mt/check.h"
 #include "multimap/thirdparty/mt/memory.h"

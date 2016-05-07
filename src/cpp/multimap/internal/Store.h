@@ -18,9 +18,9 @@
 #ifndef MULTIMAP_INTERNAL_STORE_H_
 #define MULTIMAP_INTERNAL_STORE_H_
 
-#include <mutex>
+#include <mutex>  // NOLINT
 #include <vector>
-#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/path.hpp>  // NOLINT
 #include "multimap/thirdparty/mt/fileio.h"
 #include "multimap/thirdparty/mt/memory.h"
 #include "multimap/Bytes.h"
@@ -87,7 +87,7 @@ class Store {
 
   class Segment {
    public:
-    Segment(mt::AutoUnmapMemory memory);
+    explicit Segment(mt::AutoUnmapMemory memory);
 
     Segment(mt::AutoUnmapMemory memory, size_t offset);
 

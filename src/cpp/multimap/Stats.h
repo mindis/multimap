@@ -26,7 +26,7 @@
 #include <cstdint>
 #include <string>
 #include <vector>
-#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/path.hpp>  // NOLINT
 #include "multimap/thirdparty/mt/assert.h"
 
 namespace multimap {

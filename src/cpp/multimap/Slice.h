@@ -34,11 +34,11 @@ class Slice {
  public:
   Slice() = default;
 
-  Slice(const char* cstr) : Slice(cstr, std::strlen(cstr)) {}
+  Slice(const char* cstr) : Slice(cstr, std::strlen(cstr)) {}  // NOLINT
 
-  Slice(const Bytes& bytes) : Slice(bytes.data(), bytes.size()) {}
+  Slice(const Bytes& bytes) : Slice(bytes.data(), bytes.size()) {}  // NOLINT
 
-  Slice(const std::string& str) : Slice(str.data(), str.size()) {}
+  Slice(const std::string& str) : Slice(str.data(), str.size()) {}  // NOLINT
 
   Slice(const void* data, size_t size)
       : data_(static_cast<const byte*>(data)), size_(size) {}

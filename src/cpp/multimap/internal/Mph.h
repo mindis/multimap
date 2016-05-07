@@ -19,7 +19,7 @@
 #define MULTIMAP_INTERNAL_MPH_H_
 
 #include <memory>
-#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/path.hpp>  // NOLINT
 #include "multimap/thirdparty/cmph/cmph.h"
 #include "multimap/Slice.h"
 

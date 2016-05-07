@@ -19,6 +19,8 @@
 
 #include <sys/mman.h>
 #include <algorithm>
+#include <limits>
+#include <vector>
 #include "multimap/thirdparty/mt/check.h"
 #include "multimap/thirdparty/mt/fileio.h"
 #include "multimap/thirdparty/mt/memory.h"

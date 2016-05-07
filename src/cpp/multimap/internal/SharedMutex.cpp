@@ -17,7 +17,7 @@
 
 #include "multimap/internal/SharedMutex.h"
 
-#include <mutex>
+#include <mutex>  // NOLINT
 #include "multimap/thirdparty/mt/assert.h"
 
 namespace multimap {

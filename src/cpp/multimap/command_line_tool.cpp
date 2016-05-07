@@ -22,12 +22,12 @@
 #include <map>
 #include <string>
 #include <vector>
-#include <boost/filesystem/operations.hpp>
-#include <multimap/thirdparty/mt/check.h>
-#include <multimap/thirdparty/mt/common.h>
-#include <multimap/ImmutableMap.h>
-#include <multimap/Map.h>
-#include <multimap/Version.h>
+#include <boost/filesystem/operations.hpp>  // NOLINT
+#include <multimap/thirdparty/mt/check.h>   // NOLINT
+#include <multimap/thirdparty/mt/common.h>  // NOLINT
+#include <multimap/ImmutableMap.h>          // NOLINT
+#include <multimap/Map.h>                   // NOLINT
+#include <multimap/Version.h>               // NOLINT
 
 // clang-format off
 const auto HELP     = "help";

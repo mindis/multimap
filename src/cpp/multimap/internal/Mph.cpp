@@ -17,6 +17,7 @@
 
 #include "multimap/internal/Mph.h"
 
+#include <vector>
 #include "multimap/thirdparty/mt/assert.h"
 #include "multimap/thirdparty/mt/check.h"
 #include "multimap/thirdparty/mt/fileio.h"

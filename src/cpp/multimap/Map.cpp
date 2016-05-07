@@ -21,7 +21,7 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/operations.hpp>  // NOLINT
 #include "multimap/internal/TsvFileReader.h"
 #include "multimap/internal/TsvFileWriter.h"
 #include "multimap/thirdparty/mt/check.h"

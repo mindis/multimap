@@ -17,6 +17,8 @@
 
 #include "multimap/internal/UintVector.h"
 
+#include <algorithm>
+#include <vector>
 #include "multimap/thirdparty/mt/assert.h"
 #include "multimap/thirdparty/mt/common.h"
 #include "multimap/thirdparty/mt/fileio.h"

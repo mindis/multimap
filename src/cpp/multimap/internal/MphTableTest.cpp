@@ -17,8 +17,9 @@
 
 #include <algorithm>
 #include <set>
+#include <string>
 #include <type_traits>
-#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/operations.hpp>  // NOLINT
 #include "multimap/internal/MphTable.h"
 #include "multimap/thirdparty/mt/assert.h"
 #include "gmock/gmock.h"

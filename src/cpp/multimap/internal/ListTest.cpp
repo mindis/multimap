@@ -15,9 +15,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include <thread>
+#include <string>
+#include <thread>  // NOLINT
 #include <type_traits>
-#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/operations.hpp>  // NOLINT
 #include "gmock/gmock.h"
 #include "multimap/internal/Generator.h"
 #include "multimap/internal/List.h"
@@ -517,7 +518,7 @@ TEST_F(ListTestFixture, ReaderDoesNotBlockReader) {
 
   // Second reader
   bool second_reader_has_finished = false;
-  std::thread([&] {
+  std::thread([&] {  // NOLINT
     auto iter = list.newIterator(*getStore());
     second_reader_has_finished = true;
   }).join();
@@ -545,7 +546,7 @@ TEST_F(ListTestFixture, ReaderBlocksWriter) {
 
   // Writer
   bool writer_has_finished = false;
-  std::thread writer([&] {
+  std::thread writer([&] {  // NOLINT
     Arena arena;
     list.append("value", getStore(), getArena());
     writer_has_finished = true;
@@ -566,7 +567,7 @@ TEST_F(ListTestFixture, WriterBlocksReader) {
   list.append("value", getStore(), getArena());
 
   // Writer
-  std::thread writer([&] {
+  std::thread writer([&] {  // NOLINT
     list.removeFirstMatch([](const Slice& /* value */) {
       std::this_thread::sleep_for(std::chrono::milliseconds(1000));
       return false;
@@ -577,7 +578,7 @@ TEST_F(ListTestFixture, WriterBlocksReader) {
 
   // Reader
   bool reader_has_finished = false;
-  std::thread reader([&] {
+  std::thread reader([&] {  // NOLINT
     auto iter = list.newIterator(*getStore());
     reader_has_finished = true;
   });
@@ -597,7 +598,7 @@ TEST_F(ListTestFixture, WriterBlocksReader2) {
   list.append("value", getStore(), getArena());
 
   // Writer
-  std::thread writer([&] {
+  std::thread writer([&] {  // NOLINT
     list.removeFirstMatch([](const Slice& /* value */) {
       std::this_thread::sleep_for(std::chrono::milliseconds(1000));
       return false;
@@ -620,7 +621,7 @@ TEST_F(ListTestFixture, WriterBlocksWriter) {
   list.append("value", getStore(), getArena());
 
   // First writer
-  std::thread writer1([&] {
+  std::thread writer1([&] {  // NOLINT
     const auto removed = list.removeFirstMatch([](const Slice& /* value */) {
       std::this_thread::sleep_for(std::chrono::milliseconds(1000));
       return false;
@@ -630,7 +631,7 @@ TEST_F(ListTestFixture, WriterBlocksWriter) {
 
   // Second writer
   bool second_writer_has_finished = false;
-  std::thread writer2([&] {
+  std::thread writer2([&] {  // NOLINT
     const auto removed = list.removeFirstMatch(
         [](const Slice& /* value */) { return false; }, getStore());
     ASSERT_FALSE(removed);
