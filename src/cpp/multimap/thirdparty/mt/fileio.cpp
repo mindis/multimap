@@ -53,36 +53,24 @@ std::vector<std::string> readAllLines(
   return lines;
 }
 
-// TODO Use boost::filesystem
-std::vector<std::string> listFileNames(const boost::filesystem::path& directory,
-                                       bool ignore_hidden) {
-  DIR* stream = opendir(directory.c_str());
-  Check::notNull(stream, "opendir() failed for %s because of '%s'",
-                 directory.c_str(), errnostr());
+std::vector<boost::filesystem::path> listFiles(
+    const boost::filesystem::path& directory, bool ignore_hidden) {
+  Check::isTrue(boost::filesystem::is_directory(directory),
+                "No such directory %s", directory.c_str());
 
-  struct dirent* entry;
-  std::vector<std::string> file_names;
-  while ((entry = readdir(stream)) != nullptr) {
-    if (entry->d_type == DT_REG) {
-      if (ignore_hidden && entry->d_name[0] == '.') continue;
-      file_names.emplace_back(entry->d_name);
+  const auto is_hidden = [](const boost::filesystem::path& file_path) {
+    return file_path.filename().string().front() == '.';
+  };
+
+  std::vector<boost::filesystem::path> result;
+  boost::filesystem::directory_iterator end;
+  for (boost::filesystem::directory_iterator it(directory); it != end; ++it) {
+    if (boost::filesystem::is_regular_file(*it)) {
+      if (ignore_hidden && is_hidden(it->path())) continue;
+      result.push_back(it->path());
     }
   }
-
-  const int result = closedir(stream);
-  Check::isZero(result, "closedir() failed because of '%s'", errnostr());
-  std::sort(file_names.begin(), file_names.end());
-  return file_names;
-}
-
-std::vector<boost::filesystem::path> listFilePaths(
-    const boost::filesystem::path& directory, bool ignore_hidden) {
-  const auto file_names = listFileNames(directory, ignore_hidden);
-  std::vector<boost::filesystem::path> file_paths(file_names.size());
-  for (size_t i = 0; i != file_names.size(); i++) {
-    file_paths[i] = directory / file_names[i];
-  }
-  return file_paths;
+  return result;
 }
 
 const std::string DirectoryLockGuard::DEFAULT_FILENAME = ".lock";

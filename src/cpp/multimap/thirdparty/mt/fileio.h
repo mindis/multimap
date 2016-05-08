@@ -37,10 +37,7 @@ Bytes readAllBytes(const boost::filesystem::path& file_path);
 
 std::vector<std::string> readAllLines(const boost::filesystem::path& file_path);
 
-std::vector<std::string> listFileNames(const boost::filesystem::path& directory,
-                                       bool ignore_hidden = true);
-
-std::vector<boost::filesystem::path> listFilePaths(
+std::vector<boost::filesystem::path> listFiles(
     const boost::filesystem::path& directory, bool ignore_hidden = true);
 
 class DirectoryLockGuard {
