@@ -213,7 +213,7 @@ void Map::importFromBase64(const bfs::path& directory, const bfs::path& source,
   if (bfs::is_regular_file(source)) {
     file_paths.push_back(source);
   } else if (bfs::is_directory(source)) {
-    file_paths = mt::listFilePaths(source);
+    file_paths = mt::listFiles(source);
   } else {
     mt::fail("No such file or directory: %s", source.c_str());
   }
