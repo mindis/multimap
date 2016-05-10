@@ -32,14 +32,6 @@ typedef std::vector<byte> Bytes;
 
 static const int VERSION = 20160508;
 
-bool isPrime(uint64_t number);
-// Returns `true` if `number` is prime, `false` otherwise.
-
-uint64_t nextPrime(uint64_t number);
-// Returns the next prime number that is greater than or equal to `number`.
-
-constexpr bool isPowerOfTwo(uint64_t num) { return (num & (num - 1)) == 0; }
-
 constexpr uint64_t KiB(uint64_t kibibytes) { return kibibytes << 10; }
 // Converts a number in kibibytes to the equivalent number in bytes.
 
@@ -53,12 +45,31 @@ constexpr bool is32BitSystem() { return sizeof(void*) == 4; }
 
 constexpr bool is64BitSystem() { return sizeof(void*) == 8; }
 
-#define MT_LIKELY(condition) __builtin_expect(condition, true)
-#define MT_UNLIKELY(condition) __builtin_expect(condition, false)
+// -----------------------------------------------------------------------------
+// ALGORITHMS
+// -----------------------------------------------------------------------------
 
-// -----------------------------------------------------------------------------
-// ALGORITHM
-// -----------------------------------------------------------------------------
+bool isPrime(uint64_t number);
+// Returns `true` if `number` is prime, `false` otherwise.
+
+uint64_t nextPrime(uint64_t number);
+// Returns the next prime number that is greater than or equal to `number`.
+
+constexpr bool isPowerOfTwo(uint64_t num) { return (num & (num - 1)) == 0; }
+
+template <typename A, typename B>
+auto min(const A& a, const B& b) -> decltype(a < b ? a : b) {
+  return a < b ? a : b;
+}
+// `std::min` requires that `a` and `b` are of the same type which means
+// that you cannot compare `std::int32_t` and `std::int64_t` without casting.
+
+template <typename A, typename B>
+auto max(const A& a, const B& b) -> decltype(a > b ? a : b) {
+  return a > b ? a : b;
+}
+// `std::min` requires that `a` and `b` are of the same type which means
+// that you cannot compare `std::int32_t` and `std::int64_t` without casting.
 
 uint32_t fnv1aHash32(const byte* buf, size_t len);
 // Computes and returns a 32-bit hash value of the given byte array.
@@ -93,20 +104,6 @@ inline size_t fnv1aHash(const Bytes& bytes) {
   return fnv1aHash(bytes.data(), bytes.size());
 }
 
-template <typename A, typename B>
-auto min(const A& a, const B& b) -> decltype(a < b ? a : b) {
-  return a < b ? a : b;
-}
-// `std::min` requires that `a` and `b` are of the same type which means
-// that you cannot compare `std::int32_t` and `std::int64_t` without casting.
-
-template <typename A, typename B>
-auto max(const A& a, const B& b) -> decltype(a > b ? a : b) {
-  return a > b ? a : b;
-}
-// `std::min` requires that `a` and `b` are of the same type which means
-// that you cannot compare `std::int32_t` and `std::int64_t` without casting.
-
 // -----------------------------------------------------------------------------
 // LOGGING
 // -----------------------------------------------------------------------------
@@ -125,8 +122,11 @@ std::ostream& debug();
 // Usage: mt::debug() << "Some message\n";
 
 // -----------------------------------------------------------------------------
-// TYPE TRAITS
+// MACROS
 // -----------------------------------------------------------------------------
+
+#define MT_LIKELY(condition) __builtin_expect(condition, true)
+#define MT_UNLIKELY(condition) __builtin_expect(condition, false)
 
 #define MT_ENABLE_IF(condition)      \
   template <bool __MT_B = condition, \

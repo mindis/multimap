@@ -30,7 +30,7 @@
 
 namespace mt {
 
-Bytes readAllBytes(const boost::filesystem::path& file_path) {
+Bytes readAllBytes(const fs::path& file_path) {
   struct stat stats;
   const int result = stat(file_path.c_str(), &stats);
   Check::isZero(result, "stat() failed for %s because of '%s'",
@@ -41,8 +41,7 @@ Bytes readAllBytes(const boost::filesystem::path& file_path) {
   return bytes;
 }
 
-std::vector<std::string> readAllLines(
-    const boost::filesystem::path& file_path) {
+std::vector<std::string> readAllLines(const fs::path& file_path) {
   const InputFileStream stream = newInputFileStream(file_path);
 
   std::string line;
@@ -53,19 +52,18 @@ std::vector<std::string> readAllLines(
   return lines;
 }
 
-std::vector<boost::filesystem::path> listFiles(
-    const boost::filesystem::path& directory, bool ignore_hidden) {
-  Check::isTrue(boost::filesystem::is_directory(directory),
-                "No such directory %s", directory.c_str());
+std::vector<fs::path> listFiles(const fs::path& directory, bool ignore_hidden) {
+  Check::isTrue(fs::is_directory(directory), "No such directory %s",
+                directory.c_str());
 
-  const auto is_hidden = [](const boost::filesystem::path& file_path) {
+  const auto is_hidden = [](const fs::path& file_path) {
     return file_path.filename().string().front() == '.';
   };
 
-  std::vector<boost::filesystem::path> result;
-  boost::filesystem::directory_iterator end;
-  for (boost::filesystem::directory_iterator it(directory); it != end; ++it) {
-    if (boost::filesystem::is_regular_file(*it)) {
+  std::vector<fs::path> result;
+  fs::directory_iterator end;
+  for (fs::directory_iterator it(directory); it != end; ++it) {
+    if (fs::is_regular_file(*it)) {
       if (ignore_hidden && is_hidden(it->path())) continue;
       result.push_back(it->path());
     }
@@ -75,19 +73,19 @@ std::vector<boost::filesystem::path> listFiles(
 
 const std::string DirectoryLockGuard::DEFAULT_FILENAME = ".lock";
 
-DirectoryLockGuard::DirectoryLockGuard(const boost::filesystem::path& directory)
+DirectoryLockGuard::DirectoryLockGuard(const fs::path& directory)
     : DirectoryLockGuard(directory, DEFAULT_FILENAME) {}
 
-DirectoryLockGuard::DirectoryLockGuard(const boost::filesystem::path& directory,
+DirectoryLockGuard::DirectoryLockGuard(const fs::path& directory,
                                        const std::string& file_name)
     : directory_(directory), file_name_(file_name) {
-  const boost::filesystem::path file_path = directory / file_name;
-  Check::isFalse(boost::filesystem::is_regular_file(file_path),
+  const fs::path file_path = directory / file_name;
+  Check::isFalse(fs::is_regular_file(file_path),
                  "Could not create %s because the file already exists");
   std::ofstream stream(file_path.string());
   if (stream.is_open()) {
     stream << ::getpid();
-  } else if (!boost::filesystem::is_directory(directory)) {
+  } else if (!fs::is_directory(directory)) {
     fail("Could not create lock file because the directory %s does not exist",
          directory.c_str());
   } else {
@@ -97,7 +95,7 @@ DirectoryLockGuard::DirectoryLockGuard(const boost::filesystem::path& directory,
 
 DirectoryLockGuard::~DirectoryLockGuard() {
   if (!directory_.empty()) {
-    boost::filesystem::remove(directory_ / file_name_);
+    fs::remove(directory_ / file_name_);
   }
 }
 
@@ -131,7 +129,7 @@ void AutoCloseFd::reset(int fd) {
   fd_ = fd;
 }
 
-AutoCloseFd open(const boost::filesystem::path& file_path, int flags) {
+AutoCloseFd open(const fs::path& file_path, int flags) {
   AutoCloseFd fd(::open(file_path.c_str(), flags));
   Check::notEqual(AutoCloseFd::NOFD, fd.get(),
                   "open() failed for %s because of '%s'", file_path.c_str(),
@@ -139,8 +137,7 @@ AutoCloseFd open(const boost::filesystem::path& file_path, int flags) {
   return fd;
 }
 
-AutoCloseFd open(const boost::filesystem::path& file_path, int flags,
-                 mode_t mode) {
+AutoCloseFd open(const fs::path& file_path, int flags, mode_t mode) {
   AutoCloseFd fd(::open(file_path.c_str(), flags, mode));
   Check::notEqual(AutoCloseFd::NOFD, fd.get(),
                   "open() failed for %s because of '%s'", file_path.c_str(),
@@ -148,7 +145,7 @@ AutoCloseFd open(const boost::filesystem::path& file_path, int flags,
   return fd;
 }
 
-AutoCloseFd creat(const boost::filesystem::path& file_path, mode_t mode) {
+AutoCloseFd creat(const fs::path& file_path, mode_t mode) {
   AutoCloseFd fd(::creat(file_path.c_str(), mode));
   Check::notEqual(AutoCloseFd::NOFD, fd.get(),
                   "creat() failed for %s because of '%s'", file_path.c_str(),
@@ -165,8 +162,13 @@ bool readAllMaybe(int fd, void* buf, size_t count) {
 }
 
 void preadAll(int fd, void* buf, size_t count, uint64_t offset) {
-  Check::isEqual(count, ::pread(fd, buf, count, offset),
-                 "pread() got less bytes than expected");
+  const ssize_t result = ::pread(fd, buf, count, offset);
+  Check::notEqual(result, -1, "pread() failed because of '%s'", errnostr());
+  Check::isEqual(result, count, "pread() got less bytes than requested");
+}
+
+bool preadAllMaybe(int fd, void* buf, size_t count, uint64_t offset) {
+  return ::pread(fd, buf, count, offset) == count;
 }
 
 void writeAll(int fd, const void* buf, size_t count) {
@@ -185,15 +187,14 @@ uint64_t lseek(int fd, int64_t offset, int whence) {
   return result;
 }
 
-uint64_t tell(int fd) { return lseek(fd, 0, SEEK_CUR); }
+uint64_t ltell(int fd) { return lseek(fd, 0, SEEK_CUR); }
 
 void ftruncate(int fd, uint64_t length) {
   Check::isZero(::ftruncate(fd, length), "ftruncate() failed because of '%s'",
                 errnostr());
 }
 
-AutoCloseFile fopen(const boost::filesystem::path& file_path,
-                    const char* mode) {
+AutoCloseFile fopen(const fs::path& file_path, const char* mode) {
   AutoCloseFile file(std::fopen(file_path.c_str(), mode));
   Check::notNull(file.get(), "fopen() failed for %s because of '%s'",
                  file_path.c_str(), errnostr());
@@ -206,15 +207,15 @@ byte fgetc(std::FILE* stream) {
   return result;
 }
 
-bool fgetcMaybe(std::FILE* stream, byte* b) {
+bool fgetcMaybe(std::FILE* stream, byte* octet) {
   const int result = std::fgetc(stream);
   if (result == EOF) return false;
-  *b = result;
+  *octet = result;
   return true;
 }
 
-void fputc(std::FILE* stream, byte b) {
-  const int result = std::fputc(b, stream);
+void fputc(std::FILE* stream, byte octet) {
+  const int result = std::fputc(octet, stream);
   Check::notEqual(EOF, result, "fputc() failed");
 }
 
@@ -242,21 +243,21 @@ uint64_t ftell(std::FILE* stream) {
   return offset;
 }
 
-FileStream newFileStream(const boost::filesystem::path& file_path,
+FileStream newFileStream(const fs::path& file_path,
                          std::ios_base::openmode mode) {
   FileStream stream(new std::fstream(file_path.string(), mode));
   Check::isTrue(stream->is_open(), "Could not open %s", file_path.c_str());
   return stream;
 }
 
-InputFileStream newInputFileStream(const boost::filesystem::path& file_path,
+InputFileStream newInputFileStream(const fs::path& file_path,
                                    std::ios_base::openmode mode) {
   InputFileStream stream(new std::ifstream(file_path.string(), mode));
   Check::isTrue(stream->is_open(), "Could not open %s", file_path.c_str());
   return stream;
 }
 
-OutputFileStream newOutputFileStream(const boost::filesystem::path& file_path,
+OutputFileStream newOutputFileStream(const fs::path& file_path,
                                      std::ios_base::openmode mode) {
   OutputFileStream stream(new std::ofstream(file_path.string(), mode));
   Check::isTrue(stream->is_open(), "Could not open %s", file_path.c_str());
