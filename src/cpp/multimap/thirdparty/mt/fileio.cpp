@@ -27,7 +27,6 @@
 #include <vector>
 #include <boost/filesystem/operations.hpp>  // NOLINT
 #include <boost/iostreams/filter/gzip.hpp>  // NOLINT
-#include "mt/assert.h"
 #include "mt/check.h"
 
 namespace mt {
@@ -275,11 +274,19 @@ class GzipFileInputStream : public boost::iostreams::filtering_istream {
   }
 
   ~GzipFileInputStream() {
-    MT_ASSERT_TRUE(strict_sync());
+    strict_sync();
     reset();
     // Explicitly synching and removing the underlying istream_ is needed to
     // avoid a segmentation fault in the destructor of the filtering_istream,
     // which would otherwise try to sync the already deleted istream_.
+
+    // The rationale behind is that the filtering_stream class is designed for
+    // loose non-owning coupling and all streams pushed into a filtering_stream
+    // must outlive the d'tor of that filtering_stream. However, the purpose of
+    // the GzipFileInputStream class is to combine a filtering_istream and a
+    // std::istream in a has-a-relationship where the former *owns* the latter.
+    // This design leads to a different destruction order and finally to this
+    // customized d'tor.
   }
 
  private:
@@ -302,11 +309,19 @@ class GzipFileOutputStream : public boost::iostreams::filtering_ostream {
   }
 
   ~GzipFileOutputStream() {
-    MT_ASSERT_TRUE(strict_sync());
+    strict_sync();
     reset();
     // Explicitly synching and removing the underlying ostream_ is needed to
     // avoid a segmentation fault in the destructor of the filtering_ostream,
     // which would otherwise try to sync the already deleted ostream_.
+
+    // The rationale behind is that the filtering_stream class is designed for
+    // loose non-owning coupling and all streams pushed into a filtering_stream
+    // must outlive the d'tor of that filtering_stream. However, the purpose of
+    // the GzipFileOutputStream class is to combine a filtering_ostream and a
+    // std::ostream in a has-a-relationship where the former *owns* the latter.
+    // This design leads to a different destruction order and finally to this
+    // customized d'tor.
   }
 
  private:
