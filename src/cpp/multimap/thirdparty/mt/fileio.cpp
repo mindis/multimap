@@ -168,7 +168,7 @@ void preadAll(int fd, void* buf, size_t count, uint64_t offset) {
 }
 
 bool preadAllMaybe(int fd, void* buf, size_t count, uint64_t offset) {
-  return ::pread(fd, buf, count, offset) == count;
+  return static_cast<size_t>(::pread(fd, buf, count, offset)) == count;
 }
 
 void writeAll(int fd, const void* buf, size_t count) {

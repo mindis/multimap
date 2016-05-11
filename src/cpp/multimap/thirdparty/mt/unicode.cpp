@@ -33,8 +33,9 @@ static_assert(sizeof(wchar_t) == 4,
 namespace mt {
 
 void setUtf8Locale() {
-  Check::notNull(std::setlocale(LC_ALL, "C.UTF-8"),
-                 "std::setlocale(LC_ALL, \"C.UTF-8\" failed");
+  const char* locale = "C.UTF-8";
+  Check::notNull(std::setlocale(LC_ALL, locale),
+                 "std::setlocale(LC_ALL, \"%s\" failed", locale);
 }
 
 void toUtf8(const std::wstring& utf32, std::string* utf8) {
