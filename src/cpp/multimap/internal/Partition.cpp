@@ -80,15 +80,15 @@ Partition::Partition(const fs::path& prefix, const Options& options)
   // TODO(mtrenkmann): Load stats file first and perform check.
   if (fs::is_regular_file(map_file_path)) {
     Bytes key;
-    mt::InputFileStream map_stream = mt::newInputFileStream(map_file_path);
+    mt::InputStream map_istream = mt::newFileInputStream(map_file_path);
     const fs::path stats_file_path = getPathOfStatsFile(prefix);
     stats_ = Stats::readFromFile(stats_file_path);
     store_options.block_size = stats_.block_size;
     for (size_t i = 0; i != stats_.num_keys_valid; i++) {
-      MT_ASSERT_TRUE(readBytesFromStream(map_stream.get(), &key));
+      MT_ASSERT_TRUE(readBytesFromStream(map_istream.get(), &key));
       Slice new_key = Slice(key).makeCopy(
           [this](size_t size) { return arena_.allocate(size); });
-      List list = List::readFromStream(map_stream.get());
+      List list = List::readFromStream(map_istream.get());
       stats_.num_values_total -= list.getStatsUnlocked().num_values_total;
       stats_.num_values_valid -= list.getStatsUnlocked().num_values_valid();
       map_.emplace(new_key, std::unique_ptr<List>(new List(std::move(list))));
@@ -113,7 +113,7 @@ Partition::~Partition() {
   }
 
   List::Stats list_stats;
-  mt::OutputFileStream map_stream = mt::newOutputFileStream(map_file_path);
+  mt::OutputStream map_ostream = mt::newFileOutputStream(map_file_path);
   for (const auto& entry : map_) {
     const Slice& key = entry.first;
     List& list = *entry.second;
@@ -142,8 +142,8 @@ Partition::~Partition() {
       stats_.list_size_min = stats_.list_size_min
                                  ? mt::min(stats_.list_size_min, list_size)
                                  : list_size;
-      key.writeToStream(map_stream.get());
-      list.writeToStream(map_stream.get());
+      key.writeToStream(map_ostream.get());
+      list.writeToStream(map_ostream.get());
     }
   }
   if (stats_.num_keys_valid) {
@@ -327,10 +327,10 @@ void Partition::forEachEntry(const fs::path& prefix, BinaryProcedure process) {
   store_options.readonly = true;
   store_options.block_size = stats.block_size;
   Store store(getPathOfStoreFile(prefix), store_options);
-  mt::InputFileStream stream = mt::newInputFileStream(getPathOfMapFile(prefix));
+  mt::InputStream istream = mt::newFileInputStream(getPathOfMapFile(prefix));
   for (size_t i = 0; i != stats.num_keys_valid; i++) {
-    MT_ASSERT_TRUE(readBytesFromStream(stream.get(), &key));
-    const List list = List::readFromStream(stream.get());
+    MT_ASSERT_TRUE(readBytesFromStream(istream.get(), &key));
+    const List list = List::readFromStream(istream.get());
     const auto iter = list.newIterator(store);
     process(key, iter.get());
   }

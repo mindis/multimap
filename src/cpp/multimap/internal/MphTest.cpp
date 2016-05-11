@@ -113,11 +113,11 @@ TEST_P(MphTestWithParam, BuildFromInMemoryKeys) {
 }
 
 TEST_P(MphTestWithParam, BuildFromOnDiskKeys) {
-  mt::OutputFileStream stream = mt::newOutputFileStream(getKeysFileName());
+  mt::OutputStream ostream = mt::newFileOutputStream(getKeysFileName());
   for (int i = 0; i < GetParam(); i++) {
-    writeCmphEncodedKey(i, stream.get());
+    writeCmphEncodedKey(i, ostream.get());
   }
-  stream.reset();  // Closes the file.
+  ostream.reset();  // Closes the file.
   const Mph mph = Mph::build(getKeysFileName());
   ASSERT_EQ(GetParam(), mph.size());
 

@@ -93,9 +93,9 @@ std::pair<Map, Arena> readRecordsFromFile(const bfs::path& file_path) {
   Bytes value;
   Arena arena;
   uint32_t key_size;
-  const mt::InputFileStream stream = mt::newInputFileStream(file_path);
-  while (readBytesFromStream(stream.get(), &key) &&
-         readBytesFromStream(stream.get(), &value)) {
+  mt::InputStream istream = mt::newFileInputStream(file_path);
+  while (readBytesFromStream(istream.get(), &key) &&
+         readBytesFromStream(istream.get(), &value)) {
     auto iter = map.find(key);
     if (iter == map.end()) {
       key_size = key.size();
@@ -138,26 +138,26 @@ Stats writeMap(const bfs::path& prefix, const Map& map, const Mph& mph,
   if (options.verbose) {
     mt::log() << "Writing " << lists_file_path.string() << std::endl;
   }
-  mt::OutputFileStream lists_stream = mt::newOutputFileStream(lists_file_path);
+  mt::OutputStream lists_ostream = mt::newFileOutputStream(lists_file_path);
 
   Stats stats;
   stats.num_keys_total = map.size();
   stats.num_keys_valid = map.size();
   for (const auto& entry : map) {
-    auto offset = lists_stream->tellp();
+    auto offset = lists_ostream->tellp();
     if (const auto remainder = offset % options.block_size) {
       const auto padding = options.block_size - remainder;
-      mt::writeAll(lists_stream.get(), &zeros, padding);
+      mt::writeAll(lists_ostream.get(), &zeros, padding);
       offset += padding;
     }
     const Slice& key = entry.first;
     const List& list = entry.second;
     table[mph(key)] = offset / options.block_size;
 
-    key.writeToStream(lists_stream.get());
-    mt::writeVarint32ToStream(list.size(), lists_stream.get());
+    key.writeToStream(lists_ostream.get());
+    mt::writeVarint32ToStream(list.size(), lists_ostream.get());
     for (const Slice& value : list) {
-      value.writeToStream(lists_stream.get());
+      value.writeToStream(lists_ostream.get());
     }
 
     stats.key_size_avg += key.size();
@@ -177,10 +177,10 @@ Stats writeMap(const bfs::path& prefix, const Map& map, const Mph& mph,
     stats.key_size_avg /= stats.num_keys_total;
     stats.list_size_avg /= stats.num_keys_total;
   }
-  auto offset = lists_stream->tellp();
+  auto offset = lists_ostream->tellp();
   if (const auto remainder = offset % options.block_size) {
     const auto padding = options.block_size - remainder;
-    mt::writeAll(lists_stream.get(), &zeros, padding);
+    mt::writeAll(lists_ostream.get(), &zeros, padding);
     offset += padding;
   }
   stats.block_size = options.block_size;
@@ -190,8 +190,8 @@ Stats writeMap(const bfs::path& prefix, const Map& map, const Mph& mph,
   if (options.verbose) {
     mt::log() << "Writing " << table_file_path.string() << std::endl;
   }
-  mt::OutputFileStream table_stream = mt::newOutputFileStream(table_file_path);
-  mt::writeAll(table_stream.get(), table.data(),
+  mt::OutputStream table_ostream = mt::newFileOutputStream(table_file_path);
+  mt::writeAll(table_ostream.get(), table.data(),
                table.size() * sizeof(Table::value_type));
 
   const bfs::path stats_file_path = getPathOfStatsFile(prefix);
@@ -234,13 +234,13 @@ size_t MphTable::Limits::maxValueSize() {
 }
 
 MphTable::Builder::Builder(const bfs::path& prefix, const Options& options)
-    : stream_(mt::newOutputFileStream(getPathOfRecordsFile(prefix))),
+    : ostream_(mt::newFileOutputStream(getPathOfRecordsFile(prefix))),
       prefix_(prefix),
       options_(options) {}
 
 MphTable::Builder::~Builder() {
-  if (stream_) {
-    stream_.reset();
+  if (ostream_) {
+    ostream_.reset();
     bfs::remove(getPathOfRecordsFile(prefix_));
   }
 }
@@ -248,13 +248,13 @@ MphTable::Builder::~Builder() {
 void MphTable::Builder::put(const Slice& key, const Slice& value) {
   MT_REQUIRE_LE(key.size(), Limits::maxKeySize());
   MT_REQUIRE_LE(value.size(), Limits::maxValueSize());
-  key.writeToStream(stream_.get());
-  value.writeToStream(stream_.get());
+  key.writeToStream(ostream_.get());
+  value.writeToStream(ostream_.get());
 }
 
 Stats MphTable::Builder::build() {
-  MT_REQUIRE_TRUE(stream_);
-  stream_.reset();
+  MT_REQUIRE_TRUE(ostream_);
+  ostream_.reset();
   const bfs::path records_file_path = getPathOfRecordsFile(prefix_);
   const size_t records_file_size = bfs::file_size(records_file_path);
   const size_t max_block_id = std::numeric_limits<Table::value_type>::max();
