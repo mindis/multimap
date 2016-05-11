@@ -30,7 +30,7 @@ typedef unsigned char byte;
 
 typedef std::vector<byte> Bytes;
 
-static const int VERSION = 20160508;
+static const int VERSION = 20160511;
 
 constexpr uint64_t KiB(uint64_t kibibytes) { return kibibytes << 10; }
 // Converts a number in kibibytes to the equivalent number in bytes.

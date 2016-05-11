@@ -28,7 +28,8 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include <boost/filesystem/path.hpp>  // NOLINT
+#include <boost/filesystem/path.hpp>             // NOLINT
+#include <boost/iostreams/filtering_stream.hpp>  // NOLINT
 #include "mt/common.h"
 
 namespace mt {
@@ -126,8 +127,8 @@ uint64_t ftell(std::FILE* stream);
 // -----------------------------------------------------------------------------
 
 typedef std::unique_ptr<std::fstream> FileStream;
-typedef std::unique_ptr<std::ifstream> InputFileStream;
-typedef std::unique_ptr<std::ofstream> OutputFileStream;
+typedef std::unique_ptr<std::istream> InputStream;
+typedef std::unique_ptr<std::ostream> OutputStream;
 
 static const std::ios_base::openmode in_out_trunc =
     std::ios_base::in | std::ios_base::out | std::ios_base::trunc;
@@ -136,11 +137,19 @@ FileStream newFileStream(const fs::path& file_path,
                          std::ios_base::openmode mode = std::ios_base::in |
                                                         std::ios_base::out);
 
-InputFileStream newInputFileStream(
+InputStream newFileInputStream(
     const fs::path& file_path,
     std::ios_base::openmode mode = std::ios_base::in);
 
-OutputFileStream newOutputFileStream(
+OutputStream newFileOutputStream(
+    const fs::path& file_path,
+    std::ios_base::openmode mode = std::ios_base::out);
+
+InputStream newGzipFileInputStream(
+    const fs::path& file_path,
+    std::ios_base::openmode mode = std::ios_base::in);
+
+OutputStream newGzipFileOutputStream(
     const fs::path& file_path,
     std::ios_base::openmode mode = std::ios_base::out);
 

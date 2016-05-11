@@ -26,6 +26,7 @@
 #include <string>
 #include <vector>
 #include <boost/filesystem/operations.hpp>  // NOLINT
+#include <boost/iostreams/filter/gzip.hpp>  // NOLINT
 #include "mt/check.h"
 
 namespace mt {
@@ -42,7 +43,7 @@ Bytes readAllBytes(const fs::path& file_path) {
 }
 
 std::vector<std::string> readAllLines(const fs::path& file_path) {
-  const InputFileStream stream = newInputFileStream(file_path);
+  InputStream stream = newFileInputStream(file_path);
 
   std::string line;
   std::vector<std::string> lines;
@@ -250,18 +251,56 @@ FileStream newFileStream(const fs::path& file_path,
   return stream;
 }
 
-InputFileStream newInputFileStream(const fs::path& file_path,
-                                   std::ios_base::openmode mode) {
-  InputFileStream stream(new std::ifstream(file_path.string(), mode));
-  Check::isTrue(stream->is_open(), "Could not open %s", file_path.c_str());
+InputStream newFileInputStream(const fs::path& file_path,
+                               std::ios_base::openmode mode) {
+  InputStream stream(new std::ifstream(file_path.string(), mode));
+  Check::isFalse(stream->fail(), "Could not open %s", file_path.c_str());
   return stream;
 }
 
-OutputFileStream newOutputFileStream(const fs::path& file_path,
-                                     std::ios_base::openmode mode) {
-  OutputFileStream stream(new std::ofstream(file_path.string(), mode));
-  Check::isTrue(stream->is_open(), "Could not open %s", file_path.c_str());
+OutputStream newFileOutputStream(const fs::path& file_path,
+                                 std::ios_base::openmode mode) {
+  OutputStream stream(new std::ofstream(file_path.string(), mode));
+  Check::isFalse(stream->fail(), "Could not open %s", file_path.c_str());
   return stream;
+}
+
+class GzipFileInputStream : public boost::iostreams::filtering_istream {
+ public:
+  explicit GzipFileInputStream(std::unique_ptr<std::istream> istream)
+      : istream_(std::move(istream)) {
+    push(boost::iostreams::gzip_decompressor());
+    push(*istream_);
+  }
+
+ private:
+  std::unique_ptr<std::istream> istream_;
+};
+
+InputStream newGzipFileInputStream(const fs::path& file_path,
+                                   std::ios_base::openmode mode) {
+  InputStream istream = newFileInputStream(file_path, mode);
+  return std::unique_ptr<GzipFileInputStream>(
+      new GzipFileInputStream(std::move(istream)));
+}
+
+class GzipFileOutputStream : public boost::iostreams::filtering_ostream {
+ public:
+  explicit GzipFileOutputStream(std::unique_ptr<std::ostream> ostream)
+      : ostream_(std::move(ostream)) {
+    push(boost::iostreams::gzip_compressor());
+    push(*ostream_);
+  }
+
+ private:
+  std::unique_ptr<std::ostream> ostream_;
+};
+
+OutputStream newGzipFileOutputStream(const fs::path& file_path,
+                                     std::ios_base::openmode mode) {
+  OutputStream ostream = newFileOutputStream(file_path, mode);
+  return std::unique_ptr<GzipFileOutputStream>(
+      new GzipFileOutputStream(std::move(ostream)));
 }
 
 void readAll(std::istream* stream, void* buf, size_t count) {
