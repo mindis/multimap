@@ -138,9 +138,18 @@ OTHER_FILES += \
     run-cpplint.sh \
     update-mt-lib.sh
 
-unix:!macx: LIBS += -lboost_filesystem -lboost_system -lboost_thread -lpthread
+unix:!macx: LIBS += \
+    -lboost_filesystem \
+    -lboost_iostreams \
+    -lboost_system \
+    -lboost_thread \
+    -lpthread
 
 macx {
     INCLUDEPATH += /usr/local/include
-    LIBS += -L/usr/local/lib -lboost_filesystem -lboost_system -lboost_thread-mt
+    LIBS += -L/usr/local/lib \
+        -lboost_filesystem \
+        -lboost_iostreams \
+        -lboost_system \
+        -lboost_thread-mt
 }
