@@ -49,6 +49,9 @@ uint64_t nextPrime(uint64_t number) {
 }
 
 // Source: http://www.isthe.com/chongo/src/fnv/hash_32a.c
+// Changes:
+//  * Parameter hashval removed, internally set to FNV1_32A_INIT.
+//  * More C++ like coding style.
 uint32_t fnv1aHash32(const byte* buf, size_t len) {
   uint32_t h = 0x811c9dc5;  // FNV1_32A_INIT
   for (size_t i = 0; i != len; ++i) {
@@ -59,6 +62,9 @@ uint32_t fnv1aHash32(const byte* buf, size_t len) {
 }
 
 // Source: http://www.isthe.com/chongo/src/fnv/hash_64a.c
+// Changes:
+//  * Parameter hashval removed, internally set to FNV1A_64_INIT.
+//  * More C++ like coding style.
 uint64_t fnv1aHash64(const byte* buf, size_t len) {
   uint64_t h = 0xcbf29ce484222325ULL;  // FNV1A_64_INIT
   for (size_t i = 0; i != len; ++i) {

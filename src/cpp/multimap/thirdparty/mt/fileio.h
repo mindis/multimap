@@ -126,16 +126,16 @@ uint64_t ftell(std::FILE* stream);
 // C++ stream-based I/O
 // -----------------------------------------------------------------------------
 
-typedef std::unique_ptr<std::fstream> FileStream;
 typedef std::unique_ptr<std::istream> InputStream;
 typedef std::unique_ptr<std::ostream> OutputStream;
+typedef std::unique_ptr<std::iostream> InputOutputStream;
 
 static const std::ios_base::openmode in_out_trunc =
     std::ios_base::in | std::ios_base::out | std::ios_base::trunc;
 
-FileStream newFileStream(const fs::path& file_path,
-                         std::ios_base::openmode mode = std::ios_base::in |
-                                                        std::ios_base::out);
+InputOutputStream newFileStream(
+    const fs::path& file_path,
+    std::ios_base::openmode mode = std::ios_base::in | std::ios_base::out);
 
 InputStream newFileInputStream(
     const fs::path& file_path,

@@ -27,6 +27,7 @@
 #include <vector>
 #include <boost/filesystem/operations.hpp>  // NOLINT
 #include <boost/iostreams/filter/gzip.hpp>  // NOLINT
+#include "mt/assert.h"
 #include "mt/check.h"
 
 namespace mt {
@@ -244,11 +245,11 @@ uint64_t ftell(std::FILE* stream) {
   return offset;
 }
 
-FileStream newFileStream(const fs::path& file_path,
-                         std::ios_base::openmode mode) {
-  FileStream stream(new std::fstream(file_path.string(), mode));
-  Check::isTrue(stream->is_open(), "Could not open %s", file_path.c_str());
-  return stream;
+InputOutputStream newFileStream(const fs::path& file_path,
+                                std::ios_base::openmode mode) {
+  InputOutputStream iostream(new std::fstream(file_path.string(), mode));
+  Check::isFalse(iostream->fail(), "Could not open %s", file_path.c_str());
+  return iostream;
 }
 
 InputStream newFileInputStream(const fs::path& file_path,
@@ -273,6 +274,14 @@ class GzipFileInputStream : public boost::iostreams::filtering_istream {
     push(*istream_);
   }
 
+  ~GzipFileInputStream() {
+    MT_ASSERT_TRUE(strict_sync());
+    reset();
+    // Explicitly synching and removing the underlying istream_ is needed to
+    // avoid a segmentation fault in the destructor of the filtering_istream,
+    // which would otherwise try to sync the already deleted istream_.
+  }
+
  private:
   std::unique_ptr<std::istream> istream_;
 };
@@ -290,6 +299,14 @@ class GzipFileOutputStream : public boost::iostreams::filtering_ostream {
       : ostream_(std::move(ostream)) {
     push(boost::iostreams::gzip_compressor());
     push(*ostream_);
+  }
+
+  ~GzipFileOutputStream() {
+    MT_ASSERT_TRUE(strict_sync());
+    reset();
+    // Explicitly synching and removing the underlying ostream_ is needed to
+    // avoid a segmentation fault in the destructor of the filtering_ostream,
+    // which would otherwise try to sync the already deleted ostream_.
   }
 
  private:

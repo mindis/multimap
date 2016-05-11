@@ -26,68 +26,63 @@
 
 namespace mt {
 
+// -----------------------------------------------------------------------------
+// Types
+// -----------------------------------------------------------------------------
+
 typedef unsigned char byte;
 
 typedef std::vector<byte> Bytes;
 
+// -----------------------------------------------------------------------------
+// Constants
+// -----------------------------------------------------------------------------
+
 static const int VERSION = 20160511;
 
-constexpr uint64_t KiB(uint64_t kibibytes) { return kibibytes << 10; }
-// Converts a number in kibibytes to the equivalent number in bytes.
-
-constexpr uint64_t MiB(uint64_t mebibytes) { return mebibytes << 20; }
-// Converts a number in mebibytes to the equivalent number in bytes.
-
-constexpr uint64_t GiB(uint64_t gibibytes) { return gibibytes << 30; }
-// Converts a number in gibibytes to the equivalent number in bytes.
+// -----------------------------------------------------------------------------
+// Functions
+// -----------------------------------------------------------------------------
 
 constexpr bool is32BitSystem() { return sizeof(void*) == 4; }
 
 constexpr bool is64BitSystem() { return sizeof(void*) == 8; }
 
+constexpr uint64_t KiB(uint64_t kibibytes) { return kibibytes << 10; }
+
+constexpr uint64_t MiB(uint64_t mebibytes) { return mebibytes << 20; }
+
+constexpr uint64_t GiB(uint64_t gibibytes) { return gibibytes << 30; }
+
 // -----------------------------------------------------------------------------
-// ALGORITHMS
+// Functions / algorithms
 // -----------------------------------------------------------------------------
 
 bool isPrime(uint64_t number);
-// Returns `true` if `number` is prime, `false` otherwise.
 
 uint64_t nextPrime(uint64_t number);
-// Returns the next prime number that is greater than or equal to `number`.
 
-constexpr bool isPowerOfTwo(uint64_t num) { return (num & (num - 1)) == 0; }
+constexpr bool isPowerOfTwo(uint64_t number) {
+  return (number & (number - 1)) == 0;
+}
 
 template <typename A, typename B>
 auto min(const A& a, const B& b) -> decltype(a < b ? a : b) {
   return a < b ? a : b;
 }
-// `std::min` requires that `a` and `b` are of the same type which means
-// that you cannot compare `std::int32_t` and `std::int64_t` without casting.
 
 template <typename A, typename B>
 auto max(const A& a, const B& b) -> decltype(a > b ? a : b) {
   return a > b ? a : b;
 }
-// `std::min` requires that `a` and `b` are of the same type which means
-// that you cannot compare `std::int32_t` and `std::int64_t` without casting.
 
 uint32_t fnv1aHash32(const byte* buf, size_t len);
-// Computes and returns a 32-bit hash value of the given byte array.
-// Source: http://www.isthe.com/chongo/src/fnv/fnv.h
-// Changes:
-//  * Parameter hashval removed, internally set to FNV1_32A_INIT.
-//  * More C++ like coding style.
 
 inline uint32_t fnv1aHash32(const Bytes& bytes) {
   return fnv1aHash32(bytes.data(), bytes.size());
 }
 
 uint64_t fnv1aHash64(const byte* buf, size_t len);
-// Computes and returns a 64-bit hash value of the given byte array.
-// Source: http://www.isthe.com/chongo/src/fnv/fnv.h
-// Changes:
-//  * Parameter hashval removed, internally set to FNV1A_64_INIT.
-//  * More C++ like coding style.
 
 inline uint64_t fnv1aHash64(const Bytes& bytes) {
   return fnv1aHash64(bytes.data(), bytes.size());
@@ -95,17 +90,14 @@ inline uint64_t fnv1aHash64(const Bytes& bytes) {
 
 inline size_t fnv1aHash(const byte* buf, size_t len) {
   return is64BitSystem() ? fnv1aHash64(buf, len) : fnv1aHash32(buf, len);
-  // The compiler will optimize away branching here.
 }
-// Dispatching function to choose either `fnv1aHash32()` or `fnv1aHash64()`
-// depending on the actual system.
 
 inline size_t fnv1aHash(const Bytes& bytes) {
   return fnv1aHash(bytes.data(), bytes.size());
 }
 
 // -----------------------------------------------------------------------------
-// LOGGING
+// Functions / logging
 // -----------------------------------------------------------------------------
 
 std::string timestamp();
@@ -122,7 +114,7 @@ std::ostream& debug();
 // Usage: mt::debug() << "Some message\n";
 
 // -----------------------------------------------------------------------------
-// MACROS
+// Macros
 // -----------------------------------------------------------------------------
 
 #define MT_LIKELY(condition) __builtin_expect(condition, true)
