@@ -22,7 +22,7 @@
 #include "multimap/thirdparty/mt/check.h"
 #include "multimap/thirdparty/mt/fileio.h"
 
-namespace bfs = boost::filesystem;
+namespace fs = boost::filesystem;
 
 namespace multimap {
 namespace internal {
@@ -39,14 +39,14 @@ const char* Descriptor::toString(int map_type) {
   }
 }
 
-Descriptor Descriptor::readFromDirectory(const bfs::path& directory) {
+Descriptor Descriptor::readFromDirectory(const fs::path& directory) {
   Descriptor descriptor;
   mt::check(tryReadFromDirectory(directory, &descriptor),
             "Reading descriptor from %s failed", directory.c_str());
   return descriptor;
 }
 
-bool Descriptor::tryReadFromDirectory(const bfs::path& directory,
+bool Descriptor::tryReadFromDirectory(const fs::path& directory,
                                       Descriptor* output) {
   mt::InputFileStream stream;
   try {
@@ -59,7 +59,7 @@ bool Descriptor::tryReadFromDirectory(const bfs::path& directory,
   return true;
 }
 
-void Descriptor::writeToDirectory(const bfs::path& directory) const {
+void Descriptor::writeToDirectory(const fs::path& directory) const {
   MT_REQUIRE_NOT_ZERO(num_partitions);
   MT_REQUIRE_TRUE(map_type == TYPE_MAP || map_type == TYPE_IMMUTABLE_MAP);
   const mt::OutputFileStream stream =

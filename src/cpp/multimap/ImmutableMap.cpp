@@ -27,14 +27,14 @@
 #include "multimap/thirdparty/mt/check.h"
 #include "multimap/Arena.h"
 
-namespace bfs = boost::filesystem;
+namespace fs = boost::filesystem;
 
 namespace multimap {
 
 namespace {
 
 void checkDescriptor(const internal::Descriptor& descriptor,
-                     const bfs::path& directory) {
+                     const fs::path& directory) {
   mt::Check::isEqual(
       internal::Descriptor::TYPE_IMMUTABLE_MAP, descriptor.map_type,
       "Wrong map type: expected type %s but found type %s in %s",
@@ -70,11 +70,11 @@ size_t ImmutableMap::Limits::maxValueSize() {
   return internal::MphTable::Limits::maxValueSize();
 }
 
-ImmutableMap::Builder::Builder(const bfs::path& directory,
+ImmutableMap::Builder::Builder(const fs::path& directory,
                                const Options& options)
     : dlock_(directory.string()), options_(options) {
-  mt::Check::isEqual(std::distance(bfs::directory_iterator(directory),
-                                   bfs::directory_iterator()),
+  mt::Check::isEqual(std::distance(fs::directory_iterator(directory),
+                                   fs::directory_iterator()),
                      1, "Must be empty: %s", directory.c_str());
   const size_t num_partitions = mt::nextPrime(options.num_partitions);
   for (size_t i = 0; i != num_partitions; i++) {
@@ -104,12 +104,12 @@ std::vector<Stats> ImmutableMap::Builder::build() {
   return stats;
 }
 
-ImmutableMap::ImmutableMap(const bfs::path& directory)
+ImmutableMap::ImmutableMap(const fs::path& directory)
     : dlock_(directory.string()) {
   const auto descriptor = internal::Descriptor::readFromDirectory(directory);
   checkDescriptor(descriptor, directory);
   for (int i = 0; i < descriptor.num_partitions; i++) {
-    const bfs::path prefix = directory / getPartitionPrefix(i);
+    const fs::path prefix = directory / getPartitionPrefix(i);
     tables_.push_back(internal::MphTable(prefix));
   }
 }
@@ -144,31 +144,31 @@ std::vector<Stats> ImmutableMap::getStats() const {
 
 Stats ImmutableMap::getTotalStats() const { return Stats::total(getStats()); }
 
-std::vector<Stats> ImmutableMap::stats(const bfs::path& directory) {
+std::vector<Stats> ImmutableMap::stats(const fs::path& directory) {
   const auto descriptor = internal::Descriptor::readFromDirectory(directory);
   checkDescriptor(descriptor, directory);
   std::vector<Stats> stats(descriptor.num_partitions);
   for (int i = 0; i < descriptor.num_partitions; i++) {
-    const bfs::path prefix = directory / getPartitionPrefix(i);
+    const fs::path prefix = directory / getPartitionPrefix(i);
     stats[i] = internal::MphTable::stats(prefix);
   }
   return stats;
 }
 
-void ImmutableMap::buildFromBase64(const bfs::path& directory,
-                                   const bfs::path& source) {
+void ImmutableMap::buildFromBase64(const fs::path& directory,
+                                   const fs::path& source) {
   buildFromBase64(directory, source, Options());
 }
 
-void ImmutableMap::buildFromBase64(const bfs::path& directory,
-                                   const bfs::path& source,
+void ImmutableMap::buildFromBase64(const fs::path& directory,
+                                   const fs::path& source,
                                    const Options& options) {
   Builder builder(directory, options);
 
-  std::vector<bfs::path> file_paths;
-  if (bfs::is_regular_file(source)) {
+  std::vector<fs::path> file_paths;
+  if (fs::is_regular_file(source)) {
     file_paths.push_back(source);
-  } else if (bfs::is_directory(source)) {
+  } else if (fs::is_directory(source)) {
     file_paths = mt::listFiles(source);
   } else {
     mt::fail("No such file or directory: %s", source.c_str());
@@ -188,13 +188,13 @@ void ImmutableMap::buildFromBase64(const bfs::path& directory,
   builder.build();
 }
 
-void ImmutableMap::exportToBase64(const bfs::path& directory,
-                                  const bfs::path& target) {
+void ImmutableMap::exportToBase64(const fs::path& directory,
+                                  const fs::path& target) {
   exportToBase64(directory, target, Options());
 }
 
-void ImmutableMap::exportToBase64(const bfs::path& directory,
-                                  const bfs::path& target,
+void ImmutableMap::exportToBase64(const fs::path& directory,
+                                  const fs::path& target,
                                   const Options& options) {
   ImmutableMap map(directory);
   internal::TsvFileWriter writer(target);

@@ -26,7 +26,7 @@
 #include "multimap/internal/TsvFileWriter.h"
 #include "multimap/thirdparty/mt/check.h"
 
-namespace bfs = boost::filesystem;
+namespace fs = boost::filesystem;
 
 namespace multimap {
 
@@ -39,7 +39,7 @@ void checkOptions(const Options& options) {
 }
 
 void checkDescriptor(const internal::Descriptor& descriptor,
-                     const bfs::path& directory) {
+                     const fs::path& directory) {
   mt::Check::isEqual(
       internal::Descriptor::TYPE_MAP, descriptor.map_type,
       "Wrong map type: expected type %s but found type %s in %s",
@@ -65,9 +65,9 @@ size_t Map::Limits::maxValueSize() {
   return internal::Partition::Limits::maxValueSize();
 }
 
-Map::Map(const bfs::path& directory) : Map(directory, Options()) {}
+Map::Map(const fs::path& directory) : Map(directory, Options()) {}
 
-Map::Map(const bfs::path& directory, const Options& options)
+Map::Map(const fs::path& directory, const Options& options)
     : dlock_(directory.string()) {
   checkOptions(options);
   Options partition_options;
@@ -77,19 +77,19 @@ Map::Map(const bfs::path& directory, const Options& options)
   if (internal::Descriptor::tryReadFromDirectory(directory, &descriptor)) {
     checkDescriptor(descriptor, directory);
     mt::Check::isFalse(options.error_if_exists, "Map in %s already exists",
-                       bfs::absolute(directory).c_str());
+                       fs::absolute(directory).c_str());
     partitions_.resize(descriptor.num_partitions);
 
   } else {
     mt::Check::isTrue(options.create_if_missing, "Map in %s does not exist",
-                      bfs::absolute(directory).c_str());
+                      fs::absolute(directory).c_str());
     partitions_.resize(mt::nextPrime(options.num_partitions));
     descriptor.map_type = internal::Descriptor::TYPE_MAP;
     descriptor.num_partitions = partitions_.size();
     descriptor.writeToDirectory(directory);
   }
   for (size_t i = 0; i != partitions_.size(); i++) {
-    const bfs::path prefix = directory / getPartitionPrefix(i);
+    const fs::path prefix = directory / getPartitionPrefix(i);
     partitions_[i].reset(new internal::Partition(prefix, partition_options));
   }
 }
@@ -188,31 +188,30 @@ std::vector<Stats> Map::getStats() const {
 
 Stats Map::getTotalStats() const { return Stats::total(getStats()); }
 
-std::vector<Stats> Map::stats(const bfs::path& directory) {
+std::vector<Stats> Map::stats(const fs::path& directory) {
   internal::DirectoryLock lock(directory.string());
   const auto descriptor = internal::Descriptor::readFromDirectory(directory);
   checkDescriptor(descriptor, directory);
   std::vector<Stats> stats;
   for (int i = 0; i < descriptor.num_partitions; i++) {
-    const bfs::path prefix = directory / getPartitionPrefix(i);
+    const fs::path prefix = directory / getPartitionPrefix(i);
     stats.push_back(internal::Partition::stats(prefix));
   }
   return stats;
 }
 
-void Map::importFromBase64(const bfs::path& directory,
-                           const bfs::path& source) {
+void Map::importFromBase64(const fs::path& directory, const fs::path& source) {
   Map::importFromBase64(directory, source, Options());
 }
 
-void Map::importFromBase64(const bfs::path& directory, const bfs::path& source,
+void Map::importFromBase64(const fs::path& directory, const fs::path& source,
                            const Options& options) {
   Map map(directory, options);
 
-  std::vector<bfs::path> file_paths;
-  if (bfs::is_regular_file(source)) {
+  std::vector<fs::path> file_paths;
+  if (fs::is_regular_file(source)) {
     file_paths.push_back(source);
-  } else if (bfs::is_directory(source)) {
+  } else if (fs::is_directory(source)) {
     file_paths = mt::listFiles(source);
   } else {
     mt::fail("No such file or directory: %s", source.c_str());
@@ -231,11 +230,11 @@ void Map::importFromBase64(const bfs::path& directory, const bfs::path& source,
   }
 }
 
-void Map::exportToBase64(const bfs::path& directory, const bfs::path& target) {
+void Map::exportToBase64(const fs::path& directory, const fs::path& target) {
   Map::exportToBase64(directory, target, Options());
 }
 
-void Map::exportToBase64(const bfs::path& directory, const bfs::path& target,
+void Map::exportToBase64(const fs::path& directory, const fs::path& target,
                          const Options& options) {
   internal::DirectoryLock lock(directory.string());
   const auto descriptor = internal::Descriptor::readFromDirectory(directory);
@@ -243,7 +242,7 @@ void Map::exportToBase64(const bfs::path& directory, const bfs::path& target,
   internal::TsvFileWriter writer(target);
 
   for (int i = 0; i < descriptor.num_partitions; i++) {
-    const bfs::path prefix = directory / getPartitionPrefix(i);
+    const fs::path prefix = directory / getPartitionPrefix(i);
     if (options.verbose) {
       mt::log() << "Exporting partition " << (i + 1) << " of "
                 << descriptor.num_partitions << std::endl;
@@ -274,18 +273,18 @@ void Map::exportToBase64(const bfs::path& directory, const bfs::path& target,
   }
 }
 
-void Map::optimize(const bfs::path& directory, const bfs::path& target) {
+void Map::optimize(const fs::path& directory, const fs::path& target) {
   Options options;
   options.keepBlockSize();
   options.keepNumPartitions();
   optimize(directory, target, options);
 }
 
-void Map::optimize(const bfs::path& directory, const bfs::path& target,
+void Map::optimize(const fs::path& directory, const fs::path& target,
                    const Options& options) {
   const auto descriptor = internal::Descriptor::readFromDirectory(directory);
   checkDescriptor(descriptor, directory);
-  bfs::path prefix = directory / getPartitionPrefix(0);
+  fs::path prefix = directory / getPartitionPrefix(0);
   const Stats stats = internal::Partition::stats(prefix);
   Options new_options = options;
   new_options.error_if_exists = true;
