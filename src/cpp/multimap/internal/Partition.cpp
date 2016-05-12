@@ -71,18 +71,16 @@ Partition::Partition(const fs::path& prefix) : Partition(prefix, Options()) {}
 
 Partition::Partition(const fs::path& prefix, const Options& options)
     : prefix_(prefix) {
-  MT_REQUIRE_FALSE(prefix.empty());
   Options store_options;
   store_options.readonly = options.readonly;
   store_options.block_size = options.block_size;
-  const fs::path map_file_path = getPathOfMapFile(prefix);
-  // TODO(mtrenkmann): Load stats file first and perform check.
-  if (fs::is_regular_file(map_file_path)) {
-    Bytes key;
-    mt::InputStream map_istream = mt::newFileInputStream(map_file_path);
-    const fs::path stats_file_path = getPathOfStatsFile(prefix);
+  const fs::path stats_file_path = getPathOfStatsFile(prefix);
+  if (fs::is_regular_file(stats_file_path)) {
     stats_ = Stats::readFromFile(stats_file_path);
     store_options.block_size = stats_.block_size;
+    const fs::path map_file_path = getPathOfMapFile(prefix);
+    mt::InputStream map_istream = mt::newFileInputStream(map_file_path);
+    Bytes key;
     for (size_t i = 0; i != stats_.num_keys_valid; i++) {
       MT_ASSERT_TRUE(readBytesFromStream(map_istream.get(), &key));
       Slice new_key = Slice(key).makeCopy(
