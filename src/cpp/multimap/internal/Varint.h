@@ -25,8 +25,6 @@ namespace multimap {
 namespace internal {
 
 struct Varint {
-  static const uint32_t MAX_VARINT_WITH_FLAG;
-
   static size_t readFromBuffer(const byte* begin, const byte* end,
                                uint32_t* value, bool* flag);
 

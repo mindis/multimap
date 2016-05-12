@@ -24,38 +24,29 @@
 namespace multimap {
 namespace internal {
 
-const uint32_t Varint::MAX_VARINT_WITH_FLAG = (1 << 29) - 1;
+const int MAX_VARINT32_BYTES = 5;
 
 size_t Varint::readFromBuffer(const byte* begin, const byte* end,
                               uint32_t* value, bool* flag) {
-  const auto remaining = end - begin;
-  if (remaining > 0) {
-    *flag = *begin & 0x20;              // 00100000
-    const auto length = *begin & 0xC0;  // 11000000
-    switch (length) {
-      case 0x00:  // 00000000
-        *value = *begin++ & 0x1F;
-        return 1;
-      case 0x40:  // 01000000
-        if (remaining < 2) return 0;
-        *value = (*begin++ & 0x1F) << 8;
-        *value += *begin++;
-        return 2;
-      case 0x80:  // 10000000
-        if (remaining < 3) return 0;
-        *value = (*begin++ & 0x1F) << 16;
-        *value += *begin++ << 8;
-        *value += *begin++;
-        return 3;
-      case 0xC0:  // 11000000
-        if (remaining < 4) return 0;
-        *value = (*begin++ & 0x1F) << 24;
-        *value += *begin++ << 16;
-        *value += *begin++ << 8;
-        *value += *begin++;
-        return 4;
-      default:
-        MT_FAIL("Reached default branch in switch statement");
+  *value = 0;
+  int shift = 6;
+  if (MT_LIKELY((end - begin) >= MAX_VARINT32_BYTES)) {
+    *value = *begin & 0x3F;
+    *flag = *begin & 0x40;
+    if (!(*begin++ & 0x80)) return 1;
+    for (int i = 1; i < MAX_VARINT32_BYTES; i++) {
+      *value += static_cast<uint32_t>(*begin & 0x7F) << shift;
+      if (!(*begin++ & 0x80)) return i + 1;
+      shift += 7;
+    }
+  } else if (begin < end) {
+    *value = *begin & 0x3F;
+    *flag = *begin & 0x40;
+    if (!(*begin++ & 0x80)) return 1;
+    for (int i = 1; (begin < end) && (i < MAX_VARINT32_BYTES); i++) {
+      *value += static_cast<uint32_t>(*begin & 0x7F) << shift;
+      if (!(*begin++ & 0x80)) return i + 1;
+      shift += 7;
     }
   }
   return 0;
@@ -63,39 +54,27 @@ size_t Varint::readFromBuffer(const byte* begin, const byte* end,
 
 size_t Varint::writeToBuffer(byte* begin, byte* end, uint32_t value,
                              bool flag) {
-  const auto remaining = end - begin;
-  if (value < 0x00000020) {  // 00000000 00000000 00000000 00100000
-    if (remaining < 1) return 0;
-    *begin++ = value | (flag ? 0x20 : 0x00);
-    return 1;
+  byte* pos = begin;
+  if (pos != end) {
+    *pos = (flag ? 0x40 : 0) | (value & 0x3F);
+    if (value > 0x3F) {
+      *pos++ |= 0x80;
+      value >>= 6;
+      while ((pos != end) && (value > 0x7F)) {
+        *pos++ = 0x80 | (value & 0x7F);
+        value >>= 7;
+      }
+      if (pos == end) return 0;  // Insufficient space in buffer.
+      *pos++ = value;
+    } else {
+      pos++;
+    }
   }
-  if (value < 0x00002000) {  // 00000000 00000000 00100000 00000000
-    if (remaining < 2) return 0;
-    *begin++ = (value >> 8) | (flag ? 0x60 : 0x40);
-    *begin++ = (value);
-    return 2;
-  }
-  if (value < 0x00200000) {  // 00000000 00100000 00000000 00000000
-    if (remaining < 3) return 0;
-    *begin++ = (value >> 16) | (flag ? 0xA0 : 0x80);
-    *begin++ = (value >> 8);
-    *begin++ = (value);
-    return 3;
-  }
-  if (value < 0x20000000) {  // 00100000 00000000 00000000 00000000
-    if (remaining < 4) return 0;
-    *begin++ = (value >> 24) | (flag ? 0xE0 : 0xC0);
-    *begin++ = (value >> 16);
-    *begin++ = (value >> 8);
-    *begin++ = (value);
-    return 4;
-  }
-  mt::fail("Varint::writeToBuffer() failed. Too big value: %d", value);
-  return 0;
+  return pos - begin;
 }
 
 void Varint::setFlagInBuffer(byte* buffer, bool flag) {
-  flag ? (*buffer |= 0x20) : (*buffer &= 0xDF);
+  flag ? (*buffer |= 0x40) : (*buffer &= 0xBF);
 }
 
 }  // namespace internal
