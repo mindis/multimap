@@ -105,13 +105,8 @@ std::string timestamp();
 void printTimestamp(std::ostream* stream);
 
 std::ostream& log(std::ostream* stream);
-// Usage: mt::log(&some_stream) << "Some message\n";
 
 std::ostream& log();
-// Usage: mt::log() << "Some message\n";
-
-std::ostream& debug();
-// Usage: mt::debug() << "Some message\n";
 
 // -----------------------------------------------------------------------------
 // Macros
@@ -123,43 +118,15 @@ std::ostream& debug();
 #define MT_ENABLE_IF(condition)      \
   template <bool __MT_B = condition, \
             typename std::enable_if<__MT_B>::type* = nullptr>
-// Enables a method of a class template if a boolean parameter is true.
-//
-//   template <bool IsMutable> struct Foo {
-//
-//     MT_ENABLE_IF(IsMutable) void mutate() { ... }
-//
-//     // Foo<true>().mutate();
-//     // Compiles fine.
-//     //
-//     // Foo<false>().mutate();
-//     // Error: no matching function for call to `Foo<false>::mutate()'.
-//   };
 
 #define MT_DISABLE_IF(condition)     \
   template <bool __MT_B = condition, \
             typename std::enable_if<!__MT_B>::type* = nullptr>
-// Disables a method of a class template if a boolean parameter is true.
 
-#define MT_ENABLE_IF_SAME(generic_type, concrete_type) \
-  template <typename __MT_T = generic_type,            \
+#define MT_ENABLE_IF_SAME(formal_type, actual_type) \
+  template <typename __MT_T = formal_type,            \
             typename std::enable_if<                   \
-                std::is_same<__MT_T, concrete_type>::value>::type* = nullptr>
-// Enables a method of a class template for some concrete type argument.
-//
-//   struct Unique {};
-//   struct Shared {};
-//
-//   template <typename Policy> struct Bar {
-//
-//     MT_ENABLE_IF_SAME(Policy, Unique) void mutate() { ... }
-//
-//     // Bar<Unique>().mutate();
-//     // Compiles fine.
-//
-//     // Bar<Shared>().mutate();
-//     // Error: no matching function for call to `Bar<Shared>::mutate()'.
-//   };
+                std::is_same<__MT_T, actual_type>::value>::type* = nullptr>
 
 // The purpose of MT_ENABLE_IF and MT_ENABLE_IF_SAME could also have been
 // implemented via template specialization.  In this case the implementation
