@@ -201,7 +201,9 @@ class SharedIterator : public Iterator {
   ReaderLockGuard<SharedMutex> lock_;
 };
 
-size_t List::Limits::maxValueSize() { return Varint::MAX_VARINT_WITH_FLAG; }
+size_t List::Limits::maxValueSize() {
+  return std::numeric_limits<uint32_t>::max();
+}
 
 void List::append(const Slice& value, Store* store, Arena* arena) {
   WriterLockGuard<SharedMutex> lock(mutex_);

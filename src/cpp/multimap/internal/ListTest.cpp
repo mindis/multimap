@@ -478,10 +478,10 @@ class ListTestFixture2 : public ListTestFixture {
     ListTestFixture::TearDown();
   }
 
-  std::fstream* getStream() { return stream_.get(); }
+  std::iostream* getStream() { return stream_.get(); }
 
  private:
-  mt::FileStream stream_;
+  mt::InputOutputStream stream_;
 };
 
 TEST_F(ListTestFixture2, WriteListToFileThenReadBackAndIterate) {
