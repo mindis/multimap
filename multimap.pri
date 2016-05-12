@@ -22,7 +22,6 @@ HEADERS += \
     src/cpp/multimap/internal/TsvFileReader.h \
     src/cpp/multimap/internal/TsvFileWriter.h \
     src/cpp/multimap/internal/UintVector.h \
-    src/cpp/multimap/internal/Varint.h \
     src/cpp/multimap/thirdparty/cmph/bdz.h \
     src/cpp/multimap/thirdparty/cmph/bdz_ph.h \
     src/cpp/multimap/thirdparty/cmph/bdz_structs.h \
@@ -92,7 +91,6 @@ SOURCES += \
     src/cpp/multimap/internal/TsvFileReader.cpp \
     src/cpp/multimap/internal/TsvFileWriter.cpp \
     src/cpp/multimap/internal/UintVector.cpp \
-    src/cpp/multimap/internal/Varint.cpp \
     src/cpp/multimap/thirdparty/cmph/bdz.c \
     src/cpp/multimap/thirdparty/cmph/bdz_ph.c \
     src/cpp/multimap/thirdparty/cmph/bmz.c \

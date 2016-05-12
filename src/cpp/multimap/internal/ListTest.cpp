@@ -15,6 +15,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#include <limits>
 #include <string>
 #include <thread>  // NOLINT
 #include <type_traits>
@@ -25,6 +26,9 @@
 
 namespace multimap {
 namespace internal {
+
+using testing::Eq;
+using testing::ElementsAre;
 
 TEST(ListTest, IsDefaultConstructible) {
   ASSERT_TRUE(std::is_default_constructible<List>::value);
@@ -646,6 +650,223 @@ TEST_F(ListTestFixture, WriterBlocksWriter) {
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
   ASSERT_TRUE(second_writer_has_finished);
   writer2.join();
+}
+
+// -----------------------------------------------------------------------------
+// Varint encoding
+// -----------------------------------------------------------------------------
+
+struct VarintTestFixture : public testing::Test {
+  void SetUp() override {
+    std::memset(b5, 0, sizeof b5);
+    std::memset(b25, 0, sizeof b25);
+  }
+
+  byte b5[5];
+  byte b25[25];
+
+  byte* b5end = std::end(b5);
+  byte* b25end = std::end(b25);
+};
+
+TEST_F(VarintTestFixture, WriteMinVarintWithTrueFlag) {
+  ASSERT_EQ(1, writeVarint32AndFlag(b5, b5end, 0, true));
+  ASSERT_THAT(b5, ElementsAre(0x40, 0x00, 0x00, 0x00, 0x00));
+}
+
+TEST_F(VarintTestFixture, WriteMinVarintWithFalseFlag) {
+  ASSERT_EQ(1, writeVarint32AndFlag(b5, b5end, 0, false));
+  ASSERT_THAT(b5, ElementsAre(0x00, 0x00, 0x00, 0x00, 0x00));
+}
+
+TEST_F(VarintTestFixture, WriteMaxVarintWithTrueFlag) {
+  ASSERT_EQ(5, writeVarint32AndFlag(
+                   b5, b5end, std::numeric_limits<uint32_t>::max(), true));
+  ASSERT_THAT(b5, ElementsAre(0xFF, 0xFF, 0xFF, 0xFF, 0x1F));
+}
+
+TEST_F(VarintTestFixture, WriteMaxVarintWithFalseFlag) {
+  ASSERT_EQ(5, writeVarint32AndFlag(
+                   b5, b5end, std::numeric_limits<uint32_t>::max(), false));
+  ASSERT_THAT(b5, ElementsAre(0xBF, 0xFF, 0xFF, 0xFF, 0x1F));
+}
+
+TEST_F(VarintTestFixture, ReadMinVarintWithTrueFlag) {
+  writeVarint32AndFlag(b5, b5end, 0, true);
+  bool flag = false;
+  uint32_t value = -1;
+  ASSERT_EQ(1, readVarint32AndFlag(b5, b5end, &value, &flag));
+  ASSERT_EQ(0, value);
+  ASSERT_TRUE(flag);
+}
+
+TEST_F(VarintTestFixture, ReadMinVarintWithFalseFlag) {
+  writeVarint32AndFlag(b5, b5end, 0, false);
+  bool flag = true;
+  uint32_t value = -1;
+  ASSERT_EQ(1, readVarint32AndFlag(b5, b5end, &value, &flag));
+  ASSERT_EQ(0, value);
+  ASSERT_FALSE(flag);
+}
+
+TEST_F(VarintTestFixture, ReadMaxVarintWithTrueFlag) {
+  writeVarint32AndFlag(b5, b5end, std::numeric_limits<uint32_t>::max(), true);
+  bool flag = false;
+  uint32_t value = 0;
+  ASSERT_EQ(5, readVarint32AndFlag(b5, b5end, &value, &flag));
+  ASSERT_EQ(std::numeric_limits<uint32_t>::max(), value);
+  ASSERT_TRUE(flag);
+}
+
+TEST_F(VarintTestFixture, ReadMaxVarintWithFalseFlag) {
+  writeVarint32AndFlag(b5, b5end, std::numeric_limits<uint32_t>::max(), false);
+  bool flag = true;
+  uint32_t value = 0;
+  ASSERT_EQ(5, readVarint32AndFlag(b5, b5end, &value, &flag));
+  ASSERT_EQ(std::numeric_limits<uint32_t>::max(), value);
+  ASSERT_FALSE(flag);
+}
+
+TEST_F(VarintTestFixture, WriteAndReadMultipleVarintsWithTrueFlags) {
+  // clang-format off
+  const uint32_t v1 = 23;
+  const uint32_t v2 = 23 << 7;
+  const uint32_t v3 = 23 << 14;
+  const uint32_t v4 = 23 << 21;
+  const uint32_t v5 = 23 << 28;
+
+  byte* pos = b25;
+  bool flag = true;
+  ASSERT_EQ(1, writeVarint32AndFlag(pos, b25end, v1, flag)); pos += 1;
+  ASSERT_EQ(2, writeVarint32AndFlag(pos, b25end, v2, flag)); pos += 2;
+  ASSERT_EQ(3, writeVarint32AndFlag(pos, b25end, v3, flag)); pos += 3;
+  ASSERT_EQ(4, writeVarint32AndFlag(pos, b25end, v4, flag)); pos += 4;
+  ASSERT_EQ(5, writeVarint32AndFlag(pos, b25end, v5, flag)); pos += 5;
+
+  pos = b25;
+  flag = false;
+  uint32_t value = 0;
+  ASSERT_EQ(1, readVarint32AndFlag(pos, b25end, &value, &flag)); pos += 1;
+  ASSERT_EQ(v1, value);
+  ASSERT_TRUE(flag);
+
+  flag = false;
+  ASSERT_EQ(2, readVarint32AndFlag(pos, b25end, &value, &flag)); pos += 2;
+  ASSERT_EQ(v2, value);
+  ASSERT_TRUE(flag);
+
+  flag = false;
+  ASSERT_EQ(3, readVarint32AndFlag(pos, b25end, &value, &flag)); pos += 3;
+  ASSERT_EQ(v3, value);
+  ASSERT_TRUE(flag);
+
+  flag = false;
+  ASSERT_EQ(4, readVarint32AndFlag(pos, b25end, &value, &flag)); pos += 4;
+  ASSERT_EQ(v4, value);
+  ASSERT_TRUE(flag);
+
+  flag = false;
+  ASSERT_EQ(5, readVarint32AndFlag(pos, b25end, &value, &flag)); pos += 5;
+  ASSERT_EQ(v5, value);
+  ASSERT_TRUE(flag);
+  // clang-format on
+}
+
+TEST_F(VarintTestFixture, WriteAndReadMultipleVarintsWithFalseFlags) {
+  // clang-format off
+  const uint32_t v1 = 23;
+  const uint32_t v2 = 23 << 7;
+  const uint32_t v3 = 23 << 14;
+  const uint32_t v4 = 23 << 21;
+  const uint32_t v5 = 23 << 28;
+
+  byte* pos = b25;
+  bool flag = false;
+  ASSERT_EQ(1, writeVarint32AndFlag(pos, b25end, v1, flag)); pos += 1;
+  ASSERT_EQ(2, writeVarint32AndFlag(pos, b25end, v2, flag)); pos += 2;
+  ASSERT_EQ(3, writeVarint32AndFlag(pos, b25end, v3, flag)); pos += 3;
+  ASSERT_EQ(4, writeVarint32AndFlag(pos, b25end, v4, flag)); pos += 4;
+  ASSERT_EQ(5, writeVarint32AndFlag(pos, b25end, v5, flag)); pos += 5;
+
+  pos = b25;
+  flag = true;
+  uint32_t value = 0;
+  ASSERT_EQ(1, readVarint32AndFlag(pos, b25end, &value, &flag)); pos += 1;
+  ASSERT_EQ(v1, value);
+  ASSERT_FALSE(flag);
+
+  flag = true;
+  ASSERT_EQ(2, readVarint32AndFlag(pos, b25end, &value, &flag)); pos += 2;
+  ASSERT_EQ(v2, value);
+  ASSERT_FALSE(flag);
+
+  flag = true;
+  ASSERT_EQ(3, readVarint32AndFlag(pos, b25end, &value, &flag)); pos += 3;
+  ASSERT_EQ(v3, value);
+  ASSERT_FALSE(flag);
+
+  flag = true;
+  ASSERT_EQ(4, readVarint32AndFlag(pos, b25end, &value, &flag)); pos += 4;
+  ASSERT_EQ(v4, value);
+  ASSERT_FALSE(flag);
+
+  flag = true;
+  ASSERT_EQ(5, readVarint32AndFlag(pos, b25end, &value, &flag)); pos += 5;
+  ASSERT_EQ(v5, value);
+  ASSERT_FALSE(flag);
+  // clang-format on
+}
+
+TEST_F(VarintTestFixture, WriteAndReadMultipleVarintsWithTrueAndFalseFlags) {
+  // clang-format off
+  const uint32_t v1 = 23;
+  const uint32_t v2 = 23 << 7;
+  const uint32_t v3 = 23 << 14;
+  const uint32_t v4 = 23 << 21;
+  const uint32_t v5 = 23 << 28;
+
+  byte* pos = b25;
+  ASSERT_EQ(1, writeVarint32AndFlag(pos, b25end, v1, true));  pos += 1;
+  ASSERT_EQ(2, writeVarint32AndFlag(pos, b25end, v2, false)); pos += 2;
+  ASSERT_EQ(3, writeVarint32AndFlag(pos, b25end, v3, true));  pos += 3;
+  ASSERT_EQ(4, writeVarint32AndFlag(pos, b25end, v4, false)); pos += 4;
+  ASSERT_EQ(5, writeVarint32AndFlag(pos, b25end, v5, true));  pos += 5;
+
+  pos = b25;
+  bool flag = false;
+  uint32_t value = 0;
+  ASSERT_EQ(1, readVarint32AndFlag(pos, b25end, &value, &flag)); pos += 1;
+  ASSERT_EQ(v1, value);
+  ASSERT_TRUE(flag);
+
+  ASSERT_EQ(2, readVarint32AndFlag(pos, b25end, &value, &flag)); pos += 2;
+  ASSERT_EQ(v2, value);
+  ASSERT_FALSE(flag);
+
+  ASSERT_EQ(3, readVarint32AndFlag(pos, b25end, &value, &flag)); pos += 3;
+  ASSERT_EQ(v3, value);
+  ASSERT_TRUE(flag);
+
+  ASSERT_EQ(4, readVarint32AndFlag(pos, b25end, &value, &flag)); pos += 4;
+  ASSERT_EQ(v4, value);
+  ASSERT_FALSE(flag);
+
+  ASSERT_EQ(5, readVarint32AndFlag(pos, b25end, &value, &flag)); pos += 5;
+  ASSERT_EQ(v5, value);
+  ASSERT_TRUE(flag);
+  // clang-format on
+}
+
+TEST_F(VarintTestFixture, WriteTrueFlag) {
+  std::memset(b5, 0xBF, sizeof b5);
+  setFlag(b5, true);
+  ASSERT_THAT(b5, ElementsAre(0xFF, 0xBF, 0xBF, 0xBF, 0xBF));
+}
+
+TEST_F(VarintTestFixture, WriteFalseFlag) {
+  std::memset(b5, 0xFF, sizeof b5);
+  setFlag(b5, false);
+  ASSERT_THAT(b5, ElementsAre(0xBF, 0xFF, 0xFF, 0xFF, 0xFF));
 }
 
 }  // namespace internal

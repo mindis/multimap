@@ -106,6 +106,15 @@ class List {
 
 MT_STATIC_ASSERT_SIZEOF(List, 36, 48);
 
+// The following functions are only public for unit testing.
+
+size_t readVarint32AndFlag(const byte* begin, const byte* end, uint32_t* value,
+                           bool* flag);
+
+size_t writeVarint32AndFlag(byte* begin, byte* end, uint32_t value, bool flag);
+
+void setFlag(byte* buffer, bool flag);
+
 }  // namespace internal
 }  // namespace multimap
 

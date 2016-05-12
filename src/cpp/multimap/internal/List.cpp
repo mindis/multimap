@@ -24,7 +24,6 @@
 #include "multimap/thirdparty/mt/check.h"
 #include "multimap/thirdparty/mt/fileio.h"
 #include "multimap/thirdparty/mt/memory.h"
-#include "multimap/internal/Varint.h"
 
 namespace multimap {
 namespace internal {
@@ -58,13 +57,12 @@ class Stream {
     do {
       // Read value's size and removed-flag.
       last_value_begin_ = block_.cur();
-      nbytes =
-          Varint::readFromBuffer(block_.cur(), block_.end(), &size, &removed);
+      nbytes = readVarint32AndFlag(block_.cur(), block_.end(), &size, &removed);
       if (nbytes == 0 || size == 0) {
         block_ = fetchNextBlock();
         last_value_begin_ = block_.cur();
         nbytes =
-            Varint::readFromBuffer(block_.cur(), block_.end(), &size, &removed);
+            readVarint32AndFlag(block_.cur(), block_.end(), &size, &removed);
         MT_ASSERT_NOT_ZERO(nbytes);
         MT_ASSERT_NOT_ZERO(size);
       }
@@ -98,7 +96,7 @@ class Stream {
 
   void markLastExtractedValueAsRemoved() {
     MT_REQUIRE_NOT_NULL(last_value_begin_);
-    Varint::setFlagInBuffer(last_value_begin_, true);
+    setFlag(last_value_begin_, true);
   }
 
  private:
@@ -306,10 +304,11 @@ void List::appendUnlocked(const Slice& value, Store* store, Arena* arena) {
   // Write value's size and removed-flag into the block.
   const bool removed = false;
   const auto end = block_.end();
-  auto nbytes = Varint::writeToBuffer(block_.cur(), end, value.size(), removed);
+  size_t nbytes =
+      writeVarint32AndFlag(block_.cur(), end, value.size(), removed);
   if (nbytes == 0) {
     flushUnlocked(store);
-    nbytes = Varint::writeToBuffer(block_.cur(), end, value.size(), removed);
+    nbytes = writeVarint32AndFlag(block_.cur(), end, value.size(), removed);
     MT_ASSERT_NOT_ZERO(nbytes);
   }
   block_.offset += nbytes;
@@ -382,6 +381,50 @@ void List::writeToStream(std::ostream* stream) const {
   mt::writeAll(stream, &stats_.num_values_removed,
                sizeof stats_.num_values_removed);
   block_ids_.writeToStream(stream);
+}
+
+const int MAX_VARINT32_BYTES = 5;
+
+size_t readVarint32AndFlag(const byte* begin, const byte* end, uint32_t* value,
+                           bool* flag) {
+  *value = 0;
+  int shift = 6;
+  const int max_bytes = mt::min(end - begin, MAX_VARINT32_BYTES);
+  if (max_bytes > 0) {
+    *value = *begin & 0x3F;
+    *flag = *begin & 0x40;
+    if (!(*begin++ & 0x80)) return 1;
+    for (int i = 1; i < max_bytes; i++) {
+      *value += static_cast<uint32_t>(*begin & 0x7F) << shift;
+      if (!(*begin++ & 0x80)) return i + 1;
+      shift += 7;
+    }
+  }
+  return 0;
+}
+
+size_t writeVarint32AndFlag(byte* begin, byte* end, uint32_t value, bool flag) {
+  byte* pos = begin;
+  if (pos != end) {
+    *pos = (flag ? 0x40 : 0) | (value & 0x3F);
+    if (value > 0x3F) {
+      *pos++ |= 0x80;
+      value >>= 6;
+      while ((pos != end) && (value > 0x7F)) {
+        *pos++ = 0x80 | (value & 0x7F);
+        value >>= 7;
+      }
+      if (pos == end) return 0;  // Insufficient space in buffer.
+      *pos++ = value;
+    } else {
+      pos++;
+    }
+  }
+  return pos - begin;
+}
+
+void setFlag(byte* buffer, bool flag) {
+  flag ? (*buffer |= 0x40) : (*buffer &= 0xBF);
 }
 
 }  // namespace internal

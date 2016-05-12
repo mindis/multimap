@@ -25,7 +25,6 @@
 #include <boost/filesystem/operations.hpp>  // NOLINT
 #include "multimap/internal/Base64.h"
 #include "multimap/internal/Locks.h"
-#include "multimap/internal/Varint.h"
 #include "multimap/thirdparty/mt/check.h"
 
 namespace fs = boost::filesystem;

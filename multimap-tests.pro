@@ -72,7 +72,6 @@ SOURCES += \
     src/cpp/multimap/internal/MphTest.cpp \
     src/cpp/multimap/internal/PartitionTest.cpp \
     src/cpp/multimap/internal/StoreTest.cpp \
-    src/cpp/multimap/internal/VarintTest.cpp \
     src/cpp/multimap/internal/UintVectorTest.cpp \
     src/cpp/multimap/thirdparty/googlemock/src/gmock_main.cc \
     src/cpp/multimap/thirdparty/googlemock/src/gmock-cardinalities.cc \
