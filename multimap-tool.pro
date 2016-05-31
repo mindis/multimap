@@ -5,8 +5,7 @@ CONFIG -= qt
 
 QMAKE_CXXFLAGS += -std=c++11  # for Qt4 compatibility
 
-INCLUDEPATH += $$PWD/src/cpp
-DEPENDPATH += $$PWD/src/cpp
+INCLUDEPATH += src/cpp src/cpp/multimap/thirdparty
 
 SOURCES += src/cpp/multimap/command_line_tool.cpp
 
