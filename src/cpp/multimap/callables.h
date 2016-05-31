@@ -33,7 +33,7 @@ typedef std::function<bool(const Slice&)> Predicate;
 
 typedef std::function<void(const Slice&)> Procedure;
 
-typedef std::function<Bytes(const Slice&)> Function;
+typedef std::function<void(const Slice&, Bytes*)> Function;
 
 typedef std::function<Slice(const Slice&, Arena*)> Function2;
 
