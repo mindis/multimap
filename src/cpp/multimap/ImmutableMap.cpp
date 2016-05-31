@@ -88,7 +88,7 @@ void ImmutableMap::Builder::put(const Slice& key, const Slice& value) {
 
 std::vector<Stats> ImmutableMap::Builder::build() {
   std::vector<Stats> stats;
-  for (size_t i = 0; i != table_builders_.size(); i++) {
+  for (size_t i = 0; i != table_builders_.size(); ++i) {
     if (options_.verbose) {
       mt::log() << "Building partition " << (i + 1) << " of "
                 << table_builders_.size() << std::endl;
@@ -212,8 +212,7 @@ void ImmutableMap::exportToBase64(const fs::path& directory,
         values.reserve(iter->available());
         values.clear();
         while (iter->hasNext()) {
-          values.push_back(iter->next().makeCopy(
-              [&arena](size_t size) { return arena.allocate(size); }));
+          values.push_back(iter->next().makeCopy(&arena));
         }
         std::sort(values.begin(), values.end(), options.compare);
         auto range_iter = makeRangeIterator(values.begin(), values.end());

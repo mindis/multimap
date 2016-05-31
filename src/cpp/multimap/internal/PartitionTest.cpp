@@ -277,11 +277,10 @@ TEST_F(PartitionTestFixture, ReplaceFirstMatchReplacesFirstMatchingValue) {
   partition->put(k1, v1);
   partition->put(k1, v2);
   partition->put(k1, v3);
-  Function rotate = [&](const Slice& value) {  // NOLINT
-    if (value == v1) return v2;
-    if (value == v2) return v3;
-    if (value == v3) return v1;
-    return Bytes();
+  Function rotate = [&](const Slice& input, Bytes* output) {  // NOLINT
+    if (input == v1) { *output = v2; return; }
+    if (input == v2) { *output = v3; return; }
+    if (input == v3) { *output = v1; return; }
   };
   ASSERT_TRUE(partition->replaceFirstMatch(k1, rotate));
   auto iter = partition->get(k1);
@@ -293,10 +292,9 @@ TEST_F(PartitionTestFixture, ReplaceFirstMatchReplacesFirstMatchingValue) {
   partition->put(k2, v1);
   partition->put(k2, v2);
   partition->put(k2, v3);
-  Function rotate_v2_or_v3 = [&](const Slice& value) {  // NOLINT
-    if (value == v2) return v3;
-    if (value == v3) return v1;
-    return Bytes();
+  Function rotate_v2_or_v3 = [&](const Slice& input, Bytes* output) {  // NOLINT
+    if (input == v2) { *output = v3; return; }
+    if (input == v3) { *output = v1; return; }
   };
   ASSERT_TRUE(partition->replaceFirstMatch(k2, rotate_v2_or_v3));
   iter = partition->get(k2);
@@ -311,11 +309,10 @@ TEST_F(PartitionTestFixture, ReplaceAllMatchesReplacesAllMatchingValues) {
   for (const Bytes& key : keys) {
     partition->put(key, values.begin(), values.end());
   }
-  Function rotate = [&](const Slice& value) {  // NOLINT
-    if (value == v1) return v2;
-    if (value == v2) return v3;
-    if (value == v3) return v1;
-    return Bytes();
+  Function rotate = [&](const Slice& input, Bytes* output) {  // NOLINT
+    if (input == v1) { *output = v2; return; }
+    if (input == v2) { *output = v3; return; }
+    if (input == v3) { *output = v1; return; }
   };
   ASSERT_THAT(partition->replaceAllMatches(k1, rotate), Eq(3));
   auto iter = partition->get(k1);
@@ -324,10 +321,9 @@ TEST_F(PartitionTestFixture, ReplaceAllMatchesReplacesAllMatchingValues) {
   ASSERT_THAT(iter->next(), Eq(v1));  // v3 replacement
   ASSERT_FALSE(iter->hasNext());
 
-  Function rotate_v2_or_v3 = [&](const Slice& value) {  // NOLINT
-    if (value == v2) return v3;
-    if (value == v3) return v1;
-    return Bytes();
+  Function rotate_v2_or_v3 = [&](const Slice& input, Bytes* output) {  // NOLINT
+    if (input == v2) { *output = v3; return; }
+    if (input == v3) { *output = v1; return; }
   };
   ASSERT_THAT(partition->replaceAllMatches(k2, rotate_v2_or_v3), Eq(2));
   iter = partition->get(k2);
@@ -729,7 +725,7 @@ INSTANTIATE_TEST_CASE_P(Parameterized, PartitionTestWithParam,
 
 const Procedure NULL_PROCEDURE = [](const Slice&) {};
 const Predicate TRUE_PREDICATE = [](const Slice&) { return true; };
-const Function EMPTY_FUNCTION = [](const Slice&) { return Bytes(); };
+const Function NULL_FUNCTION = [](const Slice&, Bytes*) {};
 
 TEST_F(PartitionTestFixture, GetDifferentListsDoesNotBlock) {
   auto partition = openOrCreatePartition(prefix);
@@ -853,7 +849,7 @@ TEST_F(PartitionTestFixture, ReplaceFirstMatchBlocksIfListIsLocked) {
     auto iter = partition->get(k1);
     ASSERT_TRUE(iter->hasNext());
     std::thread thread([&] {  // NOLINT
-      partition->replaceFirstMatch(k1, EMPTY_FUNCTION);
+      partition->replaceFirstMatch(k1, NULL_FUNCTION);
       thread_is_running = false;
     });
     thread.detach();
@@ -872,7 +868,7 @@ TEST_F(PartitionTestFixture, ReplaceAllMatchesBlocksIfListIsLocked) {
     auto iter = partition->get(k1);
     ASSERT_TRUE(iter->hasNext());
     std::thread thread([&] {  // NOLINT
-      partition->replaceAllMatches(k1, EMPTY_FUNCTION);
+      partition->replaceAllMatches(k1, NULL_FUNCTION);
       thread_is_running = false;
     });
     thread.detach();

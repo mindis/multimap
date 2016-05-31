@@ -257,8 +257,7 @@ void Map::exportToBase64(const fs::path& directory, const fs::path& target,
             values.reserve(iter->available());
             values.clear();
             while (iter->hasNext()) {
-              values.push_back(iter->next().makeCopy(
-                  [&arena](size_t size) { return arena.allocate(size); }));
+              values.push_back(iter->next().makeCopy(&arena));
             }
             std::sort(values.begin(), values.end(), options.compare);
             auto range_iter = makeRangeIterator(values.begin(), values.end());
@@ -313,8 +312,7 @@ void Map::optimize(const fs::path& directory, const fs::path& target,
             values.reserve(iter->available());
             values.clear();
             while (iter->hasNext()) {
-              values.push_back(iter->next().makeCopy(
-                  [&arena](size_t size) { return arena.allocate(size); }));
+              values.push_back(iter->next().makeCopy(&arena));
             }
             std::sort(values.begin(), values.end(), options.compare);
             for (const auto& value : values) {

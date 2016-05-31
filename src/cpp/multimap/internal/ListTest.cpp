@@ -360,8 +360,8 @@ TEST_F(ListTestFixture, ReplaceFirstMatchOnlyReplacesFirstMatch) {
   const std::string s23 = std::to_string(23);
   const std::string s42 = std::to_string(42);
   const auto is_23 = [&s23](const Slice& value) { return value == s23; };
-  const auto map_23_to_42 = [&s42, &is_23](const Slice& value) {
-    return is_23(value) ? toBytes(s42) : Bytes();
+  const auto map_23_to_42 = [&s42, &is_23](const Slice& input, Bytes* output) {
+    if (is_23(input)) copyBytes(s42, output);
   };
   ASSERT_TRUE(list.replaceFirstMatch(map_23_to_42, getStore(), getArena()));
 
@@ -397,8 +397,8 @@ TEST_F(ListTestFixture, ReplaceAllMatchesReplacesAllMatches) {
   const std::string s23 = std::to_string(23);
   const std::string s42 = std::to_string(42);
   const auto is_23 = [&s23](const Slice& value) { return value == s23; };
-  const auto map_23_to_42 = [&s42, &is_23](const Slice& value) {
-    return is_23(value) ? toBytes(s42) : Bytes();
+  const auto map_23_to_42 = [&s42, &is_23](const Slice& input, Bytes* output) {
+    if (is_23(input)) copyBytes(s42, output);
   };
   ASSERT_EQ(factor,
             list.replaceAllMatches(map_23_to_42, getStore(), getArena()));

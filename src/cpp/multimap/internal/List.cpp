@@ -243,9 +243,10 @@ size_t List::removeAllMatches(Predicate predicate, Store* store) {
 }
 
 bool List::replaceFirstMatch(Function map, Store* store, Arena* arena) {
+  Bytes new_value;
   ExclusiveIterator iter(this, store);
   while (iter.hasNext()) {
-    const Bytes new_value = map(iter.next());
+    map(iter.next(), &new_value);
     if (!new_value.empty()) {
       appendUnlocked(new_value, store, arena);
       // `iter` keeps the list in locked state.
@@ -257,12 +258,14 @@ bool List::replaceFirstMatch(Function map, Store* store, Arena* arena) {
 }
 
 size_t List::replaceAllMatches(Function map, Store* store, Arena* arena) {
-  std::vector<Bytes> new_values;
+  Bytes new_value;
+  std::vector<Bytes> new_values; // TODO Use separate arena for new values.
   ExclusiveIterator iter(this, store);
   while (iter.hasNext()) {
-    Bytes new_value = map(iter.next());
+    map(iter.next(), &new_value);
     if (!new_value.empty()) {
-      new_values.push_back(std::move(new_value));
+      new_values.push_back(new_value);
+      new_value.clear();
       iter.remove();
     }
   }

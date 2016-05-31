@@ -83,8 +83,7 @@ Partition::Partition(const fs::path& prefix, const Options& options)
     Bytes key;
     for (size_t i = 0; i != stats_.num_keys_valid; i++) {
       MT_ASSERT_TRUE(readBytesFromStream(map_istream.get(), &key));
-      Slice new_key = Slice(key).makeCopy(
-          [this](size_t size) { return arena_.allocate(size); });
+      Slice new_key = Slice::makeCopy(key, &arena_);
       List list = List::readFromStream(map_istream.get());
       stats_.num_values_total -= list.getStatsUnlocked().num_values_total;
       stats_.num_values_valid -= list.getStatsUnlocked().num_values_valid();
@@ -226,16 +225,18 @@ std::pair<size_t, size_t> Partition::removeAllMatches(Predicate predicate) {
 
 bool Partition::replaceFirstEqual(const Slice& key, const Slice& old_value,
                                   const Slice& new_value) {
-  return replaceFirstMatch(key, [&old_value, &new_value](const Slice& value) {
-    return (value == old_value) ? new_value.makeCopy() : Bytes();
-  });
+  return replaceFirstMatch(
+      key, [&old_value, &new_value](const Slice& input, Bytes* output) {
+        if (input == old_value) new_value.copyTo(output);
+      });
 }
 
 size_t Partition::replaceAllEqual(const Slice& key, const Slice& old_value,
                                   const Slice& new_value) {
-  return replaceAllMatches(key, [&old_value, &new_value](const Slice& value) {
-    return (value == old_value) ? new_value.makeCopy() : Bytes();
-  });
+  return replaceAllMatches(
+      key, [&old_value, &new_value](const Slice& input, Bytes* output) {
+        if (input == old_value) new_value.copyTo(output);
+      });
 }
 
 bool Partition::replaceFirstMatch(const Slice& key, Function map) {
@@ -349,8 +350,7 @@ List* Partition::getListOrCreate(const Slice& key) {
   WriterLockGuard<boost::shared_mutex> lock(mutex_);
   auto iter = map_.find(key);
   if (iter == map_.end()) {
-    const Slice new_key =
-        key.makeCopy([this](size_t size) { return arena_.allocate(size); });
+    const Slice new_key = key.makeCopy(&arena_);
     iter = map_.emplace(new_key, std::unique_ptr<List>(new List())).first;
   }
   return iter->second.get();
