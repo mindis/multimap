@@ -38,6 +38,11 @@ size_t readBytesFromBuffer(const byte* buffer, Bytes* output) {
   return slice.end() - buffer;
 }
 
+void copyBytes(const std::string& input, Bytes* output) {
+  output->resize(input.size());
+  std::memcpy(output->data(), input.data(), input.size());
+}
+
 size_t writeBytesToBuffer(const Bytes& input, byte* begin, byte* end) {
   return Slice(input).writeToBuffer(begin, end);
 }

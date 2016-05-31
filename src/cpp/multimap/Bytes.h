@@ -35,6 +35,8 @@ Bytes toBytes(const char* cstr);
 
 Bytes toBytes(const std::string& str);
 
+void copyBytes(const std::string& input, Bytes* output);
+
 size_t readBytesFromBuffer(const byte* buffer, Bytes* output);
 
 size_t writeBytesToBuffer(const Bytes& input, byte* begin, byte* end);
