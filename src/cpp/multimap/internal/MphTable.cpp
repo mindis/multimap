@@ -33,7 +33,7 @@
 namespace multimap {
 namespace internal {
 
-namespace bfs = boost::filesystem;
+namespace fs = boost::filesystem;
 
 namespace {
 
@@ -64,34 +64,37 @@ class ListIter : public Iterator {
 };
 
 typedef std::vector<Slice> List;
-typedef std::unordered_map<Slice, List> Map;
+typedef std::pair<List, Arena> ListAndArena;
+typedef std::unordered_map<Slice, ListAndArena> Map;
 typedef std::vector<uint32_t> Table;
 
-bfs::path getPathOfRecordsFile(const bfs::path& prefix) {
+fs::path getPathOfRecordsFile(const fs::path& prefix) {
   return prefix.string() + ".records";
 }
 
-bfs::path getPathOfListsFile(const bfs::path& prefix) {
+fs::path getPathOfListsFile(const fs::path& prefix) {
   return prefix.string() + ".lists";
 }
 
-bfs::path getPathOfMphFile(const bfs::path& prefix) {
+fs::path getPathOfMphFile(const fs::path& prefix) {
   return prefix.string() + ".mph";
 }
 
-bfs::path getPathOfStatsFile(const bfs::path& prefix) {
+fs::path getPathOfStatsFile(const fs::path& prefix) {
   return prefix.string() + ".stats";
 }
 
-bfs::path getPathOfTableFile(const bfs::path& prefix) {
+fs::path getPathOfTableFile(const fs::path& prefix) {
   return prefix.string() + ".table";
 }
 
-std::pair<Map, Arena> readRecordsFromFile(const bfs::path& file_path) {
+// All keys in result.first are backed by the arena in result.second.
+// Each value (list of slices) in result.first is backed by its own arena.
+std::pair<Map, Arena> readRecordsFromFile(const fs::path& file_path) {
   Map map;
   Bytes key;
   Bytes value;
-  Arena arena;
+  Arena key_arena;
   uint32_t key_size;
   mt::InputStream istream = mt::newFileInputStream(file_path);
   while (readBytesFromStream(istream.get(), &key) &&
@@ -99,18 +102,18 @@ std::pair<Map, Arena> readRecordsFromFile(const bfs::path& file_path) {
     auto iter = map.find(key);
     if (iter == map.end()) {
       key_size = key.size();
-      byte* new_full_key = arena.allocate(sizeof key_size + key_size);
+      byte* new_full_key = key_arena.allocate(sizeof key_size + key_size);
       std::memcpy(new_full_key, &key_size, sizeof key_size);
       byte* new_key_data = new_full_key + sizeof key_size;
       std::memcpy(new_key_data, key.data(), key_size);
-      iter = map.emplace(Slice(new_key_data, key_size), List()).first;
-      // New keys are stored in a way that they serve as input for CMPH.
+      iter = map.emplace(Slice(new_key_data, key_size), ListAndArena()).first;
+      // New keys are stored in a way that they work as input for CMPH.
     }
-    byte* new_value_data = arena.allocate(value.size());
+    byte* new_value_data = iter->second.second.allocate(value.size());
     std::memcpy(new_value_data, value.data(), value.size());
-    iter->second.emplace_back(new_value_data, value.size());
+    iter->second.first.emplace_back(new_value_data, value.size());
   }
-  return std::make_pair(std::move(map), std::move(arena));
+  return std::make_pair(std::move(map), std::move(key_arena));
 }
 
 Mph buildMphFromKeys(const Map& map) {
@@ -124,9 +127,9 @@ Mph buildMphFromKeys(const Map& map) {
   return Mph::build(keys.data(), keys.size());
 }
 
-Stats writeMap(const bfs::path& prefix, const Map& map, const Mph& mph,
+Stats writeMap(const fs::path& prefix, const Map& map, const Mph& mph,
                Options options) {
-  const bfs::path mph_file_path = getPathOfMphFile(prefix);
+  const fs::path mph_file_path = getPathOfMphFile(prefix);
   if (options.verbose) {
     mt::log() << "Writing " << mph_file_path.string() << std::endl;
   }
@@ -134,7 +137,7 @@ Stats writeMap(const bfs::path& prefix, const Map& map, const Mph& mph,
 
   Table table(map.size());
   const Bytes zeros(options.block_size, 0);
-  const bfs::path lists_file_path = getPathOfListsFile(prefix);
+  const fs::path lists_file_path = getPathOfListsFile(prefix);
   if (options.verbose) {
     mt::log() << "Writing " << lists_file_path.string() << std::endl;
   }
@@ -151,7 +154,7 @@ Stats writeMap(const bfs::path& prefix, const Map& map, const Mph& mph,
       offset += padding;
     }
     const Slice& key = entry.first;
-    const List& list = entry.second;
+    const List& list = entry.second.first;
     table[mph(key)] = offset / options.block_size;
 
     key.writeToStream(lists_ostream.get());
@@ -186,7 +189,7 @@ Stats writeMap(const bfs::path& prefix, const Map& map, const Mph& mph,
   stats.block_size = options.block_size;
   stats.num_blocks = offset / options.block_size;
 
-  const bfs::path table_file_path = getPathOfTableFile(prefix);
+  const fs::path table_file_path = getPathOfTableFile(prefix);
   if (options.verbose) {
     mt::log() << "Writing " << table_file_path.string() << std::endl;
   }
@@ -194,7 +197,7 @@ Stats writeMap(const bfs::path& prefix, const Map& map, const Mph& mph,
   mt::writeAll(table_ostream.get(), table.data(),
                table.size() * sizeof(Table::value_type));
 
-  const bfs::path stats_file_path = getPathOfStatsFile(prefix);
+  const fs::path stats_file_path = getPathOfStatsFile(prefix);
   if (options.verbose) {
     mt::log() << "Writing " << stats_file_path.string() << std::endl;
   }
@@ -233,7 +236,7 @@ size_t MphTable::Limits::maxValueSize() {
   return std::numeric_limits<uint32_t>::max();
 }
 
-MphTable::Builder::Builder(const bfs::path& prefix, const Options& options)
+MphTable::Builder::Builder(const fs::path& prefix, const Options& options)
     : ostream_(mt::newFileOutputStream(getPathOfRecordsFile(prefix))),
       prefix_(prefix),
       options_(options) {}
@@ -241,7 +244,7 @@ MphTable::Builder::Builder(const bfs::path& prefix, const Options& options)
 MphTable::Builder::~Builder() {
   if (ostream_) {
     ostream_.reset();
-    bfs::remove(getPathOfRecordsFile(prefix_));
+    fs::remove(getPathOfRecordsFile(prefix_));
   }
 }
 
@@ -255,23 +258,46 @@ void MphTable::Builder::put(const Slice& key, const Slice& value) {
 Stats MphTable::Builder::build() {
   MT_REQUIRE_TRUE(ostream_);
   ostream_.reset();
-  const bfs::path records_file_path = getPathOfRecordsFile(prefix_);
-  const size_t records_file_size = bfs::file_size(records_file_path);
+  const fs::path records_file_path = getPathOfRecordsFile(prefix_);
+  const size_t records_file_size = fs::file_size(records_file_path);
   const size_t max_block_id = std::numeric_limits<Table::value_type>::max();
   options_.block_size = (records_file_size / max_block_id) + 1;
   auto map_and_arena = readRecordsFromFile(records_file_path);
-  MT_ASSERT_TRUE(bfs::remove(records_file_path));
+  MT_ASSERT_TRUE(fs::remove(records_file_path));
+
   Map& map = map_and_arena.first;
   if (options_.compare) {
-    for (auto& entry : map) {
-      std::sort(entry.second.begin(), entry.second.end(), options_.compare);
+    for (std::pair<const Slice, ListAndArena>& entry : map) {
+      List& list = entry.second.first;
+      std::sort(list.begin(), list.end(), options_.compare);
     }
   }
+
+  if (options_.filter) {
+    Bytes new_value;
+    for (auto it = map.begin(); it != map.end();) {
+      List new_list;
+      Arena new_list_arena;
+      for (const Slice& old_value : it->second.first) {
+        options_.filter(old_value, &new_value);
+        if (!new_value.empty()) {
+          new_list.push_back(Slice::makeCopy(new_value, &new_list_arena));
+          new_value.clear();
+        }
+      }
+      if (new_list.empty()) {
+        it = map.erase(it);
+      } else {
+        it->second = ListAndArena(new_list, std::move(new_list_arena));
+      }
+    }
+  }
+
   const Mph mph = buildMphFromKeys(map);
   return writeMap(prefix_, map, mph, options_);
 }
 
-MphTable::MphTable(const bfs::path& prefix)
+MphTable::MphTable(const fs::path& prefix)
     : mph_(Mph::readFromFile(getPathOfMphFile(prefix))),
       table_(mt::mmapFile(getPathOfTableFile(prefix), PROT_READ)),
       lists_(mt::mmapFile(getPathOfListsFile(prefix), PROT_READ)),
@@ -323,11 +349,11 @@ void MphTable::forEachEntry(BinaryProcedure process) const {
   }
 }
 
-Stats MphTable::stats(const bfs::path& prefix) {
+Stats MphTable::stats(const fs::path& prefix) {
   return Stats::readFromFile(getPathOfStatsFile(prefix));
 }
 
-void MphTable::forEachEntry(const bfs::path& prefix, BinaryProcedure process) {
+void MphTable::forEachEntry(const fs::path& prefix, BinaryProcedure process) {
   MphTable(prefix).forEachEntry(process);
 }
 
