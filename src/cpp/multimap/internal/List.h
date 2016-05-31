@@ -74,8 +74,6 @@ class List {
 
   size_t replaceAllMatches(Function map, Store* store, Arena* arena);
 
-  size_t replaceAllMatches(Function2 map, Store* store, Arena* arena);
-
   bool tryGetStats(Stats* stats) const;
 
   Stats getStatsUnlocked() const;

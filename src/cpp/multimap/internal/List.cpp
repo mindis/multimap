@@ -259,36 +259,19 @@ bool List::replaceFirstMatch(Function map, Store* store, Arena* arena) {
 
 size_t List::replaceAllMatches(Function map, Store* store, Arena* arena) {
   Bytes new_value;
-  std::vector<Bytes> new_values; // TODO Use separate arena for new values.
-  ExclusiveIterator iter(this, store);
-  while (iter.hasNext()) {
-    map(iter.next(), &new_value);
-    if (!new_value.empty()) {
-      new_values.push_back(new_value);
-      new_value.clear();
-      iter.remove();
-    }
-  }
-  for (const auto& value : new_values) {
-    appendUnlocked(value, store, arena);
-    // `iter` keeps the list in locked state.
-  }
-  return new_values.size();
-}
-
-size_t List::replaceAllMatches(Function2 map, Store* store, Arena* arena) {
   Arena new_values_arena;
   std::vector<Slice> new_values;
   ExclusiveIterator iter(this, store);
   while (iter.hasNext()) {
-    Slice new_value = map(iter.next(), &new_values_arena);
+    map(iter.next(), &new_value);
     if (!new_value.empty()) {
-      new_values.push_back(new_value);
+      new_values.push_back(Slice::makeCopy(new_value, &new_values_arena));
+      new_value.clear();
       iter.remove();
     }
   }
-  for (const auto& value : new_values) {
-    appendUnlocked(value, store, arena);
+  for (const Slice& new_value : new_values) {
+    appendUnlocked(new_value, store, arena);
     // `iter` keeps the list in locked state.
   }
   return new_values.size();

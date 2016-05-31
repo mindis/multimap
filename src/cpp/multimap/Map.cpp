@@ -158,10 +158,6 @@ size_t Map::replaceAllMatches(const Slice& key, Function map) {
   return getPartition(key)->replaceAllMatches(key, map);
 }
 
-size_t Map::replaceAllMatches(const Slice& key, Function2 map) {
-  return getPartition(key)->replaceAllMatches(key, map);
-}
-
 void Map::forEachKey(Procedure process) const {
   for (const auto& partition : partitions_) {
     partition->forEachKey(process);

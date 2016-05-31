@@ -83,8 +83,6 @@ class Map {
 
   size_t replaceAllMatches(const Slice& key, Function map);
 
-  size_t replaceAllMatches(const Slice& key, Function2 map);
-
   void forEachKey(Procedure process) const;
 
   void forEachValue(const Slice& key, Procedure process) const;

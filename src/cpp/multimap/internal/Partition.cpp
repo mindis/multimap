@@ -251,12 +251,6 @@ size_t Partition::replaceAllMatches(const Slice& key, Function map) {
   return list ? list->replaceAllMatches(map, &store_, &arena_) : 0;
 }
 
-size_t Partition::replaceAllMatches(const Slice& key, Function2 map) {
-  mt::Check::isFalse(store_.isReadOnly(), READ_ONLY_VIOLATION);
-  List* list = getList(key);
-  return list ? list->replaceAllMatches(map, &store_, &arena_) : 0;
-}
-
 void Partition::forEachKey(Procedure process) const {
   ReaderLockGuard<boost::shared_mutex> lock(mutex_);
   for (const auto& entry : map_) {
