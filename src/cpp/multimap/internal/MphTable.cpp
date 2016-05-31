@@ -274,17 +274,17 @@ Stats MphTable::Builder::build() {
   }
 
   if (options_.filter) {
-    Bytes new_value;
     for (auto it = map.begin(); it != map.end();) {
       List new_list;
       Arena new_list_arena;
-      for (const Slice& old_value : it->second.first) {
-        options_.filter(old_value, &new_value);
+      const List& list = it->second.first;
+      auto list_iter = makeRangeIterator(list.begin(), list.end());
+      options_.filter(it->first, &list_iter, [&new_list, &new_list_arena](
+                                                 const Slice& new_value) {
         if (!new_value.empty()) {
-          new_list.push_back(Slice::makeCopy(new_value, &new_list_arena));
-          new_value.clear();
+          new_list.push_back(new_value.makeCopy(&new_list_arena));
         }
-      }
+      });
       if (new_list.empty()) {
         it = map.erase(it);
       } else {
