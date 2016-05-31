@@ -49,7 +49,7 @@ void toUtf8(const std::wstring& utf32, std::string* utf8) {
   // so casting away constness and writing directly into the array is safe.
   // C++17 adds a non-const version of std::string::data() for that reason.
   mt::check(status != static_cast<size_t>(-1),
-            "std::wcsrtombs() failed because of %s", mt::errnostr());
+            "std::wcsrtombs() failed because of '%s'", mt::errnostr());
   utf8->resize(status);
 }
 
@@ -70,7 +70,7 @@ void toUtf32(const std::string& utf8, std::wstring* utf32) {
   // so casting away constness and writing directly into the array is safe.
   // C++17 adds a non-const version of std::wstring::data() for that reason.
   mt::check(status != static_cast<size_t>(-1),
-            "std::mbsrtowcs() failed because of %s", mt::errnostr());
+            "std::mbsrtowcs() failed because of '%s'", mt::errnostr());
   utf32->resize(status);
 }
 
