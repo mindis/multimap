@@ -36,6 +36,7 @@ struct Options {
   bool verbose = true;
 
   Compare compare;
+  Function filter;
 
   void keepNumPartitions() { num_partitions = 0; }
   void keepBlockSize() { block_size = 0; }
