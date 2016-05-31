@@ -26,6 +26,7 @@
 #include <string>
 #include "multimap/thirdparty/mt/common.h"
 #include "multimap/thirdparty/xxhash/xxhash.h"
+#include "multimap/Arena.h"
 #include "multimap/Bytes.h"
 
 namespace multimap {
@@ -66,11 +67,14 @@ class Slice {
     return copy;
   }
 
-  template <typename Allocate>
-  Slice makeCopy(Allocate allocate) const {
-    byte* new_data = allocate(size_);
+  Slice makeCopy(Arena* arena) const {
+    byte* new_data = arena->allocate(size_);
     std::memcpy(new_data, data_, size_);
     return Slice(new_data, size_);
+  }
+
+  static Slice makeCopy(const Bytes& bytes, Arena* arena) {
+    return Slice(bytes).makeCopy(arena);
   }
 
   std::string toString() const {
