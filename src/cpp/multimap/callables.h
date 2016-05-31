@@ -23,7 +23,6 @@
 #define MULTIMAP_CALLABLES_H_
 
 #include <functional>
-#include "multimap/Arena.h"
 #include "multimap/Iterator.h"
 #include "multimap/Slice.h"
 
@@ -35,11 +34,11 @@ typedef std::function<void(const Slice&)> Procedure;
 
 typedef std::function<void(const Slice&, Bytes*)> Function;
 
-typedef std::function<Slice(const Slice&, Arena*)> Function2;
-
 typedef std::function<bool(const Slice&, const Slice&)> Compare;
 
 typedef std::function<void(const Slice&, Iterator*)> BinaryProcedure;
+
+typedef std::function<void(const Slice&, Iterator*, Procedure)> Filter;
 
 }  // namespace multimap
 
