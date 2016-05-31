@@ -15,7 +15,7 @@ macx {
     LIBS += -L/usr/local/lib
 }
 
-unix: LIBS += -L$$OUT_PWD/ -lmultimap -lboost_system
+unix: LIBS += -lmultimap -lboost_system
 
 unix {
     target.path = /usr/local/bin
