@@ -63,11 +63,6 @@ class ListIter : public Iterator {
   size_t num_values_ = 0;
 };
 
-typedef std::vector<Slice> List;
-typedef std::pair<List, Arena> ListAndArena;
-typedef std::unordered_map<Slice, ListAndArena> Map;
-typedef std::vector<uint32_t> Table;
-
 fs::path getPathOfRecordsFile(const fs::path& prefix) {
   return prefix.string() + ".records";
 }
@@ -88,35 +83,37 @@ fs::path getPathOfTableFile(const fs::path& prefix) {
   return prefix.string() + ".table";
 }
 
-// All keys in result.first are backed by the arena in result.second.
-// Each value (list of slices) in result.first is backed by its own arena.
-std::pair<Map, Arena> readRecordsFromFile(const fs::path& file_path) {
-  Map map;
-  Bytes key;
-  Bytes value;
-  Arena key_arena;
-  uint32_t key_size;
+typedef std::vector<Slice> List;
+typedef std::vector<uint32_t> Table;
+
+struct Multimap : public std::unordered_map<Slice, List> {
+  Arena keys_arena, values_arena;
+};
+
+Multimap readRecordsFromFile(const fs::path& file_path) {
+  Multimap map;
+  Bytes key, value;
   mt::InputStream istream = mt::newFileInputStream(file_path);
   while (readBytesFromStream(istream.get(), &key) &&
          readBytesFromStream(istream.get(), &value)) {
     auto iter = map.find(key);
     if (iter == map.end()) {
-      key_size = key.size();
-      byte* new_full_key = key_arena.allocate(sizeof key_size + key_size);
+      const uint32_t key_size = key.size();
+      byte* new_full_key = map.keys_arena.allocate(sizeof key_size + key_size);
       std::memcpy(new_full_key, &key_size, sizeof key_size);
       byte* new_key_data = new_full_key + sizeof key_size;
       std::memcpy(new_key_data, key.data(), key_size);
-      iter = map.emplace(Slice(new_key_data, key_size), ListAndArena()).first;
+      iter = map.emplace(Slice(new_key_data, key_size), List()).first;
       // New keys are stored in a way that they work as input for CMPH.
     }
-    byte* new_value_data = iter->second.second.allocate(value.size());
+    byte* new_value_data = map.values_arena.allocate(value.size());
     std::memcpy(new_value_data, value.data(), value.size());
-    iter->second.first.emplace_back(new_value_data, value.size());
+    iter->second.emplace_back(new_value_data, value.size());
   }
-  return std::make_pair(std::move(map), std::move(key_arena));
+  return map;
 }
 
-Mph buildMphFromKeys(const Map& map) {
+Mph buildMphFromKeys(const Multimap& map) {
   uint32_t key_size;
   auto iter = map.begin();
   std::vector<const byte*> keys(map.size());
@@ -127,7 +124,7 @@ Mph buildMphFromKeys(const Map& map) {
   return Mph::build(keys.data(), keys.size());
 }
 
-Stats writeMap(const fs::path& prefix, const Map& map, const Mph& mph,
+Stats writeMap(const fs::path& prefix, const Multimap& map, const Mph& mph,
                Options options) {
   const fs::path mph_file_path = getPathOfMphFile(prefix);
   if (options.verbose) {
@@ -146,7 +143,7 @@ Stats writeMap(const fs::path& prefix, const Map& map, const Mph& mph,
   Stats stats;
   stats.num_keys_total = map.size();
   stats.num_keys_valid = map.size();
-  for (const auto& entry : map) {
+  for (const std::pair<const Slice, List>& entry : map) {
     auto offset = lists_ostream->tellp();
     if (const auto remainder = offset % options.block_size) {
       const auto padding = options.block_size - remainder;
@@ -154,7 +151,7 @@ Stats writeMap(const fs::path& prefix, const Map& map, const Mph& mph,
       offset += padding;
     }
     const Slice& key = entry.first;
-    const List& list = entry.second.first;
+    const List& list = entry.second;
     table[mph(key)] = offset / options.block_size;
 
     key.writeToStream(lists_ostream.get());
@@ -262,36 +259,36 @@ Stats MphTable::Builder::build() {
   const size_t records_file_size = fs::file_size(records_file_path);
   const size_t max_block_id = std::numeric_limits<Table::value_type>::max();
   options_.block_size = (records_file_size / max_block_id) + 1;
-  auto map_and_arena = readRecordsFromFile(records_file_path);
+  Multimap map = readRecordsFromFile(records_file_path);
   MT_ASSERT_TRUE(fs::remove(records_file_path));
 
-  Map& map = map_and_arena.first;
   if (options_.compare) {
-    for (std::pair<const Slice, ListAndArena>& entry : map) {
-      List& list = entry.second.first;
-      std::sort(list.begin(), list.end(), options_.compare);
+    for (std::pair<const Slice, List>& entry : map) {
+      std::sort(entry.second.begin(), entry.second.end(), options_.compare);
     }
   }
 
   if (options_.filter) {
+    Arena filtered_values_arena;
     for (auto it = map.begin(); it != map.end();) {
-      List new_list;
-      Arena new_list_arena;
-      const List& list = it->second.first;
-      auto list_iter = makeRangeIterator(list.begin(), list.end());
-      options_.filter(it->first, &list_iter, [&new_list, &new_list_arena](
-                                                 const Slice& new_value) {
-        if (!new_value.empty()) {
-          new_list.push_back(new_value.makeCopy(&new_list_arena));
-        }
-      });
-      if (new_list.empty()) {
+      List filtered_values;
+      auto list_iter = makeRangeIterator(it->second.begin(), it->second.end());
+      options_.filter(it->first, &list_iter,
+                      [&filtered_values, &filtered_values_arena](
+                          const Slice& filtered_value) {
+                        if (!filtered_value.empty()) {
+                          filtered_values.push_back(
+                              filtered_value.makeCopy(&filtered_values_arena));
+                        }
+                      });
+      if (filtered_values.empty()) {
         it = map.erase(it);
       } else {
-        it->second = ListAndArena(new_list, std::move(new_list_arena));
+        it->second = filtered_values;
         ++it;
       }
     }
+    map.values_arena = std::move(filtered_values_arena);
   }
 
   const Mph mph = buildMphFromKeys(map);
