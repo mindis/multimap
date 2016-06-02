@@ -289,6 +289,7 @@ Stats MphTable::Builder::build() {
         it = map.erase(it);
       } else {
         it->second = ListAndArena(new_list, std::move(new_list_arena));
+        ++it;
       }
     }
   }
